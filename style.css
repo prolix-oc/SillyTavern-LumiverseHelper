@@ -1,0 +1,68 @@
+.lumia-injector-settings {
+    padding: 10px;
+}
+
+.lumia-section {
+    margin-bottom: 15px;
+    border: 1px solid rgba(128, 128, 128, 0.4);
+    padding: 10px;
+    border-radius: 5px;
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+.lumia-section h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.4);
+    padding-bottom: 5px;
+}
+
+.lumia-input-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.lumia-input-group input[type="text"] {
+    flex-grow: 1;
+}
+
+.lumia-list {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid rgba(128, 128, 128, 0.2);
+    padding: 5px;
+}
+
+.lumia-item {
+    display: flex;
+    align-items: center;
+    padding: 4px;
+    cursor: pointer;
+}
+
+.lumia-item:hover {
+    background-color: rgba(128, 128, 128, 0.1);
+}
+
+.lumia-item input {
+    margin-right: 8px;
+}
+
+.lumia-item label {
+    cursor: pointer;
+    user-select: none;
+    flex-grow: 1;
+}
+
+.lumia-status {
+    font-style: italic;
+    color: #aaa;
+    margin-bottom: 5px;
+}
+
+.lumia-empty {
+    padding: 10px;
+    text-align: center;
+    color: #888;
+}

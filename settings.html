@@ -1,0 +1,51 @@
+<div class="lumia-injector-settings">
+    <div class="inline-drawer">
+        <div class="inline-drawer-toggle inline-drawer-header">
+            <b>Lumia Injector Settings</b>
+            <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+        </div>
+        <div class="inline-drawer-content">
+            
+            <!-- Source Section -->
+            <div class="lumia-section">
+                <h3>World Book Source</h3>
+                <div class="lumia-status" id="lumia-book-status">No World Book loaded</div>
+                <div class="lumia-input-group">
+                    <input type="text" id="lumia-url-input" class="text_pole" placeholder="Enter World Book URL (JSON)" />
+                    <button id="lumia-fetch-btn" class="menu_button">Fetch</button>
+                </div>
+            </div>
+
+            <!-- Configuration Section -->
+            <div class="lumia-section">
+                <h3>Configuration</h3>
+                
+                <h4>Definitions (Select One)</h4>
+                <div id="lumia-list-definitions" class="lumia-list">
+                    <div class="lumia-empty">No definitions found</div>
+                </div>
+
+                <h4>Behaviors (Select Multiple)</h4>
+                <div id="lumia-list-behaviors" class="lumia-list">
+                    <div class="lumia-empty">No behaviors found</div>
+                </div>
+
+                <h4>Personalities (Select Multiple)</h4>
+                <div id="lumia-list-personalities" class="lumia-list">
+                    <div class="lumia-empty">No personalities found</div>
+                </div>
+            </div>
+
+            <div class="lumia-section">
+                <h3>Usage</h3>
+                <p>Use the following macros in your prompts or character cards:</p>
+                <ul>
+                    <li><code>{{lumiaDef}}</code> - Inserts the selected Physical Definition.</li>
+                    <li><code>{{lumiaBehavior}}</code> - Inserts the selected Behavior(s).</li>
+                    <li><code>{{lumiaPersonality}}</code> - Inserts the selected Personality(s).</li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+</div>
