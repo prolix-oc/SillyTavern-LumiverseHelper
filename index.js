@@ -13,6 +13,8 @@ let settings = {
     selectedPersonalities: [] // array of uids
 };
 
+let parsedEntries = {};
+
 function loadSettings() {
     if (extension_settings[SETTINGS_KEY]) {
         settings = { ...settings, ...extension_settings[SETTINGS_KEY] };
@@ -75,8 +77,50 @@ function parseWorldBook(data) {
             }
         }
     }
+
+    // Legacy Format Handling: Check personalities for fused behavior/personality content
+    personalities.forEach(entry => {
+        // Check if we already have a behavior with this name
+        const hasBehavior = behaviors.some(b => b.displayName === entry.displayName);
+        
+        if (!hasBehavior && entry.content && typeof entry.content === 'string') {
+            // Regex to find setvar/setglobalvar blocks
+            const behaviorMatch = entry.content.match(/{{setvar::lumia_behavior_\w+::([\s\S]*?)}}/);
+            const personalityMatch = entry.content.match(/{{setglobalvar::lumia_personality_\w+::([\s\S]*?)}}/);
+
+            if (behaviorMatch) {
+                // Synthesize a new Behavior entry
+                const extractedBehavior = behaviorMatch[1].trim();
+                const newBehavior = {
+                    uid: `legacy-behavior-${entry.uid}`, // Pseudo-UID
+                    displayName: entry.displayName,
+                    comment: `Lumia Behavior (${entry.displayName}) [Extracted]`,
+                    content: extractedBehavior
+                };
+                behaviors.push(newBehavior);
+            }
+
+            if (personalityMatch) {
+                // Update the personality entry to use only the extracted content
+                // We modify a clone or the object itself? The object is from settings reference.
+                // We should only affect the rendering/macro usage, so updating the property here is okay
+                // as parseWorldBook returns lists for rendering. 
+                // The 'entry' here is a reference to the object in `values`.
+                // If we modify 'content' here, it modifies the loaded object in memory settings.
+                // This is desirable so macros use the extracted content.
+                entry.content = personalityMatch[1].trim();
+            }
+        }
+    });
     
     return { definitions, behaviors, personalities };
+}
+
+function updateParsedEntries(definitions, behaviors, personalities) {
+    parsedEntries = {};
+    [...definitions, ...behaviors, ...personalities].forEach(entry => {
+        parsedEntries[entry.uid] = entry;
+    });
 }
 
 function renderList(containerId, items, type, currentSelection) {
@@ -154,6 +198,7 @@ function refreshUI() {
         if (statusDiv) statusDiv.textContent = `Loaded: ${settings.worldBookData.name || "Unknown World Book"}`;
         
         const { definitions, behaviors, personalities } = parseWorldBook(settings.worldBookData);
+        updateParsedEntries(definitions, behaviors, personalities);
         
         renderList("lumia-list-definitions", definitions, "definition", settings.selectedDefinition);
         renderList("lumia-list-behaviors", behaviors, "behavior", settings.selectedBehaviors);
@@ -195,8 +240,16 @@ async function fetchWorldBook(url) {
 
 // Macro Registration
 function getEntryContent(uid) {
-    if (!settings.worldBookData || !settings.worldBookData.entries) return "";
-    const entry = settings.worldBookData.entries[uid];
+    // Ensure parsed entries are available if not yet parsed (e.g. on first load before UI open? No, init calls refreshUI)
+    // But refreshUI requires DOM?
+    // Safer to check parsedEntries.
+    if (!parsedEntries[uid] && settings.worldBookData) {
+       // Force parse if missing
+       const { definitions, behaviors, personalities } = parseWorldBook(settings.worldBookData);
+       updateParsedEntries(definitions, behaviors, personalities);
+    }
+
+    const entry = parsedEntries[uid];
     return entry ? entry.content : "";
 }
 
