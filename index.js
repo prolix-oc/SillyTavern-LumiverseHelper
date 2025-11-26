@@ -140,68 +140,87 @@ function showSelectionModal(type) {
     let items = [];
     let title = "";
     let isMulti = false;
+    let displayImage = null; // Image to use for grid items (if applicable)
+
+    // Find selected definition to get its image
+    const selectedDef = parsed.definitions.find(d => Number(d.uid) === settings.selectedDefinition);
+    const defImage = selectedDef ? selectedDef.image : null;
 
     if (type === 'definition') {
         items = parsed.definitions;
         title = "Select Definition";
         isMulti = false;
+        // For definition mode, we use each item's own image
     } else if (type === 'behavior') {
         items = parsed.behaviors;
         title = "Select Behaviors";
         isMulti = true;
+        displayImage = defImage;
     } else if (type === 'personality') {
         items = parsed.personalities;
         title = "Select Personalities";
         isMulti = true;
+        displayImage = defImage;
     }
 
     $("#lumia-selection-modal").remove();
 
     const modalHtml = `
-        <div id="lumia-selection-modal" class="lumia-modal">
-            <div class="lumia-modal-content">
-                <div class="lumia-modal-header">
-                    <h3>${title}</h3>
-                    <span class="lumia-modal-close">&times;</span>
-                </div>
-                <div class="lumia-modal-body">
-                    <div class="lumia-grid">
-                        ${items.length > 0 ? items.map(item => {
-                            const isSelected = isMulti 
-                                ? (type === 'behavior' ? settings.selectedBehaviors : settings.selectedPersonalities).includes(Number(item.uid))
-                                : settings.selectedDefinition === Number(item.uid);
-                            
-                            return `
-                            <div class="lumia-grid-item ${isSelected ? 'selected' : ''}" data-uid="${item.uid}">
-                                <div class="lumia-item-image">
-                                    ${item.image ? `<img src="${item.image}" alt="${item.displayName}">` : '<div class="lumia-placeholder-img">?</div>'}
-                                </div>
-                                <div class="lumia-item-name">${item.displayName || "Unknown"}</div>
-                            </div>
-                            `;
-                        }).join("") : '<div class="lumia-empty">No items found</div>'}
-                    </div>
-                </div>
-                ${isMulti ? '<div class="lumia-modal-footer"><button class="menu_button lumia-modal-done">Done</button></div>' : ''}
+        <dialog id="lumia-selection-modal" class="popup wide_dialogue_popup large_dialogue_popup vertical_scrolling_dialogue_popup popup--animation-fast">
+            <div class="popup-header">
+                <h3 style="margin: 0; padding: 10px 0;">${title}</h3>
             </div>
-        </div>
+            <div class="popup-content" style="padding: 15px; flex: 1; display: flex; flex-direction: column;">
+                <div class="lumia-grid">
+                    ${items.length > 0 ? items.map(item => {
+                        const isSelected = isMulti 
+                            ? (type === 'behavior' ? settings.selectedBehaviors : settings.selectedPersonalities).includes(Number(item.uid))
+                            : settings.selectedDefinition === Number(item.uid);
+                        
+                        // Determine which image to show
+                        // If we are in definition mode, show item's image
+                        // If behavior/personality, show the SELECTED DEFINITION's image (displayImage)
+                        const imgToShow = (type === 'definition') ? item.image : displayImage;
+
+                        return `
+                        <div class="lumia-grid-item ${isSelected ? 'selected' : ''}" data-uid="${item.uid}">
+                            <div class="lumia-item-image">
+                                ${imgToShow ? `<img src="${imgToShow}" alt="${item.displayName}">` : '<div class="lumia-placeholder-img">?</div>'}
+                            </div>
+                            <div class="lumia-item-name">${item.displayName || "Unknown"}</div>
+                        </div>
+                        `;
+                    }).join("") : '<div class="lumia-empty">No items found</div>'}
+                </div>
+            </div>
+            <div class="popup-footer" style="display: flex; justify-content: center; padding: 15px; gap: 10px;">
+                ${isMulti ? '<button class="menu_button lumia-modal-done">Done</button>' : '<button class="menu_button lumia-modal-close-btn">Close</button>'}
+            </div>
+        </dialog>
     `;
 
     $("body").append(modalHtml);
     const $modal = $("#lumia-selection-modal");
 
     const closeModal = () => {
+        $modal[0].close();
         $modal.remove();
-        $(window).off('click.lumiaModal');
         refreshUI(); // Refresh after closing to show updated lists
     };
 
-    $modal.find(".lumia-modal-close, .lumia-modal-done").click(closeModal);
+    $modal.find(".lumia-modal-close-btn, .lumia-modal-done").click(closeModal);
     
-    // Close on clicking outside
-    $(window).on('click.lumiaModal', function(event) {
-        if (event.target == $modal[0]) {
-            closeModal();
+    // Close on clicking outside (native dialog behavior needs helper or manual check)
+    $modal.on("click", function (e) {
+        if (e.target === this) {
+          closeModal();
+        }
+    });
+    
+    // Close on ESC
+    $modal.on("keydown", function (e) {
+        if (e.key === "Escape") {
+          closeModal();
         }
     });
 
@@ -242,6 +261,8 @@ function showSelectionModal(type) {
             saveSettings();
         }
     });
+    
+    $modal[0].showModal();
 }
 
 function refreshUI() {

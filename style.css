@@ -27,13 +27,6 @@
     flex-grow: 1;
 }
 
-.lumia-list {
-    max-height: 200px;
-    overflow-y: auto;
-    border: 1px solid rgba(128, 128, 128, 0.2);
-    padding: 5px;
-}
-
 .lumia-item {
     display: flex;
     align-items: center;
@@ -86,76 +79,6 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     flex-grow: 1;
-}
-
-/* Modal Styles */
-.lumia-modal {
-    display: flex;
-    position: fixed;
-    z-index: 20000; /* High z-index to appear above ST UI */
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0,0,0,0.7);
-    justify-content: center;
-    align-items: center;
-    backdrop-filter: blur(2px);
-}
-
-.lumia-modal-content {
-    background-color: var(--block-body, #202020);
-    padding: 0;
-    border: 1px solid rgba(128, 128, 128, 0.5);
-    width: 80%;
-    max-width: 900px;
-    max-height: 85vh;
-    display: flex;
-    flex-direction: column;
-    border-radius: 10px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-    color: var(--SmartThemeBodyColor, #e0e0e0);
-}
-
-.lumia-modal-header {
-    padding: 15px 20px;
-    border-bottom: 1px solid rgba(128, 128, 128, 0.3);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: rgba(0,0,0,0.2);
-    border-radius: 10px 10px 0 0;
-}
-
-.lumia-modal-header h3 {
-    margin: 0;
-}
-
-.lumia-modal-close {
-    color: #aaa;
-    font-size: 28px;
-    font-weight: bold;
-    cursor: pointer;
-    line-height: 1;
-}
-
-.lumia-modal-close:hover {
-    color: #fff;
-}
-
-.lumia-modal-body {
-    padding: 20px;
-    overflow-y: auto;
-    flex: 1;
-}
-
-.lumia-modal-footer {
-    padding: 15px;
-    border-top: 1px solid rgba(128, 128, 128, 0.3);
-    background-color: rgba(0,0,0,0.2);
-    text-align: center;
-    border-radius: 0 0 10px 10px;
 }
 
 /* Grid Layout */
@@ -225,10 +148,7 @@
     .lumia-grid {
         grid-template-columns: 1fr; 
     }
-    .lumia-modal-content {
-        width: 95%;
-        max-height: 90vh;
-    }
+    
     .lumia-definition-selector {
         flex-direction: column;
         align-items: stretch;
