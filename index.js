@@ -39,6 +39,17 @@ async function loadSettingsHtml() {
     return html;
 }
 
+function extractImageFromContent(content) {
+    let image = null;
+    let cleanContent = content;
+    const imgMatch = content.match(/\[lumia_img=(.+?)\]/);
+    if (imgMatch) {
+        image = imgMatch[1].trim();
+        cleanContent = content.replace(imgMatch[0], "").trim();
+    }
+    return { image, content: cleanContent };
+}
+
 function parseWorldBook(data) {
     if (!data || !data.entries) return { definitions: [], behaviors: [], personalities: [] };
 
@@ -70,13 +81,9 @@ function parseWorldBook(data) {
 
             // Common Image extraction logic
             if (entry.image === undefined) {
-                const imgMatch = entry.content.match(/\[lumia_img=(.+?)\]/);
-                if (imgMatch) {
-                    entry.image = imgMatch[1].trim();
-                    entry.content = entry.content.replace(imgMatch[0], "").trim();
-                } else {
-                    entry.image = null;
-                }
+                const result = extractImageFromContent(entry.content);
+                entry.image = result.image;
+                entry.content = result.content;
             }
 
             if (type === "definition") {
@@ -101,25 +108,28 @@ function parseWorldBook(data) {
 
             if (behaviorMatch) {
                 // Synthesize a new Behavior entry
-                const extractedBehavior = behaviorMatch[1].trim();
+                const extracted = extractImageFromContent(behaviorMatch[1].trim());
+                
                 const newBehavior = {
                     uid: `legacy-behavior-${entry.uid}`, // Pseudo-UID
                     displayName: entry.displayName,
                     comment: `Lumia Behavior (${entry.displayName}) [Extracted]`,
-                    content: extractedBehavior
+                    content: extracted.content,
+                    image: extracted.image
                 };
                 behaviors.push(newBehavior);
             }
 
             if (personalityMatch) {
                 // Update the personality entry to use only the extracted content
-                // We modify a clone or the object itself? The object is from settings reference.
-                // We should only affect the rendering/macro usage, so updating the property here is okay
-                // as parseWorldBook returns lists for rendering. 
-                // The 'entry' here is a reference to the object in `values`.
-                // If we modify 'content' here, it modifies the loaded object in memory settings.
-                // This is desirable so macros use the extracted content.
-                entry.content = personalityMatch[1].trim();
+                const extracted = extractImageFromContent(personalityMatch[1].trim());
+                entry.content = extracted.content;
+                // We don't overwrite entry.image here as it might have been defined at top level?
+                // But if top level was just [lumia_img] + setvar/setglobal, it was already processed.
+                // If [lumia_img] is inside setglobalvar, we should capture it.
+                if (extracted.image) {
+                    entry.image = extracted.image; 
+                }
             }
         }
     });
@@ -173,9 +183,19 @@ function showSelectionModal(type) {
             <div class="popup-content" style="padding: 15px; flex: 1; display: flex; flex-direction: column;">
                 <div class="lumia-grid">
                     ${items.length > 0 ? items.map(item => {
-                        const isSelected = isMulti 
-                            ? (type === 'behavior' ? settings.selectedBehaviors : settings.selectedPersonalities).includes(Number(item.uid))
-                            : settings.selectedDefinition === Number(item.uid);
+                        // Handle selection logic (handle both string and number UIDs for legacy/legacy-mixed support)
+                        const itemUid = item.uid; // Keep original type
+                        const collection = isMulti 
+                            ? (type === 'behavior' ? settings.selectedBehaviors : settings.selectedPersonalities) 
+                            : null;
+                        
+                        let isSelected = false;
+                        if (isMulti) {
+                            // Check properly regardless of type mismatch if possible
+                            isSelected = collection.some(id => id == itemUid); // loose equality for legacy string vs number safety
+                        } else {
+                            isSelected = settings.selectedDefinition == itemUid;
+                        }
                         
                         // Determine which image to show
                         // If we are in definition mode, show item's image
@@ -225,7 +245,9 @@ function showSelectionModal(type) {
     });
 
     $modal.find(".lumia-grid-item").click(function() {
-        const uid = Number($(this).data("uid"));
+        // Retrieve UID. jQuery .data() attempts to infer type (int, float, string). 
+        // For "legacy-behavior-123", it stays string. For "123", it becomes number.
+        const uid = $(this).data("uid");
         
         if (!isMulti) {
             // Single Select (Definition)
@@ -243,8 +265,11 @@ function showSelectionModal(type) {
                 collection = settings.selectedPersonalities;
             }
 
-            if (collection.includes(uid)) {
-                collection = collection.filter(id => id !== uid);
+            // Toggle logic using loose equality for safety
+            const index = collection.findIndex(id => id == uid);
+            
+            if (index !== -1) {
+                collection.splice(index, 1);
                 $this.removeClass('selected');
             } else {
                 collection.push(uid);
@@ -280,7 +305,7 @@ function refreshUI() {
         // Update Definition Selector Label
         const currentDefDiv = document.getElementById("lumia-current-definition");
         if (currentDefDiv) {
-            const selectedDef = definitions.find(d => Number(d.uid) === settings.selectedDefinition);
+            const selectedDef = definitions.find(d => d.uid == settings.selectedDefinition);
             currentDefDiv.textContent = selectedDef ? 
                 (selectedDef.displayName || "Unnamed Definition") : 
                 "No definition selected";
@@ -290,7 +315,7 @@ function refreshUI() {
         const currentBehaviorsDiv = document.getElementById("lumia-current-behaviors");
         if (currentBehaviorsDiv) {
             const selectedBehaviors = settings.selectedBehaviors
-                .map(uid => behaviors.find(b => Number(b.uid) === uid)?.displayName)
+                .map(uid => behaviors.find(b => b.uid == uid)?.displayName)
                 .filter(name => name);
             
             currentBehaviorsDiv.textContent = selectedBehaviors.length > 0 
@@ -302,7 +327,7 @@ function refreshUI() {
         const currentPersonalitiesDiv = document.getElementById("lumia-current-personalities");
         if (currentPersonalitiesDiv) {
             const selectedPersonalities = settings.selectedPersonalities
-                .map(uid => personalities.find(p => Number(p.uid) === uid)?.displayName)
+                .map(uid => personalities.find(p => p.uid == uid)?.displayName)
                 .filter(name => name);
             
             currentPersonalitiesDiv.textContent = selectedPersonalities.length > 0 
