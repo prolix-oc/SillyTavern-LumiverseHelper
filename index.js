@@ -149,13 +149,6 @@ function showSelectionModal(type) {
 
     let title = "";
     let isMulti = false;
-    let displayImage = null;
-
-    // Find selected definition to get its image context
-    const selectedDefIndex = settings.selectedDefinition;
-    const defImage = (selectedDefIndex !== null && library[selectedDefIndex]) 
-        ? library[selectedDefIndex].lumia_img 
-        : null;
 
     if (type === 'definition') {
         title = "Select Definition";
@@ -163,11 +156,9 @@ function showSelectionModal(type) {
     } else if (type === 'behavior') {
         title = "Select Behaviors";
         isMulti = true;
-        displayImage = defImage;
     } else if (type === 'personality') {
         title = "Select Personalities";
         isMulti = true;
-        displayImage = defImage;
     }
 
     $("#lumia-selection-modal").remove();
@@ -191,7 +182,9 @@ function showSelectionModal(type) {
                             isSelected = settings.selectedDefinition === item.uid;
                         }
                         
-                        const imgToShow = (type === 'definition') ? item.image : displayImage;
+                        // Use the image derived from the Lumia object itself (for all types)
+                        // This ensures behaviors/personalities display their character's image
+                        const imgToShow = item.image;
 
                         return `
                         <div class="lumia-grid-item ${isSelected ? 'selected' : ''}" data-index="${item.uid}">
@@ -398,39 +391,6 @@ MacrosParser.registerMacro("lumiaBehavior", () => {
 MacrosParser.registerMacro("lumiaPersonality", () => {
     return getLumiaContent('personality', settings.selectedPersonalities);
 });
-    $("#lumia-file-input").change((event) => {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const data = JSON.parse(e.target.result);
-                
-                const library = processWorldBook(data);
-                if (library.length === 0) throw new Error("No valid Lumia entries found.");
-
-                settings.worldBookData = data;
-                settings.lumiaLibrary = library;
-                settings.worldBookUrl = "Uploaded File: " + file.name;
-                
-                // Reset selections
-                settings.selectedDefinition = null;
-                settings.selectedBehaviors = [];
-                settings.selectedPersonalities = [];
-
-                saveSettings();
-                refreshUI();
-                toastr.success(`Lumia Book uploaded! Found ${library.length} entries.`);
-            } catch (error) {
-                console.error("Lumia Injector Error:", error);
-                toastr.error("Failed to parse: " + error.message);
-            }
-        };
-        reader.readAsText(file);
-        // Reset so same file can be selected again if needed
-        event.target.value = '';
-    });
 
 
 jQuery(async () => {
@@ -473,16 +433,25 @@ jQuery(async () => {
         reader.onload = (e) => {
             try {
                 const data = JSON.parse(e.target.result);
-                if (!data.entries) throw new Error("Invalid World Book format (no entries)");
+                
+                const library = processWorldBook(data);
+                if (library.length === 0) throw new Error("No valid Lumia entries found.");
 
                 settings.worldBookData = data;
+                settings.lumiaLibrary = library;
                 settings.worldBookUrl = "Uploaded File: " + file.name;
+                
+                // Reset selections
+                settings.selectedDefinition = null;
+                settings.selectedBehaviors = [];
+                settings.selectedPersonalities = [];
+
                 saveSettings();
                 refreshUI();
-                toastr.success("World Book uploaded successfully!");
+                toastr.success(`Lumia Book uploaded! Found ${library.length} entries.`);
             } catch (error) {
                 console.error("Lumia Injector Error:", error);
-                toastr.error("Failed to parse World Book: " + error.message);
+                toastr.error("Failed to parse: " + error.message);
             }
         };
         reader.readAsText(file);
