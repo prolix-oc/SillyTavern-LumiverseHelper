@@ -39,17 +39,6 @@ async function loadSettingsHtml() {
     return html;
 }
 
-function extractImageFromContent(content) {
-    let image = null;
-    let cleanContent = content;
-    const imgMatch = content.match(/\[lumia_img=(.+?)\]/);
-    if (imgMatch) {
-        image = imgMatch[1].trim();
-        cleanContent = content.replace(imgMatch[0], "").trim();
-    }
-    return { image, content: cleanContent };
-}
-
 function parseWorldBook(data) {
     if (!data || !data.entries) return { definitions: [], behaviors: [], personalities: [] };
 
@@ -79,14 +68,17 @@ function parseWorldBook(data) {
             const nameMatch = comment.match(/\((.+?)\)/);
             entry.displayName = nameMatch ? nameMatch[1].trim() : comment.replace(/~~/g, "").trim();
 
-            // Common Image extraction logic
-            if (entry.image === undefined) {
-                const result = extractImageFromContent(entry.content);
-                entry.image = result.image;
-                entry.content = result.content;
-            }
-
             if (type === "definition") {
+                // Image extraction logic ONLY for definitions
+                if (entry.image === undefined) {
+                    const imgMatch = entry.content.match(/\[lumia_img=(.+?)\]/);
+                    if (imgMatch) {
+                        entry.image = imgMatch[1].trim();
+                        entry.content = entry.content.replace(imgMatch[0], "").trim();
+                    } else {
+                        entry.image = null;
+                    }
+                }
                 definitions.push(entry);
             } else if (type === "behavior") {
                 behaviors.push(entry);
@@ -108,28 +100,19 @@ function parseWorldBook(data) {
 
             if (behaviorMatch) {
                 // Synthesize a new Behavior entry
-                const extracted = extractImageFromContent(behaviorMatch[1].trim());
-                
+                const extractedBehavior = behaviorMatch[1].trim();
                 const newBehavior = {
                     uid: `legacy-behavior-${entry.uid}`, // Pseudo-UID
                     displayName: entry.displayName,
                     comment: `Lumia Behavior (${entry.displayName}) [Extracted]`,
-                    content: extracted.content,
-                    image: extracted.image
+                    content: extractedBehavior
                 };
                 behaviors.push(newBehavior);
             }
 
             if (personalityMatch) {
                 // Update the personality entry to use only the extracted content
-                const extracted = extractImageFromContent(personalityMatch[1].trim());
-                entry.content = extracted.content;
-                // We don't overwrite entry.image here as it might have been defined at top level?
-                // But if top level was just [lumia_img] + setvar/setglobal, it was already processed.
-                // If [lumia_img] is inside setglobalvar, we should capture it.
-                if (extracted.image) {
-                    entry.image = extracted.image; 
-                }
+                entry.content = personalityMatch[1].trim();
             }
         }
     });
