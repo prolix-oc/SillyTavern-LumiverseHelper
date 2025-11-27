@@ -502,20 +502,30 @@ function getLumiaContent(type, selection) {
     
     // Handle array (Multi-select)
     if (Array.isArray(selection)) {
-         return selection.map(sel => {
+         const contents = selection.map(sel => {
              const item = getItemFromLibrary(sel.packName, sel.itemName);
              if (!item) return "";
              if (type === 'behavior') return item.lumia_behavior || "";
              if (type === 'personality') return item.lumia_personality || "";
              return "";
-         }).filter(s => s).join("\n\n");
+         }).filter(s => s).map(s => s.trim());
+
+         if (type === 'behavior') {
+             return contents.join("\n").trim();
+         } else if (type === 'personality') {
+             return contents.join("\n\n").trim();
+         }
+         return contents.join("\n").trim();
     } 
     
     // Single Item
     const item = getItemFromLibrary(selection.packName, selection.itemName);
     if (!item) return "";
-    if (type === 'def') return item.lumiaDef || "";
-    return "";
+    
+    let content = "";
+    if (type === 'def') content = item.lumiaDef || "";
+    
+    return content.trim();
 }
 
 MacrosParser.registerMacro("lumiaDef", () => {
