@@ -36,7 +36,21 @@ globalThis.lumiverseHelperGenInterceptor = async function (
     // This ensures a new random Lumia is selected for each message, swipe, or regenerate
     currentRandomLumia = null;
 
-    // Return unmodified context - we don't need to modify the chat array
+    // Process loomIf conditionals in all chat messages
+    // This runs AFTER SillyTavern's MacrosParser has resolved all STScript macros
+    // We need to use a late-binding function reference since processLoomConditionals is defined later
+    if (typeof processLoomConditionals === 'function') {
+        for (let i = 0; i < chat.length; i++) {
+            if (chat[i] && typeof chat[i].content === 'string') {
+                chat[i].content = processLoomConditionals(chat[i].content);
+            }
+            // Also process 'mes' field which some contexts use
+            if (chat[i] && typeof chat[i].mes === 'string') {
+                chat[i].mes = processLoomConditionals(chat[i].mes);
+            }
+        }
+    }
+
     return { chat, contextSize, abort };
 };
 
@@ -897,6 +911,95 @@ function processNestedRandomLumiaMacros(content) {
         if (previousContent === processed) break;
 
         iterations++;
+    }
+
+    return processed;
+}
+
+// --- LOOM CONDITIONAL PROCESSING ---
+// Processes {{loomIf}}...{{loomElse}}...{{/loomIf}} blocks
+// This runs AFTER SillyTavern's MacrosParser, so all STScript macros are already resolved
+
+/**
+ * Process loomIf conditional blocks in content
+ * Supports:
+ *   - Truthiness: {{loomIf condition="value"}} - true if non-empty
+ *   - Equality: {{loomIf condition="a" equals="b"}} - true if a === b
+ *   - Not equals: {{loomIf condition="a" notEquals="b"}} - true if a !== b
+ *   - Contains: {{loomIf condition="haystack" contains="needle"}} - true if haystack includes needle
+ *   - Greater than: {{loomIf condition="5" gt="3"}} - true if 5 > 3 (numeric)
+ *   - Less than: {{loomIf condition="3" lt="5"}} - true if 3 < 5 (numeric)
+ *
+ * @param {string} content - The content to process
+ * @returns {string} - Content with conditionals evaluated
+ */
+function processLoomConditionals(content) {
+    if (!content || typeof content !== 'string') return content;
+
+    // Quick check - if no loomIf, skip processing
+    if (!content.includes('{{loomIf')) return content;
+
+    let processed = content;
+    let iterations = 0;
+    const maxIterations = 50; // Prevent infinite loops, allow for nested conditionals
+
+    // Regex to match loomIf blocks (non-greedy, handles nested by processing innermost first)
+    // This pattern matches the innermost {{loomIf}}...{{/loomIf}} blocks first
+    const loomIfRegex = /\{\{loomIf\s+condition="([^"]*)"(?:\s+(equals|notEquals|contains|gt|lt|gte|lte)="([^"]*)")?\s*\}\}([\s\S]*?)\{\{\/loomIf\}\}/;
+
+    while (loomIfRegex.test(processed) && iterations < maxIterations) {
+        processed = processed.replace(loomIfRegex, (match, condition, operator, compareValue, innerContent) => {
+            // Split inner content into if/else parts
+            const elseSplit = innerContent.split(/\{\{loomElse\}\}/);
+            const ifContent = elseSplit[0] || '';
+            const elseContent = elseSplit[1] || '';
+
+            // Evaluate the condition
+            let result = false;
+            const conditionTrimmed = condition.trim();
+
+            if (!operator) {
+                // Truthiness check - non-empty string is true
+                result = conditionTrimmed.length > 0;
+            } else {
+                const compareTrimmed = (compareValue || '').trim();
+
+                switch (operator) {
+                    case 'equals':
+                        result = conditionTrimmed === compareTrimmed;
+                        break;
+                    case 'notEquals':
+                        result = conditionTrimmed !== compareTrimmed;
+                        break;
+                    case 'contains':
+                        result = conditionTrimmed.includes(compareTrimmed);
+                        break;
+                    case 'gt':
+                        result = parseFloat(conditionTrimmed) > parseFloat(compareTrimmed);
+                        break;
+                    case 'lt':
+                        result = parseFloat(conditionTrimmed) < parseFloat(compareTrimmed);
+                        break;
+                    case 'gte':
+                        result = parseFloat(conditionTrimmed) >= parseFloat(compareTrimmed);
+                        break;
+                    case 'lte':
+                        result = parseFloat(conditionTrimmed) <= parseFloat(compareTrimmed);
+                        break;
+                    default:
+                        result = false;
+                }
+            }
+
+            // Return the appropriate content based on result
+            return result ? ifContent : elseContent;
+        });
+
+        iterations++;
+    }
+
+    if (iterations >= maxIterations) {
+        console.warn(`[${MODULE_NAME}] loomIf processing hit max iterations - possible malformed conditionals`);
     }
 
     return processed;
