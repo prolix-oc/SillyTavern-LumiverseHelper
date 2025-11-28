@@ -1673,17 +1673,33 @@ jQuery(async () => {
         scheduleOOCProcessingAfterRender();
     });
 
-    // Handle generation end - unhide and process any hidden OOC markers (SimTracker pattern)
+    // Handle generation end - process OOC comments in the last message (SimTracker pattern)
     eventSource.on(event_types.GENERATION_ENDED, () => {
-        console.log(`[${MODULE_NAME}] 🔮 GENERATION_ENDED event - processing OOC markers`);
-        // Find all message elements and unhide any hidden markers
-        const chatElement = document.getElementById("chat");
-        if (chatElement) {
-            const messageElements = queryAll('.mes_text', chatElement);
-            messageElements.forEach(messageElement => {
+        console.log(`[${MODULE_NAME}] 🔮 GENERATION_ENDED event - processing OOC in last message`);
+
+        const context = getContext();
+        if (!context?.chat?.length) return;
+
+        // Get the last message ID
+        const lastMesId = context.chat.length - 1;
+
+        // Small delay to ensure DOM is fully updated after generation
+        setTimeout(() => {
+            const messageElement = query(`div[mesid="${lastMesId}"] .mes_text`);
+            if (messageElement) {
+                // First unhide any hidden markers
                 unhideAndProcessOOCMarkers(messageElement);
-            });
-        }
+
+                // Then check if there are any unprocessed OOC fonts (not yet converted to boxes)
+                const fontElements = queryAll('font', messageElement);
+                const oocFonts = fontElements.filter(isLumiaOOCFont);
+
+                if (oocFonts.length > 0) {
+                    console.log(`[${MODULE_NAME}] 🔮 Found ${oocFonts.length} unprocessed OOC font(s) in last message`);
+                    processLumiaOOCComments(lastMesId);
+                }
+            }
+        }, 100);
     });
 
     // Set up MutationObserver for streaming support (SimTracker pattern)
