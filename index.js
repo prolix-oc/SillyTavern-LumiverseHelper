@@ -1650,7 +1650,8 @@ jQuery(async () => {
     // NOTE: SimTracker also listens to this event and may re-render message content
     // SimTracker has a 150ms delayed re-render for sidebar templates, so we delay 200ms to run after
     eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, (mesId) => {
-        console.log(`[${MODULE_NAME}] 🔮 CHARACTER_MESSAGE_RENDERED event for mesId ${mesId}`);
+        const eventTime = Date.now();
+        console.log(`[${MODULE_NAME}] 🔮 CHARACTER_MESSAGE_RENDERED event for mesId ${mesId} at ${eventTime}`);
 
         // Reset generation flag - successful render means generation completed
         isGenerating = false;
@@ -1658,6 +1659,9 @@ jQuery(async () => {
         // Delay 200ms to ensure we run AFTER SimTracker's 150ms delayed re-render
         // This prevents SimTracker from overwriting our OOC boxes
         setTimeout(() => {
+            const processTime = Date.now();
+            console.log(`[${MODULE_NAME}] 🔮 Processing callback fired for mesId ${mesId} at ${processTime} (${processTime - eventTime}ms after event)`);
+
             const messageElement = query(`div[mesid="${mesId}"] .mes_text`);
             if (messageElement) {
                 // Unhide any markers that were hidden during streaming
@@ -1668,9 +1672,13 @@ jQuery(async () => {
                 const oocFonts = fontElements.filter(isLumiaOOCFont);
 
                 if (oocFonts.length > 0) {
-                    console.log(`[${MODULE_NAME}] 🔮 Processing ${oocFonts.length} OOC font(s) in message ${mesId}`);
+                    console.log(`[${MODULE_NAME}] 🔮 Found ${oocFonts.length} OOC font(s), processing message ${mesId}`);
                     processLumiaOOCComments(mesId);
+                } else {
+                    console.log(`[${MODULE_NAME}] 🔮 No OOC fonts found in message ${mesId}`);
                 }
+            } else {
+                console.log(`[${MODULE_NAME}] 🔮 Message element not found for mesId ${mesId}`);
             }
         }, 200);
     });
