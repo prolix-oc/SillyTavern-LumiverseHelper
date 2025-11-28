@@ -1086,7 +1086,8 @@ function processLumiaOOCComments(mesId, force = false) {
         // Save scroll position (SimTracker pattern)
         const scrollY = window.scrollY || window.pageYOffset;
 
-        // Process each OOC font element
+        // Process each OOC font element - insert comment box exactly where the OOC was located
+        // (SimTracker inline template pattern: in-place replacement)
         oocFonts.forEach((fontElement, index) => {
             // Get the content from the font element
             const content = fontElement.innerHTML;
@@ -1096,20 +1097,37 @@ function processLumiaOOCComments(mesId, force = false) {
             // Create the styled comment box
             const commentBox = createOOCCommentBox(content, avatarImg);
 
-            // Find the parent element to replace
-            // The font might be inside a <lumia_ooc> tag or standalone
+            // Find the outermost OOC-related element to replace
+            // Walk up the DOM tree to find <lumia_ooc> wrapper if it exists
             let elementToReplace = fontElement;
-            const parent = fontElement.parentElement;
+            let current = fontElement.parentElement;
 
-            // Check if parent is a <lumia_ooc> element (custom tag)
-            if (parent && parent.tagName && parent.tagName.toLowerCase() === 'lumia_ooc') {
-                elementToReplace = parent;
+            // Walk up to find the lumia_ooc tag (might be nested in <p> or other formatting tags)
+            while (current && current !== messageElement) {
+                const tagName = current.tagName?.toLowerCase();
+                if (tagName === 'lumia_ooc') {
+                    elementToReplace = current;
+                    break;
+                }
+                // Stop if we hit a block-level element that contains other content
+                // (we don't want to replace an entire paragraph that has other text)
+                if (tagName === 'p' || tagName === 'div') {
+                    // Check if this element ONLY contains our OOC content
+                    const textContent = current.textContent?.trim();
+                    const fontContent = fontElement.textContent?.trim();
+                    if (textContent === fontContent) {
+                        // The paragraph only contains the OOC, safe to replace the whole thing
+                        elementToReplace = current;
+                    }
+                    break;
+                }
+                current = current.parentElement;
             }
 
-            // Replace the element with the comment box
+            // Perform in-place replacement (SimTracker pattern)
             if (elementToReplace.parentNode) {
                 elementToReplace.parentNode.replaceChild(commentBox, elementToReplace);
-                console.log(`[${MODULE_NAME}] 🔮 Replaced OOC #${index + 1} with styled comment box`);
+                console.log(`[${MODULE_NAME}] 🔮 Inserted OOC #${index + 1} in-place (replaced ${elementToReplace.tagName || 'text'})`);
             }
         });
 
