@@ -1,5 +1,5 @@
 import { extension_settings, getContext } from "../../../extensions.js";
-import { saveSettingsDebounced, eventSource, event_types } from "../../../../script.js";
+import { saveSettingsDebounced, eventSource, event_types, messageFormatting } from "../../../../script.js";
 import { MacrosParser } from "../../../macros.js";
 
 const MODULE_NAME = "lumia-injector";
@@ -963,58 +963,82 @@ MacrosParser.registerMacro("loomRetrofits", () => {
 const LUMIA_OOC_REGEX = /<lumia_ooc>\s*<font[^>]*>([\s\S]*?)<\/font>\s*<\/lumia_ooc>/gi;
 
 /**
- * Process Lumia OOC comments in a message element
+ * Process Lumia OOC comments in a message
  * Replaces <lumia_ooc> tags with styled comment boxes
- * @param {HTMLElement} messageElement - The message element to process
+ * Following SimTracker's pattern: read from chat array, not DOM
+ * @param {number} mesId - The message ID to process
  */
-function processLumiaOOCComments(messageElement) {
-    if (!messageElement) return;
+function processLumiaOOCComments(mesId) {
+    try {
+        const context = getContext();
+        const message = context.chat[mesId];
 
-    // Get the message HTML
-    const messageHTML = messageElement.innerHTML;
-
-    // Skip if no OOC tags found
-    if (!messageHTML.includes('<lumia_ooc>')) return;
-
-    console.log(`[${MODULE_NAME}] Processing Lumia OOC comments`);
-
-    // Get avatar image from selected definition
-    let avatarImg = null;
-    if (settings.selectedDefinition) {
-        const item = getItemFromLibrary(settings.selectedDefinition.packName, settings.selectedDefinition.itemName);
-        if (item && item.lumia_img) {
-            avatarImg = item.lumia_img;
+        if (!message || !message.mes) {
+            console.log(`[${MODULE_NAME}] No message found for ID ${mesId}`);
+            return;
         }
-    }
 
-    // Replace OOC tags with styled comment boxes
-    const processedHTML = messageHTML.replace(LUMIA_OOC_REGEX, (match, content) => {
-        // Extract plain text content (strip any remaining HTML tags)
-        const textContent = content.trim();
+        // Check if message contains OOC tags (in raw content, not DOM)
+        if (!message.mes.includes('<lumia_ooc>')) return;
 
-        // Create avatar HTML
+        console.log(`[${MODULE_NAME}] Processing Lumia OOC comments in message ${mesId}`);
+
+        // Get avatar image from selected definition
+        let avatarImg = null;
+        if (settings.selectedDefinition) {
+            const item = getItemFromLibrary(settings.selectedDefinition.packName, settings.selectedDefinition.itemName);
+            if (item && item.lumia_img) {
+                avatarImg = item.lumia_img;
+            }
+        }
+
+        // Create avatar HTML (will be reused for all OOC boxes in this message)
         const avatarHTML = avatarImg
             ? `<img src="${avatarImg}" alt="Lumia Avatar" class="lumia-ooc-avatar">`
             : `<div class="lumia-ooc-avatar lumia-ooc-avatar-placeholder">?</div>`;
 
-        // Build the styled comment box
-        return `
-            <div class="lumia-ooc-comment-box">
-                <div class="lumia-ooc-header">
-                    ${avatarHTML}
-                    <div class="lumia-ooc-title">Out-of-Context Commentary</div>
-                </div>
-                <div class="lumia-ooc-content">
-                    ${textContent}
-                </div>
-            </div>
-        `;
-    });
+        // Replace OOC tags in the RAW message content
+        const processedMessage = message.mes.replace(LUMIA_OOC_REGEX, (match, content) => {
+            // Extract text content (strip any remaining HTML tags within font)
+            const textContent = content.trim();
 
-    // Update the message element
-    if (processedHTML !== messageHTML) {
-        messageElement.innerHTML = processedHTML;
-        console.log(`[${MODULE_NAME}] Replaced Lumia OOC comments`);
+            // Build the styled comment box
+            return `
+                <div class="lumia-ooc-comment-box">
+                    <div class="lumia-ooc-header">
+                        ${avatarHTML}
+                        <div class="lumia-ooc-title">Out-of-Context Commentary</div>
+                    </div>
+                    <div class="lumia-ooc-content">
+                        ${textContent}
+                    </div>
+                </div>
+            `;
+        });
+
+        // Only update if changes were made
+        if (processedMessage !== message.mes) {
+            // Get the message element
+            const messageElement = document.querySelector(`div[mesid="${mesId}"] .mes_text`);
+
+            if (!messageElement) {
+                console.log(`[${MODULE_NAME}] Message element not found in DOM for mesId ${mesId}`);
+                return;
+            }
+
+            // Use messageFormatting to properly format and display (like SimTracker does)
+            messageElement.innerHTML = messageFormatting(
+                processedMessage,
+                message.name,
+                message.is_system,
+                message.is_user,
+                mesId
+            );
+
+            console.log(`[${MODULE_NAME}] Replaced Lumia OOC comments in message ${mesId}`);
+        }
+    } catch (error) {
+        console.error(`[${MODULE_NAME}] Error processing OOC comments:`, error);
     }
 }
 
@@ -1113,12 +1137,9 @@ jQuery(async () => {
     });
 
     // Hook into CHARACTER_MESSAGE_RENDERED to process OOC comments
-    eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, (messageId) => {
-        // Find the message element
-        const messageElement = document.querySelector(`#chat .mes[mesid="${messageId}"] .mes_text`);
-        if (messageElement) {
-            processLumiaOOCComments(messageElement);
-        }
+    eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, (mesId) => {
+        // Process OOC comments by reading from chat array (like SimTracker)
+        processLumiaOOCComments(mesId);
     });
 
     console.log(`${MODULE_NAME} initialized`);
