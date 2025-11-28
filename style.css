@@ -172,67 +172,218 @@
     padding: 5px 10px;
 }
 
-/* Lumia OOC Comment Box */
+/* ============================================
+   LUMIA OOC COMMENT BOX
+   Sleek, Apple-esque design with ethereal Loom weaving
+   ============================================ */
+
+/* Main container - horizontal flex layout */
 .lumia-ooc-comment-box {
-    background: linear-gradient(135deg, rgba(147, 112, 219, 0.15) 0%, rgba(138, 43, 226, 0.1) 100%);
-    border: 2px solid rgba(147, 112, 219, 0.4);
-    border-radius: 12px;
-    padding: 16px;
-    margin: 12px 0;
-    box-shadow: 0 4px 12px rgba(147, 112, 219, 0.2);
-    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px 18px;
+    margin: 16px 4px;
+    background: linear-gradient(
+        168deg,
+        rgba(20, 16, 28, 0.85) 0%,
+        rgba(30, 24, 42, 0.75) 50%,
+        rgba(25, 20, 35, 0.8) 100%
+    );
+    border-radius: 16px;
+    border: 1px solid rgba(147, 112, 219, 0.2);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Ethereal thread weave effect - top accent line */
+.lumia-ooc-comment-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(147, 112, 219, 0.3) 15%,
+        rgba(186, 135, 255, 0.6) 30%,
+        rgba(147, 112, 219, 0.8) 50%,
+        rgba(186, 135, 255, 0.6) 70%,
+        rgba(147, 112, 219, 0.3) 85%,
+        transparent 100%
+    );
+    animation: loom-weave 8s ease-in-out infinite;
+}
+
+/* Subtle shimmer effect on the background */
+.lumia-ooc-comment-box::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(147, 112, 219, 0.03),
+        transparent
+    );
+    animation: ethereal-shimmer 12s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes loom-weave {
+    0%, 100% {
+        opacity: 0.6;
+        background-position: 0% 50%;
+    }
+    50% {
+        opacity: 1;
+        background-position: 100% 50%;
+    }
+}
+
+@keyframes ethereal-shimmer {
+    0% { left: -100%; }
+    50% { left: 150%; }
+    100% { left: 150%; }
 }
 
 .lumia-ooc-comment-box:hover {
-    box-shadow: 0 6px 16px rgba(147, 112, 219, 0.3);
-    transform: translateY(-2px);
+    border-color: rgba(147, 112, 219, 0.4);
+    box-shadow:
+        0 4px 24px rgba(147, 112, 219, 0.15),
+        0 0 40px rgba(147, 112, 219, 0.05) inset;
+    transform: translateY(-1px);
 }
 
-.lumia-ooc-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid rgba(147, 112, 219, 0.3);
-}
-
-.lumia-ooc-avatar {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid rgba(147, 112, 219, 0.6);
-    box-shadow: 0 2px 8px rgba(147, 112, 219, 0.3);
+/* Avatar container with ethereal glow ring */
+.lumia-ooc-avatar-container {
+    position: relative;
     flex-shrink: 0;
 }
 
+/* Pulsing glow ring behind avatar */
+.lumia-ooc-avatar-container::before {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    right: -3px;
+    bottom: -3px;
+    border-radius: 50%;
+    background: conic-gradient(
+        from 0deg,
+        rgba(147, 112, 219, 0.5),
+        rgba(186, 135, 255, 0.3),
+        rgba(138, 43, 226, 0.5),
+        rgba(186, 135, 255, 0.3),
+        rgba(147, 112, 219, 0.5)
+    );
+    animation: avatar-glow-spin 6s linear infinite;
+    opacity: 0.7;
+}
+
+@keyframes avatar-glow-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.lumia-ooc-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    object-fit: cover;
+    position: relative;
+    z-index: 1;
+    border: 2px solid rgba(30, 24, 42, 0.9);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
 .lumia-ooc-avatar-placeholder {
-    background: linear-gradient(135deg, #9370DB 0%, #8A2BE2 100%);
+    background: linear-gradient(
+        135deg,
+        #9370DB 0%,
+        #7B5FC4 50%,
+        #8A2BE2 100%
+    );
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
-    font-weight: bold;
-    color: rgba(255, 255, 255, 0.9);
-}
-
-.lumia-ooc-title {
-    font-size: 1.1em;
+    font-size: 18px;
     font-weight: 600;
-    color: #9370DB;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-    letter-spacing: 0.5px;
+    color: rgba(255, 255, 255, 0.95);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+    letter-spacing: -0.5px;
 }
 
-.lumia-ooc-content {
-    font-size: 1em;
-    line-height: 1.6;
+/* Content column - takes remaining space */
+.lumia-ooc-content-column {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* Header row with name and thread indicator */
+.lumia-ooc-header-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.lumia-ooc-name {
+    font-size: 14px;
+    font-weight: 600;
     color: rgba(255, 255, 255, 0.95);
-    padding: 8px 12px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 8px;
-    border-left: 3px solid rgba(147, 112, 219, 0.5);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+    letter-spacing: -0.2px;
+}
+
+.lumia-ooc-thread {
+    font-size: 12px;
+    font-weight: 400;
+    color: rgba(147, 112, 219, 0.7);
+    font-style: italic;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+    letter-spacing: 0.1px;
+}
+
+/* Decorative thread symbol */
+.lumia-ooc-thread::before {
+    content: '~';
+    margin-right: 4px;
+    opacity: 0.6;
+}
+
+/* The actual OOC message content */
+.lumia-ooc-content {
+    font-size: 14px;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.88);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+    letter-spacing: -0.1px;
+    word-wrap: break-word;
+}
+
+/* Style any emphasis within the content */
+.lumia-ooc-content em,
+.lumia-ooc-content i {
+    color: rgba(186, 135, 255, 0.9);
+    font-style: italic;
+}
+
+.lumia-ooc-content strong,
+.lumia-ooc-content b {
+    color: rgba(255, 255, 255, 0.95);
+    font-weight: 600;
 }
 
 /* Hidden OOC markers during streaming */
@@ -257,20 +408,48 @@
         white-space: normal;
     }
 
+    /* OOC Mobile Adjustments */
     .lumia-ooc-comment-box {
-        padding: 12px;
+        padding: 12px 14px;
+        gap: 10px;
+        margin: 12px 2px;
     }
 
     .lumia-ooc-avatar {
-        width: 40px;
-        height: 40px;
+        width: 36px;
+        height: 36px;
     }
 
-    .lumia-ooc-title {
-        font-size: 1em;
+    .lumia-ooc-avatar-container::before {
+        top: -2px;
+        left: -2px;
+        right: -2px;
+        bottom: -2px;
+    }
+
+    .lumia-ooc-name {
+        font-size: 13px;
+    }
+
+    .lumia-ooc-thread {
+        font-size: 11px;
     }
 
     .lumia-ooc-content {
-        font-size: 0.95em;
+        font-size: 13px;
+        line-height: 1.5;
+    }
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+    .lumia-ooc-comment-box::before,
+    .lumia-ooc-comment-box::after,
+    .lumia-ooc-avatar-container::before {
+        animation: none;
+    }
+
+    .lumia-ooc-comment-box {
+        transition: none;
     }
 }

@@ -978,43 +978,63 @@ function isLumiaOOCFont(fontElement) {
 
 /**
  * Create the styled OOC comment box element
+ * Sleek, Apple-esque design with ethereal Loom weaving details
+ * Avatar left-aligned adjacent to comment content
  * @param {string} content - The text content for the OOC box
  * @param {string|null} avatarImg - URL to avatar image, or null for placeholder
  * @returns {HTMLElement} The created OOC comment box element
  */
 function createOOCCommentBox(content, avatarImg) {
-    // Create avatar element
+    // Create avatar container with ethereal glow ring
     const avatarElement = avatarImg
         ? createElement('img', {
-            attrs: { src: avatarImg, alt: 'Lumia Avatar', class: 'lumia-ooc-avatar' }
+            attrs: { src: avatarImg, alt: 'Lumia', class: 'lumia-ooc-avatar' }
         })
         : createElement('div', {
             attrs: { class: 'lumia-ooc-avatar lumia-ooc-avatar-placeholder' },
-            text: '?'
+            text: 'L'
         });
 
-    // Create title element
-    const titleElement = createElement('div', {
-        attrs: { class: 'lumia-ooc-title' },
-        text: 'Out-of-Context Commentary'
+    // Wrap avatar in a glow container for the ethereal effect
+    const avatarContainer = createElement('div', {
+        attrs: { class: 'lumia-ooc-avatar-container' },
+        children: [avatarElement]
     });
 
-    // Create header with avatar and title
-    const headerElement = createElement('div', {
-        attrs: { class: 'lumia-ooc-header' },
-        children: [avatarElement, titleElement]
+    // Create the name/handle area (like a social media username)
+    const nameElement = createElement('span', {
+        attrs: { class: 'lumia-ooc-name' },
+        text: 'Lumia'
     });
 
-    // Create content element
+    // Create the "thread" indicator - weaving motif
+    const threadIndicator = createElement('span', {
+        attrs: { class: 'lumia-ooc-thread' },
+        text: 'weaving through the Loom'
+    });
+
+    // Create header row with name and thread indicator
+    const headerRow = createElement('div', {
+        attrs: { class: 'lumia-ooc-header-row' },
+        children: [nameElement, threadIndicator]
+    });
+
+    // Create content element - the actual OOC message
     const contentElement = createElement('div', {
         attrs: { class: 'lumia-ooc-content' },
-        html: content // Use html to preserve any formatting
+        html: content
     });
 
-    // Create the main comment box
+    // Create the content column (header + content stacked)
+    const contentColumn = createElement('div', {
+        attrs: { class: 'lumia-ooc-content-column' },
+        children: [headerRow, contentElement]
+    });
+
+    // Create the main comment box with horizontal layout
     const commentBox = createElement('div', {
         attrs: { class: 'lumia-ooc-comment-box', 'data-lumia-ooc': 'true' },
-        children: [headerElement, contentElement]
+        children: [avatarContainer, contentColumn]
     });
 
     return commentBox;
