@@ -1641,10 +1641,27 @@ jQuery(async () => {
     });
 
     // Hook into CHARACTER_MESSAGE_RENDERED to process OOC comments
+    // This is the primary handler for new messages after generation
     eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, (mesId) => {
         console.log(`[${MODULE_NAME}] 🔮 CHARACTER_MESSAGE_RENDERED event for mesId ${mesId}`);
+
         // Small delay to ensure DOM is fully rendered
-        setTimeout(() => processLumiaOOCComments(mesId), 50);
+        setTimeout(() => {
+            const messageElement = query(`div[mesid="${mesId}"] .mes_text`);
+            if (messageElement) {
+                // Unhide any markers that were hidden during streaming
+                unhideAndProcessOOCMarkers(messageElement);
+
+                // Check for any unprocessed OOC fonts and process them
+                const fontElements = queryAll('font', messageElement);
+                const oocFonts = fontElements.filter(isLumiaOOCFont);
+
+                if (oocFonts.length > 0) {
+                    console.log(`[${MODULE_NAME}] 🔮 Processing ${oocFonts.length} OOC font(s) in message ${mesId}`);
+                    processLumiaOOCComments(mesId);
+                }
+            }
+        }, 50);
     });
 
     // Handle message edits - reprocess OOC comments (SimTracker pattern)
@@ -1673,33 +1690,24 @@ jQuery(async () => {
         scheduleOOCProcessingAfterRender();
     });
 
-    // Handle generation end - process OOC comments in the last message (SimTracker pattern)
+    // Handle generation end - unhide any hidden OOC markers
+    // The actual processing will be done by CHARACTER_MESSAGE_RENDERED
     eventSource.on(event_types.GENERATION_ENDED, () => {
-        console.log(`[${MODULE_NAME}] 🔮 GENERATION_ENDED event - processing OOC in last message`);
+        console.log(`[${MODULE_NAME}] 🔮 GENERATION_ENDED event - unhiding OOC markers`);
 
-        const context = getContext();
-        if (!context?.chat?.length) return;
-
-        // Get the last message ID
-        const lastMesId = context.chat.length - 1;
-
-        // Small delay to ensure DOM is fully updated after generation
-        setTimeout(() => {
-            const messageElement = query(`div[mesid="${lastMesId}"] .mes_text`);
-            if (messageElement) {
-                // First unhide any hidden markers
-                unhideAndProcessOOCMarkers(messageElement);
-
-                // Then check if there are any unprocessed OOC fonts (not yet converted to boxes)
-                const fontElements = queryAll('font', messageElement);
-                const oocFonts = fontElements.filter(isLumiaOOCFont);
-
-                if (oocFonts.length > 0) {
-                    console.log(`[${MODULE_NAME}] 🔮 Found ${oocFonts.length} unprocessed OOC font(s) in last message`);
-                    processLumiaOOCComments(lastMesId);
-                }
+        // Unhide any markers that were hidden during streaming
+        // CHARACTER_MESSAGE_RENDERED will handle the actual processing
+        const chatElement = document.getElementById("chat");
+        if (chatElement) {
+            const hiddenMarkers = queryAll('.lumia-ooc-marker-hidden', chatElement);
+            hiddenMarkers.forEach(marker => {
+                marker.classList.remove('lumia-ooc-marker-hidden');
+                marker.style.display = '';
+            });
+            if (hiddenMarkers.length > 0) {
+                console.log(`[${MODULE_NAME}] 🔮 Unhid ${hiddenMarkers.length} OOC marker(s)`);
             }
-        }, 100);
+        }
     });
 
     // Set up MutationObserver for streaming support (SimTracker pattern)
