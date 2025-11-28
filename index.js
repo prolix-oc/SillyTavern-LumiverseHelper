@@ -1006,16 +1006,18 @@ function isLumiaOOCFont(fontElement) {
  * Supports multiple styles: 'social', 'margin', 'whisper'
  * @param {string} content - The text content for the OOC box
  * @param {string|null} avatarImg - URL to avatar image, or null for placeholder
+ * @param {number} index - Index of this OOC in the message (for alternating styles)
  * @returns {HTMLElement} The created OOC comment box element
  */
-function createOOCCommentBox(content, avatarImg) {
+function createOOCCommentBox(content, avatarImg, index = 0) {
     const style = settings.lumiaOOCStyle || 'social';
+    const isAlt = index % 2 === 1; // Alternate on odd indices
 
     switch (style) {
         case 'margin':
-            return createOOCMarginNote(content, avatarImg);
+            return createOOCMarginNote(content, avatarImg, isAlt);
         case 'whisper':
-            return createOOCWhisperBubble(content, avatarImg);
+            return createOOCWhisperBubble(content, avatarImg, isAlt);
         case 'social':
         default:
             return createOOCSocialCard(content, avatarImg);
@@ -1085,8 +1087,9 @@ function createOOCSocialCard(content, avatarImg) {
 /**
  * Create Margin Note style OOC box
  * Apple-esque minimal hanging tag design
+ * @param {boolean} isAlt - Whether to use alternate (right-aligned) orientation
  */
-function createOOCMarginNote(content, avatarImg) {
+function createOOCMarginNote(content, avatarImg, isAlt = false) {
     // Create the hanging tag with avatar or letter
     const tagContent = avatarImg
         ? createElement('img', {
@@ -1124,9 +1127,10 @@ function createOOCMarginNote(content, avatarImg) {
         children: [label, text]
     });
 
-    // Create the main container
+    // Create the main container with alternating class
+    const containerClass = isAlt ? 'lumia-ooc-margin lumia-ooc-alt' : 'lumia-ooc-margin';
     const container = createElement('div', {
-        attrs: { class: 'lumia-ooc-margin', 'data-lumia-ooc': 'true' },
+        attrs: { class: containerClass, 'data-lumia-ooc': 'true' },
         children: [tag, contentArea]
     });
 
@@ -1135,22 +1139,29 @@ function createOOCMarginNote(content, avatarImg) {
 
 /**
  * Create Whisper Bubble style OOC box
- * Soft ethereal thought bubble design
+ * Soft ethereal thought bubble design with prominent avatar
+ * @param {boolean} isAlt - Whether to use alternate (right-aligned) orientation
  */
-function createOOCWhisperBubble(content, avatarImg) {
-    // Create the icon (small avatar or placeholder)
-    const icon = avatarImg
+function createOOCWhisperBubble(content, avatarImg, isAlt = false) {
+    // Create the avatar element (outside the bubble, prominent)
+    const avatar = avatarImg
         ? createElement('img', {
             attrs: {
                 src: avatarImg,
-                alt: 'L',
-                class: 'lumia-ooc-whisper-icon'
+                alt: 'Lumia',
+                class: 'lumia-ooc-whisper-avatar'
             }
         })
         : createElement('div', {
-            attrs: { class: 'lumia-ooc-whisper-icon-placeholder' },
+            attrs: { class: 'lumia-ooc-whisper-avatar-placeholder' },
             text: 'L'
         });
+
+    // Wrap avatar in container
+    const avatarWrap = createElement('div', {
+        attrs: { class: 'lumia-ooc-whisper-avatar-wrap' },
+        children: [avatar]
+    });
 
     // Create the name
     const name = createElement('span', {
@@ -1161,7 +1172,7 @@ function createOOCWhisperBubble(content, avatarImg) {
     // Create header
     const header = createElement('div', {
         attrs: { class: 'lumia-ooc-whisper-header' },
-        children: [icon, name]
+        children: [name]
     });
 
     // Create the content text
@@ -1170,16 +1181,17 @@ function createOOCWhisperBubble(content, avatarImg) {
         html: content
     });
 
-    // Create the bubble
+    // Create the bubble (now just contains header and text)
     const bubble = createElement('div', {
         attrs: { class: 'lumia-ooc-whisper-bubble' },
         children: [header, text]
     });
 
-    // Create the main container
+    // Create the main container with alternating class
+    const containerClass = isAlt ? 'lumia-ooc-whisper lumia-ooc-alt' : 'lumia-ooc-whisper';
     const container = createElement('div', {
-        attrs: { class: 'lumia-ooc-whisper', 'data-lumia-ooc': 'true' },
-        children: [bubble]
+        attrs: { class: containerClass, 'data-lumia-ooc': 'true' },
+        children: [avatarWrap, bubble]
     });
 
     return container;
@@ -1239,8 +1251,8 @@ function processLumiaOOCComments(mesId, force = false) {
 
             console.log(`[${MODULE_NAME}] 🔮 Processing OOC #${index + 1}: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`);
 
-            // Create the styled comment box
-            const commentBox = createOOCCommentBox(content, avatarImg);
+            // Create the styled comment box (pass index for alternating orientation)
+            const commentBox = createOOCCommentBox(content, avatarImg, index);
 
             // Find the outermost OOC-related element to replace
             // Walk up the DOM tree to find <lumia_ooc> wrapper if it exists

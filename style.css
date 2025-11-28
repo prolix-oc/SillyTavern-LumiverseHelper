@@ -407,30 +407,42 @@
     position: relative;
 }
 
-/* The hanging tag/badge on the left */
+/* Alternating orientation for stacked OOCs */
+.lumia-ooc-margin.lumia-ooc-alt {
+    flex-direction: row-reverse;
+    margin: 14px 0 14px 4px;
+}
+
+/* The hanging tag/badge - larger with prominent avatar */
 .lumia-ooc-margin .lumia-ooc-margin-tag {
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 44px;
+    height: 44px;
     background: linear-gradient(
         135deg,
         rgba(147, 112, 219, 0.95) 0%,
         rgba(123, 95, 196, 0.95) 100%
     );
-    border-radius: 8px;
+    border-radius: 10px;
     margin-right: -1px;
     position: relative;
     z-index: 2;
     box-shadow:
-        0 2px 8px rgba(147, 112, 219, 0.3),
-        0 1px 3px rgba(0, 0, 0, 0.2);
+        0 3px 12px rgba(147, 112, 219, 0.35),
+        0 1px 4px rgba(0, 0, 0, 0.25);
+    border: 2px solid rgba(186, 135, 255, 0.3);
+}
+
+.lumia-ooc-margin.lumia-ooc-alt .lumia-ooc-margin-tag {
+    margin-right: 0;
+    margin-left: -1px;
 }
 
 .lumia-ooc-margin .lumia-ooc-margin-tag-letter {
-    font-size: 16px;
+    font-size: 20px;
     font-weight: 600;
     color: rgba(255, 255, 255, 0.95);
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
@@ -458,6 +470,19 @@
         transparent 100%
     );
     border-radius: 0 10px 10px 0;
+}
+
+/* Alternating: flip the content area styling */
+.lumia-ooc-margin.lumia-ooc-alt .lumia-ooc-margin-content-area {
+    border-left: none;
+    border-right: 2px solid rgba(147, 112, 219, 0.5);
+    background: linear-gradient(
+        270deg,
+        rgba(147, 112, 219, 0.06) 0%,
+        transparent 100%
+    );
+    border-radius: 10px 0 0 10px;
+    text-align: right;
 }
 
 /* Subtle label */
@@ -500,110 +525,114 @@
 
 .lumia-ooc-whisper {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: flex-start;
+    gap: 12px;
     padding: 0;
-    margin: 16px 4px 16px 20px;
+    margin: 16px 4px 16px 8px;
     position: relative;
+}
+
+/* Alternating orientation for stacked OOCs */
+.lumia-ooc-whisper.lumia-ooc-alt {
+    flex-direction: row-reverse;
+    margin: 16px 8px 16px 4px;
+}
+
+/* Avatar container - prominent circular avatar outside the bubble */
+.lumia-ooc-whisper .lumia-ooc-whisper-avatar-wrap {
+    flex-shrink: 0;
+    position: relative;
+}
+
+.lumia-ooc-whisper .lumia-ooc-whisper-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(147, 112, 219, 0.5);
+    box-shadow:
+        0 2px 10px rgba(147, 112, 219, 0.3),
+        0 0 20px rgba(147, 112, 219, 0.15);
+}
+
+.lumia-ooc-whisper .lumia-ooc-whisper-avatar-placeholder {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #9370DB 0%, #7B5FC4 50%, #8A2BE2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.95);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+    border: 2px solid rgba(147, 112, 219, 0.5);
+    box-shadow:
+        0 2px 10px rgba(147, 112, 219, 0.3),
+        0 0 20px rgba(147, 112, 219, 0.15);
 }
 
 /* The bubble container */
 .lumia-ooc-whisper .lumia-ooc-whisper-bubble {
     position: relative;
-    padding: 14px 18px;
+    flex: 1;
+    padding: 12px 16px;
     background: linear-gradient(
         145deg,
-        rgba(147, 112, 219, 0.15) 0%,
-        rgba(138, 43, 226, 0.08) 50%,
-        rgba(147, 112, 219, 0.12) 100%
+        rgba(30, 24, 42, 0.85) 0%,
+        rgba(40, 32, 55, 0.8) 50%,
+        rgba(35, 28, 48, 0.85) 100%
     );
-    border: 1px solid rgba(147, 112, 219, 0.25);
-    border-radius: 18px;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(147, 112, 219, 0.3);
+    border-radius: 16px;
+    border-top-left-radius: 4px;
     box-shadow:
-        0 4px 16px rgba(147, 112, 219, 0.1),
-        0 0 24px rgba(147, 112, 219, 0.05) inset;
+        0 4px 16px rgba(0, 0, 0, 0.2),
+        0 0 20px rgba(147, 112, 219, 0.08) inset;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Flip bubble corner for alternating */
+.lumia-ooc-whisper.lumia-ooc-alt .lumia-ooc-whisper-bubble {
+    border-top-left-radius: 16px;
+    border-top-right-radius: 4px;
+}
+
 .lumia-ooc-whisper .lumia-ooc-whisper-bubble:hover {
-    border-color: rgba(147, 112, 219, 0.4);
+    border-color: rgba(147, 112, 219, 0.45);
     box-shadow:
-        0 6px 20px rgba(147, 112, 219, 0.15),
-        0 0 30px rgba(147, 112, 219, 0.08) inset;
+        0 6px 20px rgba(0, 0, 0, 0.25),
+        0 0 25px rgba(147, 112, 219, 0.12) inset;
     transform: translateY(-1px);
 }
 
-/* Bubble tail - points outward to indicate OOC */
+/* Subtle top accent line on bubble */
 .lumia-ooc-whisper .lumia-ooc-whisper-bubble::before {
     content: '';
     position: absolute;
-    left: -8px;
-    top: 16px;
-    width: 16px;
-    height: 16px;
+    top: 0;
+    left: 16px;
+    right: 16px;
+    height: 1px;
     background: linear-gradient(
-        135deg,
-        rgba(147, 112, 219, 0.15) 0%,
-        rgba(138, 43, 226, 0.08) 100%
+        90deg,
+        transparent 0%,
+        rgba(147, 112, 219, 0.4) 20%,
+        rgba(186, 135, 255, 0.5) 50%,
+        rgba(147, 112, 219, 0.4) 80%,
+        transparent 100%
     );
-    border-left: 1px solid rgba(147, 112, 219, 0.25);
-    border-bottom: 1px solid rgba(147, 112, 219, 0.25);
-    transform: rotate(45deg);
-    border-radius: 0 0 0 4px;
+    border-radius: 1px;
 }
 
-/* Soft glow effect behind bubble */
-.lumia-ooc-whisper .lumia-ooc-whisper-bubble::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: calc(100% + 20px);
-    height: calc(100% + 20px);
-    background: radial-gradient(
-        ellipse at center,
-        rgba(147, 112, 219, 0.08) 0%,
-        transparent 70%
-    );
-    border-radius: 24px;
-    z-index: -1;
-    pointer-events: none;
-}
-
-/* Header with icon and name */
+/* Header with name */
 .lumia-ooc-whisper .lumia-ooc-whisper-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
-}
-
-.lumia-ooc-whisper .lumia-ooc-whisper-icon {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 1px solid rgba(147, 112, 219, 0.4);
-    box-shadow: 0 0 8px rgba(147, 112, 219, 0.3);
-}
-
-.lumia-ooc-whisper .lumia-ooc-whisper-icon-placeholder {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #9370DB 0%, #8A2BE2 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.95);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
-    border: 1px solid rgba(147, 112, 219, 0.4);
-    box-shadow: 0 0 8px rgba(147, 112, 219, 0.3);
+    gap: 6px;
+    margin-bottom: 6px;
 }
 
 .lumia-ooc-whisper .lumia-ooc-whisper-name {
@@ -709,19 +738,30 @@
 
     /* Whisper Bubble Mobile */
     .lumia-ooc-whisper {
-        margin: 12px 4px 12px 16px;
+        margin: 12px 4px 12px 6px;
+        gap: 10px;
+    }
+
+    .lumia-ooc-whisper.lumia-ooc-alt {
+        margin: 12px 6px 12px 4px;
+    }
+
+    .lumia-ooc-whisper .lumia-ooc-whisper-avatar,
+    .lumia-ooc-whisper .lumia-ooc-whisper-avatar-placeholder {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
     }
 
     .lumia-ooc-whisper .lumia-ooc-whisper-bubble {
-        padding: 12px 14px;
+        padding: 10px 14px;
         border-radius: 14px;
+        border-top-left-radius: 4px;
     }
 
-    .lumia-ooc-whisper .lumia-ooc-whisper-icon,
-    .lumia-ooc-whisper .lumia-ooc-whisper-icon-placeholder {
-        width: 18px;
-        height: 18px;
-        font-size: 9px;
+    .lumia-ooc-whisper.lumia-ooc-alt .lumia-ooc-whisper-bubble {
+        border-top-left-radius: 14px;
+        border-top-right-radius: 4px;
     }
 
     .lumia-ooc-whisper .lumia-ooc-whisper-name {
@@ -731,6 +771,16 @@
     .lumia-ooc-whisper .lumia-ooc-whisper-text {
         font-size: 13px;
         line-height: 1.5;
+    }
+
+    /* Margin Note Mobile - larger avatar */
+    .lumia-ooc-margin .lumia-ooc-margin-tag {
+        width: 38px;
+        height: 38px;
+    }
+
+    .lumia-ooc-margin .lumia-ooc-margin-tag-letter {
+        font-size: 18px;
     }
 }
 
