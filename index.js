@@ -1344,6 +1344,67 @@ function processAllLumiaOOCComments(clearExisting = false) {
     }
 }
 
+// Debounce timer for OOC processing after chat switch
+let oocProcessingTimer = null;
+let oocRenderWaitTimer = null;
+
+/**
+ * Schedule OOC processing after chat render completes
+ * Uses a multi-stage approach:
+ * 1. Wait for initial DOM to be ready
+ * 2. Watch for message elements to appear
+ * 3. Process once DOM stabilizes
+ */
+function scheduleOOCProcessingAfterRender() {
+    // Clear any pending timers
+    if (oocProcessingTimer) clearTimeout(oocProcessingTimer);
+    if (oocRenderWaitTimer) clearTimeout(oocRenderWaitTimer);
+
+    const maxWaitTime = 3000; // Maximum time to wait for render
+    const checkInterval = 100; // How often to check for messages
+    const stabilityDelay = 150; // Wait after messages appear before processing
+    const startTime = Date.now();
+
+    function checkAndProcess() {
+        const chatElement = document.getElementById("chat");
+        const context = getContext();
+
+        // Check if we have messages in context and DOM
+        const hasContextMessages = context?.chat?.length > 0;
+        const messageElements = chatElement ? queryAll('.mes_text', chatElement) : [];
+        const hasDOMMessages = messageElements.length > 0;
+
+        // If we've waited too long, just try processing anyway
+        if (Date.now() - startTime > maxWaitTime) {
+            console.log(`[${MODULE_NAME}] 🔮 Max wait time reached, processing OOCs now`);
+            processAllLumiaOOCComments();
+            return;
+        }
+
+        // If context has messages but DOM doesn't yet, keep waiting
+        if (hasContextMessages && !hasDOMMessages) {
+            oocRenderWaitTimer = setTimeout(checkAndProcess, checkInterval);
+            return;
+        }
+
+        // If both context and DOM have messages (or context is empty), wait for stability then process
+        if (hasDOMMessages || !hasContextMessages) {
+            console.log(`[${MODULE_NAME}] 🔮 DOM ready with ${messageElements.length} messages, waiting for stability`);
+            oocProcessingTimer = setTimeout(() => {
+                console.log(`[${MODULE_NAME}] 🔮 Processing all OOC comments after render`);
+                processAllLumiaOOCComments();
+            }, stabilityDelay);
+            return;
+        }
+
+        // Keep checking
+        oocRenderWaitTimer = setTimeout(checkAndProcess, checkInterval);
+    }
+
+    // Start checking after a brief initial delay
+    oocRenderWaitTimer = setTimeout(checkAndProcess, 50);
+}
+
 /**
  * Check if a font element is a partial/incomplete OOC marker during streaming
  * @param {HTMLElement} fontElement - The font element to check
@@ -1606,10 +1667,10 @@ jQuery(async () => {
     });
 
     // Handle chat changes - reprocess all OOC comments (SimTracker pattern)
+    // Use a debounced approach: wait for DOM to stabilize after chat switch
     eventSource.on(event_types.CHAT_CHANGED, () => {
-        console.log(`[${MODULE_NAME}] 🔮 CHAT_CHANGED event - reprocessing all OOC comments`);
-        // Delay to ensure chat DOM is fully loaded
-        setTimeout(() => processAllLumiaOOCComments(), 100);
+        console.log(`[${MODULE_NAME}] 🔮 CHAT_CHANGED event - scheduling OOC reprocessing`);
+        scheduleOOCProcessingAfterRender();
     });
 
     // Handle generation end - unhide and process any hidden OOC markers (SimTracker pattern)
@@ -1630,10 +1691,9 @@ jQuery(async () => {
     setupLumiaOOCObserver();
 
     // Process any existing OOC comments on initial load
-    setTimeout(() => {
-        console.log(`[${MODULE_NAME}] 🔮 Initial load - processing existing OOC comments`);
-        processAllLumiaOOCComments();
-    }, 500);
+    // Use the same render-aware scheduling as chat changes
+    console.log(`[${MODULE_NAME}] 🔮 Initial load - scheduling OOC processing`);
+    scheduleOOCProcessingAfterRender();
 
     console.log(`${MODULE_NAME} initialized`);
 });
