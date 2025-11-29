@@ -410,6 +410,24 @@ details.lumia-panel[open] .lumia-panel-chevron {
    Modern Apple-esque modal styling
    ============================================ */
 
+/* Modal Backdrop - blocks clicks to elements behind */
+.lumia-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9998;
+    animation: lumia-backdrop-fadein 0.15s ease-out;
+}
+
+@keyframes lumia-backdrop-fadein {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
 .lumia-modal {
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
     background: linear-gradient(
@@ -432,6 +450,8 @@ details.lumia-panel[open] .lumia-panel-chevron {
     height: auto;
     width: 90vw;
     max-width: 600px;
+    /* Ensure modal appears above backdrop */
+    z-index: 9999;
 }
 
 /* Settings Modal Variant (OOC, Summarization) */
@@ -865,7 +885,8 @@ details.lumia-panel[open] .lumia-panel-chevron {
         margin: 16px auto;
     }
 
-    .lumia-modal-settings {
+    .lumia-modal-settings,
+    .lumia-modal-selection {
         max-width: calc(100vw - 16px);
     }
 
