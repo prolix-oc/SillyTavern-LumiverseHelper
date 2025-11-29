@@ -391,6 +391,11 @@
     display: none !important;
 }
 
+/* Hidden loom_sum blocks - never visible in chat */
+.loom-sum-hidden {
+    display: none !important;
+}
+
 /* ============================================
    LUMIA OOC - MARGIN NOTE STYLE
    Apple-esque minimal hanging tag design
@@ -663,6 +668,46 @@
 .lumia-ooc-whisper .lumia-ooc-whisper-text b {
     color: rgba(255, 255, 255, 0.95);
     font-weight: 600;
+}
+
+/* Summarization Modal Styling */
+.lumia-misc-section {
+    border: 1px solid rgba(128, 128, 128, 0.3);
+    padding: 15px;
+    border-radius: 8px;
+    background-color: rgba(0, 0, 0, 0.15);
+}
+
+.lumia-misc-section h4 {
+    margin: 0 0 8px 0;
+    font-size: 1.1em;
+    color: rgba(255, 255, 255, 0.95);
+}
+
+.lumia-misc-section p {
+    margin: 0 0 10px 0;
+    font-size: 0.9em;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.lumia-misc-section label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.lumia-misc-section small {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.85em;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+#lumia-sum-test-status {
+    padding: 10px;
+    border-radius: 5px;
+    background-color: rgba(0, 0, 0, 0.2);
 }
 
 /* Mobile Responsiveness */

@@ -94,12 +94,24 @@
                     <li><code>{{lumiaMessageCount}}</code> - Current message count in the chat.</li>
                     <li><code>{{lumiaOOCTrigger}}</code> - Shows countdown to next OOC trigger, or injects OOC instruction when interval is reached (configure in Misc Features).</li>
                 </ul>
+                <h4>Summarization Macros & Commands</h4>
+                <ul>
+                    <li><code>{{loomSummary}}</code> - Inserts the stored loom summary from chat metadata.</li>
+                    <li><code>{{loomSummaryPrompt}}</code> - Inserts the summarization directive for LLM-generated summaries.</li>
+                    <li><code>/loom-summarize</code> or <code>/loom-sum</code> - Slash command to manually trigger summarization.</li>
+                </ul>
             </div>
 
             <div class="lumia-section">
                 <h3>Miscellaneous Features</h3>
                 <p>Additional features and tools for Lumia interaction:</p>
                 <button id="lumia-open-misc-btn" class="menu_button">Configure Miscellaneous Features</button>
+            </div>
+
+            <div class="lumia-section">
+                <h3>Auto-Summarization</h3>
+                <p>Configure automatic or manual story summarization using LLM generation:</p>
+                <button id="lumia-open-summarization-btn" class="menu_button">Configure Summarization</button>
             </div>
 
         </div>

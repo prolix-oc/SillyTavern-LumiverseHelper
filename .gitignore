@@ -2,3 +2,7 @@ SillyTavern_SimTracker/
 SillySimTracker/
 .DS_Store
 .claude/settings.local.json
+*.md
+!README.md
+generate_raw_example.js
+.vscode/settings.json

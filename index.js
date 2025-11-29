@@ -2,6 +2,8 @@ import { extension_settings, getContext } from "../../../extensions.js";
 import { saveSettingsDebounced, eventSource, event_types, messageFormatting } from "../../../../script.js";
 import { MacrosParser } from "../../../macros.js";
 import DOMUtils, { query, queryAll, createElement } from "./sthelpers/domUtils.js";
+import { SlashCommand } from "../../../slash-commands/SlashCommand.js";
+import { SlashCommandParser } from "../../../slash-commands/SlashCommandParser.js";
 
 const MODULE_NAME = "lumia-injector";
 const SETTINGS_KEY = "lumia_injector_settings";
@@ -15,7 +17,23 @@ let settings = {
     selectedLoomUtils: [], // Array of { packName: string, itemName: string }
     selectedLoomRetrofits: [], // Array of { packName: string, itemName: string }
     lumiaOOCInterval: null, // Number of messages between OOC comments (null = disabled)
-    lumiaOOCStyle: 'social' // OOC comment display style: 'social', 'margin', 'whisper'
+    lumiaOOCStyle: 'social', // OOC comment display style: 'social', 'margin', 'whisper'
+    // Summarization settings
+    summarization: {
+        mode: 'disabled', // 'disabled', 'auto', 'manual'
+        apiSource: 'main', // 'main' (SillyTavern's generateRaw) or 'secondary' (custom endpoint)
+        autoInterval: 10, // Number of messages between auto-summarizations
+        messageContext: 10, // Number of messages to include in summarization context
+        // Secondary LLM settings (when apiSource === 'secondary')
+        secondary: {
+            provider: 'openai', // 'openai', 'anthropic', 'openrouter', 'custom'
+            model: '',
+            endpoint: '',
+            apiKey: '',
+            temperature: 0.7,
+            maxTokens: 2048
+        }
+    }
 };
 
 // Lumia Randomization State
@@ -126,6 +144,34 @@ function migrateSettings() {
     if (!settings.selectedLoomRetrofits) settings.selectedLoomRetrofits = [];
     if (settings.lumiaOOCInterval === undefined) settings.lumiaOOCInterval = null;
     if (!settings.lumiaOOCStyle) settings.lumiaOOCStyle = 'social';
+
+    // Ensure summarization defaults
+    if (!settings.summarization) {
+        settings.summarization = {
+            mode: 'disabled',
+            apiSource: 'main',
+            autoInterval: 10,
+            messageContext: 10,
+            secondary: {
+                provider: 'openai',
+                model: '',
+                endpoint: '',
+                apiKey: '',
+                temperature: 0.7,
+                maxTokens: 2048
+            }
+        };
+    }
+    if (!settings.summarization.secondary) {
+        settings.summarization.secondary = {
+            provider: 'openai',
+            model: '',
+            endpoint: '',
+            apiKey: '',
+            temperature: 0.7,
+            maxTokens: 2048
+        };
+    }
 
     return migrated;
 }
@@ -555,6 +601,529 @@ function showMiscFeaturesModal() {
     });
 
     $modal[0].showModal();
+}
+
+// --- SUMMARIZATION SYSTEM ---
+
+/**
+ * Get default endpoints for known providers
+ */
+function getProviderDefaults(provider) {
+    const defaults = {
+        openai: {
+            endpoint: 'https://api.openai.com/v1/chat/completions',
+            placeholder: 'gpt-4o-mini'
+        },
+        anthropic: {
+            endpoint: 'https://api.anthropic.com/v1/messages',
+            placeholder: 'claude-sonnet-4-5-20250929'
+        },
+        openrouter: {
+            endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+            placeholder: 'openai/gpt-4o-mini'
+        },
+        custom: {
+            endpoint: '',
+            placeholder: 'your-model-id'
+        }
+    };
+    return defaults[provider] || defaults.custom;
+}
+
+/**
+ * Show the summarization settings modal
+ */
+function showSummarizationModal() {
+    $("#lumia-summarization-modal").remove();
+
+    const sumSettings = settings.summarization || {};
+    const secondary = sumSettings.secondary || {};
+
+    const currentMode = sumSettings.mode || 'disabled';
+    const currentSource = sumSettings.apiSource || 'main';
+    const currentInterval = sumSettings.autoInterval || 10;
+    const currentContext = sumSettings.messageContext || 10;
+    const currentProvider = secondary.provider || 'openai';
+    const currentModel = secondary.model || '';
+    const currentEndpoint = secondary.endpoint || '';
+    const currentApiKey = secondary.apiKey || '';
+    const currentTemp = secondary.temperature || 0.7;
+    const currentMaxTokens = secondary.maxTokens || 2048;
+
+    const providerDefaults = getProviderDefaults(currentProvider);
+
+    const modalHtml = `
+        <dialog id="lumia-summarization-modal" class="popup wide_dialogue_popup large_dialogue_popup vertical_scrolling_dialogue_popup popup--animation-fast">
+            <div class="popup-header">
+                <h3 style="margin: 0; padding: 10px 0;">Summarization Settings</h3>
+            </div>
+            <div class="popup-content" style="padding: 15px; flex: 1; display: flex; flex-direction: column; gap: 20px;">
+
+                <div class="lumia-misc-section">
+                    <h4>Summarization Mode</h4>
+                    <p>Choose how summarization is triggered:</p>
+                    <div class="lumia-item" style="margin-top: 10px;">
+                        <select id="lumia-sum-mode-select" class="text_pole">
+                            <option value="disabled" ${currentMode === 'disabled' ? 'selected' : ''}>Disabled</option>
+                            <option value="auto" ${currentMode === 'auto' ? 'selected' : ''}>Automatic (interval-based)</option>
+                            <option value="manual" ${currentMode === 'manual' ? 'selected' : ''}>Manual only (slash command)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="lumia-misc-section" id="lumia-sum-auto-section" style="${currentMode === 'auto' ? '' : 'display: none;'}">
+                    <h4>Auto-Summarization Interval</h4>
+                    <p>Generate a summary every N messages:</p>
+                    <div class="lumia-item" style="margin-top: 10px;">
+                        <input type="number" id="lumia-sum-interval-input" class="text_pole" min="1" value="${currentInterval}" />
+                    </div>
+                </div>
+
+                <div class="lumia-misc-section">
+                    <h4>Message Context</h4>
+                    <p>Number of recent messages to include when generating summaries:</p>
+                    <div class="lumia-item" style="margin-top: 10px;">
+                        <input type="number" id="lumia-sum-context-input" class="text_pole" min="1" max="100" value="${currentContext}" />
+                    </div>
+                </div>
+
+                <div class="lumia-misc-section">
+                    <h4>API Source</h4>
+                    <p>Choose which API to use for summarization:</p>
+                    <div class="lumia-item" style="margin-top: 10px;">
+                        <select id="lumia-sum-source-select" class="text_pole">
+                            <option value="main" ${currentSource === 'main' ? 'selected' : ''}>Main API (SillyTavern's current connection)</option>
+                            <option value="secondary" ${currentSource === 'secondary' ? 'selected' : ''}>Secondary LLM (custom endpoint)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="lumia-misc-section" id="lumia-sum-secondary-section" style="${currentSource === 'secondary' ? '' : 'display: none;'}">
+                    <h4>Secondary LLM Configuration</h4>
+
+                    <div class="lumia-item" style="margin-top: 10px;">
+                        <label for="lumia-sum-provider-select">Provider:</label>
+                        <select id="lumia-sum-provider-select" class="text_pole">
+                            <option value="openai" ${currentProvider === 'openai' ? 'selected' : ''}>OpenAI</option>
+                            <option value="anthropic" ${currentProvider === 'anthropic' ? 'selected' : ''}>Anthropic (Claude)</option>
+                            <option value="openrouter" ${currentProvider === 'openrouter' ? 'selected' : ''}>OpenRouter</option>
+                            <option value="custom" ${currentProvider === 'custom' ? 'selected' : ''}>Custom OpenAI-Compatible</option>
+                        </select>
+                    </div>
+
+                    <div class="lumia-item" style="margin-top: 10px;">
+                        <label for="lumia-sum-model-input">Model:</label>
+                        <input type="text" id="lumia-sum-model-input" class="text_pole"
+                               placeholder="${providerDefaults.placeholder}"
+                               value="${escapeHtml(currentModel)}" />
+                    </div>
+
+                    <div class="lumia-item" style="margin-top: 10px;">
+                        <label for="lumia-sum-endpoint-input">Endpoint URL:</label>
+                        <input type="text" id="lumia-sum-endpoint-input" class="text_pole"
+                               placeholder="${providerDefaults.endpoint}"
+                               value="${escapeHtml(currentEndpoint)}" />
+                        <small style="color: #888;">Leave empty to use provider's default endpoint</small>
+                    </div>
+
+                    <div class="lumia-item" style="margin-top: 10px;">
+                        <label for="lumia-sum-apikey-input">API Key:</label>
+                        <input type="password" id="lumia-sum-apikey-input" class="text_pole"
+                               placeholder="Your API key"
+                               value="${escapeHtml(currentApiKey)}" />
+                    </div>
+
+                    <div class="lumia-item" style="margin-top: 10px;">
+                        <label for="lumia-sum-temp-input">Temperature:</label>
+                        <input type="number" id="lumia-sum-temp-input" class="text_pole"
+                               min="0" max="2" step="0.1" value="${currentTemp}" />
+                    </div>
+
+                    <div class="lumia-item" style="margin-top: 10px;">
+                        <label for="lumia-sum-maxtokens-input">Max Tokens:</label>
+                        <input type="number" id="lumia-sum-maxtokens-input" class="text_pole"
+                               min="256" max="16384" value="${currentMaxTokens}" />
+                    </div>
+                </div>
+
+                <div class="lumia-misc-section">
+                    <h4>Test Summarization</h4>
+                    <p>Generate a summary now to test your configuration:</p>
+                    <button id="lumia-sum-test-btn" class="menu_button">Generate Summary Now</button>
+                    <div id="lumia-sum-test-status" style="margin-top: 10px; font-style: italic; color: #888;"></div>
+                </div>
+
+            </div>
+            <div class="popup-footer" style="display: flex; justify-content: center; padding: 15px; gap: 10px;">
+                <button class="menu_button lumia-sum-save-btn">Save</button>
+                <button class="menu_button lumia-sum-cancel-btn">Cancel</button>
+            </div>
+        </dialog>
+    `;
+
+    $("body").append(modalHtml);
+    const $modal = $("#lumia-summarization-modal");
+
+    const closeModal = () => {
+        $modal[0].close();
+        $modal.remove();
+    };
+
+    // Show/hide auto interval section based on mode
+    $modal.find("#lumia-sum-mode-select").change(function() {
+        const mode = $(this).val();
+        if (mode === 'auto') {
+            $modal.find("#lumia-sum-auto-section").show();
+        } else {
+            $modal.find("#lumia-sum-auto-section").hide();
+        }
+    });
+
+    // Show/hide secondary LLM section based on source
+    $modal.find("#lumia-sum-source-select").change(function() {
+        const source = $(this).val();
+        if (source === 'secondary') {
+            $modal.find("#lumia-sum-secondary-section").show();
+        } else {
+            $modal.find("#lumia-sum-secondary-section").hide();
+        }
+    });
+
+    // Update placeholders when provider changes
+    $modal.find("#lumia-sum-provider-select").change(function() {
+        const provider = $(this).val();
+        const defaults = getProviderDefaults(provider);
+        $modal.find("#lumia-sum-model-input").attr("placeholder", defaults.placeholder);
+        $modal.find("#lumia-sum-endpoint-input").attr("placeholder", defaults.endpoint);
+    });
+
+    // Test button
+    $modal.find("#lumia-sum-test-btn").click(async function() {
+        const $status = $modal.find("#lumia-sum-test-status");
+        $status.text("Generating summary...");
+
+        try {
+            // Temporarily apply current form values
+            const tempSettings = {
+                mode: $modal.find("#lumia-sum-mode-select").val(),
+                apiSource: $modal.find("#lumia-sum-source-select").val(),
+                autoInterval: parseInt($modal.find("#lumia-sum-interval-input").val()) || 10,
+                messageContext: parseInt($modal.find("#lumia-sum-context-input").val()) || 10,
+                secondary: {
+                    provider: $modal.find("#lumia-sum-provider-select").val(),
+                    model: $modal.find("#lumia-sum-model-input").val(),
+                    endpoint: $modal.find("#lumia-sum-endpoint-input").val(),
+                    apiKey: $modal.find("#lumia-sum-apikey-input").val(),
+                    temperature: parseFloat($modal.find("#lumia-sum-temp-input").val()) || 0.7,
+                    maxTokens: parseInt($modal.find("#lumia-sum-maxtokens-input").val()) || 2048
+                }
+            };
+
+            const result = await generateLoomSummary(tempSettings);
+            if (result) {
+                $status.html(`<span style="color: #4CAF50;">✓ Summary generated successfully!</span><br><small>Check your chat metadata.</small>`);
+                toastr.success("Summary generated and saved to chat metadata!");
+            } else {
+                $status.html(`<span style="color: #f44336;">✗ No summary generated. Check console for details.</span>`);
+            }
+        } catch (error) {
+            console.error(`[${MODULE_NAME}] Summarization error:`, error);
+            $status.html(`<span style="color: #f44336;">✗ Error: ${error.message}</span>`);
+        }
+    });
+
+    // Save button
+    $modal.find(".lumia-sum-save-btn").click(() => {
+        settings.summarization = {
+            mode: $modal.find("#lumia-sum-mode-select").val(),
+            apiSource: $modal.find("#lumia-sum-source-select").val(),
+            autoInterval: parseInt($modal.find("#lumia-sum-interval-input").val()) || 10,
+            messageContext: parseInt($modal.find("#lumia-sum-context-input").val()) || 10,
+            secondary: {
+                provider: $modal.find("#lumia-sum-provider-select").val(),
+                model: $modal.find("#lumia-sum-model-input").val(),
+                endpoint: $modal.find("#lumia-sum-endpoint-input").val(),
+                apiKey: $modal.find("#lumia-sum-apikey-input").val(),
+                temperature: parseFloat($modal.find("#lumia-sum-temp-input").val()) || 0.7,
+                maxTokens: parseInt($modal.find("#lumia-sum-maxtokens-input").val()) || 2048
+            }
+        };
+
+        saveSettings();
+        toastr.success("Summarization settings saved!");
+        closeModal();
+    });
+
+    $modal.find(".lumia-sum-cancel-btn").click(closeModal);
+
+    $modal.on("click", function (e) {
+        if (e.target === this) closeModal();
+    });
+
+    $modal.on("keydown", function (e) {
+        if (e.key === "Escape") closeModal();
+    });
+
+    $modal[0].showModal();
+}
+
+/**
+ * Build the summarization prompt with chat context
+ */
+function buildSummarizationPrompt(messageContext) {
+    const context = getContext();
+    if (!context || !context.chat) return null;
+
+    const chat = context.chat;
+    const recentMessages = chat.slice(-messageContext);
+
+    if (recentMessages.length === 0) {
+        return null;
+    }
+
+    // Get existing summary if any
+    const existingSummary = context.chatMetadata?.[LOOM_SUMMARY_KEY] || '';
+
+    // Build conversation text
+    let conversationText = "";
+    recentMessages.forEach(msg => {
+        const role = msg.is_user ? (msg.name || "User") : (msg.name || "Character");
+        let content = msg.mes || msg.content || "";
+
+        // Strip any existing loom_sum blocks from the content
+        content = content.replace(/<loom_sum>[\s\S]*?<\/loom_sum>/gi, '').trim();
+
+        if (content) {
+            conversationText += `${role}: ${content}\n\n`;
+        }
+    });
+
+    const systemPrompt = `You are a narrative summarization assistant for interactive fiction and roleplay. Your task is to create comprehensive story summaries that maintain narrative continuity.
+
+When summarizing, capture:
+1. **Completed Story Beats** - Major plot points that have concluded, character arcs resolved, conflicts addressed
+2. **Ongoing Story Beats** - Active plot threads, unresolved tensions, goals being pursued
+3. **Looming Elements** - Foreshadowed events, building complications, story seeds planted
+4. **Current Scene Context** - Location, time, atmosphere, recent environmental changes
+5. **Character Status** - What each character is doing, their emotional state, recent significant actions
+
+Format your summary as dense but readable prose. Prioritize information essential for maintaining story continuity.`;
+
+    const userPrompt = `${existingSummary ? `Previous summary for context:\n${existingSummary}\n\n` : ''}Recent conversation to summarize:
+
+${conversationText}
+
+Please provide an updated comprehensive summary of the story so far, incorporating the new events. Output ONLY the summary content - no tags, labels, or formatting markers.`;
+
+    return { systemPrompt, userPrompt };
+}
+
+/**
+ * Generate summary using Main API (SillyTavern's generateRaw)
+ */
+async function generateSummaryWithMainAPI(sumSettings) {
+    const { generateRaw } = getContext();
+
+    if (!generateRaw) {
+        throw new Error("generateRaw not available - is SillyTavern properly loaded?");
+    }
+
+    const prompts = buildSummarizationPrompt(sumSettings.messageContext || 10);
+    if (!prompts) {
+        throw new Error("No chat messages to summarize");
+    }
+
+    console.log(`[${MODULE_NAME}] 📜 Generating summary with Main API...`);
+
+    const result = await generateRaw({
+        systemPrompt: prompts.systemPrompt,
+        prompt: prompts.userPrompt,
+        prefill: ''
+    });
+
+    return result;
+}
+
+/**
+ * Generate summary using Secondary LLM (custom endpoint)
+ */
+async function generateSummaryWithSecondaryLLM(sumSettings) {
+    const secondary = sumSettings.secondary || {};
+    const provider = secondary.provider || 'openai';
+    const model = secondary.model;
+    const apiKey = secondary.apiKey;
+    const temperature = secondary.temperature || 0.7;
+    const maxTokens = secondary.maxTokens || 2048;
+
+    if (!model) {
+        throw new Error("No model specified for secondary LLM");
+    }
+
+    if (!apiKey) {
+        throw new Error("No API key specified for secondary LLM");
+    }
+
+    const prompts = buildSummarizationPrompt(sumSettings.messageContext || 10);
+    if (!prompts) {
+        throw new Error("No chat messages to summarize");
+    }
+
+    // Get endpoint (use default if not specified)
+    const defaults = getProviderDefaults(provider);
+    const endpoint = secondary.endpoint || defaults.endpoint;
+
+    if (!endpoint) {
+        throw new Error("No endpoint specified for secondary LLM");
+    }
+
+    console.log(`[${MODULE_NAME}] 📜 Generating summary with Secondary LLM (${provider})...`);
+
+    let response;
+
+    if (provider === 'anthropic') {
+        // Anthropic uses a different API format
+        response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': apiKey,
+                'anthropic-version': '2023-06-01'
+            },
+            body: JSON.stringify({
+                model: model,
+                max_tokens: maxTokens,
+                system: prompts.systemPrompt,
+                messages: [
+                    { role: 'user', content: prompts.userPrompt }
+                ],
+                temperature: temperature
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text().catch(() => 'Unable to read error');
+            throw new Error(`Anthropic API error: ${response.status} - ${errorText}`);
+        }
+
+        const data = await response.json();
+
+        // Anthropic returns content as an array of blocks
+        if (data.content && Array.isArray(data.content)) {
+            const textBlock = data.content.find(block => block.type === 'text');
+            return textBlock?.text || '';
+        }
+        return '';
+
+    } else {
+        // OpenAI-compatible format (OpenAI, OpenRouter, Custom)
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        };
+
+        // OpenRouter requires additional headers
+        if (provider === 'openrouter') {
+            headers['HTTP-Referer'] = window.location.origin;
+            headers['X-Title'] = 'Lumia Injector';
+        }
+
+        response = await fetch(endpoint, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({
+                model: model,
+                messages: [
+                    { role: 'system', content: prompts.systemPrompt },
+                    { role: 'user', content: prompts.userPrompt }
+                ],
+                temperature: temperature,
+                max_tokens: maxTokens
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text().catch(() => 'Unable to read error');
+            throw new Error(`API error: ${response.status} - ${errorText}`);
+        }
+
+        const data = await response.json();
+
+        // Standard OpenAI format
+        if (data.choices?.[0]?.message?.content) {
+            return data.choices[0].message.content;
+        }
+        return '';
+    }
+}
+
+/**
+ * Main function to generate a loom summary
+ * @param {Object} overrideSettings - Optional settings override for testing
+ */
+async function generateLoomSummary(overrideSettings = null) {
+    const sumSettings = overrideSettings || settings.summarization;
+
+    if (!sumSettings) {
+        console.log(`[${MODULE_NAME}] 📜 Summarization not configured`);
+        return null;
+    }
+
+    const context = getContext();
+    if (!context || !context.chat || context.chat.length === 0) {
+        console.log(`[${MODULE_NAME}] 📜 No chat to summarize`);
+        return null;
+    }
+
+    try {
+        let summaryText;
+
+        if (sumSettings.apiSource === 'main') {
+            summaryText = await generateSummaryWithMainAPI(sumSettings);
+        } else if (sumSettings.apiSource === 'secondary') {
+            summaryText = await generateSummaryWithSecondaryLLM(sumSettings);
+        } else {
+            throw new Error(`Unknown API source: ${sumSettings.apiSource}`);
+        }
+
+        if (summaryText && summaryText.trim()) {
+            // Store the summary in chat metadata
+            context.chatMetadata[LOOM_SUMMARY_KEY] = summaryText.trim();
+            await context.saveMetadata();
+            console.log(`[${MODULE_NAME}] 📜 Summary saved to chat metadata`);
+            return summaryText.trim();
+        }
+
+        return null;
+    } catch (error) {
+        console.error(`[${MODULE_NAME}] 📜 Summary generation failed:`, error);
+        throw error;
+    }
+}
+
+/**
+ * Check if auto-summarization should trigger
+ */
+function checkAutoSummarization() {
+    const sumSettings = settings.summarization;
+    if (!sumSettings || sumSettings.mode !== 'auto') return;
+
+    const context = getContext();
+    if (!context || !context.chat) return;
+
+    const interval = sumSettings.autoInterval || 10;
+    const messageCount = context.chat.length;
+
+    // Trigger when message count is divisible by interval
+    if (messageCount > 0 && messageCount % interval === 0) {
+        console.log(`[${MODULE_NAME}] 📜 Auto-summarization triggered at message ${messageCount}`);
+        generateLoomSummary().then(result => {
+            if (result) {
+                toastr.info("Loom summary updated automatically");
+            }
+        }).catch(error => {
+            console.error(`[${MODULE_NAME}] 📜 Auto-summarization failed:`, error);
+        });
+    }
 }
 
 function showLoomSelectionModal(category) {
@@ -1094,6 +1663,125 @@ MacrosParser.registerMacro("loomRetrofits", () => {
     return getLoomContent(settings.selectedLoomRetrofits);
 });
 
+// --- LOOM SUMMARY SYSTEM ---
+// Captures <loom_sum>...</loom_sum> blocks from messages and stores in chat metadata
+// Hidden from display, retrievable via {{loomSummary}} macro
+
+const LOOM_SUMMARY_KEY = "loom_summary";
+
+/**
+ * Extract loom_sum content from a message string
+ * @param {string} content - The message content to search
+ * @returns {string|null} The extracted summary content, or null if not found
+ */
+function extractLoomSummary(content) {
+    if (!content || typeof content !== 'string') return null;
+
+    const match = content.match(/<loom_sum>([\s\S]*?)<\/loom_sum>/);
+    return match ? match[1].trim() : null;
+}
+
+/**
+ * Scan chat messages for the most recent loom_sum and save to chat metadata
+ * Searches from newest to oldest, saves the first (most recent) found
+ */
+async function captureLoomSummary() {
+    const context = getContext();
+    if (!context || !context.chat || !context.chatMetadata) return;
+
+    // Search from newest message to oldest
+    for (let i = context.chat.length - 1; i >= 0; i--) {
+        const message = context.chat[i];
+        const content = message.mes || message.content || "";
+        const summary = extractLoomSummary(content);
+
+        if (summary) {
+            // Only update if different from current
+            if (context.chatMetadata[LOOM_SUMMARY_KEY] !== summary) {
+                context.chatMetadata[LOOM_SUMMARY_KEY] = summary;
+                await context.saveMetadata();
+                console.log(`[${MODULE_NAME}] 📜 Captured loom summary from message ${i}`);
+            }
+            return; // Found most recent, stop searching
+        }
+    }
+}
+
+/**
+ * Get the stored loom summary from chat metadata
+ * @returns {string} The stored summary, or empty string if none
+ */
+function getLoomSummary() {
+    const context = getContext();
+    if (!context || !context.chatMetadata) return "";
+    return context.chatMetadata[LOOM_SUMMARY_KEY] || "";
+}
+
+/**
+ * Hide loom_sum blocks in a message element
+ * @param {HTMLElement} messageElement - The .mes_text element to process
+ */
+function hideLoomSumBlocks(messageElement) {
+    if (!messageElement) return;
+
+    const html = messageElement.innerHTML;
+    if (!html.includes('<loom_sum>') && !html.includes('&lt;loom_sum&gt;')) return;
+
+    // Handle both raw tags and HTML-escaped tags
+    const updatedHtml = html
+        .replace(/<loom_sum>[\s\S]*?<\/loom_sum>/gi, '<span class="loom-sum-hidden" style="display:none;"></span>')
+        .replace(/&lt;loom_sum&gt;[\s\S]*?&lt;\/loom_sum&gt;/gi, '<span class="loom-sum-hidden" style="display:none;"></span>');
+
+    if (updatedHtml !== html) {
+        messageElement.innerHTML = updatedHtml;
+        console.log(`[${MODULE_NAME}] 📜 Hidden loom_sum block in message`);
+    }
+}
+
+// Register loomSummary macro - injects the stored summary
+MacrosParser.registerMacro("loomSummary", () => {
+    return getLoomSummary();
+});
+
+// Register loomSummaryPrompt macro - injects the summarization directive
+MacrosParser.registerMacro("loomSummaryPrompt", () => {
+    return `<loom_summary_directive>
+When the current narrative segment reaches a natural pause or transition point, provide a comprehensive summary wrapped in <loom_sum></loom_sum> tags. This summary serves as persistent story memory and must capture:
+
+**COMPLETED STORY BEATS:**
+- Major plot points that have concluded
+- Character arcs or development moments that have resolved
+- Conflicts or tensions that have been addressed
+- Discoveries, revelations, or turning points that occurred
+
+**ONGOING STORY BEATS:**
+- Active plot threads currently in motion
+- Unresolved tensions or conflicts
+- Character goals being actively pursued
+- Relationships in states of change or development
+
+**LOOMING ELEMENTS:**
+- Foreshadowed events or approaching complications
+- Potential "shake ups" building in the narrative
+- Unaddressed threats or opportunities
+- Story seeds planted but not yet sprouted
+
+**CURRENT SCENE CONTEXT:**
+- Physical location and environment details
+- Time of day and approximate date/timeframe
+- Atmosphere, mood, and ambient conditions
+- Recent environmental changes or notable features
+
+**CHARACTER STATUS:**
+- What {{user}} is currently doing/saying and their apparent emotional state
+- What {{char}} is currently doing/saying and their apparent emotional state
+- Other present NPCs: their actions, positions, and relevance to the scene
+- Recent significant actions or dialogue from each party
+
+Format the summary as dense but readable prose, preserving enough detail that the narrative could be resumed naturally from this point. Prioritize information that would be essential for maintaining story continuity.
+</loom_summary_directive>`;
+});
+
 // Message tracking and OOC trigger macros
 // --- OOC COMMENT INLINE DISPLAY ---
 // Lumia OOC color constant - the specific purple color used for Lumia's OOC comments
@@ -1413,7 +2101,7 @@ function processLumiaOOCComments(mesId, force = false) {
 }
 
 /**
- * Process all Lumia OOC comments in the chat
+ * Process all Lumia OOC comments and hide loom_sum blocks in the chat
  * Called on CHAT_CHANGED and initial load to ensure all messages are processed
  */
 function processAllLumiaOOCComments(clearExisting = false) {
@@ -1449,8 +2137,13 @@ function processAllLumiaOOCComments(clearExisting = false) {
         });
     }
 
-    // Process each message in the chat
+    // Process each message in the chat - both OOC comments and loom_sum hiding
     for (let i = 0; i < context.chat.length; i++) {
+        // Hide loom_sum blocks in the DOM
+        const messageElement = query(`div[mesid="${i}"] .mes_text`);
+        if (messageElement) {
+            hideLoomSumBlocks(messageElement);
+        }
         processLumiaOOCComments(i);
     }
 }
@@ -1597,17 +2290,12 @@ function unhideAndProcessOOCMarkers(messageElement) {
 
 /**
  * Set up MutationObserver for streaming support and dynamic content
- * Observes chat for new messages and font elements with OOC color
+ * Observes chat for new messages, font elements with OOC color, and loom_sum blocks
  */
 function setupLumiaOOCObserver() {
     const chatElement = document.getElementById("chat");
 
     const observer = new MutationObserver((mutations) => {
-        // Skip processing during active generation - let CHARACTER_MESSAGE_RENDERED handle it
-        if (isGenerating) {
-            return;
-        }
-
         mutations.forEach((mutation) => {
             // Handle added nodes
             mutation.addedNodes.forEach((node) => {
@@ -1629,7 +2317,23 @@ function setupLumiaOOCObserver() {
                     }
                 }
 
+                // Check for text nodes that might contain loom_sum tags
+                if (node.nodeType === Node.TEXT_NODE || (node.innerHTML && (node.innerHTML.includes('<loom_sum>') || node.innerHTML.includes('&lt;loom_sum&gt;')))) {
+                    const mesText = node.closest ? node.closest('.mes_text') : null;
+                    if (mesText && !messageElements.includes(mesText)) {
+                        messageElements.push(mesText);
+                    }
+                }
+
                 messageElements.forEach((messageElement) => {
+                    // Always hide loom_sum blocks immediately when detected
+                    hideLoomSumBlocks(messageElement);
+
+                    // Skip OOC processing during active generation - let CHARACTER_MESSAGE_RENDERED handle it
+                    if (isGenerating) {
+                        return;
+                    }
+
                     // Skip if this message already has OOC boxes (already processed)
                     const existingBoxes = queryAll('[data-lumia-ooc]', messageElement);
                     if (existingBoxes.length > 0) {
@@ -1648,13 +2352,22 @@ function setupLumiaOOCObserver() {
                     }
                 });
             });
+
+            // Also check characterData mutations for streaming text updates
+            if (mutation.type === 'characterData') {
+                const mesText = mutation.target.parentElement?.closest('.mes_text');
+                if (mesText) {
+                    hideLoomSumBlocks(mesText);
+                }
+            }
         });
     });
 
     const targetElement = chatElement || document.body;
     observer.observe(targetElement, {
         childList: true,
-        subtree: true
+        subtree: true,
+        characterData: true
     });
 
     console.log(`[${MODULE_NAME}] 🔮 OOC observer started on ${chatElement ? 'chat element' : 'body (fallback)'}`);
@@ -1721,6 +2434,10 @@ jQuery(async () => {
         showMiscFeaturesModal();
     });
 
+    $("#lumia-open-summarization-btn").click(() => {
+        showSummarizationModal();
+    });
+
     $("#loom-open-style-btn").click(() => {
         showLoomSelectionModal('Narrative Style');
     });
@@ -1756,7 +2473,7 @@ jQuery(async () => {
         event.target.value = '';
     });
 
-    // Hook into CHARACTER_MESSAGE_RENDERED to process OOC comments
+    // Hook into CHARACTER_MESSAGE_RENDERED to process OOC comments and loom summaries
     // This is the primary handler - fires after message is fully rendered to DOM
     // NOTE: SimTracker also listens to this event and may re-render message content
     // SimTracker has a 150ms delayed re-render for sidebar templates, so we delay 200ms to run after
@@ -1767,6 +2484,12 @@ jQuery(async () => {
         // Reset generation flag - successful render means generation completed
         isGenerating = false;
 
+        // Capture loom summary from chat messages (reads from chat data, not DOM)
+        captureLoomSummary();
+
+        // Check if auto-summarization should trigger
+        checkAutoSummarization();
+
         // Delay 200ms to ensure we run AFTER SimTracker's 150ms delayed re-render
         // This prevents SimTracker from overwriting our OOC boxes
         setTimeout(() => {
@@ -1775,6 +2498,9 @@ jQuery(async () => {
 
             const messageElement = query(`div[mesid="${mesId}"] .mes_text`);
             if (messageElement) {
+                // Hide any loom_sum blocks in the DOM
+                hideLoomSumBlocks(messageElement);
+
                 // Unhide any markers that were hidden during streaming
                 unhideAndProcessOOCMarkers(messageElement);
 
@@ -1813,10 +2539,12 @@ jQuery(async () => {
         setTimeout(() => processLumiaOOCComments(mesId), 50);
     });
 
-    // Handle chat changes - reprocess all OOC comments (SimTracker pattern)
+    // Handle chat changes - reprocess all OOC comments and loom summaries (SimTracker pattern)
     // Use a debounced approach: wait for DOM to stabilize after chat switch
     eventSource.on(event_types.CHAT_CHANGED, () => {
-        console.log(`[${MODULE_NAME}] 🔮 CHAT_CHANGED event - scheduling OOC reprocessing`);
+        console.log(`[${MODULE_NAME}] 🔮 CHAT_CHANGED event - scheduling OOC reprocessing and loom summary capture`);
+        // Capture loom summary from newly loaded chat
+        captureLoomSummary();
         scheduleOOCProcessingAfterRender();
     });
 
@@ -1846,6 +2574,37 @@ jQuery(async () => {
     // Use the same render-aware scheduling as chat changes
     console.log(`[${MODULE_NAME}] 🔮 Initial load - scheduling OOC processing`);
     scheduleOOCProcessingAfterRender();
+
+    // Register slash command for manual summarization
+    SlashCommandParser.addCommandObject(
+        SlashCommand.fromProps({
+            name: "loom-summarize",
+            callback: async () => {
+                const sumSettings = settings.summarization;
+                if (!sumSettings || sumSettings.mode === 'disabled') {
+                    toastr.warning("Summarization is disabled. Enable it in Lumia Injector settings.");
+                    return "Summarization is disabled.";
+                }
+
+                try {
+                    toastr.info("Generating loom summary...");
+                    const result = await generateLoomSummary();
+                    if (result) {
+                        toastr.success("Loom summary generated and saved!");
+                        return "Summary generated successfully.";
+                    } else {
+                        toastr.warning("No summary generated. Check if there are messages to summarize.");
+                        return "No summary generated.";
+                    }
+                } catch (error) {
+                    toastr.error(`Summarization failed: ${error.message}`);
+                    return `Error: ${error.message}`;
+                }
+            },
+            aliases: ["loom-sum", "summarize"],
+            helpString: "Manually generate a loom summary of the current chat using your configured summarization settings."
+        })
+    );
 
     console.log(`${MODULE_NAME} initialized`);
 });
