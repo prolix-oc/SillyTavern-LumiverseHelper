@@ -23,7 +23,7 @@ An extension for SillyTavern that dynamically injects character definitions, per
    ```
    https://github.com/lumiainjector/LumiaInjectorExtension
    ```
-5. Click **Save**
+5. Click **Install (for me or for everyone)**
 6. Refresh the page
 
 The extension will appear in your Extensions panel, ready to use.
