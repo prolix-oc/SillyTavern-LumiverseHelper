@@ -474,14 +474,16 @@ details.lumia-panel[open] .lumia-panel-chevron {
 /* Modal Content */
 .lumia-modal-content {
     padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+    display: block; /* Changed from flex - let children stack naturally */
     flex: 1 1 auto;
     overflow-y: auto;
     overflow-x: hidden;
     min-height: 0;
-    max-height: calc(80vh - 140px); /* Account for header (~70px) and footer (~70px) */
+}
+
+/* Spacing between panels */
+.lumia-modal-content > * + * {
+    margin-top: 16px;
 }
 
 /* Custom scrollbar for modal content */
@@ -508,7 +510,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     background: rgba(0, 0, 0, 0.2);
     border: 1px solid rgba(128, 128, 128, 0.12);
     border-radius: 12px;
-    overflow: hidden;
+    overflow: visible; /* Allow content to determine height */
 }
 
 .lumia-modal-panel-accent {
@@ -868,8 +870,10 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
     .lumia-modal-content {
         padding: 14px;
-        gap: 12px;
-        max-height: calc(85vh - 120px);
+    }
+
+    .lumia-modal-content > * + * {
+        margin-top: 12px;
     }
 
     .lumia-modal-panel-content {
