@@ -221,6 +221,18 @@ Retrofits (ItemName)
 
 **The category prefix must match exactly (case-sensitive).**
 
+### Nested Parentheses Support
+
+Loom item names can contain nested parentheses for additional descriptions:
+
+```
+Narrative Style (Kafka (Surreal Bureaucratic Horror))
+Loom Utilities (Scene Manager (Advanced))
+Retrofits (Memory System (v2))
+```
+
+The parser captures everything between the first `(` after the category and the final `)` at the end of the comment.
+
 ### Narrative Style Example
 
 ```json
