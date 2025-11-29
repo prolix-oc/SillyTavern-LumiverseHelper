@@ -2609,11 +2609,6 @@ details.lumia-panel[open] .lumia-panel-chevron {
     width: 95vw;
 }
 
-/* Ensure header doesn't shrink */
-.lumia-modal-lucid-cards .lumia-modal-header {
-    flex-shrink: 0;
-}
-
 /* Tabs Container */
 .lucid-cards-tabs {
     display: flex;
