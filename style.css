@@ -426,8 +426,17 @@ details.lumia-panel[open] .lumia-panel-chevron {
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    max-height: 80vh;
+    /* Use dvh for mobile-friendly dynamic viewport height */
+    max-height: 85vh;
+    max-height: 85dvh;
     height: auto;
+    width: 90vw;
+    max-width: 600px;
+}
+
+/* Settings Modal Variant (OOC, Summarization) */
+.lumia-modal-settings {
+    max-width: 520px;
 }
 
 /* Modal Header */
@@ -849,9 +858,15 @@ details.lumia-panel[open] .lumia-panel-chevron {
 @media (max-width: 600px) {
     .lumia-modal {
         border-radius: 12px;
-        margin: 8px;
+        width: calc(100vw - 16px);
         max-width: calc(100vw - 16px);
-        max-height: 85vh;
+        max-height: calc(100vh - 32px);
+        max-height: calc(100dvh - 32px);
+        margin: 16px auto;
+    }
+
+    .lumia-modal-settings {
+        max-width: calc(100vw - 16px);
     }
 
     .lumia-modal-header {
@@ -862,6 +877,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     .lumia-modal-header-icon {
         width: 32px;
         height: 32px;
+        flex-shrink: 0;
     }
 
     .lumia-modal-title {
@@ -870,6 +886,10 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
     .lumia-modal-content {
         padding: 14px;
+        /* Ensure content area scrolls and doesn't push footer off screen */
+        flex: 1 1 auto;
+        overflow-y: auto;
+        min-height: 0;
     }
 
     .lumia-modal-content > * + * {
@@ -915,6 +935,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     .lumia-modal-footer {
         padding: 14px 16px;
         flex-direction: column-reverse;
+        flex-shrink: 0;
     }
 
     .lumia-modal-btn {
@@ -1348,10 +1369,9 @@ details.lumia-panel[open] .lumia-panel-chevron {
    Extended header and list toggle components
    ============================================ */
 
-/* Selection Modal Specific */
+/* Selection Modal Specific (Lumia/Loom item selection) */
 .lumia-modal-selection {
     max-width: 700px;
-    width: 90vw;
 }
 
 /* Extended Modal Header with subtitle */
@@ -2197,7 +2217,6 @@ details.lumia-panel[open] .lumia-panel-chevron {
     /* Selection Modal Mobile */
     .lumia-modal-selection {
         max-width: calc(100vw - 16px);
-        width: 100%;
     }
 
     .lumia-modal-subtitle {
