@@ -1421,8 +1421,11 @@ details.lumia-panel[open] .lumia-panel-chevron {
     padding: 4px 8px;
     border-radius: 10px;
     flex-shrink: 0;
+}
+
+/* Push remove button to far right */
+.lumia-remove-pack-btn {
     margin-left: auto;
-    margin-right: 8px;
 }
 
 /* Panel Content Variants */
