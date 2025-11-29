@@ -1267,7 +1267,39 @@ details.lumia-panel[open] .lumia-panel-chevron {
     stroke: rgba(244, 67, 54, 1);
 }
 
-/* Modal Title Row with Clear Button */
+/* Small Icon Button (for inline use in headers) */
+.lumia-icon-btn-sm {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: rgba(244, 67, 54, 0.08);
+    border: 1px solid rgba(244, 67, 54, 0.2);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.lumia-icon-btn-sm svg {
+    width: 14px;
+    height: 14px;
+    stroke: rgba(244, 67, 54, 0.7);
+}
+
+.lumia-icon-btn-sm:hover {
+    background: rgba(244, 67, 54, 0.15);
+    border-color: rgba(244, 67, 54, 0.4);
+}
+
+.lumia-icon-btn-sm:hover svg {
+    stroke: rgba(244, 67, 54, 0.95);
+}
+
+/* Modal Title Row with Clear Button (legacy support) */
 .lumia-modal-title-row {
     display: flex;
     justify-content: space-between;
@@ -1276,6 +1308,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     padding: 0 15px;
 }
 
+/* Clear Button */
 .lumia-clear-btn {
     display: flex;
     align-items: center;
@@ -1290,6 +1323,8 @@ details.lumia-panel[open] .lumia-panel-chevron {
     font-size: 12px;
     font-weight: 500;
     color: rgba(255, 255, 255, 0.7);
+    flex-shrink: 0;
+    margin-left: auto;
 }
 
 .lumia-clear-btn svg {
@@ -1306,6 +1341,183 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
 .lumia-clear-btn:hover svg {
     stroke: rgba(244, 67, 54, 0.95);
+}
+
+/* ============================================
+   LUMIA SELECTION MODAL ENHANCEMENTS
+   Extended header and list toggle components
+   ============================================ */
+
+/* Selection Modal Specific */
+.lumia-modal-selection {
+    max-width: 700px;
+    width: 90vw;
+}
+
+/* Extended Modal Header with subtitle */
+.lumia-modal-header-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+
+.lumia-modal-subtitle {
+    font-size: 12px;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.5);
+    margin: 0;
+    letter-spacing: 0.1px;
+}
+
+/* Panel Count Badge */
+.lumia-modal-panel-count {
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(147, 112, 219, 0.7);
+    background: rgba(147, 112, 219, 0.1);
+    padding: 4px 8px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    margin-left: auto;
+    margin-right: 8px;
+}
+
+/* Panel Content Variants */
+.lumia-modal-panel-content-cards {
+    padding: 12px;
+}
+
+.lumia-modal-panel-content-list {
+    padding: 0;
+}
+
+/* Empty State */
+.lumia-modal-empty {
+    padding: 40px 20px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 14px;
+}
+
+/* ============================================
+   LIST TOGGLE COMPONENT
+   Toggleable list items for Loom utilities
+   ============================================ */
+
+.lumia-list-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.lumia-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.08);
+}
+
+.lumia-list-item:last-child {
+    border-bottom: none;
+}
+
+.lumia-list-item:hover {
+    background: rgba(147, 112, 219, 0.06);
+}
+
+.lumia-list-item.selected {
+    background: rgba(147, 112, 219, 0.1);
+}
+
+.lumia-list-item-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.lumia-list-item-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+    letter-spacing: -0.1px;
+}
+
+.lumia-list-item.selected .lumia-list-item-name {
+    color: rgba(255, 255, 255, 0.95);
+}
+
+.lumia-list-item-toggle {
+    flex-shrink: 0;
+    margin-left: 12px;
+}
+
+/* Toggle Switch (for multi-select) */
+.lumia-toggle-switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+}
+
+.lumia-toggle-track {
+    position: absolute;
+    inset: 0;
+    background: rgba(128, 128, 128, 0.3);
+    border-radius: 12px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lumia-list-item.selected .lumia-toggle-track {
+    background: linear-gradient(135deg, rgba(147, 112, 219, 0.9) 0%, rgba(123, 95, 196, 0.9) 100%);
+}
+
+.lumia-toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lumia-list-item.selected .lumia-toggle-thumb {
+    left: 22px;
+}
+
+/* Radio Indicator (for single-select) */
+.lumia-radio-indicator {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(128, 128, 128, 0.4);
+    border-radius: 50%;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.lumia-list-item.selected .lumia-radio-indicator {
+    border-color: rgba(147, 112, 219, 0.9);
+}
+
+.lumia-radio-indicator::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 10px;
+    height: 10px;
+    background: rgba(147, 112, 219, 0.9);
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lumia-list-item.selected .lumia-radio-indicator::after {
+    transform: translate(-50%, -50%) scale(1);
 }
 
 /* ============================================
@@ -1982,6 +2194,69 @@ details.lumia-panel[open] .lumia-panel-chevron {
         padding: 0 10px;
     }
 
+    /* Selection Modal Mobile */
+    .lumia-modal-selection {
+        max-width: calc(100vw - 16px);
+        width: 100%;
+    }
+
+    .lumia-modal-subtitle {
+        font-size: 11px;
+    }
+
+    .lumia-modal-panel-count {
+        font-size: 10px;
+        padding: 3px 6px;
+    }
+
+    .lumia-modal-panel-content-cards {
+        padding: 10px;
+    }
+
+    /* List Toggle Mobile */
+    .lumia-list-item {
+        padding: 12px 14px;
+    }
+
+    .lumia-list-item-name {
+        font-size: 13px;
+    }
+
+    .lumia-toggle-switch {
+        width: 40px;
+        height: 22px;
+    }
+
+    .lumia-toggle-thumb {
+        width: 18px;
+        height: 18px;
+    }
+
+    .lumia-list-item.selected .lumia-toggle-thumb {
+        left: 20px;
+    }
+
+    .lumia-radio-indicator {
+        width: 18px;
+        height: 18px;
+    }
+
+    .lumia-radio-indicator::after {
+        width: 8px;
+        height: 8px;
+    }
+
+    /* Small Icon Button Mobile */
+    .lumia-icon-btn-sm {
+        width: 26px;
+        height: 26px;
+    }
+
+    .lumia-icon-btn-sm svg {
+        width: 12px;
+        height: 12px;
+    }
+
     /* OOC Mobile Adjustments */
     .lumia-ooc-comment-box {
         padding: 12px 14px;
@@ -2109,5 +2384,13 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
     .lumia-card:hover .lumia-card-image img {
         transform: none;
+    }
+
+    .lumia-list-item,
+    .lumia-toggle-track,
+    .lumia-toggle-thumb,
+    .lumia-radio-indicator,
+    .lumia-radio-indicator::after {
+        transition: none;
     }
 }
