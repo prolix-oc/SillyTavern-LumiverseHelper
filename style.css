@@ -1470,6 +1470,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
 /* Panel Content Variants */
 .lumia-modal-panel-content-cards {
+    overflow-y: scroll;
     padding: 12px;
 }
 
