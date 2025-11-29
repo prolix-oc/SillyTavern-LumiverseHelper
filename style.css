@@ -1237,9 +1237,75 @@ details.lumia-panel[open] .lumia-panel-chevron {
     font-size: 1.2em;
 }
 
-.lumia-remove-pack-btn {
-    font-size: 0.8em;
-    padding: 5px 10px;
+/* Icon Button (trash, etc.) */
+.lumia-icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: rgba(244, 67, 54, 0.1);
+    border: 1px solid rgba(244, 67, 54, 0.3);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.lumia-icon-btn svg {
+    width: 18px;
+    height: 18px;
+    stroke: rgba(244, 67, 54, 0.8);
+}
+
+.lumia-icon-btn:hover {
+    background: rgba(244, 67, 54, 0.2);
+    border-color: rgba(244, 67, 54, 0.5);
+}
+
+.lumia-icon-btn:hover svg {
+    stroke: rgba(244, 67, 54, 1);
+}
+
+/* Modal Title Row with Clear Button */
+.lumia-modal-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 0 15px;
+}
+
+.lumia-clear-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: rgba(128, 128, 128, 0.1);
+    border: 1px solid rgba(128, 128, 128, 0.25);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.lumia-clear-btn svg {
+    width: 16px;
+    height: 16px;
+    stroke: rgba(255, 255, 255, 0.6);
+}
+
+.lumia-clear-btn:hover {
+    background: rgba(244, 67, 54, 0.15);
+    border-color: rgba(244, 67, 54, 0.4);
+    color: rgba(244, 67, 54, 0.95);
+}
+
+.lumia-clear-btn:hover svg {
+    stroke: rgba(244, 67, 54, 0.95);
 }
 
 /* ============================================
@@ -1888,6 +1954,32 @@ details.lumia-panel[open] .lumia-panel-chevron {
     #loom-current-style, #loom-current-utils, #loom-current-retrofits {
         text-align: center;
         white-space: normal;
+    }
+
+    /* Icon Button Mobile */
+    .lumia-icon-btn {
+        width: 32px;
+        height: 32px;
+    }
+
+    .lumia-icon-btn svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    /* Clear Button Mobile */
+    .lumia-clear-btn {
+        padding: 6px 10px;
+        font-size: 11px;
+    }
+
+    .lumia-clear-btn svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    .lumia-modal-title-row {
+        padding: 0 10px;
     }
 
     /* OOC Mobile Adjustments */
