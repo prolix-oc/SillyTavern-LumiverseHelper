@@ -1455,14 +1455,18 @@ details.lumia-panel[open] .lumia-panel-chevron {
 }
 
 .lumia-collapsible-content {
-    overflow: hidden;
-    transition: max-height 0.25s ease, opacity 0.2s ease, padding 0.25s ease;
-    max-height: 1000px;
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows 0.25s ease, opacity 0.2s ease, padding 0.25s ease;
     opacity: 1;
 }
 
+.lumia-collapsible-content > * {
+    overflow: hidden;
+}
+
 .lumia-collapsible.collapsed .lumia-collapsible-content {
-    max-height: 0;
+    grid-template-rows: 0fr;
     opacity: 0;
     padding-top: 0;
     padding-bottom: 0;
