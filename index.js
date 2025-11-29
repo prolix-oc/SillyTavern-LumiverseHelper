@@ -32,6 +32,7 @@ import {
     showLoomSelectionModal,
     showSummarizationModal,
     showPromptSettingsModal,
+    showLucidCardsModal,
     refreshUIDisplay,
     setRefreshUICallback,
     setProcessAllLumiaOOCCommentsRef
@@ -226,6 +227,11 @@ jQuery(async () => {
 
     $("#loom-open-retrofits-btn").click(() => {
         showLoomSelectionModal('Retrofits');
+    });
+
+    // Open Lucid Cards browser modal
+    $("#lumia-browse-lucid-btn").click(() => {
+        showLucidCardsModal();
     });
 
     // File upload handling
