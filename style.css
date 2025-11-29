@@ -2609,16 +2609,22 @@ details.lumia-panel[open] .lumia-panel-chevron {
     width: 95vw;
 }
 
+/* Ensure header doesn't shrink */
+.lumia-modal-lucid-cards .lumia-modal-header {
+    flex-shrink: 0;
+}
+
 /* Tabs Container */
 .lucid-cards-tabs {
     display: flex;
     gap: 4px;
-    padding: 0 16px 16px;
+    padding: 16px 16px;
     border-bottom: 1px solid rgba(128, 128, 128, 0.12);
     overflow-x: auto;
     flex-shrink: 0;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
+    background: rgba(0, 0, 0, 0.15);
 }
 
 .lucid-cards-tabs::-webkit-scrollbar {
@@ -2944,22 +2950,15 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
 /* Footer with Selected Info */
 .lucid-cards-footer {
+    display: flex;
     flex-direction: row;
     align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    animation: lucid-footer-slide-in 0.2s ease-out;
+    gap: 12px;
+    flex-shrink: 0;
 }
 
-@keyframes lucid-footer-slide-in {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+.lucid-cards-close-btn {
+    flex-shrink: 0;
 }
 
 .lucid-cards-selected-info {
@@ -2968,6 +2967,18 @@ details.lumia-panel[open] .lumia-panel-chevron {
     gap: 2px;
     min-width: 0;
     flex: 1;
+    animation: lucid-selected-fade-in 0.2s ease-out;
+}
+
+@keyframes lucid-selected-fade-in {
+    from {
+        opacity: 0;
+        transform: translateX(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
 
 .lucid-cards-selected-name {
@@ -2986,6 +2997,8 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
 .lucid-cards-import-btn {
     flex-shrink: 0;
+    margin-left: auto;
+    animation: lucid-selected-fade-in 0.2s ease-out;
 }
 
 .lucid-cards-btn-spinner {
@@ -3001,7 +3014,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     }
 
     .lucid-cards-tabs {
-        padding: 0 12px 12px;
+        padding: 12px;
         gap: 6px;
     }
 
@@ -3058,16 +3071,23 @@ details.lumia-panel[open] .lumia-panel-chevron {
     }
 
     .lucid-cards-footer {
-        flex-direction: column;
-        align-items: stretch;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .lucid-cards-close-btn {
+        order: 1;
     }
 
     .lucid-cards-selected-info {
+        order: 3;
+        flex-basis: 100%;
         text-align: center;
     }
 
     .lucid-cards-import-btn {
-        width: 100%;
+        order: 2;
+        margin-left: auto;
     }
 }
 
@@ -3128,7 +3148,8 @@ details.lumia-panel[open] .lumia-panel-chevron {
         transform: none;
     }
 
-    .lucid-cards-footer {
+    .lucid-cards-selected-info,
+    .lucid-cards-import-btn {
         animation: none;
     }
 }
