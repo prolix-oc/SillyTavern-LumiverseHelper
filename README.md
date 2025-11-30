@@ -55,14 +55,14 @@ The extension will appear in your Extensions panel, ready to use.
 
 ## Basic Macros
 
-| Macro | Description |
-|-------|-------------|
-| `{{lumiaDef}}` | Selected physical definition |
-| `{{lumiaBehavior}}` | All selected behaviors |
-| `{{lumiaPersonality}}` | All selected personalities |
-| `{{loomStyle}}` | Selected narrative style |
-| `{{loomUtils}}` | All selected utilities |
-| `{{loomRetrofits}}` | All selected retrofits |
+| Macro                  | Description                  |
+| ---------------------- | ---------------------------- |
+| `{{lumiaDef}}`         | Selected physical definition |
+| `{{lumiaBehavior}}`    | All selected behaviors       |
+| `{{lumiaPersonality}}` | All selected personalities   |
+| `{{loomStyle}}`        | Selected narrative style     |
+| `{{loomUtils}}`        | All selected utilities       |
+| `{{loomRetrofits}}`    | All selected retrofits       |
 
 See the [Macro Reference](docs/MACRO_REFERENCE.md) for the complete list including `.len` counters, random Lumia macros, and Loom system macros.
 

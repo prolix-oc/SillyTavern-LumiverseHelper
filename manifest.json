@@ -1,13 +1,13 @@
 {
-    "name": "lumiverse-helper",
-    "display_name": "Lumiverse Helper",
-    "author": "Prolix OCs",
-    "version": "1.0.0",
-    "description": "Injects Lumia Definitions, Behaviors, and Personalities from custom-made Lumia DLC files into prompt templates.",
-    "js": "index.js",
-    "css": "style.css",
-    "homePage": "https://github.com/prolix-oc/SillyTavern-LumiverseHelper.git",
-    "requires": [],
-    "loading_order": 100,
-    "generate_interceptor": "lumiverseHelperGenInterceptor"
+  "name": "lumiverse-helper",
+  "display_name": "Lumiverse Helper",
+  "author": "Prolix OCs",
+  "version": "1.0.0",
+  "description": "Injects Lumia Definitions, Behaviors, and Personalities from custom-made Lumia DLC files into prompt templates.",
+  "js": "index.js",
+  "css": "style.css",
+  "homePage": "https://github.com/prolix-oc/SillyTavern-LumiverseHelper.git",
+  "requires": [],
+  "loading_order": 100,
+  "generate_interceptor": "lumiverseHelperGenInterceptor"
 }

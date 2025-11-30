@@ -4,405 +4,418 @@
    ============================================ */
 
 .lumia-injector-settings {
-    padding: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+  padding: 0;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
 }
 
 /* Panel Container */
 .lumia-panel {
-    margin-bottom: 12px;
-    background: linear-gradient(
-        165deg,
-        rgba(28, 24, 38, 0.6) 0%,
-        rgba(35, 30, 48, 0.5) 100%
-    );
-    border: 1px solid rgba(147, 112, 219, 0.12);
-    border-radius: 12px;
-    overflow: hidden;
-    transition: border-color 0.2s ease;
+  margin-bottom: 12px;
+  background: linear-gradient(
+    165deg,
+    rgba(28, 24, 38, 0.6) 0%,
+    rgba(35, 30, 48, 0.5) 100%
+  );
+  border: 1px solid rgba(147, 112, 219, 0.12);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color 0.2s ease;
 }
 
 .lumia-panel:hover {
-    border-color: rgba(147, 112, 219, 0.25);
+  border-color: rgba(147, 112, 219, 0.25);
 }
 
 /* Panel Header */
 .lumia-panel-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 14px;
-    background: linear-gradient(
-        180deg,
-        rgba(147, 112, 219, 0.08) 0%,
-        transparent 100%
-    );
-    border-bottom: 1px solid rgba(147, 112, 219, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: linear-gradient(
+    180deg,
+    rgba(147, 112, 219, 0.08) 0%,
+    transparent 100%
+  );
+  border-bottom: 1px solid rgba(147, 112, 219, 0.08);
 }
 
 .lumia-panel-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 20px;
-    flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
 }
 
 .lumia-panel-icon svg {
-    width: 18px;
-    height: 18px;
-    stroke: rgba(147, 112, 219, 0.8);
+  width: 18px;
+  height: 18px;
+  stroke: rgba(147, 112, 219, 0.8);
 }
 
 .lumia-panel-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.9);
-    letter-spacing: -0.1px;
-    flex-grow: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  letter-spacing: -0.1px;
+  flex-grow: 1;
 }
 
 /* Collapsible Panel */
 .lumia-panel-collapsible {
-    cursor: default;
+  cursor: default;
 }
 
 .lumia-panel-header-clickable {
-    cursor: pointer;
-    list-style: none;
-    user-select: none;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
 }
 
 .lumia-panel-header-clickable::-webkit-details-marker {
-    display: none;
+  display: none;
 }
 
 .lumia-panel-chevron {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 20px;
-    transition: transform 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  transition: transform 0.2s ease;
 }
 
 .lumia-panel-chevron svg {
-    width: 16px;
-    height: 16px;
-    stroke: rgba(255, 255, 255, 0.4);
+  width: 16px;
+  height: 16px;
+  stroke: rgba(255, 255, 255, 0.4);
 }
 
 details.lumia-panel[open] .lumia-panel-chevron {
-    transform: rotate(180deg);
+  transform: rotate(180deg);
 }
 
 /* Panel Content */
 .lumia-panel-content {
-    padding: 14px;
+  padding: 14px;
 }
 
 /* Status Badge */
 .lumia-status-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 6px 12px;
-    margin-bottom: 12px;
-    background: rgba(147, 112, 219, 0.1);
-    border: 1px solid rgba(147, 112, 219, 0.2);
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 500;
-    color: rgba(186, 135, 255, 0.9);
-    letter-spacing: 0.1px;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  margin-bottom: 12px;
+  background: rgba(147, 112, 219, 0.1);
+  border: 1px solid rgba(147, 112, 219, 0.2);
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(186, 135, 255, 0.9);
+  letter-spacing: 0.1px;
 }
 
 /* Input Row */
 .lumia-input-row {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 10px;
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
 .lumia-input {
-    flex: 1;
-    padding: 10px 14px;
-    background: rgba(0, 0, 0, 0.25);
-    border: 1px solid rgba(128, 128, 128, 0.2);
-    border-radius: 8px;
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.9);
-    transition: all 0.2s ease;
-    font-family: inherit;
+  flex: 1;
+  padding: 10px 14px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  border-radius: 8px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
+  transition: all 0.2s ease;
+  font-family: inherit;
 }
 
 .lumia-input::placeholder {
-    color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.35);
 }
 
 .lumia-input:focus {
-    outline: none;
-    border-color: rgba(147, 112, 219, 0.5);
-    background: rgba(0, 0, 0, 0.35);
+  outline: none;
+  border-color: rgba(147, 112, 219, 0.5);
+  background: rgba(0, 0, 0, 0.35);
 }
 
 /* Divider Text */
 .lumia-divider-text {
-    text-align: center;
-    font-size: 11px;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.3);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin: 12px 0;
-    position: relative;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 12px 0;
+  position: relative;
 }
 
 .lumia-divider-text::before,
 .lumia-divider-text::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    width: calc(50% - 20px);
-    height: 1px;
-    background: rgba(128, 128, 128, 0.2);
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: calc(50% - 20px);
+  height: 1px;
+  background: rgba(128, 128, 128, 0.2);
 }
 
 .lumia-divider-text::before {
-    left: 0;
+  left: 0;
 }
 
 .lumia-divider-text::after {
-    right: 0;
+  right: 0;
 }
 
 /* Buttons */
 .lumia-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 10px 16px;
-    border: none;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 500;
-    font-family: inherit;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .lumia-btn svg {
-    width: 16px;
-    height: 16px;
-    flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
 
 .lumia-btn-primary {
-    background: linear-gradient(135deg, rgba(147, 112, 219, 0.9) 0%, rgba(123, 95, 196, 0.9) 100%);
-    color: white;
+  background: linear-gradient(
+    135deg,
+    rgba(147, 112, 219, 0.9) 0%,
+    rgba(123, 95, 196, 0.9) 100%
+  );
+  color: white;
 }
 
 .lumia-btn-primary:hover {
-    background: linear-gradient(135deg, rgba(167, 132, 239, 0.95) 0%, rgba(143, 115, 216, 0.95) 100%);
-    transform: translateY(-1px);
+  background: linear-gradient(
+    135deg,
+    rgba(167, 132, 239, 0.95) 0%,
+    rgba(143, 115, 216, 0.95) 100%
+  );
+  transform: translateY(-1px);
 }
 
 .lumia-btn-secondary {
-    background: rgba(128, 128, 128, 0.15);
-    border: 1px solid rgba(128, 128, 128, 0.25);
-    color: rgba(255, 255, 255, 0.85);
+  background: rgba(128, 128, 128, 0.15);
+  border: 1px solid rgba(128, 128, 128, 0.25);
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .lumia-btn-secondary:hover {
-    background: rgba(128, 128, 128, 0.25);
-    border-color: rgba(147, 112, 219, 0.3);
+  background: rgba(128, 128, 128, 0.25);
+  border-color: rgba(147, 112, 219, 0.3);
 }
 
 .lumia-btn-full {
-    width: 100%;
+  width: 100%;
 }
 
 .lumia-btn-sm {
-    padding: 6px 12px;
-    font-size: 12px;
-    background: rgba(147, 112, 219, 0.15);
-    border: 1px solid rgba(147, 112, 219, 0.25);
-    color: rgba(186, 135, 255, 0.95);
+  padding: 6px 12px;
+  font-size: 12px;
+  background: rgba(147, 112, 219, 0.15);
+  border: 1px solid rgba(147, 112, 219, 0.25);
+  color: rgba(186, 135, 255, 0.95);
 }
 
 .lumia-btn-sm:hover {
-    background: rgba(147, 112, 219, 0.25);
-    border-color: rgba(147, 112, 219, 0.4);
+  background: rgba(147, 112, 219, 0.25);
+  border-color: rgba(147, 112, 219, 0.4);
 }
 
 /* Selector Group */
 .lumia-selector-group {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .lumia-selector {
-    background: rgba(0, 0, 0, 0.15);
-    border: 1px solid rgba(128, 128, 128, 0.12);
-    border-radius: 10px;
-    padding: 12px 14px;
-    transition: all 0.2s ease;
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(128, 128, 128, 0.12);
+  border-radius: 10px;
+  padding: 12px 14px;
+  transition: all 0.2s ease;
 }
 
 .lumia-selector:hover {
-    border-color: rgba(147, 112, 219, 0.2);
-    background: rgba(0, 0, 0, 0.2);
+  border-color: rgba(147, 112, 219, 0.2);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .lumia-selector-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
 }
 
 .lumia-selector-label {
-    font-size: 12px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.8);
-    letter-spacing: 0.1px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  letter-spacing: 0.1px;
 }
 
 .lumia-selector-hint {
-    font-size: 10px;
-    font-weight: 500;
-    color: rgba(147, 112, 219, 0.6);
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(147, 112, 219, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 .lumia-selector-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .lumia-selector-value {
-    flex: 1;
-    font-size: 13px;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.65);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    min-width: 0;
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.65);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 /* Legacy selector ID support */
-#lumia-current-definition, #lumia-current-behaviors, #lumia-current-personalities,
-#loom-current-style, #loom-current-utils, #loom-current-retrofits {
-    font-weight: 500;
+#lumia-current-definition,
+#lumia-current-behaviors,
+#lumia-current-personalities,
+#loom-current-style,
+#loom-current-utils,
+#loom-current-retrofits {
+  font-weight: 500;
 }
 
 /* Tools Row */
 .lumia-tools-row {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
 }
 
 .lumia-tool-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 16px 12px;
-    background: rgba(0, 0, 0, 0.15);
-    border: 1px solid rgba(128, 128, 128, 0.12);
-    border-radius: 10px;
-    cursor: pointer;
-    transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 12px;
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(128, 128, 128, 0.12);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .lumia-tool-btn svg {
-    width: 22px;
-    height: 22px;
-    stroke: rgba(147, 112, 219, 0.7);
-    transition: stroke 0.2s ease;
+  width: 22px;
+  height: 22px;
+  stroke: rgba(147, 112, 219, 0.7);
+  transition: stroke 0.2s ease;
 }
 
 .lumia-tool-btn span {
-    font-size: 12px;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.75);
-    font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.75);
+  font-family: inherit;
 }
 
 .lumia-tool-btn:hover {
-    background: rgba(147, 112, 219, 0.1);
-    border-color: rgba(147, 112, 219, 0.25);
+  background: rgba(147, 112, 219, 0.1);
+  border-color: rgba(147, 112, 219, 0.25);
 }
 
 .lumia-tool-btn:hover svg {
-    stroke: rgba(186, 135, 255, 0.9);
+  stroke: rgba(186, 135, 255, 0.9);
 }
 
 /* Macro Reference */
 .lumia-macro-reference {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .lumia-macro-group {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .lumia-macro-group-title {
-    font-size: 10px;
-    font-weight: 600;
-    color: rgba(147, 112, 219, 0.7);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 2px;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(147, 112, 219, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
 }
 
 .lumia-macro-list {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .lumia-macro {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 6px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
 }
 
 .lumia-macro code {
-    font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
-    font-size: 11px;
-    padding: 4px 8px;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(128, 128, 128, 0.15);
-    border-radius: 5px;
-    color: rgba(186, 135, 255, 0.95);
-    white-space: nowrap;
+  font-family: "SF Mono", "Menlo", "Monaco", "Consolas", monospace;
+  font-size: 11px;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(128, 128, 128, 0.15);
+  border-radius: 5px;
+  color: rgba(186, 135, 255, 0.95);
+  white-space: nowrap;
 }
 
 .lumia-macro span {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
 }
 
 /* Empty State */
 .lumia-empty {
-    padding: 20px;
-    text-align: center;
-    color: rgba(255, 255, 255, 0.4);
-    font-size: 13px;
+  padding: 20px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 13px;
 }
 
 /* ============================================
@@ -412,556 +425,569 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
 /* Modal Backdrop - blocks clicks to elements behind */
 .lumia-modal-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 9998;
-    animation: lumia-backdrop-fadein 0.15s ease-out;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9998;
+  animation: lumia-backdrop-fadein 0.15s ease-out;
 }
 
 @keyframes lumia-backdrop-fadein {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .lumia-modal {
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
-    background: linear-gradient(
-        165deg,
-        rgba(22, 18, 32, 0.98) 0%,
-        rgba(28, 24, 40, 0.98) 100%
-    );
-    border: 1px solid rgba(147, 112, 219, 0.2);
-    border-radius: 16px;
-    box-shadow:
-        0 24px 80px rgba(0, 0, 0, 0.5),
-        0 0 1px rgba(147, 112, 219, 0.3);
-    padding: 0;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    /* Use dvh for mobile-friendly dynamic viewport height */
-    max-height: 85vh;
-    max-height: 85dvh;
-    height: auto;
-    width: 90vw;
-    max-width: 600px;
-    /* Ensure modal appears above backdrop */
-    z-index: 9999;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  background: linear-gradient(
+    165deg,
+    rgba(22, 18, 32, 0.98) 0%,
+    rgba(28, 24, 40, 0.98) 100%
+  );
+  border: 1px solid rgba(147, 112, 219, 0.2);
+  border-radius: 16px;
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.5),
+    0 0 1px rgba(147, 112, 219, 0.3);
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  /* Use dvh for mobile-friendly dynamic viewport height */
+  max-height: 85vh;
+  max-height: 85dvh;
+  height: auto;
+  width: 90vw;
+  max-width: 600px;
+  /* Ensure modal appears above backdrop */
+  z-index: 9999;
 }
 
 /* Settings Modal Variant (OOC, Summarization) */
 .lumia-modal-settings {
-    max-width: 520px;
+  max-width: 520px;
 }
 
 /* Modal Header */
 .lumia-modal-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 18px 20px;
-    background: linear-gradient(
-        180deg,
-        rgba(147, 112, 219, 0.1) 0%,
-        transparent 100%
-    );
-    border-bottom: 1px solid rgba(147, 112, 219, 0.12);
-    flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 20px;
+  background: linear-gradient(
+    180deg,
+    rgba(147, 112, 219, 0.1) 0%,
+    transparent 100%
+  );
+  border-bottom: 1px solid rgba(147, 112, 219, 0.12);
+  flex-shrink: 0;
 }
 
 .lumia-modal-header-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    background: linear-gradient(135deg, rgba(147, 112, 219, 0.2) 0%, rgba(147, 112, 219, 0.1) 100%);
-    border-radius: 10px;
-    border: 1px solid rgba(147, 112, 219, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(
+    135deg,
+    rgba(147, 112, 219, 0.2) 0%,
+    rgba(147, 112, 219, 0.1) 100%
+  );
+  border-radius: 10px;
+  border: 1px solid rgba(147, 112, 219, 0.2);
 }
 
 .lumia-modal-header-icon svg {
-    width: 20px;
-    height: 20px;
-    stroke: rgba(186, 135, 255, 0.9);
+  width: 20px;
+  height: 20px;
+  stroke: rgba(186, 135, 255, 0.9);
 }
 
 .lumia-modal-title {
-    font-size: 17px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.95);
-    letter-spacing: -0.2px;
-    margin: 0;
-    padding: 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  letter-spacing: -0.2px;
+  margin: 0;
+  padding: 0;
 }
 
 /* Modal Content */
 .lumia-modal-content {
-    padding: 20px;
-    display: block; /* Changed from flex - let children stack naturally */
-    flex: 1 1 auto;
-    overflow-y: auto;
-    overflow-x: hidden;
-    min-height: 0;
+  padding: 20px;
+  display: block; /* Changed from flex - let children stack naturally */
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
 }
 
 /* Spacing between panels */
 .lumia-modal-content > * + * {
-    margin-top: 16px;
+  margin-top: 16px;
 }
 
 /* Custom scrollbar for modal content */
 .lumia-modal-content::-webkit-scrollbar {
-    width: 8px;
+  width: 8px;
 }
 
 .lumia-modal-content::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 4px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
 }
 
 .lumia-modal-content::-webkit-scrollbar-thumb {
-    background: rgba(147, 112, 219, 0.3);
-    border-radius: 4px;
+  background: rgba(147, 112, 219, 0.3);
+  border-radius: 4px;
 }
 
 .lumia-modal-content::-webkit-scrollbar-thumb:hover {
-    background: rgba(147, 112, 219, 0.5);
+  background: rgba(147, 112, 219, 0.5);
 }
 
 /* Modal Panel */
 .lumia-modal-panel {
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(128, 128, 128, 0.12);
-    border-radius: 12px;
-    overflow: visible; /* Allow content to determine height */
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(128, 128, 128, 0.12);
+  border-radius: 12px;
+  overflow: visible; /* Allow content to determine height */
 }
 
 .lumia-modal-panel-accent {
-    border-color: rgba(147, 112, 219, 0.2);
-    background: linear-gradient(
-        165deg,
-        rgba(147, 112, 219, 0.08) 0%,
-        rgba(0, 0, 0, 0.2) 100%
-    );
+  border-color: rgba(147, 112, 219, 0.2);
+  background: linear-gradient(
+    165deg,
+    rgba(147, 112, 219, 0.08) 0%,
+    rgba(0, 0, 0, 0.2) 100%
+  );
 }
 
 .lumia-modal-panel-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 14px;
-    background: rgba(255, 255, 255, 0.02);
-    border-bottom: 1px solid rgba(128, 128, 128, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid rgba(128, 128, 128, 0.08);
 }
 
 .lumia-modal-panel-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 18px;
-    height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
 }
 
 .lumia-modal-panel-icon svg {
-    width: 16px;
-    height: 16px;
-    stroke: rgba(147, 112, 219, 0.7);
+  width: 16px;
+  height: 16px;
+  stroke: rgba(147, 112, 219, 0.7);
 }
 
 .lumia-modal-panel-title {
-    font-size: 12px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.8);
-    letter-spacing: 0.1px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  letter-spacing: 0.1px;
 }
 
 .lumia-modal-panel-content {
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .lumia-modal-description {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.5);
-    margin: 0;
-    line-height: 1.5;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0;
+  line-height: 1.5;
 }
 
 /* Modal Fields */
 .lumia-modal-field {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .lumia-modal-field-row {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 14px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
 }
 
 .lumia-modal-field-row-3 {
-    grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, 1fr);
 }
 
 .lumia-modal-label {
-    font-size: 11px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.6);
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 .lumia-modal-input,
 .lumia-modal-select {
-    padding: 10px 12px;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(128, 128, 128, 0.2);
-    border-radius: 8px;
-    font-size: 13px;
-    font-family: inherit;
-    color: rgba(255, 255, 255, 0.9);
-    transition: all 0.2s ease;
-    width: 100%;
-    box-sizing: border-box;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  color: rgba(255, 255, 255, 0.9);
+  transition: all 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .lumia-modal-input::placeholder {
-    color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.3);
 }
 
 .lumia-modal-input:focus,
 .lumia-modal-select:focus {
-    outline: none;
-    border-color: rgba(147, 112, 219, 0.5);
-    background: rgba(0, 0, 0, 0.4);
+  outline: none;
+  border-color: rgba(147, 112, 219, 0.5);
+  background: rgba(0, 0, 0, 0.4);
 }
 
 .lumia-modal-select {
-    cursor: pointer;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.5)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-    padding-right: 36px;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.5)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
 }
 
 .lumia-modal-hint {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.4);
-    margin-top: 2px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 2px;
 }
 
 /* Mode/Style Options */
 .lumia-mode-options {
-    display: flex;
-    gap: 8px;
+  display: flex;
+  gap: 8px;
 }
 
 .lumia-mode-option {
-    flex: 1;
-    position: relative;
-    cursor: pointer;
+  flex: 1;
+  position: relative;
+  cursor: pointer;
 }
 
 .lumia-mode-option input {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .lumia-mode-option-label {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 10px 12px;
-    background: rgba(0, 0, 0, 0.25);
-    border: 1px solid rgba(128, 128, 128, 0.15);
-    border-radius: 8px;
-    font-size: 12px;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.6);
-    transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(128, 128, 128, 0.15);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  transition: all 0.2s ease;
 }
 
 .lumia-mode-option:hover .lumia-mode-option-label {
-    border-color: rgba(147, 112, 219, 0.3);
-    color: rgba(255, 255, 255, 0.8);
+  border-color: rgba(147, 112, 219, 0.3);
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .lumia-mode-option.selected .lumia-mode-option-label {
-    background: rgba(147, 112, 219, 0.15);
-    border-color: rgba(147, 112, 219, 0.4);
-    color: rgba(186, 135, 255, 0.95);
+  background: rgba(147, 112, 219, 0.15);
+  border-color: rgba(147, 112, 219, 0.4);
+  color: rgba(186, 135, 255, 0.95);
 }
 
 .lumia-mode-option-wide .lumia-mode-option-label {
-    padding: 12px 16px;
+  padding: 12px 16px;
 }
 
 /* Style Options (OOC Display) */
 .lumia-style-options {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .lumia-style-option {
-    position: relative;
-    cursor: pointer;
+  position: relative;
+  cursor: pointer;
 }
 
 .lumia-style-option input {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .lumia-style-option-content {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 14px;
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(128, 128, 128, 0.12);
-    border-radius: 10px;
-    transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(128, 128, 128, 0.12);
+  border-radius: 10px;
+  transition: all 0.2s ease;
 }
 
 .lumia-style-option:hover .lumia-style-option-content {
-    border-color: rgba(147, 112, 219, 0.25);
-    background: rgba(0, 0, 0, 0.25);
+  border-color: rgba(147, 112, 219, 0.25);
+  background: rgba(0, 0, 0, 0.25);
 }
 
 .lumia-style-option.selected .lumia-style-option-content {
-    border-color: rgba(147, 112, 219, 0.4);
-    background: rgba(147, 112, 219, 0.1);
+  border-color: rgba(147, 112, 219, 0.4);
+  background: rgba(147, 112, 219, 0.1);
 }
 
 .lumia-style-option-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    background: rgba(147, 112, 219, 0.1);
-    border-radius: 8px;
-    flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: rgba(147, 112, 219, 0.1);
+  border-radius: 8px;
+  flex-shrink: 0;
 }
 
 .lumia-style-option-icon svg {
-    width: 18px;
-    height: 18px;
-    stroke: rgba(147, 112, 219, 0.6);
-    transition: stroke 0.2s ease;
+  width: 18px;
+  height: 18px;
+  stroke: rgba(147, 112, 219, 0.6);
+  transition: stroke 0.2s ease;
 }
 
 .lumia-style-option.selected .lumia-style-option-icon svg {
-    stroke: rgba(186, 135, 255, 0.9);
+  stroke: rgba(186, 135, 255, 0.9);
 }
 
 .lumia-style-option-text {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .lumia-style-option-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .lumia-style-option.selected .lumia-style-option-title {
-    color: rgba(255, 255, 255, 0.95);
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .lumia-style-option-desc {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.45);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
 }
 
 /* Modal Footer */
 .lumia-modal-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    padding: 16px 20px;
-    background: rgba(0, 0, 0, 0.15);
-    border-top: 1px solid rgba(128, 128, 128, 0.1);
-    flex-shrink: 0;
-    margin-top: auto;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 20px;
+  background: rgba(0, 0, 0, 0.15);
+  border-top: 1px solid rgba(128, 128, 128, 0.1);
+  flex-shrink: 0;
+  margin-top: auto;
 }
 
 /* Modal Buttons */
 .lumia-modal-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 500;
-    font-family: inherit;
-    cursor: pointer;
-    transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .lumia-modal-btn svg {
-    width: 16px;
-    height: 16px;
+  width: 16px;
+  height: 16px;
 }
 
 .lumia-modal-btn-primary {
-    background: linear-gradient(135deg, rgba(147, 112, 219, 0.9) 0%, rgba(123, 95, 196, 0.9) 100%);
-    color: white;
+  background: linear-gradient(
+    135deg,
+    rgba(147, 112, 219, 0.9) 0%,
+    rgba(123, 95, 196, 0.9) 100%
+  );
+  color: white;
 }
 
 .lumia-modal-btn-primary:hover {
-    background: linear-gradient(135deg, rgba(167, 132, 239, 0.95) 0%, rgba(143, 115, 216, 0.95) 100%);
-    transform: translateY(-1px);
+  background: linear-gradient(
+    135deg,
+    rgba(167, 132, 239, 0.95) 0%,
+    rgba(143, 115, 216, 0.95) 100%
+  );
+  transform: translateY(-1px);
 }
 
 .lumia-modal-btn-secondary {
-    background: rgba(128, 128, 128, 0.15);
-    border: 1px solid rgba(128, 128, 128, 0.2);
-    color: rgba(255, 255, 255, 0.75);
+  background: rgba(128, 128, 128, 0.15);
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  color: rgba(255, 255, 255, 0.75);
 }
 
 .lumia-modal-btn-secondary:hover {
-    background: rgba(128, 128, 128, 0.25);
-    color: rgba(255, 255, 255, 0.9);
+  background: rgba(128, 128, 128, 0.25);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .lumia-modal-btn-full {
-    width: 100%;
+  width: 100%;
 }
 
 /* Status Messages */
 .lumia-modal-status {
-    margin-top: 10px;
-    padding: 10px 12px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 8px;
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.7);
-    min-height: 20px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  min-height: 20px;
 }
 
 .lumia-modal-status:empty {
-    display: none;
+  display: none;
 }
 
 .lumia-modal-status-loading {
-    color: rgba(186, 135, 255, 0.9);
+  color: rgba(186, 135, 255, 0.9);
 }
 
 .lumia-modal-status-success {
-    color: rgba(76, 175, 80, 0.95);
+  color: rgba(76, 175, 80, 0.95);
 }
 
 .lumia-modal-status-error {
-    color: rgba(244, 67, 54, 0.95);
+  color: rgba(244, 67, 54, 0.95);
 }
 
 /* Modal Mobile Responsiveness */
 @media (max-width: 600px) {
-    .lumia-modal {
-        border-radius: 12px;
-        width: calc(100vw - 16px);
-        max-width: calc(100vw - 16px);
-        max-height: calc(100vh - 32px);
-        max-height: calc(100dvh - 32px);
-        margin: 16px auto;
-    }
+  .lumia-modal {
+    border-radius: 12px;
+    width: calc(100vw - 16px);
+    max-width: calc(100vw - 16px);
+    max-height: calc(100vh - 32px);
+    max-height: calc(100dvh - 32px);
+    margin: 16px auto;
+  }
 
-    .lumia-modal-settings,
-    .lumia-modal-selection {
-        max-width: calc(100vw - 16px);
-    }
+  .lumia-modal-settings,
+  .lumia-modal-selection {
+    max-width: calc(100vw - 16px);
+  }
 
-    .lumia-modal-header {
-        padding: 14px 16px;
-        flex-shrink: 0;
-    }
+  .lumia-modal-header {
+    padding: 14px 16px;
+    flex-shrink: 0;
+  }
 
-    .lumia-modal-header-icon {
-        width: 32px;
-        height: 32px;
-        flex-shrink: 0;
-    }
+  .lumia-modal-header-icon {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+  }
 
-    .lumia-modal-title {
-        font-size: 15px;
-    }
+  .lumia-modal-title {
+    font-size: 15px;
+  }
 
-    .lumia-modal-content {
-        padding: 14px;
-        /* Ensure content area scrolls and doesn't push footer off screen */
-        flex: 1 1 auto;
-        overflow-y: auto;
-        min-height: 0;
-    }
+  .lumia-modal-content {
+    padding: 14px;
+    /* Ensure content area scrolls and doesn't push footer off screen */
+    flex: 1 1 auto;
+    overflow-y: auto;
+    min-height: 0;
+  }
 
-    .lumia-modal-content > * + * {
-        margin-top: 12px;
-    }
+  .lumia-modal-content > * + * {
+    margin-top: 12px;
+  }
 
-    .lumia-modal-panel-content {
-        padding: 14px;
-        gap: 12px;
-    }
+  .lumia-modal-panel-content {
+    padding: 14px;
+    gap: 12px;
+  }
 
-    .lumia-modal-field-row {
-        grid-template-columns: 1fr;
-        gap: 10px;
-    }
+  .lumia-modal-field-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
 
-    .lumia-modal-field-row-3 {
-        grid-template-columns: 1fr;
-    }
+  .lumia-modal-field-row-3 {
+    grid-template-columns: 1fr;
+  }
 
-    .lumia-mode-options {
-        flex-direction: column;
-    }
+  .lumia-mode-options {
+    flex-direction: column;
+  }
 
-    .lumia-mode-option-label {
-        padding: 12px;
-    }
+  .lumia-mode-option-label {
+    padding: 12px;
+  }
 
-    .lumia-style-option-content {
-        padding: 10px 12px;
-    }
+  .lumia-style-option-content {
+    padding: 10px 12px;
+  }
 
-    .lumia-style-option-icon {
-        width: 32px;
-        height: 32px;
-    }
+  .lumia-style-option-icon {
+    width: 32px;
+    height: 32px;
+  }
 
-    .lumia-style-option-icon svg {
-        width: 16px;
-        height: 16px;
-    }
+  .lumia-style-option-icon svg {
+    width: 16px;
+    height: 16px;
+  }
 
-    .lumia-modal-footer {
-        padding: 14px 16px;
-        flex-direction: column-reverse;
-        flex-shrink: 0;
-    }
+  .lumia-modal-footer {
+    padding: 14px 16px;
+    flex-direction: column-reverse;
+    flex-shrink: 0;
+  }
 
-    .lumia-modal-btn {
-        width: 100%;
-    }
+  .lumia-modal-btn {
+    width: 100%;
+  }
 }
 
 /* ============================================
@@ -970,419 +996,422 @@ details.lumia-panel[open] .lumia-panel-chevron {
    ============================================ */
 
 .lumia-card-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 16px;
-    padding: 4px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  padding: 4px;
 }
 
 .lumia-card {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    background: linear-gradient(
-        165deg,
-        rgba(28, 24, 38, 0.95) 0%,
-        rgba(38, 32, 52, 0.9) 50%,
-        rgba(32, 28, 45, 0.95) 100%
-    );
-    border: 1px solid rgba(128, 128, 128, 0.15);
-    border-radius: 16px;
-    overflow: hidden;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(
+    165deg,
+    rgba(28, 24, 38, 0.95) 0%,
+    rgba(38, 32, 52, 0.9) 50%,
+    rgba(32, 28, 45, 0.95) 100%
+  );
+  border: 1px solid rgba(128, 128, 128, 0.15);
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .lumia-card:hover {
-    transform: translateY(-4px);
-    border-color: rgba(147, 112, 219, 0.3);
-    box-shadow:
-        0 8px 24px rgba(0, 0, 0, 0.25),
-        0 0 0 1px rgba(147, 112, 219, 0.15);
+  transform: translateY(-4px);
+  border-color: rgba(147, 112, 219, 0.3);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(147, 112, 219, 0.15);
 }
 
 .lumia-card.selected {
-    border-color: rgba(100, 149, 237, 0.6);
-    box-shadow:
-        0 4px 16px rgba(100, 149, 237, 0.2),
-        0 0 0 1px rgba(100, 149, 237, 0.3),
-        inset 0 0 20px rgba(100, 149, 237, 0.05);
+  border-color: rgba(100, 149, 237, 0.6);
+  box-shadow:
+    0 4px 16px rgba(100, 149, 237, 0.2),
+    0 0 0 1px rgba(100, 149, 237, 0.3),
+    inset 0 0 20px rgba(100, 149, 237, 0.05);
 }
 
 .lumia-card.selected::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: linear-gradient(
-        90deg,
-        transparent 0%,
-        rgba(100, 149, 237, 0.5) 20%,
-        rgba(100, 149, 237, 0.8) 50%,
-        rgba(100, 149, 237, 0.5) 80%,
-        transparent 100%
-    );
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(100, 149, 237, 0.5) 20%,
+    rgba(100, 149, 237, 0.8) 50%,
+    rgba(100, 149, 237, 0.5) 80%,
+    transparent 100%
+  );
 }
 
 /* Card Image Container */
 .lumia-card-image {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    background: linear-gradient(
-        135deg,
-        rgba(20, 16, 28, 0.8) 0%,
-        rgba(40, 32, 55, 0.6) 100%
-    );
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: linear-gradient(
+    135deg,
+    rgba(20, 16, 28, 0.8) 0%,
+    rgba(40, 32, 55, 0.6) 100%
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
 .lumia-card-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.3s ease;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
 }
 
 .lumia-card:hover .lumia-card-image img {
-    transform: scale(1.05);
+  transform: scale(1.05);
 }
 
 .lumia-card-placeholder {
-    font-size: 48px;
-    font-weight: 300;
-    color: rgba(147, 112, 219, 0.4);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
-    user-select: none;
+  font-size: 48px;
+  font-weight: 300;
+  color: rgba(147, 112, 219, 0.4);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+  user-select: none;
 }
 
 /* Dominant Star Icon */
 .lumia-dominant-icon {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border-radius: 50%;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    cursor: pointer;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 10;
-    opacity: 0;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 10;
+  opacity: 0;
 }
 
 .lumia-card:hover .lumia-dominant-icon,
 .lumia-card.selected .lumia-dominant-icon {
-    opacity: 1;
+  opacity: 1;
 }
 
 .lumia-dominant-icon:hover {
-    background: rgba(0, 0, 0, 0.7);
-    border-color: rgba(255, 193, 7, 0.4);
-    transform: scale(1.1);
+  background: rgba(0, 0, 0, 0.7);
+  border-color: rgba(255, 193, 7, 0.4);
+  transform: scale(1.1);
 }
 
 .lumia-dominant-icon.dominant {
-    opacity: 1;
-    background: linear-gradient(
-        135deg,
-        rgba(255, 193, 7, 0.9) 0%,
-        rgba(255, 152, 0, 0.9) 100%
-    );
-    border-color: rgba(255, 193, 7, 0.6);
-    box-shadow: 0 2px 12px rgba(255, 193, 7, 0.4);
+  opacity: 1;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 193, 7, 0.9) 0%,
+    rgba(255, 152, 0, 0.9) 100%
+  );
+  border-color: rgba(255, 193, 7, 0.6);
+  box-shadow: 0 2px 12px rgba(255, 193, 7, 0.4);
 }
 
 .lumia-dominant-icon svg {
-    width: 18px;
-    height: 18px;
-    fill: none;
-    stroke: rgba(255, 255, 255, 0.7);
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    transition: all 0.25s ease;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.7);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: all 0.25s ease;
 }
 
 .lumia-dominant-icon:hover svg {
-    stroke: rgba(255, 193, 7, 0.9);
+  stroke: rgba(255, 193, 7, 0.9);
 }
 
 .lumia-dominant-icon.dominant svg {
-    fill: rgba(255, 255, 255, 0.95);
-    stroke: rgba(255, 255, 255, 0.95);
+  fill: rgba(255, 255, 255, 0.95);
+  stroke: rgba(255, 255, 255, 0.95);
 }
 
 /* Selection Checkmark Overlay */
 .lumia-card-check {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(100, 149, 237, 0.9);
-    border-radius: 50%;
-    opacity: 0;
-    transform: scale(0.5);
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 10;
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(100, 149, 237, 0.9);
+  border-radius: 50%;
+  opacity: 0;
+  transform: scale(0.5);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 10;
 }
 
 .lumia-card.selected .lumia-card-check {
-    opacity: 1;
-    transform: scale(1);
+  opacity: 1;
+  transform: scale(1);
 }
 
 .lumia-card-check svg {
-    width: 16px;
-    height: 16px;
-    fill: none;
-    stroke: white;
-    stroke-width: 2.5;
-    stroke-linecap: round;
-    stroke-linejoin: round;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: white;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 /* Card Info Section */
 .lumia-card-info {
-    padding: 14px 16px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    background: linear-gradient(
-        180deg,
-        rgba(28, 24, 38, 0.0) 0%,
-        rgba(28, 24, 38, 0.95) 20%
-    );
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: linear-gradient(
+    180deg,
+    rgba(28, 24, 38, 0) 0%,
+    rgba(28, 24, 38, 0.95) 20%
+  );
 }
 
 .lumia-card-name {
-    font-size: 15px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.95);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
-    letter-spacing: -0.2px;
-    line-height: 1.3;
-    word-break: break-word;
+  font-size: 15px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+  letter-spacing: -0.2px;
+  line-height: 1.3;
+  word-break: break-word;
 }
 
 .lumia-card-pack {
-    font-size: 12px;
-    font-weight: 400;
-    color: rgba(147, 112, 219, 0.7);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
-    letter-spacing: 0.1px;
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(147, 112, 219, 0.7);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  letter-spacing: 0.1px;
 }
 
 /* Definition Card Variant (no dominant icon) */
 .lumia-card.definition-card .lumia-dominant-icon {
-    display: none;
+  display: none;
 }
 
 /* Legacy Grid Layout (kept for compatibility) */
 .lumia-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 15px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 15px;
 }
 
 .lumia-grid-item {
-    display: flex;
-    align-items: center;
-    background-color: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(128, 128, 128, 0.2);
-    border-radius: 8px;
-    padding: 10px;
-    cursor: pointer;
-    transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  border-radius: 8px;
+  padding: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .lumia-grid-item:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .lumia-grid-item.selected {
-    background-color: rgba(100, 149, 237, 0.15);
-    border-color: cornflowerblue;
-    box-shadow: 0 0 5px rgba(100, 149, 237, 0.3);
+  background-color: rgba(100, 149, 237, 0.15);
+  border-color: cornflowerblue;
+  box-shadow: 0 0 5px rgba(100, 149, 237, 0.3);
 }
 
 .lumia-item-image {
-    width: 70px;
-    height: 70px;
-    flex-shrink: 0;
-    margin-right: 15px;
-    border-radius: 6px;
-    overflow: hidden;
-    background-color: rgba(0,0,0,0.3);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border: 1px solid rgba(255,255,255,0.1);
+  width: 70px;
+  height: 70px;
+  flex-shrink: 0;
+  margin-right: 15px;
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: rgba(0, 0, 0, 0.3);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .lumia-item-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .lumia-placeholder-img {
-    color: #888;
-    font-size: 30px;
-    font-weight: bold;
+  color: #888;
+  font-size: 30px;
+  font-weight: bold;
 }
 
 .lumia-item-name {
-    font-weight: bold;
-    word-break: break-word;
-    font-size: 1.1em;
+  font-weight: bold;
+  word-break: break-word;
+  font-size: 1.1em;
 }
 
 /* Pack Headers */
 .lumia-pack-section {
-    margin-bottom: 25px;
-    border: 1px solid rgba(128, 128, 128, 0.2);
-    padding: 10px;
-    border-radius: 8px;
-    background-color: rgba(0,0,0,0.1);
+  margin-bottom: 25px;
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  padding: 10px;
+  border-radius: 8px;
+  background-color: rgba(0, 0, 0, 0.1);
 }
 
 .lumia-pack-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid rgba(128, 128, 128, 0.2);
-    padding-bottom: 10px;
-    margin-bottom: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+  padding-bottom: 10px;
+  margin-bottom: 15px;
 }
 
 .lumia-pack-header h4 {
-    margin: 0;
-    font-size: 1.2em;
+  margin: 0;
+  font-size: 1.2em;
 }
 
 /* Icon Button (trash, etc.) */
 .lumia-icon-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    padding: 0;
-    background: rgba(244, 67, 54, 0.1);
-    border: 1px solid rgba(244, 67, 54, 0.3);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .lumia-icon-btn svg {
-    width: 18px;
-    height: 18px;
-    stroke: rgba(244, 67, 54, 0.8);
+  width: 18px;
+  height: 18px;
+  stroke: rgba(244, 67, 54, 0.8);
 }
 
 .lumia-icon-btn:hover {
-    background: rgba(244, 67, 54, 0.2);
-    border-color: rgba(244, 67, 54, 0.5);
+  background: rgba(244, 67, 54, 0.2);
+  border-color: rgba(244, 67, 54, 0.5);
 }
 
 .lumia-icon-btn:hover svg {
-    stroke: rgba(244, 67, 54, 1);
+  stroke: rgba(244, 67, 54, 1);
 }
 
 /* Small Icon Button (for inline use in headers) */
 .lumia-icon-btn-sm {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    padding: 0;
-    background: rgba(244, 67, 54, 0.08);
-    border: 1px solid rgba(244, 67, 54, 0.2);
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    margin-left: auto;
-    flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: rgba(244, 67, 54, 0.08);
+  border: 1px solid rgba(244, 67, 54, 0.2);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .lumia-icon-btn-sm svg {
-    width: 14px;
-    height: 14px;
-    stroke: rgba(244, 67, 54, 0.7);
+  width: 14px;
+  height: 14px;
+  stroke: rgba(244, 67, 54, 0.7);
 }
 
 .lumia-icon-btn-sm:hover {
-    background: rgba(244, 67, 54, 0.15);
-    border-color: rgba(244, 67, 54, 0.4);
+  background: rgba(244, 67, 54, 0.15);
+  border-color: rgba(244, 67, 54, 0.4);
 }
 
 .lumia-icon-btn-sm:hover svg {
-    stroke: rgba(244, 67, 54, 0.95);
+  stroke: rgba(244, 67, 54, 0.95);
 }
 
 /* Modal Title Row with Clear Button (legacy support) */
 .lumia-modal-title-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    padding: 0 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 0 15px;
 }
 
 /* Clear Button */
 .lumia-clear-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
-    background: rgba(128, 128, 128, 0.1);
-    border: 1px solid rgba(128, 128, 128, 0.25);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.7);
-    flex-shrink: 0;
-    margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: rgba(128, 128, 128, 0.1);
+  border: 1px solid rgba(128, 128, 128, 0.25);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .lumia-clear-btn svg {
-    width: 16px;
-    height: 16px;
-    stroke: rgba(255, 255, 255, 0.6);
+  width: 16px;
+  height: 16px;
+  stroke: rgba(255, 255, 255, 0.6);
 }
 
 .lumia-clear-btn:hover {
-    background: rgba(244, 67, 54, 0.15);
-    border-color: rgba(244, 67, 54, 0.4);
-    color: rgba(244, 67, 54, 0.95);
+  background: rgba(244, 67, 54, 0.15);
+  border-color: rgba(244, 67, 54, 0.4);
+  color: rgba(244, 67, 54, 0.95);
 }
 
 .lumia-clear-btn:hover svg {
-    stroke: rgba(244, 67, 54, 0.95);
+  stroke: rgba(244, 67, 54, 0.95);
 }
 
 /* ============================================
@@ -1392,101 +1421,104 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
 /* Selection Modal Specific (Lumia/Loom item selection) */
 .lumia-modal-selection {
-    max-width: 700px;
+  max-width: 700px;
 }
 
 /* Extended Modal Header with subtitle */
 .lumia-modal-header-text {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    flex: 1;
-    min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
 }
 
 .lumia-modal-subtitle {
-    font-size: 12px;
-    font-weight: 400;
-    color: rgba(255, 255, 255, 0.5);
-    margin: 0;
-    letter-spacing: 0.1px;
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0;
+  letter-spacing: 0.1px;
 }
 
 /* Panel Count Badge */
 .lumia-modal-panel-count {
-    font-size: 11px;
-    font-weight: 500;
-    color: rgba(147, 112, 219, 0.7);
-    background: rgba(147, 112, 219, 0.1);
-    padding: 4px 8px;
-    border-radius: 10px;
-    flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(147, 112, 219, 0.7);
+  background: rgba(147, 112, 219, 0.1);
+  padding: 4px 8px;
+  border-radius: 10px;
+  flex-shrink: 0;
 }
 
 /* Push remove button to far right */
 .lumia-remove-pack-btn {
-    margin-left: auto;
+  margin-left: auto;
 }
 
 /* Collapsible Panel Styles */
 .lumia-collapsible-trigger {
-    cursor: pointer;
-    user-select: none;
+  cursor: pointer;
+  user-select: none;
 }
 
 .lumia-panel-collapse-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 16px;
-    height: 16px;
-    flex-shrink: 0;
-    transition: transform 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
 }
 
 .lumia-panel-collapse-icon svg {
-    width: 14px;
-    height: 14px;
-    stroke: rgba(255, 255, 255, 0.4);
+  width: 14px;
+  height: 14px;
+  stroke: rgba(255, 255, 255, 0.4);
 }
 
 .lumia-collapsible.collapsed .lumia-panel-collapse-icon {
-    transform: rotate(-90deg);
+  transform: rotate(-90deg);
 }
 
 .lumia-collapsible-content {
-    display: grid;
-    grid-template-rows: 1fr;
-    transition: grid-template-rows 0.25s ease, opacity 0.2s ease, padding 0.25s ease;
-    opacity: 1;
+  display: grid;
+  grid-template-rows: 1fr;
+  transition:
+    grid-template-rows 0.25s ease,
+    opacity 0.2s ease,
+    padding 0.25s ease;
+  opacity: 1;
 }
 
 .lumia-collapsible-content > * {
-    overflow: hidden;
+  overflow: hidden;
 }
 
 .lumia-collapsible.collapsed .lumia-collapsible-content {
-    grid-template-rows: 0fr;
-    opacity: 0;
-    padding-top: 0;
-    padding-bottom: 0;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 /* Panel Content Variants */
 .lumia-modal-panel-content-cards {
-    padding: 12px;
+  padding: 12px;
 }
 
 .lumia-modal-panel-content-list {
-    padding: 0;
+  padding: 0;
 }
 
 /* Empty State */
 .lumia-modal-empty {
-    padding: 40px 20px;
-    text-align: center;
-    color: rgba(255, 255, 255, 0.4);
-    font-size: 14px;
+  padding: 40px 20px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 14px;
 }
 
 /* ============================================
@@ -1495,117 +1527,121 @@ details.lumia-panel[open] .lumia-panel-chevron {
    ============================================ */
 
 .lumia-list-group {
-    display: flex;
-    flex-direction: column;
+  display: flex;
+  flex-direction: column;
 }
 
 .lumia-list-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 16px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border-bottom: 1px solid rgba(128, 128, 128, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.08);
 }
 
 .lumia-list-item:last-child {
-    border-bottom: none;
+  border-bottom: none;
 }
 
 .lumia-list-item:hover {
-    background: rgba(147, 112, 219, 0.06);
+  background: rgba(147, 112, 219, 0.06);
 }
 
 .lumia-list-item.selected {
-    background: rgba(147, 112, 219, 0.1);
+  background: rgba(147, 112, 219, 0.1);
 }
 
 .lumia-list-item-content {
-    flex: 1;
-    min-width: 0;
+  flex: 1;
+  min-width: 0;
 }
 
 .lumia-list-item-name {
-    font-size: 14px;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.9);
-    letter-spacing: -0.1px;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  letter-spacing: -0.1px;
 }
 
 .lumia-list-item.selected .lumia-list-item-name {
-    color: rgba(255, 255, 255, 0.95);
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .lumia-list-item-toggle {
-    flex-shrink: 0;
-    margin-left: 12px;
+  flex-shrink: 0;
+  margin-left: 12px;
 }
 
 /* Toggle Switch (for multi-select) */
 .lumia-toggle-switch {
-    position: relative;
-    width: 44px;
-    height: 24px;
+  position: relative;
+  width: 44px;
+  height: 24px;
 }
 
 .lumia-toggle-track {
-    position: absolute;
-    inset: 0;
-    background: rgba(128, 128, 128, 0.3);
-    border-radius: 12px;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: absolute;
+  inset: 0;
+  background: rgba(128, 128, 128, 0.3);
+  border-radius: 12px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .lumia-list-item.selected .lumia-toggle-track {
-    background: linear-gradient(135deg, rgba(147, 112, 219, 0.9) 0%, rgba(123, 95, 196, 0.9) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(147, 112, 219, 0.9) 0%,
+    rgba(123, 95, 196, 0.9) 100%
+  );
 }
 
 .lumia-toggle-thumb {
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 20px;
-    height: 20px;
-    background: white;
-    border-radius: 50%;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .lumia-list-item.selected .lumia-toggle-thumb {
-    left: 22px;
+  left: 22px;
 }
 
 /* Radio Indicator (for single-select) */
 .lumia-radio-indicator {
-    width: 20px;
-    height: 20px;
-    border: 2px solid rgba(128, 128, 128, 0.4);
-    border-radius: 50%;
-    position: relative;
-    transition: all 0.2s ease;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(128, 128, 128, 0.4);
+  border-radius: 50%;
+  position: relative;
+  transition: all 0.2s ease;
 }
 
 .lumia-list-item.selected .lumia-radio-indicator {
-    border-color: rgba(147, 112, 219, 0.9);
+  border-color: rgba(147, 112, 219, 0.9);
 }
 
 .lumia-radio-indicator::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 10px;
-    height: 10px;
-    background: rgba(147, 112, 219, 0.9);
-    border-radius: 50%;
-    transform: translate(-50%, -50%) scale(0);
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  background: rgba(147, 112, 219, 0.9);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .lumia-list-item.selected .lumia-radio-indicator::after {
-    transform: translate(-50%, -50%) scale(1);
+  transform: translate(-50%, -50%) scale(1);
 }
 
 /* ============================================
@@ -1615,221 +1651,231 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
 /* Main container - horizontal flex layout */
 .lumia-ooc-comment-box {
-    display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    gap: 14px;
-    padding: 16px 18px;
-    margin: 16px 4px;
-    background: linear-gradient(
-        168deg,
-        rgba(20, 16, 28, 0.85) 0%,
-        rgba(30, 24, 42, 0.75) 50%,
-        rgba(25, 20, 35, 0.8) 100%
-    );
-    border-radius: 16px;
-    border: 1px solid rgba(147, 112, 219, 0.2);
-    position: relative;
-    overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  margin: 16px 4px;
+  background: linear-gradient(
+    168deg,
+    rgba(20, 16, 28, 0.85) 0%,
+    rgba(30, 24, 42, 0.75) 50%,
+    rgba(25, 20, 35, 0.8) 100%
+  );
+  border-radius: 16px;
+  border: 1px solid rgba(147, 112, 219, 0.2);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Ethereal thread weave effect - top accent line */
 .lumia-ooc-comment-box::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: linear-gradient(
-        90deg,
-        transparent 0%,
-        rgba(147, 112, 219, 0.3) 15%,
-        rgba(186, 135, 255, 0.6) 30%,
-        rgba(147, 112, 219, 0.8) 50%,
-        rgba(186, 135, 255, 0.6) 70%,
-        rgba(147, 112, 219, 0.3) 85%,
-        transparent 100%
-    );
-    animation: loom-weave 8s ease-in-out infinite;
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(147, 112, 219, 0.3) 15%,
+    rgba(186, 135, 255, 0.6) 30%,
+    rgba(147, 112, 219, 0.8) 50%,
+    rgba(186, 135, 255, 0.6) 70%,
+    rgba(147, 112, 219, 0.3) 85%,
+    transparent 100%
+  );
+  animation: loom-weave 8s ease-in-out infinite;
 }
 
 /* Subtle shimmer effect on the background */
 .lumia-ooc-comment-box::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 50%;
-    height: 100%;
-    background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(147, 112, 219, 0.03),
-        transparent
-    );
-    animation: ethereal-shimmer 12s ease-in-out infinite;
-    pointer-events: none;
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(147, 112, 219, 0.03),
+    transparent
+  );
+  animation: ethereal-shimmer 12s ease-in-out infinite;
+  pointer-events: none;
 }
 
 @keyframes loom-weave {
-    0%, 100% {
-        opacity: 0.6;
-        background-position: 0% 50%;
-    }
-    50% {
-        opacity: 1;
-        background-position: 100% 50%;
-    }
+  0%,
+  100% {
+    opacity: 0.6;
+    background-position: 0% 50%;
+  }
+  50% {
+    opacity: 1;
+    background-position: 100% 50%;
+  }
 }
 
 @keyframes ethereal-shimmer {
-    0% { left: -100%; }
-    50% { left: 150%; }
-    100% { left: 150%; }
+  0% {
+    left: -100%;
+  }
+  50% {
+    left: 150%;
+  }
+  100% {
+    left: 150%;
+  }
 }
 
 .lumia-ooc-comment-box:hover {
-    border-color: rgba(147, 112, 219, 0.4);
-    box-shadow:
-        0 4px 24px rgba(147, 112, 219, 0.15),
-        0 0 40px rgba(147, 112, 219, 0.05) inset;
-    transform: translateY(-1px);
+  border-color: rgba(147, 112, 219, 0.4);
+  box-shadow:
+    0 4px 24px rgba(147, 112, 219, 0.15),
+    0 0 40px rgba(147, 112, 219, 0.05) inset;
+  transform: translateY(-1px);
 }
 
 /* Avatar container with ethereal glow ring */
 .lumia-ooc-avatar-container {
-    position: relative;
-    flex-shrink: 0;
+  position: relative;
+  flex-shrink: 0;
 }
 
 /* Pulsing glow ring behind avatar */
 .lumia-ooc-avatar-container::before {
-    content: '';
-    position: absolute;
-    top: -3px;
-    left: -3px;
-    right: -3px;
-    bottom: -3px;
-    border-radius: 50%;
-    background: conic-gradient(
-        from 0deg,
-        rgba(147, 112, 219, 0.5),
-        rgba(186, 135, 255, 0.3),
-        rgba(138, 43, 226, 0.5),
-        rgba(186, 135, 255, 0.3),
-        rgba(147, 112, 219, 0.5)
-    );
-    animation: avatar-glow-spin 6s linear infinite;
-    opacity: 0.7;
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  right: -3px;
+  bottom: -3px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(147, 112, 219, 0.5),
+    rgba(186, 135, 255, 0.3),
+    rgba(138, 43, 226, 0.5),
+    rgba(186, 135, 255, 0.3),
+    rgba(147, 112, 219, 0.5)
+  );
+  animation: avatar-glow-spin 6s linear infinite;
+  opacity: 0.7;
 }
 
 @keyframes avatar-glow-spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .lumia-ooc-avatar {
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    object-fit: cover;
-    position: relative;
-    z-index: 1;
-    border: 2px solid rgba(30, 24, 42, 0.9);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  position: relative;
+  z-index: 1;
+  border: 2px solid rgba(30, 24, 42, 0.9);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .lumia-ooc-avatar-placeholder {
-    background: linear-gradient(
-        135deg,
-        #9370DB 0%,
-        #7B5FC4 50%,
-        #8A2BE2 100%
-    );
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.95);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
-    letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #9370db 0%, #7b5fc4 50%, #8a2be2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+  letter-spacing: -0.5px;
 }
 
 /* Content column - takes remaining space */
 .lumia-ooc-content-column {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 /* Header row with name and thread indicator */
 .lumia-ooc-header-row {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    flex-wrap: wrap;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .lumia-ooc-name {
-    font-size: 14px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.95);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
-    letter-spacing: -0.2px;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+  letter-spacing: -0.2px;
 }
 
 .lumia-ooc-thread {
-    font-size: 12px;
-    font-weight: 400;
-    color: rgba(147, 112, 219, 0.7);
-    font-style: italic;
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
-    letter-spacing: 0.1px;
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(147, 112, 219, 0.7);
+  font-style: italic;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  letter-spacing: 0.1px;
 }
 
 /* Decorative thread symbol */
 .lumia-ooc-thread::before {
-    content: '~';
-    margin-right: 4px;
-    opacity: 0.6;
+  content: "~";
+  margin-right: 4px;
+  opacity: 0.6;
 }
 
 /* The actual OOC message content */
 .lumia-ooc-content {
-    font-size: 14px;
-    line-height: 1.55;
-    color: rgba(255, 255, 255, 0.88);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
-    letter-spacing: -0.1px;
-    word-wrap: break-word;
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.88);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  letter-spacing: -0.1px;
+  word-wrap: break-word;
 }
 
 /* Style any emphasis within the content */
 .lumia-ooc-content em,
 .lumia-ooc-content i {
-    color: rgba(186, 135, 255, 0.9);
-    font-style: italic;
+  color: rgba(186, 135, 255, 0.9);
+  font-style: italic;
 }
 
 .lumia-ooc-content strong,
 .lumia-ooc-content b {
-    color: rgba(255, 255, 255, 0.95);
-    font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 600;
 }
 
 /* Hidden OOC markers during streaming */
 .lumia-ooc-marker-hidden {
-    display: none !important;
+  display: none !important;
 }
 
 /* Hidden loom_sum blocks - never visible in chat */
 .loom-sum-hidden {
-    display: none !important;
+  display: none !important;
 }
 
 /* ============================================
@@ -1839,124 +1885,127 @@ details.lumia-panel[open] .lumia-panel-chevron {
    ============================================ */
 
 .lumia-ooc-margin {
-    display: flex;
-    flex-direction: row;
-    align-items: stretch;
-    gap: 0;
-    padding: 0;
-    margin: 14px 4px;
-    background: transparent;
-    position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  margin: 14px 4px;
+  background: transparent;
+  position: relative;
 }
 
 /* Alternating orientation for stacked OOCs */
 .lumia-ooc-margin.lumia-ooc-alt {
-    flex-direction: row-reverse;
+  flex-direction: row-reverse;
 }
 
 /* The avatar tag - flush against text box, matches its height */
 .lumia-ooc-margin .lumia-ooc-margin-tag {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 48px;
-    min-height: 48px;
-    background: linear-gradient(
-        135deg,
-        rgba(147, 112, 219, 0.95) 0%,
-        rgba(123, 95, 196, 0.95) 100%
-    );
-    /* Rounded on outer edge, square on inner edge flush with text box */
-    border-radius: 10px 0 0 10px;
-    position: relative;
-    z-index: 1;
-    box-shadow:
-        -2px 0 8px rgba(147, 112, 219, 0.25),
-        0 2px 8px rgba(0, 0, 0, 0.15);
-    overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  min-height: 48px;
+  background: linear-gradient(
+    135deg,
+    rgba(147, 112, 219, 0.95) 0%,
+    rgba(123, 95, 196, 0.95) 100%
+  );
+  /* Rounded on outer edge, square on inner edge flush with text box */
+  border-radius: 10px 0 0 10px;
+  position: relative;
+  z-index: 1;
+  box-shadow:
+    -2px 0 8px rgba(147, 112, 219, 0.25),
+    0 2px 8px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
 }
 
 /* Alternating: flip the border radius */
 .lumia-ooc-margin.lumia-ooc-alt .lumia-ooc-margin-tag {
-    border-radius: 0 10px 10px 0;
-    box-shadow:
-        2px 0 8px rgba(147, 112, 219, 0.25),
-        0 2px 8px rgba(0, 0, 0, 0.15);
+  border-radius: 0 10px 10px 0;
+  box-shadow:
+    2px 0 8px rgba(147, 112, 219, 0.25),
+    0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .lumia-ooc-margin .lumia-ooc-margin-tag-letter {
-    font-size: 22px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.95);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
-    letter-spacing: -0.5px;
+  font-size: 22px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+  letter-spacing: -0.5px;
 }
 
 .lumia-ooc-margin .lumia-ooc-margin-tag-avatar {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    /* No border radius - fills the tag completely */
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* No border radius - fills the tag completely */
 }
 
 /* The content area - flush against avatar */
 .lumia-ooc-margin .lumia-ooc-margin-content-area {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 10px 14px;
-    background: linear-gradient(
-        135deg,
-        rgba(30, 24, 42, 0.8) 0%,
-        rgba(40, 32, 55, 0.75) 100%
-    );
-    border: 1px solid rgba(147, 112, 219, 0.25);
-    border-left: none;
-    border-radius: 0 10px 10px 0;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 10px 14px;
+  background: linear-gradient(
+    135deg,
+    rgba(30, 24, 42, 0.8) 0%,
+    rgba(40, 32, 55, 0.75) 100%
+  );
+  border: 1px solid rgba(147, 112, 219, 0.25);
+  border-left: none;
+  border-radius: 0 10px 10px 0;
 }
 
 /* Alternating: flip the content area styling */
 .lumia-ooc-margin.lumia-ooc-alt .lumia-ooc-margin-content-area {
-    border-left: 1px solid rgba(147, 112, 219, 0.25);
-    border-right: none;
-    border-radius: 10px 0 0 10px;
-    text-align: right;
+  border-left: 1px solid rgba(147, 112, 219, 0.25);
+  border-right: none;
+  border-radius: 10px 0 0 10px;
+  text-align: right;
 }
 
 /* Subtle label */
 .lumia-ooc-margin .lumia-ooc-margin-label {
-    font-size: 11px;
-    font-weight: 500;
-    color: rgba(186, 135, 255, 0.8);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
-    letter-spacing: 0.3px;
-    text-transform: uppercase;
-    margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(186, 135, 255, 0.8);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
 }
 
 /* The actual content */
 .lumia-ooc-margin .lumia-ooc-margin-text {
-    font-size: 14px;
-    line-height: 1.5;
-    color: rgba(255, 255, 255, 0.88);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
-    letter-spacing: -0.1px;
-    word-wrap: break-word;
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.88);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  letter-spacing: -0.1px;
+  word-wrap: break-word;
 }
 
 .lumia-ooc-margin .lumia-ooc-margin-text em,
 .lumia-ooc-margin .lumia-ooc-margin-text i {
-    color: rgba(186, 135, 255, 0.9);
-    font-style: italic;
+  color: rgba(186, 135, 255, 0.9);
+  font-style: italic;
 }
 
 .lumia-ooc-margin .lumia-ooc-margin-text strong,
 .lumia-ooc-margin .lumia-ooc-margin-text b {
-    color: rgba(255, 255, 255, 0.95);
-    font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 600;
 }
 
 /* ============================================
@@ -1965,485 +2014,492 @@ details.lumia-panel[open] .lumia-panel-chevron {
    ============================================ */
 
 .lumia-ooc-whisper {
-    display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 0;
-    margin: 16px 4px 16px 8px;
-    position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 0;
+  margin: 16px 4px 16px 8px;
+  position: relative;
 }
 
 /* Alternating orientation for stacked OOCs */
 .lumia-ooc-whisper.lumia-ooc-alt {
-    flex-direction: row-reverse;
-    margin: 16px 8px 16px 4px;
+  flex-direction: row-reverse;
+  margin: 16px 8px 16px 4px;
 }
 
 /* Avatar container - prominent circular avatar outside the bubble */
 .lumia-ooc-whisper .lumia-ooc-whisper-avatar-wrap {
-    flex-shrink: 0;
-    position: relative;
+  flex-shrink: 0;
+  position: relative;
 }
 
 .lumia-ooc-whisper .lumia-ooc-whisper-avatar {
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid rgba(147, 112, 219, 0.5);
-    box-shadow:
-        0 2px 10px rgba(147, 112, 219, 0.3),
-        0 0 20px rgba(147, 112, 219, 0.15);
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(147, 112, 219, 0.5);
+  box-shadow:
+    0 2px 10px rgba(147, 112, 219, 0.3),
+    0 0 20px rgba(147, 112, 219, 0.15);
 }
 
 .lumia-ooc-whisper .lumia-ooc-whisper-avatar-placeholder {
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #9370DB 0%, #7B5FC4 50%, #8A2BE2 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.95);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
-    border: 2px solid rgba(147, 112, 219, 0.5);
-    box-shadow:
-        0 2px 10px rgba(147, 112, 219, 0.3),
-        0 0 20px rgba(147, 112, 219, 0.15);
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #9370db 0%, #7b5fc4 50%, #8a2be2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+  border: 2px solid rgba(147, 112, 219, 0.5);
+  box-shadow:
+    0 2px 10px rgba(147, 112, 219, 0.3),
+    0 0 20px rgba(147, 112, 219, 0.15);
 }
 
 /* The bubble container */
 .lumia-ooc-whisper .lumia-ooc-whisper-bubble {
-    position: relative;
-    flex: 1;
-    padding: 12px 16px;
-    background: linear-gradient(
-        145deg,
-        rgba(30, 24, 42, 0.85) 0%,
-        rgba(40, 32, 55, 0.8) 50%,
-        rgba(35, 28, 48, 0.85) 100%
-    );
-    border: 1px solid rgba(147, 112, 219, 0.3);
-    border-radius: 16px;
-    border-top-left-radius: 4px;
-    box-shadow:
-        0 4px 16px rgba(0, 0, 0, 0.2),
-        0 0 20px rgba(147, 112, 219, 0.08) inset;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  flex: 1;
+  padding: 12px 16px;
+  background: linear-gradient(
+    145deg,
+    rgba(30, 24, 42, 0.85) 0%,
+    rgba(40, 32, 55, 0.8) 50%,
+    rgba(35, 28, 48, 0.85) 100%
+  );
+  border: 1px solid rgba(147, 112, 219, 0.3);
+  border-radius: 16px;
+  border-top-left-radius: 4px;
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.2),
+    0 0 20px rgba(147, 112, 219, 0.08) inset;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Flip bubble corner for alternating */
 .lumia-ooc-whisper.lumia-ooc-alt .lumia-ooc-whisper-bubble {
-    border-top-left-radius: 16px;
-    border-top-right-radius: 4px;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 4px;
 }
 
 .lumia-ooc-whisper .lumia-ooc-whisper-bubble:hover {
-    border-color: rgba(147, 112, 219, 0.45);
-    box-shadow:
-        0 6px 20px rgba(0, 0, 0, 0.25),
-        0 0 25px rgba(147, 112, 219, 0.12) inset;
-    transform: translateY(-1px);
+  border-color: rgba(147, 112, 219, 0.45);
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.25),
+    0 0 25px rgba(147, 112, 219, 0.12) inset;
+  transform: translateY(-1px);
 }
 
 /* Subtle top accent line on bubble */
 .lumia-ooc-whisper .lumia-ooc-whisper-bubble::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 16px;
-    right: 16px;
-    height: 1px;
-    background: linear-gradient(
-        90deg,
-        transparent 0%,
-        rgba(147, 112, 219, 0.4) 20%,
-        rgba(186, 135, 255, 0.5) 50%,
-        rgba(147, 112, 219, 0.4) 80%,
-        transparent 100%
-    );
-    border-radius: 1px;
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 16px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(147, 112, 219, 0.4) 20%,
+    rgba(186, 135, 255, 0.5) 50%,
+    rgba(147, 112, 219, 0.4) 80%,
+    transparent 100%
+  );
+  border-radius: 1px;
 }
 
 /* Header with name */
 .lumia-ooc-whisper .lumia-ooc-whisper-header {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
 }
 
 .lumia-ooc-whisper .lumia-ooc-whisper-name {
-    font-size: 12px;
-    font-weight: 500;
-    color: rgba(186, 135, 255, 0.9);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
-    letter-spacing: 0.2px;
-    font-style: italic;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(186, 135, 255, 0.9);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  letter-spacing: 0.2px;
+  font-style: italic;
 }
 
 /* The whisper content */
 .lumia-ooc-whisper .lumia-ooc-whisper-text {
-    font-size: 14px;
-    line-height: 1.55;
-    color: rgba(255, 255, 255, 0.88);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
-    letter-spacing: -0.1px;
-    word-wrap: break-word;
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.88);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  letter-spacing: -0.1px;
+  word-wrap: break-word;
 }
 
 .lumia-ooc-whisper .lumia-ooc-whisper-text em,
 .lumia-ooc-whisper .lumia-ooc-whisper-text i {
-    color: rgba(186, 135, 255, 0.95);
+  color: rgba(186, 135, 255, 0.95);
 }
 
 .lumia-ooc-whisper .lumia-ooc-whisper-text strong,
 .lumia-ooc-whisper .lumia-ooc-whisper-text b {
-    color: rgba(255, 255, 255, 0.95);
-    font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 600;
 }
 
 /* Summarization Modal Styling */
 .lumia-misc-section {
-    border: 1px solid rgba(128, 128, 128, 0.3);
-    padding: 15px;
-    border-radius: 8px;
-    background-color: rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  padding: 15px;
+  border-radius: 8px;
+  background-color: rgba(0, 0, 0, 0.15);
 }
 
 .lumia-misc-section h4 {
-    margin: 0 0 8px 0;
-    font-size: 1.1em;
-    color: rgba(255, 255, 255, 0.95);
+  margin: 0 0 8px 0;
+  font-size: 1.1em;
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .lumia-misc-section p {
-    margin: 0 0 10px 0;
-    font-size: 0.9em;
-    color: rgba(255, 255, 255, 0.7);
+  margin: 0 0 10px 0;
+  font-size: 0.9em;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .lumia-misc-section label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.85);
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .lumia-misc-section small {
-    display: block;
-    margin-top: 4px;
-    font-size: 0.85em;
-    color: rgba(255, 255, 255, 0.5);
+  display: block;
+  margin-top: 4px;
+  font-size: 0.85em;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 #lumia-sum-test-status {
-    padding: 10px;
-    border-radius: 5px;
-    background-color: rgba(0, 0, 0, 0.2);
+  padding: 10px;
+  border-radius: 5px;
+  background-color: rgba(0, 0, 0, 0.2);
 }
 
 /* Mobile Responsiveness */
 @media (max-width: 600px) {
-    /* Card Grid Mobile */
-    .lumia-card-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
-    }
+  /* Card Grid Mobile */
+  .lumia-card-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
 
-    .lumia-card {
-        border-radius: 12px;
-    }
+  .lumia-card {
+    border-radius: 12px;
+  }
 
-    .lumia-card-info {
-        padding: 10px 12px 12px;
-    }
+  .lumia-card-info {
+    padding: 10px 12px 12px;
+  }
 
-    .lumia-card-name {
-        font-size: 13px;
-    }
+  .lumia-card-name {
+    font-size: 13px;
+  }
 
-    .lumia-card-pack {
-        font-size: 11px;
-    }
+  .lumia-card-pack {
+    font-size: 11px;
+  }
 
-    .lumia-dominant-icon {
-        width: 28px;
-        height: 28px;
-        top: 8px;
-        right: 8px;
-    }
+  .lumia-dominant-icon {
+    width: 28px;
+    height: 28px;
+    top: 8px;
+    right: 8px;
+  }
 
-    .lumia-dominant-icon svg {
-        width: 14px;
-        height: 14px;
-    }
+  .lumia-dominant-icon svg {
+    width: 14px;
+    height: 14px;
+  }
 
-    .lumia-card-check {
-        width: 24px;
-        height: 24px;
-        top: 8px;
-        left: 8px;
-    }
+  .lumia-card-check {
+    width: 24px;
+    height: 24px;
+    top: 8px;
+    left: 8px;
+  }
 
-    .lumia-card-check svg {
-        width: 14px;
-        height: 14px;
-    }
+  .lumia-card-check svg {
+    width: 14px;
+    height: 14px;
+  }
 
-    .lumia-card-placeholder {
-        font-size: 36px;
-    }
+  .lumia-card-placeholder {
+    font-size: 36px;
+  }
 
-    .lumia-grid {
-        grid-template-columns: 1fr;
-    }
+  .lumia-grid {
+    grid-template-columns: 1fr;
+  }
 
-    /* Settings Panel Mobile */
-    .lumia-panel {
-        border-radius: 10px;
-        margin-bottom: 10px;
-    }
+  /* Settings Panel Mobile */
+  .lumia-panel {
+    border-radius: 10px;
+    margin-bottom: 10px;
+  }
 
-    .lumia-panel-header {
-        padding: 10px 12px;
-    }
+  .lumia-panel-header {
+    padding: 10px 12px;
+  }
 
-    .lumia-panel-content {
-        padding: 12px;
-    }
+  .lumia-panel-content {
+    padding: 12px;
+  }
 
-    .lumia-selector {
-        padding: 10px 12px;
-    }
+  .lumia-selector {
+    padding: 10px 12px;
+  }
 
-    .lumia-selector-row {
-        flex-direction: column;
-        gap: 8px;
-        align-items: stretch;
-    }
+  .lumia-selector-row {
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
+  }
 
-    .lumia-selector-value {
-        white-space: normal;
-        text-align: center;
-    }
+  .lumia-selector-value {
+    white-space: normal;
+    text-align: center;
+  }
 
-    .lumia-btn-sm {
-        width: 100%;
-        justify-content: center;
-    }
+  .lumia-btn-sm {
+    width: 100%;
+    justify-content: center;
+  }
 
-    .lumia-tools-row {
-        grid-template-columns: 1fr;
-    }
+  .lumia-tools-row {
+    grid-template-columns: 1fr;
+  }
 
-    .lumia-input-row {
-        flex-direction: column;
-    }
+  .lumia-input-row {
+    flex-direction: column;
+  }
 
-    .lumia-macro {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 4px;
-    }
+  .lumia-macro {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
 
-    #lumia-current-definition, #lumia-current-behaviors, #lumia-current-personalities,
-    #loom-current-style, #loom-current-utils, #loom-current-retrofits {
-        text-align: center;
-        white-space: normal;
-    }
+  #lumia-current-definition,
+  #lumia-current-behaviors,
+  #lumia-current-personalities,
+  #loom-current-style,
+  #loom-current-utils,
+  #loom-current-retrofits {
+    text-align: center;
+    white-space: normal;
+  }
 
-    /* Icon Button Mobile */
-    .lumia-icon-btn {
-        width: 32px;
-        height: 32px;
-    }
+  /* Icon Button Mobile */
+  .lumia-icon-btn {
+    width: 32px;
+    height: 32px;
+  }
 
-    .lumia-icon-btn svg {
-        width: 16px;
-        height: 16px;
-    }
+  .lumia-icon-btn svg {
+    width: 16px;
+    height: 16px;
+  }
 
-    /* Clear Button Mobile */
-    .lumia-clear-btn {
-        padding: 6px 10px;
-        font-size: 11px;
-    }
+  /* Clear Button Mobile */
+  .lumia-clear-btn {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
 
-    .lumia-clear-btn svg {
-        width: 14px;
-        height: 14px;
-    }
+  .lumia-clear-btn svg {
+    width: 14px;
+    height: 14px;
+  }
 
-    .lumia-modal-title-row {
-        padding: 0 10px;
-    }
+  .lumia-modal-title-row {
+    padding: 0 10px;
+  }
 
-    /* Selection Modal Mobile */
-    .lumia-modal-selection {
-        max-width: calc(100vw - 16px);
-    }
+  /* Selection Modal Mobile */
+  .lumia-modal-selection {
+    max-width: calc(100vw - 16px);
+  }
 
-    .lumia-modal-subtitle {
-        font-size: 11px;
-    }
+  .lumia-modal-subtitle {
+    font-size: 11px;
+  }
 
-    .lumia-modal-panel-count {
-        font-size: 10px;
-        padding: 3px 6px;
-    }
+  .lumia-modal-panel-count {
+    font-size: 10px;
+    padding: 3px 6px;
+  }
 
-    .lumia-modal-panel-content-cards {
-        padding: 10px;
-    }
+  .lumia-modal-panel-content-cards {
+    padding: 10px;
+  }
 
-    /* List Toggle Mobile */
-    .lumia-list-item {
-        padding: 12px 14px;
-    }
+  /* List Toggle Mobile */
+  .lumia-list-item {
+    padding: 12px 14px;
+  }
 
-    .lumia-list-item-name {
-        font-size: 13px;
-    }
+  .lumia-list-item-name {
+    font-size: 13px;
+  }
 
-    .lumia-toggle-switch {
-        width: 40px;
-        height: 22px;
-    }
+  .lumia-toggle-switch {
+    width: 40px;
+    height: 22px;
+  }
 
-    .lumia-toggle-thumb {
-        width: 18px;
-        height: 18px;
-    }
+  .lumia-toggle-thumb {
+    width: 18px;
+    height: 18px;
+  }
 
-    .lumia-list-item.selected .lumia-toggle-thumb {
-        left: 20px;
-    }
+  .lumia-list-item.selected .lumia-toggle-thumb {
+    left: 20px;
+  }
 
-    .lumia-radio-indicator {
-        width: 18px;
-        height: 18px;
-    }
+  .lumia-radio-indicator {
+    width: 18px;
+    height: 18px;
+  }
 
-    .lumia-radio-indicator::after {
-        width: 8px;
-        height: 8px;
-    }
+  .lumia-radio-indicator::after {
+    width: 8px;
+    height: 8px;
+  }
 
-    /* Small Icon Button Mobile */
-    .lumia-icon-btn-sm {
-        width: 26px;
-        height: 26px;
-    }
+  /* Small Icon Button Mobile */
+  .lumia-icon-btn-sm {
+    width: 26px;
+    height: 26px;
+  }
 
-    .lumia-icon-btn-sm svg {
-        width: 12px;
-        height: 12px;
-    }
+  .lumia-icon-btn-sm svg {
+    width: 12px;
+    height: 12px;
+  }
 
-    /* OOC Mobile Adjustments */
-    .lumia-ooc-comment-box {
-        padding: 12px 14px;
-        gap: 10px;
-        margin: 12px 2px;
-    }
+  /* OOC Mobile Adjustments */
+  .lumia-ooc-comment-box {
+    padding: 12px 14px;
+    gap: 10px;
+    margin: 12px 2px;
+  }
 
-    .lumia-ooc-avatar {
-        width: 36px;
-        height: 36px;
-    }
+  .lumia-ooc-avatar {
+    width: 36px;
+    height: 36px;
+  }
 
-    .lumia-ooc-avatar-container::before {
-        top: -2px;
-        left: -2px;
-        right: -2px;
-        bottom: -2px;
-    }
+  .lumia-ooc-avatar-container::before {
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+  }
 
-    .lumia-ooc-name {
-        font-size: 13px;
-    }
+  .lumia-ooc-name {
+    font-size: 13px;
+  }
 
-    .lumia-ooc-thread {
-        font-size: 11px;
-    }
+  .lumia-ooc-thread {
+    font-size: 11px;
+  }
 
-    .lumia-ooc-content {
-        font-size: 13px;
-        line-height: 1.5;
-    }
+  .lumia-ooc-content {
+    font-size: 13px;
+    line-height: 1.5;
+  }
 
-    /* Margin Note Mobile */
-    .lumia-ooc-margin .lumia-ooc-margin-tag {
-        width: 40px;
-        min-height: 40px;
-    }
+  /* Margin Note Mobile */
+  .lumia-ooc-margin .lumia-ooc-margin-tag {
+    width: 40px;
+    min-height: 40px;
+  }
 
-    .lumia-ooc-margin .lumia-ooc-margin-tag-letter {
-        font-size: 18px;
-    }
+  .lumia-ooc-margin .lumia-ooc-margin-tag-letter {
+    font-size: 18px;
+  }
 
-    .lumia-ooc-margin .lumia-ooc-margin-content-area {
-        padding: 8px 12px;
-    }
+  .lumia-ooc-margin .lumia-ooc-margin-content-area {
+    padding: 8px 12px;
+  }
 
-    .lumia-ooc-margin .lumia-ooc-margin-label {
-        font-size: 10px;
-    }
+  .lumia-ooc-margin .lumia-ooc-margin-label {
+    font-size: 10px;
+  }
 
-    .lumia-ooc-margin .lumia-ooc-margin-text {
-        font-size: 13px;
-    }
+  .lumia-ooc-margin .lumia-ooc-margin-text {
+    font-size: 13px;
+  }
 
-    /* Whisper Bubble Mobile */
-    .lumia-ooc-whisper {
-        margin: 12px 4px 12px 6px;
-        gap: 10px;
-    }
+  /* Whisper Bubble Mobile */
+  .lumia-ooc-whisper {
+    margin: 12px 4px 12px 6px;
+    gap: 10px;
+  }
 
-    .lumia-ooc-whisper.lumia-ooc-alt {
-        margin: 12px 6px 12px 4px;
-    }
+  .lumia-ooc-whisper.lumia-ooc-alt {
+    margin: 12px 6px 12px 4px;
+  }
 
-    .lumia-ooc-whisper .lumia-ooc-whisper-avatar,
-    .lumia-ooc-whisper .lumia-ooc-whisper-avatar-placeholder {
-        width: 32px;
-        height: 32px;
-        font-size: 14px;
-    }
+  .lumia-ooc-whisper .lumia-ooc-whisper-avatar,
+  .lumia-ooc-whisper .lumia-ooc-whisper-avatar-placeholder {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
 
-    .lumia-ooc-whisper .lumia-ooc-whisper-bubble {
-        padding: 10px 14px;
-        border-radius: 14px;
-        border-top-left-radius: 4px;
-    }
+  .lumia-ooc-whisper .lumia-ooc-whisper-bubble {
+    padding: 10px 14px;
+    border-radius: 14px;
+    border-top-left-radius: 4px;
+  }
 
-    .lumia-ooc-whisper.lumia-ooc-alt .lumia-ooc-whisper-bubble {
-        border-top-left-radius: 14px;
-        border-top-right-radius: 4px;
-    }
+  .lumia-ooc-whisper.lumia-ooc-alt .lumia-ooc-whisper-bubble {
+    border-top-left-radius: 14px;
+    border-top-right-radius: 4px;
+  }
 
-    .lumia-ooc-whisper .lumia-ooc-whisper-name {
-        font-size: 11px;
-    }
+  .lumia-ooc-whisper .lumia-ooc-whisper-name {
+    font-size: 11px;
+  }
 
-    .lumia-ooc-whisper .lumia-ooc-whisper-text {
-        font-size: 13px;
-        line-height: 1.5;
-    }
+  .lumia-ooc-whisper .lumia-ooc-whisper-text {
+    font-size: 13px;
+    line-height: 1.5;
+  }
 
-    /* Margin Note Mobile - larger avatar image */
-    .lumia-ooc-margin .lumia-ooc-margin-tag {
-        width: 38px;
-        height: 38px;
-    }
+  /* Margin Note Mobile - larger avatar image */
+  .lumia-ooc-margin .lumia-ooc-margin-tag {
+    width: 38px;
+    height: 38px;
+  }
 
-    .lumia-ooc-margin .lumia-ooc-margin-tag-letter {
-        font-size: 18px;
-    }
+  .lumia-ooc-margin .lumia-ooc-margin-tag-letter {
+    font-size: 18px;
+  }
 }
 
 /* ============================================
@@ -2452,75 +2508,79 @@ details.lumia-panel[open] .lumia-panel-chevron {
    ============================================ */
 
 .lumia-toggle-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 12px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
 }
 
 .lumia-toggle-label {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    flex: 1;
-    min-width: 0;
-    cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
 }
 
 .lumia-toggle-text {
-    font-size: 14px;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .lumia-toggle-hint {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .lumia-toggle-switch-wrapper {
-    flex-shrink: 0;
+  flex-shrink: 0;
 }
 
 .lumia-toggle-input {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .lumia-toggle-switch-label {
-    display: block;
-    cursor: pointer;
+  display: block;
+  cursor: pointer;
 }
 
 .lumia-toggle-switch-label .lumia-toggle-track {
-    width: 48px;
-    height: 26px;
-    background: rgba(128, 128, 128, 0.3);
-    border-radius: 13px;
-    position: relative;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 48px;
+  height: 26px;
+  background: rgba(128, 128, 128, 0.3);
+  border-radius: 13px;
+  position: relative;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .lumia-toggle-switch-label .lumia-toggle-thumb {
-    position: absolute;
-    top: 3px;
-    left: 3px;
-    width: 20px;
-    height: 20px;
-    background: white;
-    border-radius: 50%;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .lumia-toggle-input:checked + .lumia-toggle-switch-label .lumia-toggle-track {
-    background: linear-gradient(135deg, rgba(147, 112, 219, 0.9) 0%, rgba(123, 95, 196, 0.9) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(147, 112, 219, 0.9) 0%,
+    rgba(123, 95, 196, 0.9) 100%
+  );
 }
 
 .lumia-toggle-input:checked + .lumia-toggle-switch-label .lumia-toggle-thumb {
-    left: 25px;
+  left: 25px;
 }
 
 /* ============================================
@@ -2529,73 +2589,73 @@ details.lumia-panel[open] .lumia-panel-chevron {
    ============================================ */
 
 .lumia-info-box {
-    background: rgba(147, 112, 219, 0.08);
-    border: 1px solid rgba(147, 112, 219, 0.2);
-    border-radius: 10px;
-    padding: 14px 16px;
-    transition: all 0.3s ease;
+  background: rgba(147, 112, 219, 0.08);
+  border: 1px solid rgba(147, 112, 219, 0.2);
+  border-radius: 10px;
+  padding: 14px 16px;
+  transition: all 0.3s ease;
 }
 
 .lumia-info-box.lumia-info-box-muted {
-    background: rgba(128, 128, 128, 0.06);
-    border-color: rgba(128, 128, 128, 0.15);
-    opacity: 0.6;
+  background: rgba(128, 128, 128, 0.06);
+  border-color: rgba(128, 128, 128, 0.15);
+  opacity: 0.6;
 }
 
 .lumia-info-box-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
-    font-size: 12px;
-    font-weight: 600;
-    color: rgba(186, 135, 255, 0.9);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(186, 135, 255, 0.9);
 }
 
 .lumia-info-box.lumia-info-box-muted .lumia-info-box-header {
-    color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .lumia-info-box-header svg {
-    width: 16px;
-    height: 16px;
-    stroke: rgba(186, 135, 255, 0.8);
-    flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  stroke: rgba(186, 135, 255, 0.8);
+  flex-shrink: 0;
 }
 
 .lumia-info-box.lumia-info-box-muted .lumia-info-box-header svg {
-    stroke: rgba(255, 255, 255, 0.4);
+  stroke: rgba(255, 255, 255, 0.4);
 }
 
 .lumia-info-box-list {
-    margin: 0;
-    padding-left: 20px;
-    list-style-type: disc;
+  margin: 0;
+  padding-left: 20px;
+  list-style-type: disc;
 }
 
 .lumia-info-box-list li {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.7);
-    line-height: 1.6;
-    margin-bottom: 4px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.6;
+  margin-bottom: 4px;
 }
 
 .lumia-info-box-list li:last-child {
-    margin-bottom: 0;
+  margin-bottom: 0;
 }
 
 .lumia-info-box-list code {
-    font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
-    font-size: 11px;
-    padding: 2px 6px;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(128, 128, 128, 0.15);
-    border-radius: 4px;
-    color: rgba(186, 135, 255, 0.95);
+  font-family: "SF Mono", "Menlo", "Monaco", "Consolas", monospace;
+  font-size: 11px;
+  padding: 2px 6px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(128, 128, 128, 0.15);
+  border-radius: 4px;
+  color: rgba(186, 135, 255, 0.95);
 }
 
 .lumia-info-box.lumia-info-box-muted .lumia-info-box-list code {
-    color: rgba(186, 135, 255, 0.6);
+  color: rgba(186, 135, 255, 0.6);
 }
 
 /* ============================================
@@ -2605,546 +2665,552 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
 /* Modal Variant */
 .lumia-modal-lucid-cards {
-    max-width: 800px;
-    width: 95vw;
+  max-width: 800px;
+  width: 95vw;
 }
 
 /* Tabs Container */
 .lucid-cards-tabs {
-    display: flex;
-    gap: 4px;
-    padding: 16px 16px;
-    border-bottom: 1px solid rgba(128, 128, 128, 0.12);
-    overflow-x: auto;
-    flex-shrink: 0;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    background: rgba(0, 0, 0, 0.15);
+  display: flex;
+  gap: 4px;
+  padding: 16px 16px;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.12);
+  overflow-x: auto;
+  flex-shrink: 0;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  background: rgba(0, 0, 0, 0.15);
 }
 
 .lucid-cards-tabs::-webkit-scrollbar {
-    display: none;
+  display: none;
 }
 
 /* Tab Button */
 .lucid-cards-tab {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(128, 128, 128, 0.15);
-    border-radius: 10px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(128, 128, 128, 0.15);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .lucid-cards-tab svg {
-    width: 16px;
-    height: 16px;
-    stroke: rgba(255, 255, 255, 0.5);
-    flex-shrink: 0;
-    transition: stroke 0.2s ease;
+  width: 16px;
+  height: 16px;
+  stroke: rgba(255, 255, 255, 0.5);
+  flex-shrink: 0;
+  transition: stroke 0.2s ease;
 }
 
 .lucid-cards-tab:hover {
-    background: rgba(147, 112, 219, 0.1);
-    border-color: rgba(147, 112, 219, 0.25);
-    color: rgba(255, 255, 255, 0.8);
+  background: rgba(147, 112, 219, 0.1);
+  border-color: rgba(147, 112, 219, 0.25);
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .lucid-cards-tab:hover svg {
-    stroke: rgba(147, 112, 219, 0.8);
+  stroke: rgba(147, 112, 219, 0.8);
 }
 
 .lucid-cards-tab.active {
-    background: rgba(147, 112, 219, 0.2);
-    border-color: rgba(147, 112, 219, 0.4);
-    color: rgba(255, 255, 255, 0.95);
+  background: rgba(147, 112, 219, 0.2);
+  border-color: rgba(147, 112, 219, 0.4);
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .lucid-cards-tab.active svg {
-    stroke: rgba(186, 135, 255, 0.95);
+  stroke: rgba(186, 135, 255, 0.95);
 }
 
 /* Loading State */
 .lucid-cards-loading {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    padding: 60px 20px;
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 60px 20px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
 }
 
 .lucid-cards-spinner {
-    width: 36px;
-    height: 36px;
-    border: 3px solid rgba(147, 112, 219, 0.2);
-    border-top-color: rgba(147, 112, 219, 0.8);
-    border-radius: 50%;
-    animation: lucid-spin 0.8s linear infinite;
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(147, 112, 219, 0.2);
+  border-top-color: rgba(147, 112, 219, 0.8);
+  border-radius: 50%;
+  animation: lucid-spin 0.8s linear infinite;
 }
 
 @keyframes lucid-spin {
-    to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Error State */
 .lucid-cards-error {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    padding: 60px 20px;
-    text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 60px 20px;
+  text-align: center;
 }
 
 .lucid-cards-error svg {
-    width: 48px;
-    height: 48px;
-    stroke: rgba(244, 67, 54, 0.7);
+  width: 48px;
+  height: 48px;
+  stroke: rgba(244, 67, 54, 0.7);
 }
 
 .lucid-cards-error-message {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
 }
 
 /* Empty State */
 .lucid-cards-empty {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 60px 20px;
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 14px;
-    text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+  text-align: center;
 }
 
 /* DLC Card Grid */
 .lucid-dlc-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 16px;
-    padding: 4px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+  padding: 4px;
 }
 
 /* DLC Card */
 .lucid-dlc-card {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    background: linear-gradient(
-        165deg,
-        rgba(28, 24, 38, 0.95) 0%,
-        rgba(38, 32, 52, 0.9) 50%,
-        rgba(32, 28, 45, 0.95) 100%
-    );
-    border: 1px solid rgba(128, 128, 128, 0.15);
-    border-radius: 14px;
-    overflow: hidden;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(
+    165deg,
+    rgba(28, 24, 38, 0.95) 0%,
+    rgba(38, 32, 52, 0.9) 50%,
+    rgba(32, 28, 45, 0.95) 100%
+  );
+  border: 1px solid rgba(128, 128, 128, 0.15);
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .lucid-dlc-card:hover {
-    transform: translateY(-4px);
-    border-color: rgba(147, 112, 219, 0.35);
-    box-shadow:
-        0 8px 24px rgba(0, 0, 0, 0.25),
-        0 0 0 1px rgba(147, 112, 219, 0.15);
+  transform: translateY(-4px);
+  border-color: rgba(147, 112, 219, 0.35);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(147, 112, 219, 0.15);
 }
 
 .lucid-dlc-card.selected {
-    border-color: rgba(100, 149, 237, 0.6);
-    box-shadow:
-        0 4px 16px rgba(100, 149, 237, 0.25),
-        0 0 0 1px rgba(100, 149, 237, 0.3),
-        inset 0 0 20px rgba(100, 149, 237, 0.05);
+  border-color: rgba(100, 149, 237, 0.6);
+  box-shadow:
+    0 4px 16px rgba(100, 149, 237, 0.25),
+    0 0 0 1px rgba(100, 149, 237, 0.3),
+    inset 0 0 20px rgba(100, 149, 237, 0.05);
 }
 
 .lucid-dlc-card.selected::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: linear-gradient(
-        90deg,
-        transparent 0%,
-        rgba(100, 149, 237, 0.5) 20%,
-        rgba(100, 149, 237, 0.8) 50%,
-        rgba(100, 149, 237, 0.5) 80%,
-        transparent 100%
-    );
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(100, 149, 237, 0.5) 20%,
+    rgba(100, 149, 237, 0.8) 50%,
+    rgba(100, 149, 237, 0.5) 80%,
+    transparent 100%
+  );
 }
 
 /* Card Image Container */
 .lucid-dlc-card-image {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    background: linear-gradient(
-        135deg,
-        rgba(20, 16, 28, 0.8) 0%,
-        rgba(40, 32, 55, 0.6) 100%
-    );
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: linear-gradient(
+    135deg,
+    rgba(20, 16, 28, 0.8) 0%,
+    rgba(40, 32, 55, 0.6) 100%
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
 .lucid-dlc-card-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.3s ease;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
 }
 
 .lucid-dlc-card:hover .lucid-dlc-card-image img {
-    transform: scale(1.05);
+  transform: scale(1.05);
 }
 
 .lucid-dlc-card-placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
 }
 
 .lucid-dlc-card-placeholder svg {
-    width: 48px;
-    height: 48px;
-    stroke: rgba(147, 112, 219, 0.3);
+  width: 48px;
+  height: 48px;
+  stroke: rgba(147, 112, 219, 0.3);
 }
 
 /* Card Info Section */
 .lucid-dlc-card-info {
-    padding: 12px 14px 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    background: linear-gradient(
-        180deg,
-        rgba(28, 24, 38, 0.0) 0%,
-        rgba(28, 24, 38, 0.95) 20%
-    );
+  padding: 12px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: linear-gradient(
+    180deg,
+    rgba(28, 24, 38, 0) 0%,
+    rgba(28, 24, 38, 0.95) 20%
+  );
 }
 
 .lucid-dlc-card-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.95);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
-    letter-spacing: -0.2px;
-    line-height: 1.3;
-    word-break: break-word;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+  letter-spacing: -0.2px;
+  line-height: 1.3;
+  word-break: break-word;
 }
 
 .lucid-dlc-card-author {
-    font-size: 12px;
-    font-weight: 400;
-    color: rgba(147, 112, 219, 0.7);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
-    letter-spacing: 0.1px;
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(147, 112, 219, 0.7);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  letter-spacing: 0.1px;
 }
 
 /* Loom Items List */
 .lucid-loom-list {
-    display: flex;
-    flex-direction: column;
+  display: flex;
+  flex-direction: column;
 }
 
 .lucid-loom-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 16px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border-bottom: 1px solid rgba(128, 128, 128, 0.08);
-    background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.08);
+  background: transparent;
 }
 
 .lucid-loom-item:last-child {
-    border-bottom: none;
+  border-bottom: none;
 }
 
 .lucid-loom-item:hover {
-    background: rgba(147, 112, 219, 0.08);
+  background: rgba(147, 112, 219, 0.08);
 }
 
 .lucid-loom-item.selected {
-    background: rgba(100, 149, 237, 0.12);
-    border-left: 3px solid rgba(100, 149, 237, 0.8);
-    padding-left: 13px;
+  background: rgba(100, 149, 237, 0.12);
+  border-left: 3px solid rgba(100, 149, 237, 0.8);
+  padding-left: 13px;
 }
 
 .lucid-loom-item-content {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .lucid-loom-item-name {
-    font-size: 14px;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.9);
-    letter-spacing: -0.1px;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  letter-spacing: -0.1px;
 }
 
 .lucid-loom-item.selected .lucid-loom-item-name {
-    color: rgba(255, 255, 255, 0.98);
+  color: rgba(255, 255, 255, 0.98);
 }
 
 .lucid-loom-item-author {
-    font-size: 12px;
-    color: rgba(147, 112, 219, 0.6);
+  font-size: 12px;
+  color: rgba(147, 112, 219, 0.6);
 }
 
 .lucid-loom-item-action {
-    flex-shrink: 0;
-    margin-left: 12px;
-    opacity: 0.4;
-    transition: opacity 0.2s ease, transform 0.2s ease;
+  flex-shrink: 0;
+  margin-left: 12px;
+  opacity: 0.4;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 
 .lucid-loom-item-action svg {
-    width: 18px;
-    height: 18px;
-    stroke: rgba(255, 255, 255, 0.6);
+  width: 18px;
+  height: 18px;
+  stroke: rgba(255, 255, 255, 0.6);
 }
 
 .lucid-loom-item:hover .lucid-loom-item-action,
 .lucid-loom-item.selected .lucid-loom-item-action {
-    opacity: 1;
+  opacity: 1;
 }
 
 .lucid-loom-item.selected .lucid-loom-item-action {
-    transform: translateX(2px);
+  transform: translateX(2px);
 }
 
 .lucid-loom-item.selected .lucid-loom-item-action svg {
-    stroke: rgba(100, 149, 237, 0.9);
+  stroke: rgba(100, 149, 237, 0.9);
 }
 
 /* Footer with Selected Info */
 .lucid-cards-footer {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 12px;
-    flex-shrink: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
 }
 
 .lucid-cards-close-btn {
-    flex-shrink: 0;
+  flex-shrink: 0;
 }
 
 .lucid-cards-selected-info {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-    flex: 1;
-    animation: lucid-selected-fade-in 0.2s ease-out;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+  animation: lucid-selected-fade-in 0.2s ease-out;
 }
 
 @keyframes lucid-selected-fade-in {
-    from {
-        opacity: 0;
-        transform: translateX(-8px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .lucid-cards-selected-name {
-    font-size: 14px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.95);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .lucid-cards-selected-author {
-    font-size: 12px;
-    color: rgba(147, 112, 219, 0.7);
+  font-size: 12px;
+  color: rgba(147, 112, 219, 0.7);
 }
 
 .lucid-cards-import-btn {
-    flex-shrink: 0;
-    margin-left: auto;
-    animation: lucid-selected-fade-in 0.2s ease-out;
+  flex-shrink: 0;
+  margin-left: auto;
+  animation: lucid-selected-fade-in 0.2s ease-out;
 }
 
 .lucid-cards-btn-spinner {
-    width: 16px;
-    height: 16px;
-    animation: lucid-spin 0.8s linear infinite;
+  width: 16px;
+  height: 16px;
+  animation: lucid-spin 0.8s linear infinite;
 }
 
 /* Mobile Responsiveness */
 @media (max-width: 600px) {
-    .lumia-modal-lucid-cards {
-        max-width: calc(100vw - 16px);
-    }
+  .lumia-modal-lucid-cards {
+    max-width: calc(100vw - 16px);
+  }
 
-    .lucid-cards-tabs {
-        padding: 12px;
-        gap: 6px;
-    }
+  .lucid-cards-tabs {
+    padding: 12px;
+    gap: 6px;
+  }
 
-    .lucid-cards-tab {
-        padding: 8px 12px;
-        font-size: 12px;
-    }
+  .lucid-cards-tab {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
 
-    .lucid-cards-tab span {
-        display: none;
-    }
+  .lucid-cards-tab span {
+    display: none;
+  }
 
-    .lucid-cards-tab svg {
-        width: 18px;
-        height: 18px;
-    }
+  .lucid-cards-tab svg {
+    width: 18px;
+    height: 18px;
+  }
 
-    .lucid-dlc-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
-    }
+  .lucid-dlc-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
 
-    .lucid-dlc-card {
-        border-radius: 12px;
-    }
+  .lucid-dlc-card {
+    border-radius: 12px;
+  }
 
-    .lucid-dlc-card-info {
-        padding: 10px 12px 12px;
-    }
+  .lucid-dlc-card-info {
+    padding: 10px 12px 12px;
+  }
 
-    .lucid-dlc-card-title {
-        font-size: 13px;
-    }
+  .lucid-dlc-card-title {
+    font-size: 13px;
+  }
 
-    .lucid-dlc-card-author {
-        font-size: 11px;
-    }
+  .lucid-dlc-card-author {
+    font-size: 11px;
+  }
 
-    .lucid-dlc-card-placeholder svg {
-        width: 36px;
-        height: 36px;
-    }
+  .lucid-dlc-card-placeholder svg {
+    width: 36px;
+    height: 36px;
+  }
 
-    .lucid-loom-item {
-        padding: 12px 14px;
-    }
+  .lucid-loom-item {
+    padding: 12px 14px;
+  }
 
-    .lucid-loom-item-name {
-        font-size: 13px;
-    }
+  .lucid-loom-item-name {
+    font-size: 13px;
+  }
 
-    .lucid-loom-item-author {
-        font-size: 11px;
-    }
+  .lucid-loom-item-author {
+    font-size: 11px;
+  }
 
-    .lucid-cards-footer {
-        flex-wrap: wrap;
-        gap: 10px;
-    }
+  .lucid-cards-footer {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
 
-    .lucid-cards-close-btn {
-        order: 1;
-    }
+  .lucid-cards-close-btn {
+    order: 1;
+  }
 
-    .lucid-cards-selected-info {
-        order: 3;
-        flex-basis: 100%;
-        text-align: center;
-    }
+  .lucid-cards-selected-info {
+    order: 3;
+    flex-basis: 100%;
+    text-align: center;
+  }
 
-    .lucid-cards-import-btn {
-        order: 2;
-        margin-left: auto;
-    }
+  .lucid-cards-import-btn {
+    order: 2;
+    margin-left: auto;
+  }
 }
 
 /* Reduce motion for accessibility */
 @media (prefers-reduced-motion: reduce) {
-    .lumia-ooc-comment-box::before,
-    .lumia-ooc-comment-box::after,
-    .lumia-ooc-avatar-container::before {
-        animation: none;
-    }
+  .lumia-ooc-comment-box::before,
+  .lumia-ooc-comment-box::after,
+  .lumia-ooc-avatar-container::before {
+    animation: none;
+  }
 
-    .lumia-ooc-comment-box {
-        transition: none;
-    }
+  .lumia-ooc-comment-box {
+    transition: none;
+  }
 
-    .lumia-card,
-    .lumia-card-image img,
-    .lumia-dominant-icon,
-    .lumia-card-check {
-        transition: none;
-    }
+  .lumia-card,
+  .lumia-card-image img,
+  .lumia-dominant-icon,
+  .lumia-card-check {
+    transition: none;
+  }
 
-    .lumia-card:hover {
-        transform: none;
-    }
+  .lumia-card:hover {
+    transform: none;
+  }
 
-    .lumia-card:hover .lumia-card-image img {
-        transform: none;
-    }
+  .lumia-card:hover .lumia-card-image img {
+    transform: none;
+  }
 
-    .lumia-list-item,
-    .lumia-toggle-track,
-    .lumia-toggle-thumb,
-    .lumia-radio-indicator,
-    .lumia-radio-indicator::after {
-        transition: none;
-    }
+  .lumia-list-item,
+  .lumia-toggle-track,
+  .lumia-toggle-thumb,
+  .lumia-radio-indicator,
+  .lumia-radio-indicator::after {
+    transition: none;
+  }
 
-    /* Lucid Cards Browser */
-    .lucid-cards-spinner,
-    .lucid-cards-btn-spinner {
-        animation: none;
-    }
+  /* Lucid Cards Browser */
+  .lucid-cards-spinner,
+  .lucid-cards-btn-spinner {
+    animation: none;
+  }
 
-    .lucid-dlc-card,
-    .lucid-dlc-card-image img,
-    .lucid-loom-item,
-    .lucid-loom-item-action,
-    .lucid-cards-tab {
-        transition: none;
-    }
+  .lucid-dlc-card,
+  .lucid-dlc-card-image img,
+  .lucid-loom-item,
+  .lucid-loom-item-action,
+  .lucid-cards-tab {
+    transition: none;
+  }
 
-    .lucid-dlc-card:hover {
-        transform: none;
-    }
+  .lucid-dlc-card:hover {
+    transform: none;
+  }
 
-    .lucid-dlc-card:hover .lucid-dlc-card-image img {
-        transform: none;
-    }
+  .lucid-dlc-card:hover .lucid-dlc-card-image img {
+    transform: none;
+  }
 
-    .lucid-cards-selected-info,
-    .lucid-cards-import-btn {
-        animation: none;
-    }
+  .lucid-cards-selected-info,
+  .lucid-cards-import-btn {
+    animation: none;
+  }
 }

@@ -6,12 +6,12 @@ This guide explains the naming conventions for Lumia Injector packs. Proper nami
 
 Lumia Injector recognizes **4 item types** within packs:
 
-| Type | Category | Purpose |
-|------|----------|---------|
-| **Lumia Definition** | Lumia | Physical descriptions of characters |
-| **Lumia Behavior** | Lumia | Behavioral traits and patterns |
-| **Lumia Personality** | Lumia | Personality traits and characteristics |
-| **Loom Content** | Loom | Narrative styles, utilities, and retrofits |
+| Type                  | Category | Purpose                                    |
+| --------------------- | -------- | ------------------------------------------ |
+| **Lumia Definition**  | Lumia    | Physical descriptions of characters        |
+| **Lumia Behavior**    | Lumia    | Behavioral traits and patterns             |
+| **Lumia Personality** | Lumia    | Personality traits and characteristics     |
+| **Loom Content**      | Loom     | Narrative styles, utilities, and retrofits |
 
 ---
 
@@ -32,6 +32,7 @@ Pack names are the top-level identifier for your content collection.
 - Include version numbers if you plan to release updates (e.g., `MyPack_v2`)
 
 **Examples:**
+
 - `FantasyCharacters.json`
 - `SciFi_Companions_v3.json`
 - `NarrativeStyles_Premium.json`
@@ -60,9 +61,9 @@ Both formats are recognized (case-insensitive).
 
 ### Content Tags
 
-| Tag | Purpose |
-|-----|---------|
-| `[cover_img=URL]` | Cover image displayed in the pack browser |
+| Tag                  | Purpose                                    |
+| -------------------- | ------------------------------------------ |
+| `[cover_img=URL]`    | Cover image displayed in the pack browser  |
 | `[author_name=Name]` | Author/creator name shown on the pack card |
 
 ### Complete Metadata Example
@@ -111,6 +112,7 @@ Lumia items describe characters with three aspects: physical definition, behavio
 Physical description of a character.
 
 **Comment Format Options:**
+
 ```
 Lumia (CharacterName)
 Definition (CharacterName)
@@ -119,6 +121,7 @@ Definition (CharacterName)
 **Alternative:** Set `outletName` to `"Lumia_Description"`
 
 **Example Entry:**
+
 ```json
 {
   "comment": "Lumia (Aria)",
@@ -132,6 +135,7 @@ Definition (CharacterName)
 Behavioral patterns and tendencies.
 
 **Comment Format:**
+
 ```
 Behavior (CharacterName)
 ```
@@ -139,6 +143,7 @@ Behavior (CharacterName)
 **Alternative:** Set `outletName` to `"Lumia_Behavior"`
 
 **Example Entry:**
+
 ```json
 {
   "comment": "Behavior (Aria)",
@@ -152,6 +157,7 @@ Behavior (CharacterName)
 Personality traits and characteristics.
 
 **Comment Format:**
+
 ```
 Personality (CharacterName)
 ```
@@ -159,6 +165,7 @@ Personality (CharacterName)
 **Alternative:** Set `outletName` to `"Lumia_Personality"`
 
 **Example Entry:**
+
 ```json
 {
   "comment": "Personality (Aria)",
@@ -203,11 +210,11 @@ Loom items are standalone content pieces for narrative control. Unlike Lumia ite
 
 ### Loom Categories
 
-| Category | Purpose |
-|----------|---------|
-| **Narrative Style** | Writing style and prose guidance |
-| **Loom Utilities** | Utility functions and helper content |
-| **Retrofits** | System modifications and enhancements |
+| Category            | Purpose                               |
+| ------------------- | ------------------------------------- |
+| **Narrative Style** | Writing style and prose guidance      |
+| **Loom Utilities**  | Utility functions and helper content  |
+| **Retrofits**       | System modifications and enhancements |
 
 ### Naming Format
 
@@ -297,14 +304,14 @@ The tags are automatically stripped from the displayed content.
 
 ## Quick Reference
 
-| Item Type | Comment Format | Merges? |
-|-----------|---------------|---------|
-| Definition | `Lumia (Name)` or `Definition (Name)` | Yes, by name |
-| Behavior | `Behavior (Name)` | Yes, by name |
-| Personality | `Personality (Name)` | Yes, by name |
-| Narrative Style | `Narrative Style (Name)` | No |
-| Loom Utilities | `Loom Utilities (Name)` | No |
-| Retrofits | `Retrofits (Name)` | No |
+| Item Type       | Comment Format                        | Merges?      |
+| --------------- | ------------------------------------- | ------------ |
+| Definition      | `Lumia (Name)` or `Definition (Name)` | Yes, by name |
+| Behavior        | `Behavior (Name)`                     | Yes, by name |
+| Personality     | `Personality (Name)`                  | Yes, by name |
+| Narrative Style | `Narrative Style (Name)`              | No           |
+| Loom Utilities  | `Loom Utilities (Name)`               | No           |
+| Retrofits       | `Retrofits (Name)`                    | No           |
 
 ---
 
