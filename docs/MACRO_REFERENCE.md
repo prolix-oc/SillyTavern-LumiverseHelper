@@ -69,7 +69,7 @@ These macros inject content from your selected Loom items.
 
 | Macro | Description |
 |-------|-------------|
-| `{{loomStyle}}` | The selected narrative style |
+| `{{loomStyle}}` | All selected narrative styles, merged together |
 | `{{loomUtils}}` | All selected Loom utilities, merged together |
 | `{{loomRetrofits}}` | All selected retrofits, merged together |
 
@@ -77,7 +77,7 @@ These macros inject content from your selected Loom items.
 
 | Macro | Description |
 |-------|-------------|
-| `{{loomStyle.len}}` | Returns `1` if a style is selected, `0` otherwise |
+| `{{loomStyle.len}}` | Number of selected narrative styles |
 | `{{loomUtils.len}}` | Number of selected utilities |
 | `{{loomRetrofits.len}}` | Number of selected retrofits |
 
@@ -116,7 +116,7 @@ These macros support the Loom summarization and Sovereign Hand features.
 | Lumia | `{{randomLumia.pers}}` | N/A | No |
 | Lumia | `{{randomLumia.behav}}` | N/A | No |
 | Lumia | `{{randomLumia.name}}` | N/A | No |
-| Loom | `{{loomStyle}}` | No | Yes |
+| Loom | `{{loomStyle}}` | Yes | Yes |
 | Loom | `{{loomUtils}}` | Yes | Yes |
 | Loom | `{{loomRetrofits}}` | Yes | Yes |
 | Loom | `{{loomSummary}}` | N/A | No |
