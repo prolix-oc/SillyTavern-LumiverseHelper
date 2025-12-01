@@ -939,6 +939,25 @@ details.lumia-panel[open] .lumia-panel-chevron {
   cursor: not-allowed;
 }
 
+.lumia-btn-disabled {
+  background: rgba(80, 80, 80, 0.4) !important;
+  border-color: rgba(100, 100, 100, 0.3) !important;
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.lumia-btn-disabled:hover {
+  background: rgba(80, 80, 80, 0.4) !important;
+  transform: none !important;
+}
+
+.lumia-test-hint {
+  margin-top: 8px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  text-align: center;
+  font-style: italic;
+}
+
 /* Test Result Box */
 .lumia-test-result {
   display: flex;
@@ -1017,6 +1036,165 @@ details.lumia-panel[open] .lumia-panel-chevron {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.6);
   word-break: break-word;
+}
+
+/* ============================================
+   LOOM SUMMARY BUTTON & MODAL
+   ============================================ */
+
+/* Floating Loom Summary Button */
+.lumia-loom-summary-btn {
+  position: fixed;
+  top: 50px;
+  right: 10px;
+  z-index: 100;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid rgba(147, 112, 219, 0.3);
+  border-radius: 8px;
+  background: linear-gradient(
+    135deg,
+    rgba(28, 24, 38, 0.95) 0%,
+    rgba(45, 38, 62, 0.9) 100%
+  );
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.lumia-loom-summary-btn svg {
+  width: 20px;
+  height: 20px;
+  stroke: rgba(147, 112, 219, 0.7);
+  transition: stroke 0.2s ease;
+}
+
+.lumia-loom-summary-btn:hover {
+  border-color: rgba(147, 112, 219, 0.5);
+  background: linear-gradient(
+    135deg,
+    rgba(35, 30, 48, 0.98) 0%,
+    rgba(55, 45, 75, 0.95) 100%
+  );
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(147, 112, 219, 0.2);
+}
+
+.lumia-loom-summary-btn:hover svg {
+  stroke: rgba(147, 112, 219, 0.9);
+}
+
+/* Button states */
+.lumia-loom-summary-btn-hidden {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.lumia-loom-summary-btn-empty svg {
+  stroke: rgba(150, 150, 150, 0.5);
+}
+
+.lumia-loom-summary-btn-empty:hover svg {
+  stroke: rgba(180, 180, 180, 0.7);
+}
+
+.lumia-loom-summary-btn-active {
+  border-color: rgba(147, 112, 219, 0.5);
+}
+
+.lumia-loom-summary-btn-active svg {
+  stroke: rgba(147, 112, 219, 0.9);
+}
+
+.lumia-loom-summary-btn-active::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  background: rgba(147, 112, 219, 0.9);
+  border-radius: 50%;
+}
+
+/* Summary Modal */
+.lumia-modal-summary {
+  width: 600px;
+  max-width: 90vw;
+  max-height: 80vh;
+  max-height: 80dvh;
+}
+
+.lumia-summary-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+
+.lumia-summary-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.lumia-summary-status svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.lumia-summary-status-exists {
+  background: rgba(76, 175, 80, 0.15);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  color: rgba(76, 175, 80, 0.95);
+}
+
+.lumia-summary-status-exists svg {
+  stroke: rgba(76, 175, 80, 0.95);
+}
+
+.lumia-summary-status-empty {
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.25);
+  color: rgba(255, 193, 7, 0.9);
+}
+
+.lumia-summary-status-empty svg {
+  stroke: rgba(255, 193, 7, 0.9);
+}
+
+.lumia-summary-textarea {
+  flex: 1;
+  min-height: 300px;
+  padding: 14px;
+  border: 1px solid rgba(147, 112, 219, 0.2);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  color: rgba(255, 255, 255, 0.9);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.6;
+  resize: vertical;
+  transition: border-color 0.2s ease;
+}
+
+.lumia-summary-textarea:focus {
+  outline: none;
+  border-color: rgba(147, 112, 219, 0.5);
+}
+
+.lumia-summary-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.3);
 }
 
 /* Modal Mobile Responsiveness */

@@ -33,6 +33,8 @@ import {
   refreshUIDisplay,
   setRefreshUICallback,
   setProcessAllLumiaOOCCommentsRef,
+  createLoomSummaryButton,
+  updateLoomSummaryButtonState,
 } from "./lib/uiModals.js";
 
 import {
@@ -431,6 +433,9 @@ jQuery(async () => {
   const settingsHtml = await loadSettingsHtml();
   $("#extensions_settings").append(settingsHtml);
 
+  // Create the Loom Summary button in the viewport
+  createLoomSummaryButton();
+
   // Initial UI refresh
   refreshUIDisplay();
 
@@ -579,9 +584,10 @@ jQuery(async () => {
     );
     captureLoomSummary();
     scheduleOOCProcessingAfterRender();
-    // Restore summary markers after DOM is ready
+    // Restore summary markers and update summary button after DOM is ready
     requestAnimationFrame(() => {
       restoreSummaryMarkers();
+      updateLoomSummaryButtonState();
     });
   });
 
