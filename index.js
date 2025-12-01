@@ -66,6 +66,11 @@ import {
   flushPendingUpdates,
 } from "./lib/oocComments.js";
 
+import {
+  showLumiaEditorModal,
+  setEditorRefreshUICallback,
+} from "./lib/lumiaEditor.js";
+
 // --- CONTEXT FILTER FUNCTIONS ---
 
 /**
@@ -429,6 +434,9 @@ jQuery(async () => {
   // Set up OOC processing reference for modals
   setProcessAllLumiaOOCCommentsRef(processAllLumiaOOCComments);
 
+  // Set up editor refresh callback
+  setEditorRefreshUICallback(refreshUIDisplay);
+
   // Load and append settings HTML
   const settingsHtml = await loadSettingsHtml();
   $("#extensions_settings").append(settingsHtml);
@@ -491,6 +499,11 @@ jQuery(async () => {
   // Open Lucid Cards browser modal
   $("#lumia-browse-lucid-btn").click(() => {
     showLucidCardsModal();
+  });
+
+  // Open Lumia Editor (create new)
+  $("#lumia-create-lumia-btn").click(() => {
+    showLumiaEditorModal();
   });
 
   // File upload handling

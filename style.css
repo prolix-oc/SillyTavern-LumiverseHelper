@@ -364,6 +364,32 @@ details.lumia-panel[open] .lumia-panel-chevron {
   stroke: rgba(186, 135, 255, 0.9);
 }
 
+.lumia-tool-btn-accent {
+  background: linear-gradient(
+    135deg,
+    rgba(147, 112, 219, 0.2) 0%,
+    rgba(123, 95, 196, 0.15) 100%
+  );
+  border-color: rgba(147, 112, 219, 0.35);
+}
+
+.lumia-tool-btn-accent svg {
+  stroke: rgba(186, 135, 255, 0.9);
+}
+
+.lumia-tool-btn-accent span {
+  color: rgba(186, 135, 255, 0.95);
+}
+
+.lumia-tool-btn-accent:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(147, 112, 219, 0.3) 0%,
+    rgba(123, 95, 196, 0.25) 100%
+  );
+  border-color: rgba(147, 112, 219, 0.5);
+}
+
 /* Macro Reference */
 .lumia-macro-reference {
   display: flex;
@@ -3753,5 +3779,440 @@ details.lumia-panel[open] .lumia-panel-chevron {
   .lucid-cards-selected-info,
   .lucid-cards-import-btn {
     animation: none;
+  }
+}
+
+/* ============================================
+   LUMIA EDITOR STYLES
+   ============================================ */
+
+/* Pack Selector Modal */
+.lumia-modal-pack-selector .lumia-modal-content {
+  padding: 16px 20px;
+}
+
+.lumia-pack-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lumia-pack-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(128, 128, 128, 0.15);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lumia-pack-option:hover {
+  background: rgba(147, 112, 219, 0.1);
+  border-color: rgba(147, 112, 219, 0.3);
+}
+
+.lumia-pack-option-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(147, 112, 219, 0.15);
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.lumia-pack-option-icon svg {
+  width: 20px;
+  height: 20px;
+  stroke: rgba(147, 112, 219, 0.8);
+}
+
+.lumia-pack-option-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.lumia-pack-option-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 2px;
+}
+
+.lumia-pack-option-meta {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.lumia-pack-option-check {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.lumia-pack-option-check svg {
+  width: 18px;
+  height: 18px;
+  stroke: rgba(147, 112, 219, 0.9);
+}
+
+.lumia-pack-option:hover .lumia-pack-option-check {
+  opacity: 0.5;
+}
+
+.lumia-pack-empty {
+  text-align: center;
+  padding: 24px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+}
+
+/* New Pack Form */
+.lumia-new-pack-section {
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(128, 128, 128, 0.12);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.lumia-new-pack-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: rgba(147, 112, 219, 0.08);
+  border-bottom: 1px solid rgba(147, 112, 219, 0.1);
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.lumia-new-pack-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lumia-new-pack-icon svg {
+  width: 18px;
+  height: 18px;
+  stroke: rgba(147, 112, 219, 0.8);
+}
+
+.lumia-new-pack-form {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Editor Modal */
+.lumia-modal-editor {
+  max-width: 640px;
+}
+
+.lumia-modal-editor .lumia-modal-content {
+  padding: 16px 20px;
+}
+
+.lumia-editor-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.lumia-editor-section {
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(128, 128, 128, 0.12);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.lumia-editor-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: rgba(147, 112, 219, 0.08);
+  border-bottom: 1px solid rgba(147, 112, 219, 0.1);
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.lumia-editor-section-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lumia-editor-section-icon svg {
+  width: 18px;
+  height: 18px;
+  stroke: rgba(147, 112, 219, 0.8);
+}
+
+.lumia-editor-section-content {
+  padding: 14px;
+}
+
+.lumia-editor-field {
+  margin-bottom: 12px;
+}
+
+.lumia-editor-field:last-child {
+  margin-bottom: 0;
+}
+
+.lumia-editor-field-half {
+  flex: 1;
+  min-width: 0;
+}
+
+.lumia-editor-row {
+  display: flex;
+  gap: 12px;
+}
+
+.lumia-editor-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 6px;
+}
+
+.lumia-required {
+  color: rgba(244, 67, 54, 0.9);
+}
+
+.lumia-editor-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.lumia-textarea {
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  color: rgba(255, 255, 255, 0.9);
+  resize: vertical;
+  min-height: 100px;
+  transition: all 0.2s ease;
+}
+
+.lumia-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.lumia-textarea:focus {
+  outline: none;
+  border-color: rgba(147, 112, 219, 0.5);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+/* Avatar Preview */
+.lumia-editor-preview {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+}
+
+.lumia-editor-preview img {
+  max-width: 120px;
+  max-height: 120px;
+  border-radius: 10px;
+  border: 2px solid rgba(147, 112, 219, 0.3);
+  object-fit: cover;
+}
+
+.lumia-pack-cover-preview img {
+  max-width: 200px;
+  max-height: 120px;
+  border-radius: 8px;
+}
+
+/* Footer Spacer */
+.lumia-modal-footer-spacer {
+  flex: 1;
+}
+
+/* Danger Button */
+.lumia-modal-btn-danger {
+  background: rgba(244, 67, 54, 0.15);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  color: rgba(244, 67, 54, 0.9);
+}
+
+.lumia-modal-btn-danger:hover {
+  background: rgba(244, 67, 54, 0.25);
+  border-color: rgba(244, 67, 54, 0.5);
+}
+
+.lumia-modal-btn-danger svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+}
+
+/* Pack Editor Modal */
+.lumia-modal-pack-editor {
+  max-width: 480px;
+}
+
+.lumia-modal-pack-editor .lumia-modal-content {
+  padding: 16px 20px;
+}
+
+/* Edit Button in Selection Modal */
+.lumia-card-edit-btn {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(147, 112, 219, 0.4);
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.lumia-card-edit-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: rgba(147, 112, 219, 0.9);
+}
+
+.lumia-card:hover .lumia-card-edit-btn {
+  opacity: 1;
+}
+
+.lumia-card-edit-btn:hover {
+  background: rgba(147, 112, 219, 0.3);
+  border-color: rgba(147, 112, 219, 0.6);
+}
+
+/* Pack Header Edit Button */
+.lumia-pack-edit-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid rgba(147, 112, 219, 0.3);
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+  transition: all 0.2s ease;
+  margin-left: auto;
+  margin-right: 8px;
+}
+
+.lumia-pack-edit-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: rgba(147, 112, 219, 0.8);
+}
+
+.lumia-pack-edit-btn:hover {
+  opacity: 1;
+  background: rgba(147, 112, 219, 0.15);
+  border-color: rgba(147, 112, 219, 0.5);
+}
+
+/* Create Lumia Button in Panel */
+.lumia-create-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: rgba(147, 112, 219, 0.15);
+  border: 1px solid rgba(147, 112, 219, 0.3);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(186, 135, 255, 0.95);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lumia-create-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+}
+
+.lumia-create-btn:hover {
+  background: rgba(147, 112, 219, 0.25);
+  border-color: rgba(147, 112, 219, 0.5);
+}
+
+/* Custom Pack Badge */
+.lumia-pack-badge-custom {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: rgba(76, 175, 80, 0.15);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(76, 175, 80, 0.9);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-left: 8px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .lumia-modal-editor {
+    max-width: 100%;
+  }
+
+  .lumia-editor-row {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .lumia-editor-field-half {
+    margin-bottom: 12px;
+  }
+
+  .lumia-modal-pack-editor {
+    max-width: 100%;
+  }
+}
+
+/* Reduced motion for editor */
+@media (prefers-reduced-motion: reduce) {
+  .lumia-pack-option,
+  .lumia-card-edit-btn,
+  .lumia-pack-edit-btn,
+  .lumia-create-btn {
+    transition: none;
   }
 }
