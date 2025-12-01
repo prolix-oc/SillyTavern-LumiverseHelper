@@ -38,6 +38,7 @@ import {
 import {
   generateLoomSummary,
   checkAutoSummarization,
+  restoreSummaryMarkers,
 } from "./lib/summarization.js";
 
 import { registerLumiaMacros } from "./lib/lumiaContent.js";
@@ -67,6 +68,7 @@ import {
 
 /**
  * Strip common HTML formatting tags from content, preserving the text inside
+ * Note: Does NOT strip <font> tags by default - those are handled separately
  * @param {string} content - The content to filter
  * @returns {string} Content with HTML tags stripped
  */
@@ -74,9 +76,9 @@ function stripHtmlTags(content) {
   if (!content) return content;
 
   // List of common formatting/layout tags to strip (preserving content)
-  // Match opening and closing tags, keeping the content inside
+  // Note: "font" is NOT included here - it's handled separately via stripFontTags
+  // because some presets use font tags for colored dialogue/thoughts
   const tagsToStrip = [
-    "font",
     "div",
     "span",
     "b",
@@ -104,6 +106,23 @@ function stripHtmlTags(content) {
     result = result.replace(openTagRegex, "");
     result = result.replace(closeTagRegex, "");
   }
+
+  return result;
+}
+
+/**
+ * Strip <font> tags from content, preserving the text inside
+ * Separated from stripHtmlTags because some presets use font tags for colored dialogue
+ * @param {string} content - The content to filter
+ * @returns {string} Content with font tags stripped
+ */
+function stripFontTags(content) {
+  if (!content) return content;
+
+  // Remove <font ...> and </font> tags, keeping content
+  let result = content;
+  result = result.replace(/<font(?:\s[^>]*)?>/gi, "");
+  result = result.replace(/<\/font>/gi, "");
 
   return result;
 }
@@ -250,13 +269,15 @@ globalThis.lumiverseHelperGenInterceptor = async function (
   // Depth is measured from the END of the chat (most recent messages)
   const detailsKeepDepth = contextFilters.detailsBlocks?.keepDepth ?? 3;
   const loomKeepDepth = contextFilters.loomItems?.keepDepth ?? 5;
+  const fontKeepDepth = contextFilters.htmlTags?.fontKeepDepth ?? 3;
 
   // Check if any filters are enabled
   const htmlFilterEnabled = contextFilters.htmlTags?.enabled || false;
+  const fontFilterEnabled = contextFilters.htmlTags?.stripFonts || false;
   const detailsFilterEnabled = contextFilters.detailsBlocks?.enabled || false;
   const loomFilterEnabled = contextFilters.loomItems?.enabled || false;
   const anyFilterEnabled =
-    htmlFilterEnabled || detailsFilterEnabled || loomFilterEnabled;
+    htmlFilterEnabled || fontFilterEnabled || detailsFilterEnabled || loomFilterEnabled;
 
   // Process loomIf conditionals and apply content filters in all chat messages
   for (let i = 0; i < chat.length; i++) {
@@ -272,6 +293,12 @@ globalThis.lumiverseHelperGenInterceptor = async function (
       // HTML tags filter - applies to ALL messages when enabled
       if (htmlFilterEnabled) {
         result = stripHtmlTags(result);
+      }
+
+      // Font tags filter - only applies to messages BEYOND the font keep depth
+      // (requires htmlFilterEnabled since it's a sub-option)
+      if (htmlFilterEnabled && fontFilterEnabled && depthFromEnd >= fontKeepDepth) {
+        result = stripFontTags(result);
       }
 
       // Details blocks filter - only applies to messages BEYOND the keep depth
@@ -510,6 +537,10 @@ jQuery(async () => {
     );
     captureLoomSummary();
     scheduleOOCProcessingAfterRender();
+    // Restore summary markers after DOM is ready
+    requestAnimationFrame(() => {
+      restoreSummaryMarkers();
+    });
   });
 
   // Track generation start to prevent observer interference

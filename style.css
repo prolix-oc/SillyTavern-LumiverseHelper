@@ -1565,6 +1565,24 @@ details.lumia-panel[open] .lumia-panel-chevron {
   display: none;
 }
 
+/* Sub-item within filter options (nested toggle) */
+.lumia-filter-sub-item {
+  padding: 0;
+}
+
+.lumia-filter-sub-item .lumia-toggle-row {
+  padding: 0;
+}
+
+.lumia-filter-sub-options {
+  margin-top: 10px;
+  margin-left: 8px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.1);
+  border-left: 2px solid rgba(147, 112, 219, 0.3);
+  border-radius: 0 6px 6px 0;
+}
+
 .lumia-input-label {
   display: flex;
   align-items: center;
@@ -1923,6 +1941,80 @@ details.lumia-panel[open] .lumia-panel-chevron {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* ============================================
+   Loom Summary Indicators (message timestamp area)
+   ============================================ */
+
+/* Temporary loading indicator */
+.loom-summary-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+  font-size: 11px;
+  color: rgba(147, 112, 219, 0.9);
+  vertical-align: middle;
+}
+
+.loom-summary-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(147, 112, 219, 0.25);
+  border-top-color: rgba(147, 112, 219, 0.9);
+  border-radius: 50%;
+  animation: loom-summary-spin 0.7s linear infinite;
+}
+
+@keyframes loom-summary-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Persistent summary markers */
+.loom-summary-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8px;
+  vertical-align: middle;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.loom-summary-marker:hover {
+  opacity: 1;
+}
+
+/* SVG icon styling */
+.loom-summary-icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* Thread spool - complete state */
+.loom-summary-marker-complete {
+  color: rgba(147, 112, 219, 0.9);
+}
+
+.loom-summary-marker-complete:hover {
+  color: rgba(186, 135, 255, 1);
+}
+
+/* Error X - failed state */
+.loom-summary-marker-error {
+  color: rgba(244, 67, 54, 0.8);
+}
+
+.loom-summary-marker-error:hover {
+  color: rgba(244, 67, 54, 1);
+}
+
+.loom-summary-icon-error {
+  width: 13px;
+  height: 13px;
 }
 
 .lumia-ooc-avatar {
