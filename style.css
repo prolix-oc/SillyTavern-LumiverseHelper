@@ -1546,6 +1546,11 @@ details.lumia-panel[open] .lumia-panel-chevron {
 /* Remove toggle row padding when inside filter item (filter-item provides padding) */
 .lumia-filter-item .lumia-toggle-row {
   padding: 0;
+  align-items: center;
+}
+
+.lumia-filter-item .lumia-toggle-switch-wrapper {
+  align-self: center;
 }
 
 .lumia-filter-options {
@@ -2680,7 +2685,10 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
 .lumia-toggle-switch-wrapper {
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
   align-self: center;
+  position: relative;
 }
 
 .lumia-toggle-input {
