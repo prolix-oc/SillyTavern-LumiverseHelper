@@ -4190,6 +4190,233 @@ details.lumia-panel[open] .lumia-panel-chevron {
   margin-left: 8px;
 }
 
+/* ============================================
+   LAZY LOADING & IMAGE TRANSITIONS
+   Smooth loading experience for cards and images
+   ============================================ */
+
+/* Keyframes for fade-in animation */
+@keyframes lumia-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Keyframes for skeleton shimmer */
+@keyframes lumia-skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Keyframes for card entrance */
+@keyframes lumia-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Image loading states */
+.lumia-card-image img {
+  opacity: 0;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
+}
+
+.lumia-card-image img.lumia-img-loaded {
+  opacity: 1;
+}
+
+/* Skeleton loading placeholder */
+.lumia-skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(147, 112, 219, 0.08) 0%,
+    rgba(147, 112, 219, 0.15) 50%,
+    rgba(147, 112, 219, 0.08) 100%
+  );
+  background-size: 200% 100%;
+  animation: lumia-skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+/* Card loading skeleton */
+.lumia-card.lumia-card-loading {
+  pointer-events: none;
+}
+
+.lumia-card.lumia-card-loading .lumia-card-image::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(147, 112, 219, 0.08) 0%,
+    rgba(147, 112, 219, 0.15) 50%,
+    rgba(147, 112, 219, 0.08) 100%
+  );
+  background-size: 200% 100%;
+  animation: lumia-skeleton-shimmer 1.5s ease-in-out infinite;
+  z-index: 1;
+}
+
+/* Loading spinner for images */
+.lumia-card-image .lumia-img-spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 28px;
+  height: 28px;
+  border: 2px solid rgba(147, 112, 219, 0.2);
+  border-top-color: rgba(147, 112, 219, 0.7);
+  border-radius: 50%;
+  animation: lumia-spin 0.8s linear infinite;
+  z-index: 2;
+}
+
+@keyframes lumia-spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* Hide spinner when image loaded */
+.lumia-card-image:has(.lumia-img-loaded) .lumia-img-spinner {
+  display: none;
+}
+
+/* Card entrance animation */
+.lumia-card.lumia-card-appear {
+  animation: lumia-card-enter 0.35s ease forwards;
+}
+
+/* Staggered animation delays for cards */
+.lumia-card.lumia-card-appear:nth-child(1) { animation-delay: 0ms; }
+.lumia-card.lumia-card-appear:nth-child(2) { animation-delay: 30ms; }
+.lumia-card.lumia-card-appear:nth-child(3) { animation-delay: 60ms; }
+.lumia-card.lumia-card-appear:nth-child(4) { animation-delay: 90ms; }
+.lumia-card.lumia-card-appear:nth-child(5) { animation-delay: 120ms; }
+.lumia-card.lumia-card-appear:nth-child(6) { animation-delay: 150ms; }
+.lumia-card.lumia-card-appear:nth-child(7) { animation-delay: 180ms; }
+.lumia-card.lumia-card-appear:nth-child(8) { animation-delay: 210ms; }
+.lumia-card.lumia-card-appear:nth-child(9) { animation-delay: 240ms; }
+.lumia-card.lumia-card-appear:nth-child(10) { animation-delay: 270ms; }
+.lumia-card.lumia-card-appear:nth-child(n+11) { animation-delay: 300ms; }
+
+/* Preview image loading */
+.lumia-editor-preview {
+  position: relative;
+  min-height: 80px;
+}
+
+.lumia-editor-preview img {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.lumia-editor-preview img.lumia-img-loaded {
+  opacity: 1;
+}
+
+.lumia-editor-preview .lumia-preview-spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(147, 112, 219, 0.2);
+  border-top-color: rgba(147, 112, 219, 0.7);
+  border-radius: 50%;
+  animation: lumia-spin 0.8s linear infinite;
+}
+
+.lumia-editor-preview:has(.lumia-img-loaded) .lumia-preview-spinner {
+  display: none;
+}
+
+/* Lucid cards loading enhancements */
+.lucid-dlc-card {
+  opacity: 0;
+  animation: lumia-card-enter 0.35s ease forwards;
+}
+
+.lucid-dlc-card:nth-child(1) { animation-delay: 0ms; }
+.lucid-dlc-card:nth-child(2) { animation-delay: 40ms; }
+.lucid-dlc-card:nth-child(3) { animation-delay: 80ms; }
+.lucid-dlc-card:nth-child(4) { animation-delay: 120ms; }
+.lucid-dlc-card:nth-child(5) { animation-delay: 160ms; }
+.lucid-dlc-card:nth-child(6) { animation-delay: 200ms; }
+.lucid-dlc-card:nth-child(7) { animation-delay: 240ms; }
+.lucid-dlc-card:nth-child(8) { animation-delay: 280ms; }
+.lucid-dlc-card:nth-child(n+9) { animation-delay: 320ms; }
+
+.lucid-dlc-card-image img {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.lucid-dlc-card-image img.lumia-img-loaded {
+  opacity: 1;
+}
+
+/* Loom items entrance animation */
+.lucid-loom-item {
+  opacity: 0;
+  animation: lumia-fade-in 0.25s ease forwards;
+}
+
+.lucid-loom-item:nth-child(1) { animation-delay: 0ms; }
+.lucid-loom-item:nth-child(2) { animation-delay: 25ms; }
+.lucid-loom-item:nth-child(3) { animation-delay: 50ms; }
+.lucid-loom-item:nth-child(4) { animation-delay: 75ms; }
+.lucid-loom-item:nth-child(5) { animation-delay: 100ms; }
+.lucid-loom-item:nth-child(6) { animation-delay: 125ms; }
+.lucid-loom-item:nth-child(7) { animation-delay: 150ms; }
+.lucid-loom-item:nth-child(8) { animation-delay: 175ms; }
+.lucid-loom-item:nth-child(n+9) { animation-delay: 200ms; }
+
+/* Pack header entrance */
+.lumia-pack-section {
+  opacity: 0;
+  animation: lumia-fade-in 0.3s ease forwards;
+}
+
+/* Reduced motion support for lazy loading */
+@media (prefers-reduced-motion: reduce) {
+  .lumia-card.lumia-card-appear,
+  .lucid-dlc-card,
+  .lucid-loom-item,
+  .lumia-pack-section {
+    animation: none;
+    opacity: 1;
+  }
+
+  .lumia-card-image img,
+  .lucid-dlc-card-image img,
+  .lumia-editor-preview img {
+    transition: none;
+    opacity: 1;
+  }
+
+  .lumia-card.lumia-card-loading .lumia-card-image::before,
+  .lumia-skeleton {
+    animation: none;
+  }
+}
+
 /* Responsive adjustments */
 @media (max-width: 600px) {
   .lumia-modal-editor {
