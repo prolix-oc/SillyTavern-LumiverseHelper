@@ -69,17 +69,24 @@ import {
 /**
  * Strip common HTML formatting tags from content, preserving the text inside
  * Note: Does NOT strip <font> tags by default - those are handled separately
+ * Special handling for <div>: deletes entirely EXCEPT for codeblock containers
  * @param {string} content - The content to filter
  * @returns {string} Content with HTML tags stripped
  */
 function stripHtmlTags(content) {
   if (!content) return content;
 
+  let result = content;
+
+  // FIRST: Handle divs specially - delete most entirely, but preserve codeblock containers
+  // Pattern: <div style="display: none;">```  OR  <div style="display: none;">\n```
+  // These are codeblock containers from other extensions - preserve their inner content
+  result = handleDivFiltering(result);
+
   // List of common formatting/layout tags to strip (preserving content)
   // Note: "font" is NOT included here - it's handled separately via stripFontTags
-  // because some presets use font tags for colored dialogue/thoughts
+  // Note: "div" is NOT included here - it's handled specially above
   const tagsToStrip = [
-    "div",
     "span",
     "b",
     "i",
@@ -95,8 +102,6 @@ function stripHtmlTags(content) {
     "big",
   ];
 
-  let result = content;
-
   for (const tag of tagsToStrip) {
     // Match opening tag with any attributes, capture content, match closing tag
     // Use non-greedy matching and handle nested tags by repeating
@@ -106,6 +111,43 @@ function stripHtmlTags(content) {
     result = result.replace(openTagRegex, "");
     result = result.replace(closeTagRegex, "");
   }
+
+  return result;
+}
+
+/**
+ * Handle div filtering with special logic for codeblock containers
+ * - Preserves content of divs that are codeblock containers (display:none followed by ```)
+ * - Deletes all other divs entirely (including their contents)
+ * @param {string} content - The content to filter
+ * @returns {string} Content with divs processed
+ */
+function handleDivFiltering(content) {
+  if (!content) return content;
+
+  let result = content;
+  let prevResult;
+
+  // Keep processing until no more changes (handles nested divs)
+  do {
+    prevResult = result;
+
+    // First pass: Find and preserve codeblock container divs
+    // Pattern: <div with display:none> followed by ``` (with optional newline between)
+    // Replace these with just their inner content (the codeblock)
+    result = result.replace(
+      /<div[^>]*style\s*=\s*["'][^"']*display\s*:\s*none[^"']*["'][^>]*>(\s*```[\s\S]*?```\s*)<\/div>/gi,
+      "$1"
+    );
+
+    // Second pass: Delete all remaining divs entirely (including contents)
+    // This removes visual/layout divs that don't belong in context
+    result = result.replace(/<div(?:\s[^>]*)?>([\s\S]*?)<\/div>/gi, "");
+
+  } while (result !== prevResult);
+
+  // Clean up any orphaned closing tags
+  result = result.replace(/<\/div>/gi, "");
 
   return result;
 }
