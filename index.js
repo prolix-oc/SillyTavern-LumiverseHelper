@@ -195,6 +195,20 @@ globalThis.lumiverseHelperGenInterceptor = async function (
   const settings = getSettings();
   const sovereignHandEnabled = settings.sovereignHand?.enabled || false;
   const contextFilters = settings.contextFilters || {};
+  const messageTruncation = settings.messageTruncation || {};
+
+  // Message Truncation: Keep only the last N messages
+  if (messageTruncation.enabled && messageTruncation.keepCount > 0) {
+    const keepCount = messageTruncation.keepCount;
+    if (chat.length > keepCount) {
+      const removedCount = chat.length - keepCount;
+      // Remove messages from the beginning of the array (oldest messages)
+      chat.splice(0, removedCount);
+      console.log(
+        `[${MODULE_NAME}] Message Truncation: Removed ${removedCount} older messages, keeping last ${keepCount}`,
+      );
+    }
+  }
 
   // Sovereign Hand: Capture and exclude last user message
   if (sovereignHandEnabled) {

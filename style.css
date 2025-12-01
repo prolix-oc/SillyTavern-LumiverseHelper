@@ -1593,6 +1593,65 @@ details.lumia-panel[open] .lumia-panel-chevron {
   line-height: 1.4;
 }
 
+/* Truncation Options */
+.lumia-trunc-options {
+  margin-top: 16px;
+  transition: all 0.2s ease;
+}
+
+.lumia-trunc-options-hidden {
+  display: none;
+}
+
+/* Warning Box - Themed alert component */
+.lumia-warning-box {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 14px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 152, 0, 0.12) 0%,
+    rgba(255, 87, 34, 0.08) 100%
+  );
+  border: 1px solid rgba(255, 152, 0, 0.25);
+  border-radius: 10px;
+  border-left: 3px solid #ff9800;
+}
+
+.lumia-warning-box-icon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lumia-warning-box-icon svg {
+  width: 20px;
+  height: 20px;
+  stroke: #ff9800;
+}
+
+.lumia-warning-box-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.lumia-warning-box-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffb74d;
+  margin-bottom: 6px;
+}
+
+.lumia-warning-box-text {
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.7);
+}
+
 /* Panel Content Variants */
 .lumia-modal-panel-content-cards {
   padding: 12px;
