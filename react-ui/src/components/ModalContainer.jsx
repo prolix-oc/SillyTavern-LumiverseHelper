@@ -6,6 +6,8 @@ import clsx from 'clsx';
 import SelectionModal from './modals/SelectionModal';
 import PackEditorModal from './modals/PackEditorModal';
 import LoomSelectionModal from './modals/LoomSelectionModal';
+import PackSelectorModal from './modals/PackSelectorModal';
+import LumiaEditorModal from './modals/LumiaEditorModal';
 
 /**
  * Modal wrapper that provides backdrop and close functionality
@@ -51,7 +53,9 @@ function ModalWrapper({ children, onClose, modalType, size = 'medium', hasCustom
         modalType === 'selection' && 'lumia-modal-selection',
         modalType === 'settings' && 'lumia-modal-settings',
         modalType === 'editor' && 'lumia-modal-editor',
-        modalType === 'pack-editor' && 'lumia-modal-pack-editor'
+        modalType === 'pack-editor' && 'lumia-modal-pack-editor',
+        modalType === 'pack-selector' && 'lumia-modal-pack-selector',
+        modalType === 'lumia-editor' && 'lumia-modal-lumia-editor'
     );
 
     return (
@@ -132,6 +136,22 @@ const MODAL_CONFIG = {
         size: 'large',
         hasCustomHeader: true,
         props: { type: 'loomRetrofits' },
+    },
+    // Pack selector - first step in "Create Lumia" flow
+    packSelector: {
+        component: PackSelectorModal,
+        modalType: 'pack-selector',
+        size: 'medium',
+        hasCustomHeader: true,
+        props: {},
+    },
+    // Single Lumia editor - second step in "Create Lumia" flow
+    lumiaEditor: {
+        component: LumiaEditorModal,
+        modalType: 'lumia-editor',
+        size: 'large',
+        hasCustomHeader: true,
+        props: {},
     },
 };
 

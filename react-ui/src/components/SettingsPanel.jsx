@@ -471,7 +471,7 @@ function SettingsPanel() {
                     <ToolButton
                         icon={Icons.plus}
                         label="Create Lumia"
-                        onClick={() => actions.openModal('packEditor')}
+                        onClick={() => actions.openModal('packSelector')}
                         accent
                     />
                     <ToolButton
