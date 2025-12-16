@@ -108,19 +108,37 @@ function ImageInput({ value, onChange, placeholder }) {
  * - lumia_personality: Personality traits ({{lumiaPersonality}})
  * - lumia_behavior: Behavioral patterns ({{lumiaBehavior}})
  */
-function LumiaItemEditor({ item, onUpdate, onRemove }) {
+function LumiaItemEditor({ item, onUpdate, onRemove, onEditFull }) {
     return (
         <div className="lumiverse-lumia-editor">
             <div className="lumiverse-lumia-header">
-                <span className="lumiverse-lumia-name">{item.lumiaDefName || 'New Lumia'}</span>
-                <button
-                    className="lumiverse-btn lumiverse-btn--danger lumiverse-btn--icon"
-                    onClick={onRemove}
-                    title="Remove Lumia"
-                    type="button"
+                <span
+                    className={clsx('lumiverse-lumia-name', onEditFull && 'lumiverse-lumia-name--clickable')}
+                    onClick={onEditFull}
+                    title={onEditFull ? 'Click to open full editor' : undefined}
                 >
-                    🗑️
-                </button>
+                    {item.lumiaDefName || 'New Lumia'}
+                </span>
+                <div className="lumiverse-lumia-header-actions">
+                    {onEditFull && (
+                        <button
+                            className="lumiverse-btn lumiverse-btn--icon lumiverse-btn--expand"
+                            onClick={onEditFull}
+                            title="Open in full editor"
+                            type="button"
+                        >
+                            ↗️
+                        </button>
+                    )}
+                    <button
+                        className="lumiverse-btn lumiverse-btn--danger lumiverse-btn--icon"
+                        onClick={onRemove}
+                        title="Remove Lumia"
+                        type="button"
+                    >
+                        🗑️
+                    </button>
+                </div>
             </div>
 
             <div className="lumiverse-lumia-fields">
@@ -558,6 +576,21 @@ function PackEditorModal({ packId, onClose }) {
                                     item={item}
                                     onUpdate={(updated) => updateItem(index, updated)}
                                     onRemove={() => removeItem(index)}
+                                    onEditFull={item.lumiaDefName ? () => {
+                                        // Save current pack state first, then open full editor
+                                        const packToSave = preparePackForSave();
+                                        if (existingPack) {
+                                            actions.updateCustomPack(pack.id || pack.name, packToSave);
+                                        } else if (pack.name.trim()) {
+                                            actions.addCustomPack(packToSave);
+                                        }
+                                        saveToExtension();
+                                        // Open full editor for this item
+                                        actions.openModal('lumiaEditor', {
+                                            packName: pack.name,
+                                            editingItem: item
+                                        });
+                                    } : undefined}
                                 />
                             ))}
                         </div>

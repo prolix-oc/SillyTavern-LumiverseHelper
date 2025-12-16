@@ -572,6 +572,133 @@ details.lumia-panel[open] .lumia-panel-chevron {
     border-radius: 10px;
 }
 
+/* Expandable Pack Container */
+.lumia-pack-item-container {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.lumia-pack-item-container--expanded {
+    background: rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(147, 112, 219, 0.15);
+}
+
+.lumia-pack-item-container--expanded .lumia-pack-item {
+    border-bottom: 1px solid rgba(128, 128, 128, 0.1);
+    border-radius: 8px 8px 0 0;
+}
+
+/* Expand button */
+.lumia-pack-expand-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.5);
+    transition: all 0.2s ease;
+}
+
+.lumia-pack-expand-btn:hover {
+    background: rgba(147, 112, 219, 0.15);
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Chevron rotation */
+.lumia-pack-chevron {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease;
+}
+
+.lumia-pack-chevron svg {
+    width: 14px;
+    height: 14px;
+}
+
+.lumia-pack-chevron--expanded {
+    transform: rotate(180deg);
+}
+
+/* Expanded Lumia items list */
+.lumia-pack-items-list {
+    display: flex;
+    flex-direction: column;
+    padding: 4px 8px 8px 8px;
+    overflow: hidden;
+}
+
+/* Individual Lumia item in expanded list */
+.lumia-pack-lumia-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    margin-top: 4px;
+    background: rgba(0, 0, 0, 0.12);
+    border: 1px solid rgba(128, 128, 128, 0.08);
+    border-radius: 6px;
+    transition: all 0.15s ease;
+}
+
+.lumia-pack-lumia-item:hover {
+    background: rgba(0, 0, 0, 0.18);
+    border-color: rgba(147, 112, 219, 0.2);
+}
+
+/* Lumia avatar in expanded list */
+.lumia-pack-lumia-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid rgba(147, 112, 219, 0.2);
+    flex-shrink: 0;
+}
+
+/* Lumia name in expanded list */
+.lumia-pack-lumia-name {
+    flex: 1;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.8);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Small icon button */
+.lumia-btn-icon-sm {
+    width: 24px !important;
+    height: 24px !important;
+    padding: 0 !important;
+    font-size: 12px;
+}
+
+.lumia-btn-icon-sm svg {
+    width: 12px;
+    height: 12px;
+}
+
+/* Empty state for expanded pack */
+.lumia-pack-items-empty {
+    padding: 12px;
+    text-align: center;
+    overflow: hidden;
+}
+
+.lumia-pack-items-empty span {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.4);
+    font-style: italic;
+}
+
 /* ----------------------------------------
    Base App Container
    ---------------------------------------- */
@@ -2249,6 +2376,37 @@ details.lumia-panel[open] .lumia-panel-chevron {
     font-weight: 600;
     color: var(--lumiverse-text);
     font-size: 14px;
+}
+
+/* Clickable Lumia name (for opening full editor) */
+.lumiverse-lumia-name--clickable {
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+
+.lumiverse-lumia-name--clickable:hover {
+    color: var(--lumiverse-primary-text);
+}
+
+/* Header actions container */
+.lumiverse-lumia-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Expand button in header */
+.lumiverse-btn--expand {
+    background: rgba(147, 112, 219, 0.1);
+    border: 1px solid rgba(147, 112, 219, 0.2);
+    color: var(--lumiverse-primary-text);
+    opacity: 0.7;
+    transition: all 0.15s ease;
+}
+
+.lumiverse-btn--expand:hover {
+    background: rgba(147, 112, 219, 0.2);
+    opacity: 1;
 }
 
 /* Image Input */

@@ -242,9 +242,10 @@ function ViewportPanel({
                 <div
                     className="lumiverse-vp-main"
                     style={{
-                        width: isCollapsed ? 0 : 320,
+                        width: 320,
+                        transform: isCollapsed ? 'translateX(320px)' : 'translateX(0)',
                         opacity: isCollapsed ? 0 : 1,
-                        transition: 'width 0.2s ease, opacity 0.2s ease',
+                        transition: 'transform 0.2s ease, opacity 0.2s ease',
                     }}
                 >
                     <PanelHeader

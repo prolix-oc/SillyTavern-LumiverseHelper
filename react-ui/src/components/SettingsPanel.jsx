@@ -246,6 +246,14 @@ function SettingsPanel() {
     const actions = useLumiverseActions();
     const { packs, customPacks, allPacks } = usePacks();
 
+    // Track which custom pack is expanded to show Lumia items
+    const [expandedPackId, setExpandedPackId] = useState(null);
+
+    // Toggle pack expansion
+    const togglePackExpansion = useCallback((packId) => {
+        setExpandedPackId(prev => prev === packId ? null : packId);
+    }, []);
+
     // Calculate stats
     const totalPacks = allPacks.length;
     const totalItems = useMemo(() => {
@@ -553,29 +561,104 @@ function SettingsPanel() {
             {customPacks.length > 0 && (
                 <Panel title="Custom Packs" icon={Icons.package}>
                     <div className="lumia-custom-packs">
-                        {customPacks.map((pack) => (
-                            <motion.div
-                                key={pack.id}
-                                className="lumia-pack-item"
-                                initial={{ opacity: 0, y: -10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                            >
-                                <span className="lumia-pack-name">{pack.name}</span>
-                                <span className="lumia-pack-count">
-                                    {pack.items?.length || 0} items
-                                </span>
-                                <button
-                                    className="lumia-btn lumia-btn-icon"
-                                    onClick={() =>
-                                        actions.openModal('packEditor', { packId: pack.id })
-                                    }
-                                    title="Edit pack"
-                                    type="button"
+                        {customPacks.map((pack) => {
+                            const isExpanded = expandedPackId === pack.id;
+                            const lumiaItems = pack.items?.filter(item => item.lumiaDefName) || [];
+
+                            return (
+                                <motion.div
+                                    key={pack.id}
+                                    className={clsx('lumia-pack-item-container', isExpanded && 'lumia-pack-item-container--expanded')}
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{ opacity: 1, y: 0 }}
                                 >
-                                    {Icons.edit}
-                                </button>
-                            </motion.div>
-                        ))}
+                                    {/* Pack header row */}
+                                    <div className="lumia-pack-item">
+                                        <button
+                                            className="lumia-pack-expand-btn"
+                                            onClick={() => togglePackExpansion(pack.id)}
+                                            type="button"
+                                            title={isExpanded ? 'Collapse' : 'Expand to see Lumias'}
+                                        >
+                                            <span className={clsx('lumia-pack-chevron', isExpanded && 'lumia-pack-chevron--expanded')}>
+                                                {Icons.chevronDown}
+                                            </span>
+                                        </button>
+                                        <span
+                                            className="lumia-pack-name"
+                                            onClick={() => togglePackExpansion(pack.id)}
+                                            style={{ cursor: 'pointer' }}
+                                        >
+                                            {pack.name}
+                                        </span>
+                                        <span className="lumia-pack-count">
+                                            {lumiaItems.length} Lumia{lumiaItems.length !== 1 ? 's' : ''}
+                                        </span>
+                                        <button
+                                            className="lumia-btn lumia-btn-icon"
+                                            onClick={() => actions.openModal('packEditor', { packId: pack.id })}
+                                            title="Edit pack"
+                                            type="button"
+                                        >
+                                            {Icons.edit}
+                                        </button>
+                                    </div>
+
+                                    {/* Expanded Lumia items list */}
+                                    <AnimatePresence>
+                                        {isExpanded && lumiaItems.length > 0 && (
+                                            <motion.div
+                                                className="lumia-pack-items-list"
+                                                initial={{ height: 0, opacity: 0 }}
+                                                animate={{ height: 'auto', opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                                transition={{ duration: 0.2 }}
+                                            >
+                                                {lumiaItems.map((item, index) => (
+                                                    <div
+                                                        key={item.lumiaDefName || index}
+                                                        className="lumia-pack-lumia-item"
+                                                    >
+                                                        {item.lumia_img && (
+                                                            <img
+                                                                src={item.lumia_img}
+                                                                alt=""
+                                                                className="lumia-pack-lumia-avatar"
+                                                                onError={(e) => { e.target.style.display = 'none'; }}
+                                                            />
+                                                        )}
+                                                        <span className="lumia-pack-lumia-name">
+                                                            {item.lumiaDefName}
+                                                        </span>
+                                                        <button
+                                                            className="lumia-btn lumia-btn-icon lumia-btn-icon-sm"
+                                                            onClick={() => actions.openModal('lumiaEditor', {
+                                                                packName: pack.name,
+                                                                editingItem: item
+                                                            })}
+                                                            title="Edit Lumia"
+                                                            type="button"
+                                                        >
+                                                            {Icons.edit}
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </motion.div>
+                                        )}
+                                        {isExpanded && lumiaItems.length === 0 && (
+                                            <motion.div
+                                                className="lumia-pack-items-empty"
+                                                initial={{ height: 0, opacity: 0 }}
+                                                animate={{ height: 'auto', opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                            >
+                                                <span>No Lumias in this pack yet</span>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </motion.div>
+                            );
+                        })}
                     </div>
                 </Panel>
             )}
