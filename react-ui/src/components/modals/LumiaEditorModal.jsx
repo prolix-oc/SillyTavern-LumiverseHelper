@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { usePacks, useLumiverseActions, saveToExtension } from '../../store/LumiverseContext';
+import { useAdaptiveImagePosition } from '../../hooks/useAdaptiveImagePosition';
 import clsx from 'clsx';
 import { User, Smile, Wrench, Trash2 } from 'lucide-react';
 
@@ -55,6 +56,7 @@ function EditorSection({ Icon, title, children }) {
 function AvatarPreview({ url }) {
     const [error, setError] = useState(false);
     const [loaded, setLoaded] = useState(false);
+    const { objectPosition } = useAdaptiveImagePosition(url);
 
     useEffect(() => {
         setError(false);
@@ -68,6 +70,7 @@ function AvatarPreview({ url }) {
             <img
                 src={url}
                 alt="Avatar preview"
+                style={{ objectPosition }}
                 onLoad={() => setLoaded(true)}
                 onError={() => setError(true)}
             />

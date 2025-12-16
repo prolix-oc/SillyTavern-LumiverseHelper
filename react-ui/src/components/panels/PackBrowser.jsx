@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { usePacks, useLumiverseActions } from '../../store/LumiverseContext';
+import { useAdaptiveImagePosition } from '../../hooks/useAdaptiveImagePosition';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
 import { Search, X, Package, FileText, Zap, Heart, ChevronDown, Sparkles } from 'lucide-react';
@@ -128,6 +129,9 @@ function LumiaItemCard({ item, type, onSelect }) {
         personality: { Icon: Heart, color: 'rgba(200, 100, 255, 0.15)', border: 'rgba(200, 100, 255, 0.3)' },
     };
 
+    // Adaptive image positioning based on aspect ratio
+    const { objectPosition } = useAdaptiveImagePosition(item.lumia_img);
+
     const info = typeInfo[type] || typeInfo.definition;
     const { Icon } = info;
     // OLD CODE: uses lumiaDefName, not name
@@ -161,6 +165,7 @@ function LumiaItemCard({ item, type, onSelect }) {
                     src={item.lumia_img}
                     alt={name}
                     className="lumiverse-browser-item-image"
+                    style={{ objectPosition }}
                 />
             )}
             <div className="lumiverse-browser-item-content">

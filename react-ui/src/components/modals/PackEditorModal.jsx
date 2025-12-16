@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { usePacks, useLumiverseActions, saveToExtension } from '../../store/LumiverseContext';
+import { useAdaptiveImagePosition } from '../../hooks/useAdaptiveImagePosition';
 import clsx from 'clsx';
 
 /**
@@ -69,6 +70,7 @@ function TextArea({ value, onChange, placeholder, rows = 3 }) {
  */
 function ImageInput({ value, onChange, placeholder }) {
     const [previewError, setPreviewError] = useState(false);
+    const { objectPosition } = useAdaptiveImagePosition(value);
 
     const handleChange = (newValue) => {
         setPreviewError(false);
@@ -89,6 +91,7 @@ function ImageInput({ value, onChange, placeholder }) {
                     <img
                         src={value}
                         alt="Preview"
+                        style={{ objectPosition }}
                         onError={() => setPreviewError(true)}
                     />
                 </div>

@@ -1,7 +1,40 @@
 import React, { useState, useCallback } from 'react';
 import { usePacks, useLumiverseActions, saveToExtension } from '../../store/LumiverseContext';
+import { useAdaptiveImagePosition } from '../../hooks/useAdaptiveImagePosition';
 import clsx from 'clsx';
 import { Folder, FolderPlus, Check, ChevronRight, ChevronDown, Plus, Edit2 } from 'lucide-react';
+
+/**
+ * Individual Lumia item row with adaptive image positioning
+ */
+function LumiaItemRow({ item, packName, onEdit }) {
+    const { objectPosition } = useAdaptiveImagePosition(item.lumia_img);
+
+    return (
+        <div className="lumiverse-pack-selector-lumia-item">
+            {item.lumia_img && (
+                <img
+                    src={item.lumia_img}
+                    alt=""
+                    className="lumiverse-pack-selector-lumia-avatar"
+                    style={{ objectPosition }}
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                />
+            )}
+            <span className="lumiverse-pack-selector-lumia-name">
+                {item.lumiaDefName}
+            </span>
+            <button
+                className="lumiverse-pack-selector-lumia-edit"
+                onClick={() => onEdit(packName, item)}
+                title="Edit this Lumia"
+                type="button"
+            >
+                <Edit2 size={14} strokeWidth={1.5} />
+            </button>
+        </div>
+    );
+}
 
 /**
  * Pack Selector Modal
@@ -164,30 +197,12 @@ function PackSelectorModal({ onSelect, onClose }) {
                                                 {lumiaItems.length > 0 ? (
                                                     <div className="lumiverse-pack-selector-lumia-list">
                                                         {lumiaItems.map((item, index) => (
-                                                            <div
+                                                            <LumiaItemRow
                                                                 key={item.lumiaDefName || index}
-                                                                className="lumiverse-pack-selector-lumia-item"
-                                                            >
-                                                                {item.lumia_img && (
-                                                                    <img
-                                                                        src={item.lumia_img}
-                                                                        alt=""
-                                                                        className="lumiverse-pack-selector-lumia-avatar"
-                                                                        onError={(e) => { e.target.style.display = 'none'; }}
-                                                                    />
-                                                                )}
-                                                                <span className="lumiverse-pack-selector-lumia-name">
-                                                                    {item.lumiaDefName}
-                                                                </span>
-                                                                <button
-                                                                    className="lumiverse-pack-selector-lumia-edit"
-                                                                    onClick={() => handleEditLumia(pack.name, item)}
-                                                                    title="Edit this Lumia"
-                                                                    type="button"
-                                                                >
-                                                                    <Edit2 size={14} strokeWidth={1.5} />
-                                                                </button>
-                                                            </div>
+                                                                item={item}
+                                                                packName={pack.name}
+                                                                onEdit={handleEditLumia}
+                                                            />
                                                         ))}
                                                     </div>
                                                 ) : (

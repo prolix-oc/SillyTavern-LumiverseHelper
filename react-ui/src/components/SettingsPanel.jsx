@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback, useSyncExternalStore } from 'react';
 import { useSettings, useSelections, useLoomSelections, useLumiverseActions, usePacks, saveToExtension, useLumiverseStore } from '../store/LumiverseContext';
+import { useAdaptiveImagePosition } from '../hooks/useAdaptiveImagePosition';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
 
@@ -97,6 +98,38 @@ const Icons = {
         </svg>
     ),
 };
+
+/**
+ * Individual Lumia item in the pack list with adaptive image positioning
+ */
+function LumiaPackItem({ item, packName, onEdit, editIcon }) {
+    const { objectPosition } = useAdaptiveImagePosition(item.lumia_img);
+
+    return (
+        <div className="lumia-pack-lumia-item">
+            {item.lumia_img && (
+                <img
+                    src={item.lumia_img}
+                    alt=""
+                    className="lumia-pack-lumia-avatar"
+                    style={{ objectPosition }}
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                />
+            )}
+            <span className="lumia-pack-lumia-name">
+                {item.lumiaDefName}
+            </span>
+            <button
+                className="lumia-btn lumia-btn-icon lumia-btn-icon-sm"
+                onClick={() => onEdit(packName, item)}
+                title="Edit Lumia"
+                type="button"
+            >
+                {editIcon}
+            </button>
+        </div>
+    );
+}
 
 /**
  * Panel component - static panel with header (non-collapsible)
@@ -615,33 +648,16 @@ function SettingsPanel() {
                                                 transition={{ duration: 0.2 }}
                                             >
                                                 {lumiaItems.map((item, index) => (
-                                                    <div
+                                                    <LumiaPackItem
                                                         key={item.lumiaDefName || index}
-                                                        className="lumia-pack-lumia-item"
-                                                    >
-                                                        {item.lumia_img && (
-                                                            <img
-                                                                src={item.lumia_img}
-                                                                alt=""
-                                                                className="lumia-pack-lumia-avatar"
-                                                                onError={(e) => { e.target.style.display = 'none'; }}
-                                                            />
-                                                        )}
-                                                        <span className="lumia-pack-lumia-name">
-                                                            {item.lumiaDefName}
-                                                        </span>
-                                                        <button
-                                                            className="lumia-btn lumia-btn-icon lumia-btn-icon-sm"
-                                                            onClick={() => actions.openModal('lumiaEditor', {
-                                                                packName: pack.name,
-                                                                editingItem: item
-                                                            })}
-                                                            title="Edit Lumia"
-                                                            type="button"
-                                                        >
-                                                            {Icons.edit}
-                                                        </button>
-                                                    </div>
+                                                        item={item}
+                                                        packName={pack.name}
+                                                        onEdit={(pn, it) => actions.openModal('lumiaEditor', {
+                                                            packName: pn,
+                                                            editingItem: it
+                                                        })}
+                                                        editIcon={Icons.edit}
+                                                    />
                                                 ))}
                                             </motion.div>
                                         )}

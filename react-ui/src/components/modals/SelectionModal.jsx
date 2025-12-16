@@ -4,6 +4,7 @@ import {
     useSelections,
     useLumiverseActions,
 } from '../../store/LumiverseContext';
+import { useAdaptiveImagePosition } from '../../hooks/useAdaptiveImagePosition';
 import clsx from 'clsx';
 
 // SVG icons matching the old design exactly
@@ -59,6 +60,9 @@ function LumiaCard({
     const displayName = item.lumiaDefName || 'Unknown';
     const imgToShow = item.lumia_img;
 
+    // Adaptive image positioning based on aspect ratio
+    const { objectPosition } = useAdaptiveImagePosition(imgToShow);
+
     const handleCardClick = (e) => {
         // Don't trigger if clicking dominant icon or edit button
         if (e.target.closest('.lumia-dominant-icon')) return;
@@ -100,6 +104,7 @@ function LumiaCard({
                             alt={displayName}
                             loading="lazy"
                             className={imageLoaded ? 'lumia-img-loaded' : ''}
+                            style={{ objectPosition }}
                             onLoad={() => setImageLoaded(true)}
                             onError={() => setImageError(true)}
                         />
