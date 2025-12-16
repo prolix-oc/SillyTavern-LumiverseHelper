@@ -128,30 +128,66 @@ const actions = {
     },
 
     setCustomPacks: (customPacks) => {
-        store.setState({ customPacks });
+        // Legacy method - convert array to object format and merge into packs
+        const state = store.getState();
+        const packsObj = { ...state.packs };
+        customPacks.forEach(pack => {
+            packsObj[pack.name] = { ...pack, isCustom: true };
+        });
+        store.setState({ packs: packsObj });
     },
 
     addCustomPack: (pack) => {
         const state = store.getState();
-        store.setState({
-            customPacks: [...state.customPacks, pack],
-        });
+        const packsObj = state.packs && typeof state.packs === 'object' ? { ...state.packs } : {};
+        // Store pack by name with isCustom flag
+        packsObj[pack.name] = { ...pack, isCustom: true };
+        store.setState({ packs: packsObj });
     },
 
-    updateCustomPack: (packId, updates) => {
+    updateCustomPack: (packIdOrName, updates) => {
         const state = store.getState();
-        store.setState({
-            customPacks: state.customPacks.map(p =>
-                p.id === packId ? { ...p, ...updates } : p
-            ),
-        });
+        const packsObj = state.packs && typeof state.packs === 'object' ? { ...state.packs } : {};
+
+        // Find the pack by id or name
+        let packKey = null;
+        for (const [key, pack] of Object.entries(packsObj)) {
+            if (pack.id === packIdOrName || pack.name === packIdOrName || key === packIdOrName) {
+                packKey = key;
+                break;
+            }
+        }
+
+        if (packKey) {
+            // If updating name, we need to re-key the object
+            const newName = updates.name || packsObj[packKey].name;
+            const updatedPack = { ...packsObj[packKey], ...updates, isCustom: true };
+
+            if (newName !== packKey) {
+                // Name changed - remove old key, add new key
+                delete packsObj[packKey];
+                packsObj[newName] = updatedPack;
+            } else {
+                packsObj[packKey] = updatedPack;
+            }
+
+            store.setState({ packs: packsObj });
+        }
     },
 
-    removeCustomPack: (packId) => {
+    removeCustomPack: (packIdOrName) => {
         const state = store.getState();
-        store.setState({
-            customPacks: state.customPacks.filter(p => p.id !== packId),
-        });
+        const packsObj = state.packs && typeof state.packs === 'object' ? { ...state.packs } : {};
+
+        // Find and remove the pack by id or name
+        for (const [key, pack] of Object.entries(packsObj)) {
+            if (pack.id === packIdOrName || pack.name === packIdOrName || key === packIdOrName) {
+                delete packsObj[key];
+                break;
+            }
+        }
+
+        store.setState({ packs: packsObj });
     },
 
     /**
