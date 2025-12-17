@@ -603,12 +603,14 @@ function SettingsPanel() {
                 <Panel title="Custom Packs" icon={Icons.package}>
                     <div className="lumia-custom-packs">
                         {customPacks.map((pack) => {
-                            const isExpanded = expandedPackId === pack.id;
+                            // Use pack.name as fallback if pack.id is undefined
+                            const packKey = pack.id || pack.name;
+                            const isExpanded = expandedPackId === packKey;
                             const lumiaItems = pack.items?.filter(item => item.lumiaDefName) || [];
 
                             return (
                                 <motion.div
-                                    key={pack.id}
+                                    key={packKey}
                                     className={clsx('lumia-pack-item-container', isExpanded && 'lumia-pack-item-container--expanded')}
                                     initial={{ opacity: 0, y: -10 }}
                                     animate={{ opacity: 1, y: 0 }}
@@ -617,7 +619,7 @@ function SettingsPanel() {
                                     <div className="lumia-pack-item">
                                         <button
                                             className="lumia-pack-expand-btn"
-                                            onClick={() => togglePackExpansion(pack.id)}
+                                            onClick={() => togglePackExpansion(packKey)}
                                             type="button"
                                             title={isExpanded ? 'Collapse' : 'Expand to see Lumias'}
                                         >
@@ -627,7 +629,7 @@ function SettingsPanel() {
                                         </button>
                                         <span
                                             className="lumia-pack-name"
-                                            onClick={() => togglePackExpansion(pack.id)}
+                                            onClick={() => togglePackExpansion(packKey)}
                                             style={{ cursor: 'pointer' }}
                                         >
                                             {pack.name}
@@ -645,7 +647,7 @@ function SettingsPanel() {
                                         </button>
                                         <button
                                             className="lumia-btn lumia-btn-icon"
-                                            onClick={() => actions.openModal('packEditor', { packId: pack.id })}
+                                            onClick={() => actions.openModal('packEditor', { packId: packKey })}
                                             title="Edit pack"
                                             type="button"
                                         >
