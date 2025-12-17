@@ -2351,6 +2351,55 @@ details.lumia-panel[open] .lumia-panel-chevron {
     margin-left: auto;
 }
 
+/* Pack Editor Title */
+.lumiverse-pack-editor-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.lumiverse-pack-editor-title h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--lumiverse-text);
+}
+
+.lumiverse-pack-editor-title svg {
+    color: var(--lumiverse-primary-text);
+}
+
+/* Pack Lumias Info Section */
+.lumiverse-pack-lumias-info {
+    background: var(--lumiverse-bg-tertiary);
+    border: 1px solid var(--lumiverse-border);
+    border-radius: var(--lumiverse-radius);
+    padding: 16px;
+}
+
+.lumiverse-pack-lumias-header {
+    margin-bottom: 8px;
+}
+
+.lumiverse-pack-lumias-count {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--lumiverse-text);
+}
+
+.lumiverse-pack-lumias-hint {
+    font-size: 13px;
+    color: var(--lumiverse-text-muted);
+    margin: 0 0 12px 0;
+}
+
+/* Full width button modifier */
+.lumiverse-btn--full {
+    width: 100%;
+    justify-content: center;
+}
+
 /* Form hint text */
 .lumiverse-form-hint {
     display: block;
