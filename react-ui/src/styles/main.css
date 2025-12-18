@@ -5873,6 +5873,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     height: 14px;
     stroke: currentColor;
     flex-shrink: 0;
+    display: block;
 }
 
 .lumia-modal-control-btn:hover {
@@ -5989,7 +5990,8 @@ details.lumia-panel[open] .lumia-panel-chevron {
         font-size: 11px;
     }
 
-    .lumia-modal-control-btn span:not(.lumia-btn-icon) {
+    /* Hide text labels on mobile, but keep icon spans visible */
+    .lumia-modal-control-btn > span:not(.lumia-btn-icon):not(.lumia-control-icon):not([class*="icon"]) {
         display: none;
     }
 
