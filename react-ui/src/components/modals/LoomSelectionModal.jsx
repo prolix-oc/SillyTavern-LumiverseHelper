@@ -2,11 +2,16 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { usePacks, useLumiverseActions, useLoomSelections, saveToExtension } from '../../store/LumiverseContext';
 import clsx from 'clsx';
 
-// SVG icons for controls
+// SVG icons matching SelectionModal design
 const SVG_ICONS = {
     trash: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`,
     chevronDown: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`,
     chevronUp: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>`,
+    chevron: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`,
+    folder: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>`,
+    search: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`,
+    sort: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="14" y2="6"></line><line x1="4" y1="12" x2="11" y2="12"></line><line x1="4" y1="18" x2="8" y2="18"></line><polyline points="15 15 18 18 21 15"></polyline><line x1="18" y1="9" x2="18" y2="18"></line></svg>`,
+    clear: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`,
 };
 
 function Icon({ name, className }) {
@@ -58,23 +63,23 @@ const LOOM_CATEGORIES = {
  */
 function SearchInput({ value, onChange, placeholder }) {
     return (
-        <div className="lumiverse-search">
-            <span className="lumiverse-search-icon">🔍</span>
+        <div className="lumia-search-box">
+            <Icon name="search" className="lumia-search-icon" />
             <input
                 type="text"
-                className="lumiverse-search-input"
+                className="lumia-search-input"
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={placeholder}
             />
             {value && (
                 <button
-                    className="lumiverse-search-clear"
+                    className="lumia-search-clear"
                     onClick={() => onChange('')}
                     type="button"
                     aria-label="Clear search"
                 >
-                    ✕
+                    <Icon name="clear" className="lumia-search-clear-icon" />
                 </button>
             )}
         </div>
@@ -153,21 +158,19 @@ function PackSection({
     };
 
     return (
-        <div className={clsx('lumiverse-pack-section', !isOpen && 'collapsed')}>
-            <button
-                className="lumiverse-pack-header"
-                onClick={handleHeaderClick}
-                type="button"
-            >
-                <span className={clsx('lumiverse-pack-chevron', isOpen && 'rotated')}>
-                    ▼
+        <div className={clsx('lumia-modal-panel', 'lumia-collapsible', 'lumia-pack-section', !isOpen && 'collapsed')}>
+            <div className="lumia-modal-panel-header lumia-collapsible-trigger" onClick={handleHeaderClick}>
+                <span className="lumia-panel-collapse-icon">
+                    <Icon name="chevron" />
                 </span>
-                <span className="lumiverse-pack-icon">📁</span>
-                <span className="lumiverse-pack-name">{packName}</span>
-                {isEditable && <span className="lumiverse-pack-badge-custom">Custom</span>}
-                <span className="lumiverse-pack-count">{itemCount} items</span>
+                <span className="lumia-modal-panel-icon">
+                    <Icon name="folder" />
+                </span>
+                <span className="lumia-modal-panel-title">{packName}</span>
+                {isEditable && <span className="lumia-pack-badge-custom">Custom</span>}
+                <span className="lumia-modal-panel-count">{itemCount} items</span>
                 <button
-                    className="lumiverse-icon-btn-sm lumiverse-remove-pack-btn"
+                    className="lumia-icon-btn-sm lumia-remove-pack-btn"
                     onClick={(e) => {
                         e.stopPropagation();
                         onRemovePack(packName);
@@ -175,10 +178,10 @@ function PackSection({
                     title="Remove Pack"
                     type="button"
                 >
-                    <Icon name="trash" className="lumiverse-icon-sm" />
+                    <Icon name="trash" />
                 </button>
-            </button>
-            {isOpen && <div className="lumiverse-pack-items">{children}</div>}
+            </div>
+            {isOpen && <div className="lumia-modal-panel-content lumia-loom-items lumia-collapsible-content">{children}</div>}
         </div>
     );
 }
@@ -370,24 +373,22 @@ function LoomSelectionModal({ type, onClose }) {
     const getPackName = (pack) => pack.name || pack.packName || 'Unknown Pack';
 
     return (
-        <div className="lumiverse-loom-selection-modal">
-            <div className="lumiverse-selection-toolbar">
+        <div className="lumia-modal-selection-content">
+            {/* Header with search and clear */}
+            <div className="lumia-modal-header-inner">
                 <SearchInput
                     value={searchQuery}
                     onChange={setSearchQuery}
                     placeholder={`Search ${category}...`}
                 />
-                <div className="lumiverse-selection-actions">
-                    <span className="lumiverse-selection-count">
+                <div className="lumia-selection-actions">
+                    <span className="lumia-selection-count">
                         {selectedCount} selected
                     </span>
                     {selectedCount > 0 && (
-                        <button
-                            className="lumiverse-btn lumiverse-btn--text"
-                            onClick={handleClear}
-                            type="button"
-                        >
-                            Clear
+                        <button className="lumia-clear-btn" onClick={handleClear} title="Clear all selections">
+                            <Icon name="clear" />
+                            <span>Clear</span>
                         </button>
                     )}
                 </div>
@@ -395,34 +396,35 @@ function LoomSelectionModal({ type, onClose }) {
 
             {/* Controls - Collapse/Expand and Sort */}
             {sortedPacks.length > 0 && (
-                <div className="lumiverse-modal-controls">
+                <div className="lumia-modal-controls">
                     {/* Collapse/Expand controls */}
-                    <div className="lumiverse-modal-controls-group">
+                    <div className="lumia-modal-controls-group">
                         <button
-                            className="lumiverse-modal-control-btn"
+                            className="lumia-modal-control-btn"
                             onClick={expandAll}
                             title="Expand all packs"
                             type="button"
                         >
-                            <Icon name="chevronDown" className="lumiverse-control-icon" />
+                            <Icon name="chevronDown" className="lumia-control-icon" />
                             <span>Expand All</span>
                         </button>
                         <button
-                            className="lumiverse-modal-control-btn"
+                            className="lumia-modal-control-btn"
                             onClick={collapseAll}
                             title="Collapse all packs"
                             type="button"
                         >
-                            <Icon name="chevronUp" className="lumiverse-control-icon" />
+                            <Icon name="chevronUp" className="lumia-control-icon" />
                             <span>Collapse All</span>
                         </button>
                     </div>
 
                     {/* Sort dropdown */}
-                    <div className="lumiverse-modal-sort">
-                        <span className="lumiverse-modal-sort-label">Sort:</span>
+                    <div className="lumia-modal-sort">
+                        <Icon name="sort" className="lumia-sort-icon" />
+                        <span className="lumia-modal-sort-label">Sort:</span>
                         <select
-                            className="lumiverse-select"
+                            className="lumia-select"
                             value={sortBy}
                             onChange={(e) => setSortBy(e.target.value)}
                         >
@@ -434,16 +436,17 @@ function LoomSelectionModal({ type, onClose }) {
                 </div>
             )}
 
-            <div className="lumiverse-selection-content">
+            {/* Content - pack sections */}
+            <div className="lumia-modal-content">
                 {totalItems === 0 ? (
-                    <div className="lumiverse-empty-state">
-                        <span className="lumiverse-empty-icon">📭</span>
-                        <p>No "{category}" items found in loaded packs.</p>
+                    <div className="lumia-modal-empty">
+                        No "{category}" items found in loaded packs.
                         {searchQuery && (
                             <button
-                                className="lumiverse-btn lumiverse-btn--secondary"
+                                className="lumia-modal-btn lumia-modal-btn-secondary"
                                 onClick={() => setSearchQuery('')}
                                 type="button"
+                                style={{ marginTop: '12px' }}
                             >
                                 Clear search
                             </button>
@@ -480,12 +483,9 @@ function LoomSelectionModal({ type, onClose }) {
                 )}
             </div>
 
-            <div className="lumiverse-selection-footer">
-                <button
-                    className="lumiverse-btn lumiverse-btn--primary"
-                    onClick={onClose}
-                    type="button"
-                >
+            {/* Footer */}
+            <div className="lumia-modal-footer">
+                <button className="lumia-modal-btn lumia-modal-btn-primary lumia-modal-done" onClick={onClose}>
                     Done
                 </button>
             </div>
