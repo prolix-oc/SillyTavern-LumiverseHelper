@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { usePacks, useLumiverseActions } from '../../store/LumiverseContext';
+import { usePacks, useLumiverseActions, saveToExtension } from '../../store/LumiverseContext';
 import { useAdaptiveImagePosition } from '../../hooks/useAdaptiveImagePosition';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
@@ -455,6 +455,9 @@ function PackBrowser() {
         } else if (type === 'personality') {
             actions.togglePersonality(selection);
         }
+
+        // Save to extension so changes persist and macros see updated selections
+        saveToExtension();
     }, [actions]);
 
     return (

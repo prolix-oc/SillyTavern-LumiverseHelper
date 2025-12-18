@@ -340,13 +340,7 @@ function SelectionModal({
      * - selectedItems is an array of { packName, itemName }
      * - dominantItem is { packName, itemName } or null
      */
-    const {
-        selectedItems,
-        dominantItem,
-        toggleAction,
-        setDominantAction,
-        clearAction,
-    } = useMemo(() => {
+    const selectionData = useMemo(() => {
         switch (type) {
             case 'behaviors':
                 return {
@@ -398,6 +392,24 @@ function SelectionModal({
                 };
         }
     }, [type, selections, actions]);
+
+    const {
+        selectedItems,
+        dominantItem,
+        toggleAction,
+        setDominantAction,
+        clearAction,
+    } = selectionData;
+
+    // Save to extension whenever selections change
+    // This ensures the settingsManager (which macros read from) stays in sync
+    useEffect(() => {
+        // Debounce slightly to avoid rapid saves during multi-click
+        const timeoutId = setTimeout(() => {
+            saveToExtension();
+        }, 100);
+        return () => clearTimeout(timeoutId);
+    }, [selectedItems, dominantItem]);
 
     // State for collapse/expand all
     const [collapsedPacks, setCollapsedPacks] = useState(new Set());
