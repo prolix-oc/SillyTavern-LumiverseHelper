@@ -75,7 +75,7 @@ const initialState = {
     contextFilters: {},
 
     // Sovereign hand
-    sovereignHand: { enabled: false },
+    sovereignHand: { enabled: false, excludeLastMessage: true },
 
     // Summarization
     summarization: {},

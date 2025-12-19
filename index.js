@@ -284,7 +284,8 @@ globalThis.lumiverseHelperGenInterceptor = async function (
     }
   }
 
-  // Sovereign Hand: Capture and exclude last user message
+  // Sovereign Hand: Capture and optionally exclude last user message
+  const excludeLastMessage = settings.sovereignHand?.excludeLastMessage !== false;
   if (sovereignHandEnabled) {
     // Find and capture the last user message content before any modifications
     // Search from the end of the chat array for the last user message
@@ -306,11 +307,17 @@ globalThis.lumiverseHelperGenInterceptor = async function (
         `[${MODULE_NAME}] Sovereign Hand: Captured last user message at index ${lastUserIndex}`,
       );
 
-      // Remove the last user message entirely from the outgoing context
-      chat.splice(lastUserIndex, 1);
-      console.log(
-        `[${MODULE_NAME}] Sovereign Hand: Removed last user message from context array`,
-      );
+      // Only remove the last user message if excludeLastMessage is enabled
+      if (excludeLastMessage) {
+        chat.splice(lastUserIndex, 1);
+        console.log(
+          `[${MODULE_NAME}] Sovereign Hand: Removed last user message from context array`,
+        );
+      } else {
+        console.log(
+          `[${MODULE_NAME}] Sovereign Hand: Last message kept in context (excludeLastMessage=false)`,
+        );
+      }
     } else {
       // No user message found, clear the stored content
       setLastUserMessageContent("");

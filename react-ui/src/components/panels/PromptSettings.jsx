@@ -231,12 +231,21 @@ function PromptSettings() {
                     label="Use Sovereign Hand Features"
                     hint="Enables {{loomLastUserMessage}} macro and context exclusion"
                 />
+                <Toggle
+                    id="sovereign-hand-exclude-toggle"
+                    checked={sovereignHand.excludeLastMessage ?? true}
+                    onChange={(v) => updateSetting('sovereignHand.excludeLastMessage', v)}
+                    label="Exclude Last Message from Context"
+                    hint="When enabled, removes the last user message from the outgoing context"
+                    disabled={!sovereignEnabled}
+                />
                 <InfoBox
                     muted={!sovereignEnabled}
                     items={[
                         <><code>{'{{loomLastUserMessage}}'}</code> returns the last user message</>,
-                        'The last user message is excluded from the outgoing prompt context',
-                        'Use this to provide instructions with the user\'s input to specific prompt locations',
+                        <><code>{'{{lastMessageName}}'}</code> returns the name of whoever sent the last message</>,
+                        <><code>{'{{loomContinuePrompt}}'}</code> adds continuation instructions when character spoke last</>,
+                        'Use these macros to provide instructions with the user\'s input to specific prompt locations',
                     ]}
                 />
             </CollapsibleSection>

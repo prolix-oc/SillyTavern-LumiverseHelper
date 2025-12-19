@@ -594,6 +594,8 @@ function SettingsPanel() {
                         <MacroItem code="{{loomSovHand}}" description="Full Sovereign Hand prompt (with user message)" />
                         <MacroItem code="{{loomSovHandActive}}" description="Yes/No status indicator" />
                         <MacroItem code="{{loomLastUserMessage}}" description="Last user message (excluded from context)" />
+                        <MacroItem code="{{lastMessageName}}" description="Name of whoever sent the last message" />
+                        <MacroItem code="{{loomContinuePrompt}}" description="Continue-scene prompt when character spoke last" />
                     </div>
                 </div>
             </CollapsiblePanel>
