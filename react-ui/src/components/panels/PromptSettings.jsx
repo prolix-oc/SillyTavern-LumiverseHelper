@@ -167,8 +167,8 @@ function PromptSettings() {
     // Get settings directly from store (old code uses root-level fields)
     const sovereignHand = useSyncExternalStore(
         store.subscribe,
-        () => store.getState().sovereignHand || { enabled: false },
-        () => store.getState().sovereignHand || { enabled: false }
+        () => store.getState().sovereignHand || { enabled: false, excludeLastMessage: true },
+        () => store.getState().sovereignHand || { enabled: false, excludeLastMessage: true }
     );
     const contextFilters = useSyncExternalStore(
         store.subscribe,
@@ -229,7 +229,7 @@ function PromptSettings() {
                     checked={sovereignEnabled}
                     onChange={(v) => updateSetting('sovereignHand.enabled', v)}
                     label="Use Sovereign Hand Features"
-                    hint="Enables {{loomLastUserMessage}} macro and context exclusion"
+                    hint="Enables Sovereign Hand macros for advanced prompt control"
                 />
                 <Toggle
                     id="sovereign-hand-exclude-toggle"
