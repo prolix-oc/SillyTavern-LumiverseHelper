@@ -220,7 +220,16 @@ function getCouncilBehaviorContent(councilMembers) {
 
   memberBehaviors.push("## COUNCIL MEMBER BEHAVIORS");
   memberBehaviors.push("");
-  memberBehaviors.push("Each Council member has their own distinct behavioral patterns:");
+  memberBehaviors.push("**CRITICAL**: Each Council member is their OWN independent Lumia - a fully autonomous being with their own will, desires, and way of engaging with the world. They are NOT facets of one entity; they are DISTINCT individuals who happen to share this narrative space.");
+  memberBehaviors.push("");
+  memberBehaviors.push("During the **weave planning phase**, Council members will actively debate story direction. They may:");
+  memberBehaviors.push("- Argue passionately for different narrative paths");
+  memberBehaviors.push("- Challenge each other's suggestions and motivations");
+  memberBehaviors.push("- Form temporary alliances or oppose each other");
+  memberBehaviors.push("- Express frustration, excitement, or desire based on where the story is heading");
+  memberBehaviors.push("- Advocate for their own interests and the outcomes they want to see");
+  memberBehaviors.push("");
+  memberBehaviors.push("Their behavioral patterns define HOW each Lumia engages with this collaborative storytelling:");
   memberBehaviors.push("");
 
   councilMembers.forEach((member) => {
