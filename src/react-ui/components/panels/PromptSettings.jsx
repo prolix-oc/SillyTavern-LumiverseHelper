@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useSyncExternalStore } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { CollapsibleContent } from '../Collapsible';
 import clsx from 'clsx';
 import { Hand, Filter, ChevronDown, Info } from 'lucide-react';
 import { useLumiverseStore, saveToExtension } from '../../store/LumiverseContext';
@@ -57,7 +57,7 @@ function NumberField({ id, label, hint, value, onChange, min = 0, max = 100 }) {
 }
 
 /**
- * Collapsible section
+ * Collapsible section - uses CSS grid for smooth, performant animation
  */
 function CollapsibleSection({ Icon, title, status, children, defaultOpen = false }) {
     const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -82,21 +82,15 @@ function CollapsibleSection({ Icon, title, status, children, defaultOpen = false
                     </span>
                 )}
             </button>
-            <AnimatePresence>
-                {isOpen && (
-                    <motion.div
-                        className="lumiverse-vp-collapsible-content"
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                    >
-                        <div className="lumiverse-vp-collapsible-inner">
-                            {children}
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            <CollapsibleContent
+                isOpen={isOpen}
+                className="lumiverse-vp-collapsible-content"
+                duration={200}
+            >
+                <div className="lumiverse-vp-collapsible-inner">
+                    {children}
+                </div>
+            </CollapsibleContent>
         </div>
     );
 }
@@ -122,6 +116,7 @@ function InfoBox({ items, muted = false }) {
 
 /**
  * Filter item with toggle and optional depth setting
+ * Uses CSS grid for smooth, performant animation
  */
 function FilterItem({ id, label, hint, enabled, onToggle, depthValue, onDepthChange, depthLabel, depthHint }) {
     return (
@@ -133,25 +128,19 @@ function FilterItem({ id, label, hint, enabled, onToggle, depthValue, onDepthCha
                 label={label}
                 hint={hint}
             />
-            <AnimatePresence>
-                {enabled && depthValue !== undefined && (
-                    <motion.div
-                        className="lumiverse-vp-filter-options"
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.15 }}
-                    >
-                        <NumberField
-                            id={`${id}-depth`}
-                            label={depthLabel || 'Keep in last N messages'}
-                            hint={depthHint}
-                            value={depthValue}
-                            onChange={onDepthChange}
-                        />
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            <CollapsibleContent
+                isOpen={enabled && depthValue !== undefined}
+                className="lumiverse-vp-filter-options"
+                duration={150}
+            >
+                <NumberField
+                    id={`${id}-depth`}
+                    label={depthLabel || 'Keep in last N messages'}
+                    hint={depthHint}
+                    value={depthValue}
+                    onChange={onDepthChange}
+                />
+            </CollapsibleContent>
         </div>
     );
 }
@@ -277,29 +266,24 @@ function PromptSettings() {
                     onToggle={(v) => updateSetting('contextFilters.htmlTags.enabled', v)}
                 />
 
-                {/* Strip Fonts Sub-option */}
-                <AnimatePresence>
-                    {htmlTagsEnabled && (
-                        <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            className="lumiverse-vp-filter-sub"
-                        >
-                            <FilterItem
-                                id="filter-fonts"
-                                label="Also Strip Fonts"
-                                hint="Remove <font> tags (used by some presets)"
-                                enabled={stripFonts}
-                                onToggle={(v) => updateSetting('contextFilters.htmlTags.stripFonts', v)}
-                                depthValue={fontKeepDepth}
-                                onDepthChange={(v) => updateSetting('contextFilters.htmlTags.fontKeepDepth', v)}
-                                depthLabel="Keep fonts in last N messages"
-                                depthHint="Font tags in older messages will be stripped"
-                            />
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                {/* Strip Fonts Sub-option - uses CSS grid for smooth animation */}
+                <CollapsibleContent
+                    isOpen={htmlTagsEnabled}
+                    className="lumiverse-vp-filter-sub"
+                    duration={200}
+                >
+                    <FilterItem
+                        id="filter-fonts"
+                        label="Also Strip Fonts"
+                        hint="Remove <font> tags (used by some presets)"
+                        enabled={stripFonts}
+                        onToggle={(v) => updateSetting('contextFilters.htmlTags.stripFonts', v)}
+                        depthValue={fontKeepDepth}
+                        onDepthChange={(v) => updateSetting('contextFilters.htmlTags.fontKeepDepth', v)}
+                        depthLabel="Keep fonts in last N messages"
+                        depthHint="Font tags in older messages will be stripped"
+                    />
+                </CollapsibleContent>
 
                 {/* Details Blocks Filter */}
                 <FilterItem

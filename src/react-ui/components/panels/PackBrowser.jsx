@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { usePacks, useLumiverseActions, saveToExtension } from '../../store/LumiverseContext';
 import { useAdaptiveImagePosition } from '../../hooks/useAdaptiveImagePosition';
+import { CollapsibleContent } from '../Collapsible';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
 import { Search, X, Package, FileText, Zap, Heart, ChevronDown, Sparkles } from 'lucide-react';
@@ -351,23 +352,18 @@ function PackSection({ pack, filter, searchQuery, onSelectItem }) {
                 onToggle={() => setIsExpanded(!isExpanded)}
                 itemCount={filteredItems.length}
             />
-            <AnimatePresence>
-                {isExpanded && (
-                    <motion.div
-                        className="lumiverse-browser-pack-items"
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                    >
-                        <VirtualizedPackItems
-                            items={filteredItems}
-                            filter={filter}
-                            onSelectItem={onSelectItem}
-                        />
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {/* Uses CSS grid for smooth, performant animation */}
+            <CollapsibleContent
+                isOpen={isExpanded}
+                className="lumiverse-browser-pack-items"
+                duration={200}
+            >
+                <VirtualizedPackItems
+                    items={filteredItems}
+                    filter={filter}
+                    onSelectItem={onSelectItem}
+                />
+            </CollapsibleContent>
         </div>
     );
 }

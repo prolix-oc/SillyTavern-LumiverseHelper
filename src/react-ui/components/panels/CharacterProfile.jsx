@@ -47,7 +47,9 @@ function useCurrentCharacter() {
 }
 
 /**
- * Trait card component - uses forwardRef for AnimatePresence popLayout compatibility
+ * Trait card component
+ * Note: Removed expensive `layout` prop to improve performance on ARM devices.
+ * Using simple opacity/scale animations instead of layout animations.
  */
 const TraitCard = forwardRef(function TraitCard({ trait, type, isDominant, onRemove }, ref) {
     const typeConfig = {
@@ -64,10 +66,10 @@ const TraitCard = forwardRef(function TraitCard({ trait, type, isDominant, onRem
             ref={ref}
             className={clsx('lumiverse-trait-card', isDominant && 'lumiverse-trait-card--dominant')}
             style={{ background: config.bg, borderColor: config.border }}
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            layout
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.15 }}
         >
             <span className="lumiverse-trait-icon">
                 <Icon size={16} strokeWidth={1.5} />
@@ -227,7 +229,8 @@ function CharacterProfile() {
             {/* Definition Section */}
             <div className="lumiverse-profile-section">
                 <SectionHeader Icon={FileText} title="Definition" count={stats.hasDefinition ? 1 : 0} />
-                <AnimatePresence mode="popLayout">
+                {/* Removed mode="popLayout" for better ARM performance */}
+                <AnimatePresence>
                     {selections.definition ? (
                         <TraitCard
                             key={getTraitId(selections.definition) || 'def'}
@@ -244,7 +247,8 @@ function CharacterProfile() {
             <div className="lumiverse-profile-section">
                 <SectionHeader Icon={Zap} title="Behaviors" count={stats.behaviors} />
                 <div className="lumiverse-traits-list">
-                    <AnimatePresence mode="popLayout">
+                    {/* Removed mode="popLayout" for better ARM performance */}
+                    <AnimatePresence>
                         {selections.behaviors?.length > 0 ? (
                             selections.behaviors.map(behavior => (
                                 <TraitCard
@@ -265,7 +269,8 @@ function CharacterProfile() {
             <div className="lumiverse-profile-section">
                 <SectionHeader Icon={Heart} title="Personalities" count={stats.personalities} />
                 <div className="lumiverse-traits-list">
-                    <AnimatePresence mode="popLayout">
+                    {/* Removed mode="popLayout" for better ARM performance */}
+                    <AnimatePresence>
                         {selections.personalities?.length > 0 ? (
                             selections.personalities.map(personality => (
                                 <TraitCard

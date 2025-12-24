@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { CollapsibleContent } from '../Collapsible';
 import clsx from 'clsx';
 import {
     FileText, Check, AlertCircle, Trash2, Save, RefreshCw,
@@ -48,7 +48,7 @@ const PROVIDER_CONFIG = {
 };
 
 /**
- * Collapsible section component
+ * Collapsible section component - uses CSS grid for smooth, performant animation
  */
 function CollapsibleSection({ Icon, title, children, defaultOpen = false, status }) {
     const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -73,21 +73,15 @@ function CollapsibleSection({ Icon, title, children, defaultOpen = false, status
                     </span>
                 )}
             </button>
-            <AnimatePresence>
-                {isOpen && (
-                    <motion.div
-                        className="lumiverse-vp-collapsible-content"
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                    >
-                        <div className="lumiverse-vp-collapsible-inner">
-                            {children}
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            <CollapsibleContent
+                isOpen={isOpen}
+                className="lumiverse-vp-collapsible-content"
+                duration={200}
+            >
+                <div className="lumiverse-vp-collapsible-inner">
+                    {children}
+                </div>
+            </CollapsibleContent>
         </div>
     );
 }
@@ -356,213 +350,166 @@ function SummarizationConfig() {
                 </p>
             </CollapsibleSection>
 
-            {/* Auto Settings */}
-            <AnimatePresence>
-                {mode === 'auto' && (
-                    <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                    >
-                        <CollapsibleSection Icon={Clock} title="Auto Settings" defaultOpen={true}>
-                            <div className="lumiverse-vp-field-row">
-                                <NumberField
-                                    id="sum-interval"
-                                    label="Interval"
-                                    hint="Every N messages"
-                                    value={autoInterval}
-                                    onChange={(v) => updateSummarization({ autoInterval: v })}
-                                    min={1}
-                                />
-                                <NumberField
-                                    id="sum-auto-context"
-                                    label="Context"
-                                    hint="Messages to include"
-                                    value={autoMessageContext}
-                                    onChange={(v) => updateSummarization({ autoMessageContext: v })}
-                                    min={1}
-                                    max={100}
-                                />
-                            </div>
-                        </CollapsibleSection>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {/* Auto Settings - uses CSS grid for smooth animation */}
+            <CollapsibleContent isOpen={mode === 'auto'} duration={200}>
+                <CollapsibleSection Icon={Clock} title="Auto Settings" defaultOpen={true}>
+                    <div className="lumiverse-vp-field-row">
+                        <NumberField
+                            id="sum-interval"
+                            label="Interval"
+                            hint="Every N messages"
+                            value={autoInterval}
+                            onChange={(v) => updateSummarization({ autoInterval: v })}
+                            min={1}
+                        />
+                        <NumberField
+                            id="sum-auto-context"
+                            label="Context"
+                            hint="Messages to include"
+                            value={autoMessageContext}
+                            onChange={(v) => updateSummarization({ autoMessageContext: v })}
+                            min={1}
+                            max={100}
+                        />
+                    </div>
+                </CollapsibleSection>
+            </CollapsibleContent>
 
-            {/* Manual Context */}
-            <AnimatePresence>
-                {(mode === 'manual' || mode === 'auto') && (
-                    <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                    >
-                        <CollapsibleSection Icon={FileText} title="Manual Context" defaultOpen={mode === 'manual'}>
-                            <NumberField
-                                id="sum-manual-context"
-                                label="Messages to include"
-                                hint="When using /loom-summarize command"
-                                value={manualMessageContext}
-                                onChange={(v) => updateSummarization({ manualMessageContext: v })}
-                                min={1}
-                                max={100}
-                            />
-                        </CollapsibleSection>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {/* Manual Context - uses CSS grid for smooth animation */}
+            <CollapsibleContent isOpen={mode === 'manual' || mode === 'auto'} duration={200}>
+                <CollapsibleSection Icon={FileText} title="Manual Context" defaultOpen={mode === 'manual'}>
+                    <NumberField
+                        id="sum-manual-context"
+                        label="Messages to include"
+                        hint="When using /loom-summarize command"
+                        value={manualMessageContext}
+                        onChange={(v) => updateSummarization({ manualMessageContext: v })}
+                        min={1}
+                        max={100}
+                    />
+                </CollapsibleSection>
+            </CollapsibleContent>
 
-            {/* API Source */}
-            <AnimatePresence>
-                {mode !== 'disabled' && (
-                    <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                    >
-                        <CollapsibleSection Icon={Cloud} title="API Source" defaultOpen={false}>
-                            <div className="lumiverse-vp-radio-group lumiverse-vp-radio-group--wide">
-                                <RadioOption
-                                    name="sum-source"
-                                    value="main"
-                                    checked={apiSource === 'main'}
-                                    onChange={(v) => updateSummarization({ apiSource: v })}
-                                    label="Main API"
-                                />
-                                <RadioOption
-                                    name="sum-source"
-                                    value="secondary"
-                                    checked={apiSource === 'secondary'}
-                                    onChange={(v) => updateSummarization({ apiSource: v })}
-                                    label="Secondary LLM"
-                                />
-                            </div>
-                        </CollapsibleSection>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {/* API Source - uses CSS grid for smooth animation */}
+            <CollapsibleContent isOpen={mode !== 'disabled'} duration={200}>
+                <CollapsibleSection Icon={Cloud} title="API Source" defaultOpen={false}>
+                    <div className="lumiverse-vp-radio-group lumiverse-vp-radio-group--wide">
+                        <RadioOption
+                            name="sum-source"
+                            value="main"
+                            checked={apiSource === 'main'}
+                            onChange={(v) => updateSummarization({ apiSource: v })}
+                            label="Main API"
+                        />
+                        <RadioOption
+                            name="sum-source"
+                            value="secondary"
+                            checked={apiSource === 'secondary'}
+                            onChange={(v) => updateSummarization({ apiSource: v })}
+                            label="Secondary LLM"
+                        />
+                    </div>
+                </CollapsibleSection>
+            </CollapsibleContent>
 
-            {/* Secondary LLM Config */}
-            <AnimatePresence>
-                {mode !== 'disabled' && apiSource === 'secondary' && (
-                    <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                    >
-                        <CollapsibleSection Icon={Cpu} title="Secondary LLM" defaultOpen={true}>
-                            <SelectField
-                                id="sum-provider"
-                                label="Provider"
-                                value={secondary.provider || 'openai'}
-                                onChange={(v) => updateSecondary({ provider: v })}
-                                options={providerOptions}
-                                hint={secondary.provider !== 'custom' ? 'Uses API key from SillyTavern settings' : undefined}
-                            />
+            {/* Secondary LLM Config - uses CSS grid for smooth animation */}
+            <CollapsibleContent isOpen={mode !== 'disabled' && apiSource === 'secondary'} duration={200}>
+                <CollapsibleSection Icon={Cpu} title="Secondary LLM" defaultOpen={true}>
+                    <SelectField
+                        id="sum-provider"
+                        label="Provider"
+                        value={secondary.provider || 'openai'}
+                        onChange={(v) => updateSecondary({ provider: v })}
+                        options={providerOptions}
+                        hint={secondary.provider !== 'custom' ? 'Uses API key from SillyTavern settings' : undefined}
+                    />
 
-                            <TextField
-                                id="sum-model"
-                                label="Model"
-                                value={secondary.model || ''}
-                                onChange={(v) => updateSecondary({ model: v })}
-                                placeholder={PROVIDER_CONFIG[secondary.provider || 'openai']?.placeholder}
-                            />
+                    <TextField
+                        id="sum-model"
+                        label="Model"
+                        value={secondary.model || ''}
+                        onChange={(v) => updateSecondary({ model: v })}
+                        placeholder={PROVIDER_CONFIG[secondary.provider || 'openai']?.placeholder}
+                    />
 
-                            <AnimatePresence>
-                                {secondary.provider === 'custom' && (
-                                    <motion.div
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: 'auto', opacity: 1 }}
-                                        exit={{ height: 0, opacity: 0 }}
-                                    >
-                                        <TextField
-                                            id="sum-endpoint"
-                                            label="Endpoint URL"
-                                            value={secondary.endpoint || ''}
-                                            onChange={(v) => updateSecondary({ endpoint: v })}
-                                            placeholder="https://your-api.com/v1/chat/completions"
-                                        />
-                                        <TextField
-                                            id="sum-apikey"
-                                            label="API Key"
-                                            type="password"
-                                            value={secondary.apiKey || ''}
-                                            onChange={(v) => updateSecondary({ apiKey: v })}
-                                            placeholder="Your API key"
-                                        />
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
+                    {/* Custom endpoint fields - uses CSS grid for smooth animation */}
+                    <CollapsibleContent isOpen={secondary.provider === 'custom'} duration={200}>
+                        <TextField
+                            id="sum-endpoint"
+                            label="Endpoint URL"
+                            value={secondary.endpoint || ''}
+                            onChange={(v) => updateSecondary({ endpoint: v })}
+                            placeholder="https://your-api.com/v1/chat/completions"
+                        />
+                        <TextField
+                            id="sum-apikey"
+                            label="API Key"
+                            type="password"
+                            value={secondary.apiKey || ''}
+                            onChange={(v) => updateSecondary({ apiKey: v })}
+                            placeholder="Your API key"
+                        />
+                    </CollapsibleContent>
 
-                            <div className="lumiverse-vp-field-row lumiverse-vp-field-row--3">
-                                <NumberField
-                                    id="sum-temp"
-                                    label="Temp"
-                                    value={secondary.temperature ?? 0.7}
-                                    onChange={(v) => updateSecondary({ temperature: v })}
-                                    min={0}
-                                    max={2}
-                                    step={0.1}
-                                />
-                                <NumberField
-                                    id="sum-topp"
-                                    label="Top-P"
-                                    value={secondary.topP ?? 1.0}
-                                    onChange={(v) => updateSecondary({ topP: v })}
-                                    min={0}
-                                    max={1}
-                                    step={0.05}
-                                />
-                                <NumberField
-                                    id="sum-maxtokens"
-                                    label="Max Tokens"
-                                    value={secondary.maxTokens || 8192}
-                                    onChange={(v) => updateSecondary({ maxTokens: v })}
-                                    min={100}
-                                    max={128000}
-                                />
-                            </div>
-                        </CollapsibleSection>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                    <div className="lumiverse-vp-field-row lumiverse-vp-field-row--3">
+                        <NumberField
+                            id="sum-temp"
+                            label="Temp"
+                            value={secondary.temperature ?? 0.7}
+                            onChange={(v) => updateSecondary({ temperature: v })}
+                            min={0}
+                            max={2}
+                            step={0.1}
+                        />
+                        <NumberField
+                            id="sum-topp"
+                            label="Top-P"
+                            value={secondary.topP ?? 1.0}
+                            onChange={(v) => updateSecondary({ topP: v })}
+                            min={0}
+                            max={1}
+                            step={0.05}
+                        />
+                        <NumberField
+                            id="sum-maxtokens"
+                            label="Max Tokens"
+                            value={secondary.maxTokens || 8192}
+                            onChange={(v) => updateSecondary({ maxTokens: v })}
+                            min={100}
+                            max={128000}
+                        />
+                    </div>
+                </CollapsibleSection>
+            </CollapsibleContent>
 
             {/* Claude Cache Control - Show when using Anthropic provider or main API (which might be Claude) */}
-            <AnimatePresence>
-                {mode !== 'disabled' && (apiSource === 'main' || secondary.provider === 'anthropic') && (
-                    <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                    >
-                        <CollapsibleSection Icon={RefreshCcw} title="Claude Cache" defaultOpen={false}>
-                            <p className="lumiverse-vp-settings-desc">
-                                If Claude seems to ignore changes to your Lumia definitions,
-                                clearing the cache will force fresh responses on the next summarization.
-                            </p>
-                            <ActionButton
-                                Icon={RefreshCcw}
-                                label="Clear Claude Cache"
-                                onClick={() => {
-                                    if (typeof LumiverseBridge !== 'undefined' && LumiverseBridge.clearClaudeCache) {
-                                        LumiverseBridge.clearClaudeCache();
-                                        // Show success feedback
-                                        if (typeof toastr !== 'undefined') {
-                                            toastr.success('Claude cache cleared! Next request will use fresh definitions.');
-                                        }
-                                    } else {
-                                        console.warn('[SummaryEditor] clearClaudeCache not available');
-                                        if (typeof toastr !== 'undefined') {
-                                            toastr.error('Cache clear function not available');
-                                        }
-                                    }
-                                }}
-                                variant="secondary"
-                            />
-                        </CollapsibleSection>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            <CollapsibleContent isOpen={mode !== 'disabled' && (apiSource === 'main' || secondary.provider === 'anthropic')} duration={200}>
+                <CollapsibleSection Icon={RefreshCcw} title="Claude Cache" defaultOpen={false}>
+                    <p className="lumiverse-vp-settings-desc">
+                        If Claude seems to ignore changes to your Lumia definitions,
+                        clearing the cache will force fresh responses on the next summarization.
+                    </p>
+                    <ActionButton
+                        Icon={RefreshCcw}
+                        label="Clear Claude Cache"
+                        onClick={() => {
+                            if (typeof LumiverseBridge !== 'undefined' && LumiverseBridge.clearClaudeCache) {
+                                LumiverseBridge.clearClaudeCache();
+                                // Show success feedback
+                                if (typeof toastr !== 'undefined') {
+                                    toastr.success('Claude cache cleared! Next request will use fresh definitions.');
+                                }
+                            } else {
+                                console.warn('[SummaryEditor] clearClaudeCache not available');
+                                if (typeof toastr !== 'undefined') {
+                                    toastr.error('Cache clear function not available');
+                                }
+                            }
+                        }}
+                        variant="secondary"
+                    />
+                </CollapsibleSection>
+            </CollapsibleContent>
 
             {/* Message Truncation */}
             <CollapsibleSection
@@ -577,29 +524,22 @@ function SummarizationConfig() {
                     label="Limit Context Messages"
                     hint="Only send the last N messages to the AI"
                 />
-                <AnimatePresence>
-                    {messageTruncation.enabled && (
-                        <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                        >
-                            <NumberField
-                                id="trunc-count"
-                                label="Messages to keep"
-                                hint="Number of recent messages to include"
-                                value={messageTruncation.keepCount ?? 50}
-                                onChange={(v) => updateTruncation({ keepCount: v })}
-                                min={5}
-                                max={500}
-                            />
-                            <div className="lumiverse-vp-warning-box">
-                                <AlertCircle size={14} strokeWidth={2} />
-                                <span>Older messages will be excluded. Consider using summarization to preserve memories.</span>
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                {/* Uses CSS grid for smooth animation */}
+                <CollapsibleContent isOpen={messageTruncation.enabled} duration={200}>
+                    <NumberField
+                        id="trunc-count"
+                        label="Messages to keep"
+                        hint="Number of recent messages to include"
+                        value={messageTruncation.keepCount ?? 50}
+                        onChange={(v) => updateTruncation({ keepCount: v })}
+                        min={5}
+                        max={500}
+                    />
+                    <div className="lumiverse-vp-warning-box">
+                        <AlertCircle size={14} strokeWidth={2} />
+                        <span>Older messages will be excluded. Consider using summarization to preserve memories.</span>
+                    </div>
+                </CollapsibleContent>
             </CollapsibleSection>
         </div>
     );

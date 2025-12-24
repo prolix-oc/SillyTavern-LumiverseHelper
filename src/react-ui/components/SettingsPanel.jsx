@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback, useSyncExternalStore } from 'rea
 import { useSettings, useSelections, useLoomSelections, useLumiverseActions, usePacks, saveToExtension, useLumiverseStore } from '../store/LumiverseContext';
 import { useAdaptiveImagePosition } from '../hooks/useAdaptiveImagePosition';
 import { exportPackAsWorldBook } from './modals/PackEditorModal';
+import { CollapsibleContent } from './Collapsible';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
 
@@ -658,41 +659,32 @@ function SettingsPanel() {
                                         </button>
                                     </div>
 
-                                    {/* Expanded Lumia items list */}
-                                    <AnimatePresence>
-                                        {isExpanded && lumiaItems.length > 0 && (
-                                            <motion.div
-                                                className="lumia-pack-items-list"
-                                                initial={{ height: 0, opacity: 0 }}
-                                                animate={{ height: 'auto', opacity: 1 }}
-                                                exit={{ height: 0, opacity: 0 }}
-                                                transition={{ duration: 0.2 }}
-                                            >
-                                                {lumiaItems.map((item, index) => (
-                                                    <LumiaPackItem
-                                                        key={item.lumiaDefName || index}
-                                                        item={item}
-                                                        packName={pack.name}
-                                                        onEdit={(pn, it) => actions.openModal('lumiaEditor', {
-                                                            packName: pn,
-                                                            editingItem: it
-                                                        })}
-                                                        editIcon={Icons.edit}
-                                                    />
-                                                ))}
-                                            </motion.div>
-                                        )}
-                                        {isExpanded && lumiaItems.length === 0 && (
-                                            <motion.div
-                                                className="lumia-pack-items-empty"
-                                                initial={{ height: 0, opacity: 0 }}
-                                                animate={{ height: 'auto', opacity: 1 }}
-                                                exit={{ height: 0, opacity: 0 }}
-                                            >
-                                                <span>No Lumias in this pack yet</span>
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
+                                    {/* Expanded Lumia items list - uses CSS grid for smooth, performant animation */}
+                                    <CollapsibleContent
+                                        isOpen={isExpanded && lumiaItems.length > 0}
+                                        className="lumia-pack-items-list"
+                                        duration={200}
+                                    >
+                                        {lumiaItems.map((item, index) => (
+                                            <LumiaPackItem
+                                                key={item.lumiaDefName || index}
+                                                item={item}
+                                                packName={pack.name}
+                                                onEdit={(pn, it) => actions.openModal('lumiaEditor', {
+                                                    packName: pn,
+                                                    editingItem: it
+                                                })}
+                                                editIcon={Icons.edit}
+                                            />
+                                        ))}
+                                    </CollapsibleContent>
+                                    <CollapsibleContent
+                                        isOpen={isExpanded && lumiaItems.length === 0}
+                                        className="lumia-pack-items-empty"
+                                        duration={200}
+                                    >
+                                        <span>No Lumias in this pack yet</span>
+                                    </CollapsibleContent>
                                 </motion.div>
                             );
                         })}

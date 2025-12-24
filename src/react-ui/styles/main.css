@@ -6165,3 +6165,52 @@ details.lumia-panel[open] .lumia-panel-chevron {
     width: 14px;
     height: 14px;
 }
+
+/* ----------------------------------------
+   Collapsible Component - CSS Grid Based
+   High-performance alternative to height animations.
+   Uses grid-template-rows: 0fr -> 1fr which is GPU-accelerated
+   and doesn't trigger layout thrashing.
+   ---------------------------------------- */
+.lumiverse-collapsible {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows var(--collapsible-duration, 200ms) ease-out;
+}
+
+.lumiverse-collapsible.is-open {
+    grid-template-rows: 1fr;
+}
+
+.lumiverse-collapsible-inner {
+    overflow: hidden;
+    /* Ensure content is properly hidden when collapsed */
+    min-height: 0;
+}
+
+/* Optional: Fade in content when opening */
+.lumiverse-collapsible .lumiverse-collapsible-inner > * {
+    opacity: 0;
+    transition: opacity calc(var(--collapsible-duration, 200ms) * 0.5) ease-out;
+    transition-delay: calc(var(--collapsible-duration, 200ms) * 0.25);
+}
+
+.lumiverse-collapsible.is-open .lumiverse-collapsible-inner > * {
+    opacity: 1;
+}
+
+/* Reduced motion: instant transitions for accessibility */
+@media (prefers-reduced-motion: reduce) {
+    .lumiverse-collapsible {
+        transition: none;
+    }
+
+    .lumiverse-collapsible .lumiverse-collapsible-inner > * {
+        transition: none;
+        opacity: 1;
+    }
+
+    .lumiverse-collapsible:not(.is-open) .lumiverse-collapsible-inner > * {
+        opacity: 0;
+    }
+}
