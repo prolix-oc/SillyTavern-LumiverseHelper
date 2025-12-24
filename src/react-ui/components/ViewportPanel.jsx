@@ -5,6 +5,7 @@ import { User, Package, MessageSquare, Sliders, FileText, ChevronRight, X, Spark
 
 // Panel dimensions
 const DESKTOP_PANEL_WIDTH = 376; // 56px tabs + 320px content
+const TAB_BAR_WIDTH = 56;
 const MOBILE_BREAKPOINT = 600;
 
 /**
@@ -215,7 +216,9 @@ function ViewportPanel({
                 style={{
                     position: 'fixed',
                     top: 12,
-                    right: isVisible ? panelWidth + 12 : 12,
+                    right: isVisible
+                        ? (isCollapsed ? TAB_BAR_WIDTH + 12 : panelWidth + 12)
+                        : 12,
                     zIndex: 9999,
                     pointerEvents: 'auto',
                     transition: 'right 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -247,7 +250,7 @@ function ViewportPanel({
                     isCollapsed && 'lumiverse-viewport-panel--collapsed'
                 )}
                 style={{
-                    transform: isCollapsed ? `translateX(${panelWidth}px)` : 'translateX(0)',
+                    transform: isCollapsed ? `translateX(${mainContentWidth}px)` : 'translateX(0)',
                     transition: 'transform 0.2s ease',
                 }}
             >
