@@ -208,46 +208,57 @@ function getCouncilDefContent(councilMembers) {
 
 /**
  * Generate Council behavior content from all council members
+ * Each member's inherent behavior (from their Lumia definition) is included,
+ * plus any additional behaviors they may have selected
  * @param {Array} councilMembers - Array of council member objects
  * @returns {string} The Council behaviors content
  */
 function getCouncilBehaviorContent(councilMembers) {
   if (!councilMembers || councilMembers.length === 0) return "";
 
-  const settings = getSettings();
   const memberBehaviors = [];
+
+  memberBehaviors.push("## COUNCIL MEMBER BEHAVIORS");
+  memberBehaviors.push("");
+  memberBehaviors.push("Each Council member has their own distinct behavioral patterns:");
+  memberBehaviors.push("");
 
   councilMembers.forEach((member) => {
     const item = getItemFromLibrary(member.packName, member.itemName);
     const memberName = item?.lumiaDefName || member.itemName || "Unknown";
 
-    // Get behaviors for this council member
-    const behaviors = member.behaviors || [];
-    if (behaviors.length === 0) return;
+    const behaviorContents = [];
 
-    const behaviorContents = behaviors
-      .map((sel) => {
-        const behaviorItem = getItemFromLibrary(sel.packName, sel.itemName);
-        if (!behaviorItem || !behaviorItem.lumia_behavior) return null;
+    // First, include the member's own inherent behavior from their Lumia definition
+    if (item?.lumia_behavior) {
+      const inherentBehavior = processNestedRandomLumiaMacros(item.lumia_behavior);
+      behaviorContents.push(inherentBehavior);
+    }
 
-        let content = processNestedRandomLumiaMacros(behaviorItem.lumia_behavior);
+    // Then add any additional behaviors selected for this member
+    const additionalBehaviors = member.behaviors || [];
+    additionalBehaviors.forEach((sel) => {
+      const behaviorItem = getItemFromLibrary(sel.packName, sel.itemName);
+      if (!behaviorItem || !behaviorItem.lumia_behavior) return;
 
-        // Check if this is the dominant behavior for this member
-        if (
-          member.dominantBehavior &&
-          member.dominantBehavior.packName === sel.packName &&
-          member.dominantBehavior.itemName === sel.itemName
-        ) {
-          content = appendDominantTag(content, "(Most Prevalent for this member)");
-        }
+      let content = processNestedRandomLumiaMacros(behaviorItem.lumia_behavior);
 
-        return content;
-      })
-      .filter(Boolean);
+      // Check if this is the dominant behavior for this member
+      if (
+        member.dominantBehavior &&
+        member.dominantBehavior.packName === sel.packName &&
+        member.dominantBehavior.itemName === sel.itemName
+      ) {
+        content = appendDominantTag(content, "(Most Prevalent for this member)");
+      }
 
+      behaviorContents.push(content);
+    });
+
+    // Always output the member section, even if only inherent behavior exists
     if (behaviorContents.length > 0) {
-      memberBehaviors.push(`### Behaviors for ${memberName}${member.role ? ` (${member.role})` : ""}:`);
-      memberBehaviors.push(behaviorContents.join("\n"));
+      memberBehaviors.push(`### ${memberName}${member.role ? ` (${member.role})` : ""}`);
+      memberBehaviors.push(behaviorContents.join("\n\n"));
       memberBehaviors.push("");
     }
   });
@@ -257,45 +268,56 @@ function getCouncilBehaviorContent(councilMembers) {
 
 /**
  * Generate Council personality content from all council members
+ * Each member's inherent personality (from their Lumia definition) is included,
+ * plus any additional personalities they may have selected
  * @param {Array} councilMembers - Array of council member objects
  * @returns {string} The Council personalities content
  */
 function getCouncilPersonalityContent(councilMembers) {
   if (!councilMembers || councilMembers.length === 0) return "";
 
-  const settings = getSettings();
   const memberPersonalities = [];
+
+  memberPersonalities.push("## COUNCIL MEMBER PERSONALITIES");
+  memberPersonalities.push("");
+  memberPersonalities.push("Each Council member has their own distinct personality and inner nature:");
+  memberPersonalities.push("");
 
   councilMembers.forEach((member) => {
     const item = getItemFromLibrary(member.packName, member.itemName);
     const memberName = item?.lumiaDefName || member.itemName || "Unknown";
 
-    // Get personalities for this council member
-    const personalities = member.personalities || [];
-    if (personalities.length === 0) return;
+    const personalityContents = [];
 
-    const personalityContents = personalities
-      .map((sel) => {
-        const persItem = getItemFromLibrary(sel.packName, sel.itemName);
-        if (!persItem || !persItem.lumia_personality) return null;
+    // First, include the member's own inherent personality from their Lumia definition
+    if (item?.lumia_personality) {
+      const inherentPersonality = processNestedRandomLumiaMacros(item.lumia_personality);
+      personalityContents.push(inherentPersonality);
+    }
 
-        let content = processNestedRandomLumiaMacros(persItem.lumia_personality);
+    // Then add any additional personalities selected for this member
+    const additionalPersonalities = member.personalities || [];
+    additionalPersonalities.forEach((sel) => {
+      const persItem = getItemFromLibrary(sel.packName, sel.itemName);
+      if (!persItem || !persItem.lumia_personality) return;
 
-        // Check if this is the dominant personality for this member
-        if (
-          member.dominantPersonality &&
-          member.dominantPersonality.packName === sel.packName &&
-          member.dominantPersonality.itemName === sel.itemName
-        ) {
-          content = appendDominantTag(content, "(Most Prevalent for this member)");
-        }
+      let content = processNestedRandomLumiaMacros(persItem.lumia_personality);
 
-        return content;
-      })
-      .filter(Boolean);
+      // Check if this is the dominant personality for this member
+      if (
+        member.dominantPersonality &&
+        member.dominantPersonality.packName === sel.packName &&
+        member.dominantPersonality.itemName === sel.itemName
+      ) {
+        content = appendDominantTag(content, "(Most Prevalent for this member)");
+      }
 
+      personalityContents.push(content);
+    });
+
+    // Always output the member section, even if only inherent personality exists
     if (personalityContents.length > 0) {
-      memberPersonalities.push(`### Personalities for ${memberName}${member.role ? ` (${member.role})` : ""}:`);
+      memberPersonalities.push(`### ${memberName}${member.role ? ` (${member.role})` : ""}`);
       memberPersonalities.push(personalityContents.join("\n\n"));
       memberPersonalities.push("");
     }
