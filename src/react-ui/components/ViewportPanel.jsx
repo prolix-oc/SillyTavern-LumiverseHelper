@@ -117,6 +117,35 @@ function PanelHeader({ title, Icon, onClose }) {
 /**
  * Tab configuration for the viewport panel
  */
+/**
+ * Animation variants for tab content transitions
+ * Uses orchestration to coordinate parent/child animations
+ */
+const tabContentVariants = {
+    initial: {
+        opacity: 0,
+        y: 8,
+    },
+    animate: {
+        opacity: 1,
+        y: 0,
+        transition: {
+            duration: 0.15,
+            ease: [0.4, 0, 0.2, 1],
+            when: 'beforeChildren',
+            staggerChildren: 0.02,
+        },
+    },
+    exit: {
+        opacity: 0,
+        y: -8,
+        transition: {
+            duration: 0.1,
+            ease: [0.4, 0, 1, 1],
+        },
+    },
+};
+
 const PANEL_TABS = [
     {
         id: 'profile',
@@ -288,14 +317,14 @@ function ViewportPanel({
                         onClose={onClose}
                     />
                     <div className="lumiverse-vp-content">
-                        <AnimatePresence initial={false}>
+                        <AnimatePresence mode="wait" initial={false}>
                             <motion.div
                                 key={activeTab}
                                 className="lumiverse-vp-tab-content"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0, position: 'absolute', inset: 0 }}
-                                transition={{ duration: 0.12 }}
+                                variants={tabContentVariants}
+                                initial="initial"
+                                animate="animate"
+                                exit="exit"
                             >
                                 {renderContent()}
                             </motion.div>

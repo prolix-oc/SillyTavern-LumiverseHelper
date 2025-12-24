@@ -65,9 +65,8 @@ function StatCard({ Icon, label, value, trend, color }) {
         <motion.div
             className="lumiverse-analytics-stat"
             style={{ '--stat-color': color }}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
             whileHover={{ scale: 1.02 }}
+            transition={{ duration: 0.1 }}
         >
             <span className="lumiverse-analytics-stat-icon">
                 <Icon size={20} strokeWidth={1.5} />
@@ -119,11 +118,9 @@ function TypeDistribution({ data }) {
                     const percentage = total > 0 ? (count / total) * 100 : 0;
 
                     return (
-                        <motion.div
+                        <div
                             key={type}
                             className="lumiverse-analytics-bar-item"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
                         >
                             <div className="lumiverse-analytics-bar-label">
                                 <span className="lumiverse-analytics-bar-icon">
@@ -141,7 +138,7 @@ function TypeDistribution({ data }) {
                                     transition={{ duration: 0.5, ease: 'easeOut' }}
                                 />
                             </div>
-                        </motion.div>
+                        </div>
                     );
                 })}
             </div>
@@ -180,7 +177,7 @@ function RecentComments({ comments }) {
 
     return (
         <div className="lumiverse-analytics-timeline">
-            <AnimatePresence>
+            <AnimatePresence initial={false}>
                 {comments.slice(0, 5).map((comment, index) => {
                     const Icon = typeIcons[comment.type] || FileText;
                     return (
@@ -190,7 +187,7 @@ function RecentComments({ comments }) {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
-                            transition={{ delay: index * 0.1 }}
+                            transition={{ duration: 0.15 }}
                         >
                             <span className="lumiverse-analytics-comment-icon">
                                 <Icon size={14} strokeWidth={1.5} />
