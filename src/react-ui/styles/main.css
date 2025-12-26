@@ -4294,7 +4294,8 @@ details.lumia-panel[open] .lumia-panel-chevron {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
+    flex: 1;
+    min-width: 32px;
     height: 32px;
     background: transparent;
     border: none;
@@ -6794,6 +6795,28 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
     .lumiverse-vp-tab-label {
         font-size: 9px;
+    }
+
+    /* Toggle button - shift down to avoid SillyTavern's top bar */
+    .lumiverse-toggle-container {
+        top: 44px !important;
+    }
+
+    /* Summary textarea - ensure proper height on mobile */
+    .lumiverse-vp-summary-editor {
+        min-height: 0;
+    }
+
+    .lumiverse-vp-summary-textarea-wrapper {
+        flex: 1;
+        min-height: 180px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .lumiverse-vp-summary-textarea {
+        flex: 1;
+        min-height: 180px;
     }
 }
 
