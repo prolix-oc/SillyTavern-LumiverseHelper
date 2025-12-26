@@ -557,6 +557,13 @@ function SummaryTextEditor() {
     const [isGenerating, setIsGenerating] = useState(false);
     const textareaRef = useRef(null);
 
+    // Subscribe to chat change counter to reload when chat changes
+    const chatChangeCounter = useSyncExternalStore(
+        store.subscribe,
+        () => store.getState().chatChangeCounter || 0,
+        () => 0
+    );
+
     const hasChanges = summary !== originalSummary;
     const hasContent = summary.trim().length > 0;
 
@@ -587,11 +594,11 @@ function SummaryTextEditor() {
         }
     }, []);
 
-    // Load on mount only - no periodic refresh to avoid overwriting edits
+    // Load on mount and when chat changes
     useEffect(() => {
         loadSummary();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // Only run on mount, not on loadSummary changes
+    }, [chatChangeCounter]); // Reload when chat changes
 
     // Handle text changes
     const handleTextChange = useCallback((e) => {

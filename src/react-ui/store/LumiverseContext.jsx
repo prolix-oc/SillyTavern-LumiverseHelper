@@ -94,6 +94,10 @@ const initialState = {
     // UI preferences
     showLumiverseDrawer: true,  // Whether to show the viewport drawer
 
+    // Chat change tracking (React-only, incremented on syncFromExtension)
+    // Components can subscribe to this to reload when chat changes
+    chatChangeCounter: 0,
+
     // UI state (React-only, not saved to extension)
     ui: {
         activeModal: null,
@@ -805,8 +809,10 @@ function syncFromExtension(extensionSettings) {
         selectedBehaviorsCount: extensionSettings.selectedBehaviors?.length || 0,
     });
 
-    // Preserve UI state (React-only)
-    const currentUI = store.getState().ui;
+    // Preserve React-only state
+    const currentState = store.getState();
+    const currentUI = currentState.ui;
+    const currentChatCounter = currentState.chatChangeCounter || 0;
 
     // Merge extension settings directly into store
     // This preserves the EXACT structure from the old code
@@ -814,6 +820,8 @@ function syncFromExtension(extensionSettings) {
         ...extensionSettings,
         // Keep React-only UI state
         ui: currentUI,
+        // Increment chat change counter so components know to reload
+        chatChangeCounter: currentChatCounter + 1,
     });
 
     console.log('[LumiverseStore] syncFromExtension - store updated:', {

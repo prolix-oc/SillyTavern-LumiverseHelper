@@ -28,25 +28,35 @@ function traitsMatch(a, b) {
 
 /**
  * Get current character info from SillyTavern
+ * Re-evaluates when chatChangeCounter changes (on CHAT_CHANGED events)
  */
 function useCurrentCharacter() {
-    // This would ideally subscribe to ST events, but for now we'll read on render
-    if (typeof SillyTavern !== 'undefined') {
-        try {
-            const context = SillyTavern.getContext();
-            if (context?.characters && context?.characterId !== undefined) {
-                const char = context.characters[context.characterId];
-                return {
-                    name: char?.name || 'Unknown',
-                    avatar: char?.avatar ? `/characters/${encodeURIComponent(char.avatar)}` : null,
-                    description: char?.description || '',
-                };
+    // Subscribe to chat change counter to force re-render when chat changes
+    const chatChangeCounter = useSyncExternalStore(
+        store.subscribe,
+        () => store.getState().chatChangeCounter || 0,
+        () => 0
+    );
+
+    // useMemo ensures we re-read from SillyTavern when chatChangeCounter changes
+    return useMemo(() => {
+        if (typeof SillyTavern !== 'undefined') {
+            try {
+                const context = SillyTavern.getContext();
+                if (context?.characters && context?.characterId !== undefined) {
+                    const char = context.characters[context.characterId];
+                    return {
+                        name: char?.name || 'Unknown',
+                        avatar: char?.avatar ? `/characters/${encodeURIComponent(char.avatar)}` : null,
+                        description: char?.description || '',
+                    };
+                }
+            } catch (e) {
+                console.warn('[LumiverseUI] Could not get character:', e);
             }
-        } catch (e) {
-            console.warn('[LumiverseUI] Could not get character:', e);
         }
-    }
-    return { name: 'No Character', avatar: null, description: '' };
+        return { name: 'No Character', avatar: null, description: '' };
+    }, [chatChangeCounter]);
 }
 
 /**
