@@ -304,9 +304,10 @@ function PackDetailModal() {
     if (!viewingPack || !pack) return null;
 
     // Use createPortal to render at document.body level
+    // Use lumia-modal-backdrop for consistent centering with other modals
     return createPortal(
         <div
-            className="lumiverse-pack-detail-backdrop"
+            className="lumia-modal-backdrop"
             onClick={handleBackdropClick}
             onMouseDown={handleModalClick}
             onMouseUp={handleModalClick}
