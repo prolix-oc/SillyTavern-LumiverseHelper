@@ -5309,6 +5309,25 @@ details.lumia-panel[open] .lumia-panel-chevron {
     transform: translateX(18px);
 }
 
+/* Disabled toggle states */
+.lumiverse-vp-toggle-row--disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.lumiverse-vp-toggle-row--disabled .lumiverse-vp-toggle-label {
+    cursor: not-allowed;
+}
+
+.lumiverse-vp-toggle-track--disabled {
+    background: var(--lumiverse-bg-dark) !important;
+    cursor: not-allowed;
+}
+
+.lumiverse-vp-toggle-track--disabled .lumiverse-vp-toggle-thumb {
+    background: rgba(255, 255, 255, 0.5);
+}
+
 /* Field input */
 .lumiverse-vp-field {
     margin-bottom: 12px;

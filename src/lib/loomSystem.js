@@ -404,6 +404,15 @@ Continue the scene naturally as expected:
     // Check if we should include the user message in the prompt
     const includeMessage = settings.sovereignHand?.includeMessageInPrompt !== false;
 
+    // Check if the message is NOT excluded from context (still in history)
+    const excludeFromContext = settings.sovereignHand?.excludeLastMessage !== false;
+
+    // If message is in both history AND prompt, add a warning
+    const duplicateWarning = (!excludeFromContext && includeMessage) ? `
+**This message is already in the Loom's History.** It is simply brought forward to you for your attention during the Sovereign Hand weaving procedure. Do not trip over the thread, as it is not a duplicate.
+
+` : '';
+
     // Check if we should show continuation mode
     // If we captured a user message this generation, user was last - don't show continuation
     // If we didn't capture a user message, character was last - show continuation
@@ -418,7 +427,7 @@ Note: The character was the last to speak. Continue the scene naturally without 
     // Conditionally include the user message section
     const userMessageSection = includeMessage ? `
 
-**The Human's** Provided Instruction:**
+${duplicateWarning}**The Human's Provided Instruction:**
 ${lastUserMessage}
 
 ---` : '';

@@ -2,6 +2,8 @@ import React from 'react';
 import { useSettings, useLumiverseActions, useUI } from './store/LumiverseContext';
 import SettingsPanel from './components/SettingsPanel';
 import ModalContainer from './components/ModalContainer';
+import PackDetailModal from './components/modals/PackDetailModal';
+import LoomPackDetailModal from './components/modals/LoomPackDetailModal';
 
 /* global SillyTavern */
 
@@ -20,6 +22,10 @@ function App() {
 
             {/* Modal portal - modals render here */}
             <ModalContainer />
+
+            {/* Pack detail modals - portal to document.body */}
+            <PackDetailModal />
+            <LoomPackDetailModal />
 
             {/* Loading overlay */}
             {ui.isLoading && (

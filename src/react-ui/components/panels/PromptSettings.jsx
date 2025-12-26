@@ -10,9 +10,9 @@ const store = useLumiverseStore;
 /**
  * Toggle switch component
  */
-function Toggle({ id, checked, onChange, label, hint }) {
+function Toggle({ id, checked, onChange, label, hint, disabled = false }) {
     return (
-        <div className="lumiverse-vp-toggle-row">
+        <div className={clsx('lumiverse-vp-toggle-row', disabled && 'lumiverse-vp-toggle-row--disabled')}>
             <label className="lumiverse-vp-toggle-label" htmlFor={id}>
                 <span className="lumiverse-vp-toggle-text">{label}</span>
                 {hint && <span className="lumiverse-vp-toggle-hint">{hint}</span>}
@@ -24,9 +24,14 @@ function Toggle({ id, checked, onChange, label, hint }) {
                     className="lumiverse-vp-toggle-input"
                     checked={checked}
                     onChange={(e) => onChange(e.target.checked)}
+                    disabled={disabled}
                 />
                 <label htmlFor={id} className="lumiverse-vp-toggle-switch-label">
-                    <div className={clsx('lumiverse-vp-toggle-track', checked && 'lumiverse-vp-toggle-track--on')}>
+                    <div className={clsx(
+                        'lumiverse-vp-toggle-track',
+                        checked && 'lumiverse-vp-toggle-track--on',
+                        disabled && 'lumiverse-vp-toggle-track--disabled'
+                    )}>
                         <div className="lumiverse-vp-toggle-thumb" />
                     </div>
                 </label>

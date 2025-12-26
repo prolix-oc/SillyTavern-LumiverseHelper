@@ -183,6 +183,27 @@ function stripLoomTags(content) {
   return result;
 }
 
+/**
+ * Trim excessive newlines that may result from empty macro replacements.
+ * Reduces 3+ consecutive newlines to 2 (standard paragraph break).
+ * Also handles patterns where an empty macro was on its own line.
+ * @param {string} content - The content to clean
+ * @returns {string} - Content with trimmed newlines
+ */
+function trimEmptyMacroNewlines(content) {
+  if (!content || typeof content !== "string") return content;
+
+  // Replace 3+ consecutive newlines with 2 (standard paragraph break)
+  // This handles cases where an empty macro was on its own line
+  let result = content.replace(/\n{3,}/g, "\n\n");
+
+  // Also handle cases with whitespace-only lines between real content
+  // Pattern: newline, optional whitespace, newline, optional whitespace, newline
+  result = result.replace(/\n[ \t]*\n[ \t]*\n/g, "\n\n");
+
+  return result;
+}
+
 // --- GENERATION INTERCEPTOR ---
 // CRITICAL: Must be exposed on globalThis for ST to find it via manifest.json
 globalThis.lumiverseHelperGenInterceptor = async function (chat, contextSize, abort, type) {
@@ -279,6 +300,8 @@ globalThis.lumiverseHelperGenInterceptor = async function (chat, contextSize, ab
       if (anyFilterEnabled) {
         chat[i].content = filterContent(chat[i].content);
       }
+      // Clean up excessive newlines from empty macro replacements
+      chat[i].content = trimEmptyMacroNewlines(chat[i].content);
     }
 
     if (chat[i] && typeof chat[i].mes === "string") {
@@ -286,6 +309,8 @@ globalThis.lumiverseHelperGenInterceptor = async function (chat, contextSize, ab
       if (anyFilterEnabled) {
         chat[i].mes = filterContent(chat[i].mes);
       }
+      // Clean up excessive newlines from empty macro replacements
+      chat[i].mes = trimEmptyMacroNewlines(chat[i].mes);
     }
   }
 
