@@ -5377,7 +5377,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 10px 12px;
+    padding: 12px 14px;
     background: var(--lumiverse-bg);
     border: 1px solid var(--lumiverse-border);
     border-radius: 8px;
@@ -5430,6 +5430,8 @@ details.lumia-panel[open] .lumia-panel-chevron {
     display: block;
     font-size: 11px;
     color: var(--lumiverse-text-muted);
+    margin-top: 2px;
+    line-height: 1.3;
 }
 
 /* Save button */
