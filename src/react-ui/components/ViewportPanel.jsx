@@ -262,7 +262,10 @@ function ViewportPanel({
             {/* Toggle button - animates alongside panel when default position, static when custom */}
             {/* Hide toggle when panel is visible on mobile - use close button instead */}
             <div
-                className="lumiverse-toggle-container"
+                className={clsx(
+                    'lumiverse-toggle-container',
+                    useCustomPosition && 'lumiverse-toggle-container--custom'
+                )}
                 style={getButtonPositionStyle()}
             >
                 <ToggleButton isVisible={isVisible} onClick={onToggle} />

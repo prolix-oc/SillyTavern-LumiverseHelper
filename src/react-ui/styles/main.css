@@ -3649,6 +3649,14 @@ details.lumia-panel[open] .lumia-panel-chevron {
     pointer-events: auto;
 }
 
+/* Custom position modifier - overrides all position rules */
+.lumiverse-toggle-container--custom {
+    position: fixed !important;
+    top: unset !important;
+    right: unset !important;
+    margin-right: 0 !important;
+}
+
 .lumiverse-viewport-panel {
     height: 100%;
     display: flex;
@@ -6880,6 +6888,11 @@ details.lumia-panel[open] .lumia-panel-chevron {
     /* Toggle button - shift down to avoid SillyTavern's top bar */
     .lumiverse-toggle-container {
         top: 44px !important;
+    }
+
+    /* Custom position still uses inline styles on mobile */
+    .lumiverse-toggle-container--custom {
+        top: unset !important;
     }
 
     /* Summary textarea - ensure proper height on mobile */
