@@ -230,15 +230,14 @@ function ViewportPanel({
     // Calculate custom button position styles
     const getButtonPositionStyle = () => {
         if (useCustomPosition) {
-            // Custom position: fully inline styles, no CSS class involvement
-            // Using all properties to completely override any CSS
+            // Custom position: use margin for Y-axis positioning instead of top
+            // This avoids CSS specificity issues with !important rules
             return {
                 position: 'fixed',
-                top: `${buttonPosition.yPercent}%`,
+                top: 0,
                 right: `${buttonPosition.xPercent}%`,
-                bottom: 'auto',
-                left: 'auto',
-                margin: 0,
+                marginTop: `${buttonPosition.yPercent}vh`,
+                marginRight: 0,
                 zIndex: 9999,
                 pointerEvents: 'auto',
                 display: isMobile && isVisible ? 'none' : 'block',
