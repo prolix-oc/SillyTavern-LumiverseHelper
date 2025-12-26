@@ -3649,11 +3649,11 @@ details.lumia-panel[open] .lumia-panel-chevron {
     pointer-events: auto;
 }
 
-/* Custom position modifier - overrides all position rules */
+/* Custom position modifier - uses CSS variables for positioning */
 .lumiverse-toggle-container--custom {
     position: fixed !important;
-    top: unset !important;
-    right: unset !important;
+    top: var(--lumia-btn-top) !important;
+    right: var(--lumia-btn-right) !important;
     margin-right: 0 !important;
 }
 
@@ -6890,10 +6890,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
         top: 44px !important;
     }
 
-    /* Custom position still uses inline styles on mobile */
-    .lumiverse-toggle-container--custom {
-        top: unset !important;
-    }
+    /* Custom position uses CSS variables - no override needed */
 
     /* Summary textarea - ensure proper height on mobile */
     .lumiverse-vp-summary-editor {
