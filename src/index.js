@@ -167,8 +167,9 @@ function stripLoomTags(content) {
   if (!content) return content;
 
   const loomTags = [
-    "loom_sum", "loom_if", "loom_else", "loom_endif", "lumia_ooc",
+    "loom_sum", "loom_if", "loom_else", "loom_endif", "lumia_ooc", "lumiaooc",
     "loom_state", "loom_memory", "loom_context", "loom_inject", "loom_var", "loom_set", "loom_get",
+    "loom_record", "loomrecord", "loom_ledger", "loomledger",
   ];
 
   let result = content;
@@ -492,10 +493,10 @@ jQuery(async () => {
         unhideAndProcessOOCMarkers(messageElement);
 
         // Check for OOC content using multiple methods:
-        // 1. <lumia_ooc> elements in DOM (primary - ST may render these as custom elements)
-        // 2. <lumia_ooc> tags in raw content (backup - in case DOM doesn't have them yet)
+        // 1. <lumia_ooc> or <lumiaooc> elements in DOM (ST may render these as custom elements)
+        // 2. <lumia_ooc> or <lumiaooc> tags in raw content (backup - in case DOM doesn't have them yet)
         // 3. <font> elements with OOC color in DOM (fallback for old format)
-        const lumiaOocElements = queryAll("lumia_ooc", messageElement);
+        const lumiaOocElements = queryAll("lumia_ooc, lumiaooc", messageElement);
         const fontElements = queryAll("font", messageElement);
         const oocFonts = fontElements.filter(isLumiaOOCFont);
 
@@ -503,7 +504,7 @@ jQuery(async () => {
         const context = getContext();
         const chatMessage = context?.chat?.[mesId];
         const rawContent = chatMessage?.mes || chatMessage?.content || "";
-        const hasOOCTagsInRaw = /<lumia_ooc(?:\s+name="[^"]*")?>/i.test(rawContent);
+        const hasOOCTagsInRaw = /<lumia_?ooc(?:\s+name="[^"]*")?>/i.test(rawContent);
 
         if (lumiaOocElements.length > 0 || oocFonts.length > 0 || hasOOCTagsInRaw) {
           console.log(`[${MODULE_NAME}] Found OOC content (lumia_ooc elements: ${lumiaOocElements.length}, fonts: ${oocFonts.length}, tags in raw: ${hasOOCTagsInRaw}), scheduling OOC processing for message ${mesId}`);

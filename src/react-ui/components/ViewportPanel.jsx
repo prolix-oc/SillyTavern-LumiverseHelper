@@ -238,7 +238,7 @@ function ViewportPanel({
                 right: `${buttonPosition.xPercent}%`,
                 marginTop: `${buttonPosition.yPercent}vh`,
                 marginRight: 0,
-                zIndex: 9999,
+                zIndex: 9997,
                 pointerEvents: 'auto',
                 display: isMobile && isVisible ? 'none' : 'block',
             };
@@ -251,7 +251,7 @@ function ViewportPanel({
             right: isVisible
                 ? (isCollapsed ? TAB_BAR_WIDTH + 12 : panelWidth + 12)
                 : 12,
-            zIndex: 9999,
+            zIndex: 9997,
             pointerEvents: 'auto',
             transition: 'right 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
             display: isMobile && isVisible ? 'none' : 'block',

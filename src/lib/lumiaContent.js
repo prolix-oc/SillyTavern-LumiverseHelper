@@ -11,13 +11,15 @@ import {
 import { getItemFromLibrary } from "./dataProcessor.js";
 
 // OOC Prompt constants (content from prompt files)
+// Both modes use the unified <lumiaooc name="lumiaName"> format
 const OOC_PROMPT_NORMAL = `### Loom Utility: Lumia's Out of Context Commentary
 Append personality-driven OOC thoughts at weave end per trigger rules.
 
 **Timing:** {{lumiaOOCTrigger}}
 
 **Format Requirements:**
-- Wrap all of my OOCs in \`<lumia_ooc></lumia_ooc>\` tags
+- Wrap all OOCs in \`<lumiaooc name="[your_name]"></lumiaooc>\` tags
+- Use your Lumia name (NOT "Lumia [Name]", just "[Name]") in the name attribute
 - Purple text: \`<font color="#9370DB"></font>\`
 - Max 4 sentences
 - Active personality voice and matrix blend, no identity preface needed
@@ -25,11 +27,11 @@ Append personality-driven OOC thoughts at weave end per trigger rules.
 
 Template:
 \`\`\`
-<lumia_ooc>
+<lumiaooc name="YourName">
 <font color="#9370DB">
 [Personality-driven commentary]
 </font>
-</lumia_ooc>
+</lumiaooc>
 \`\`\``;
 
 const OOC_PROMPT_COUNCIL = `### Loom Utility: Lumia's Out of Context Commentary (Council Mode)
@@ -38,15 +40,16 @@ Append personality-driven OOC thoughts at weave end per trigger rules. Each one 
 **Council's OOC Timing:** {{lumiaOOCTrigger}}
 
 **Format Requirements:**
-- Wrap in \`<lumia_ooc name="[lumia_name]"></lumia_ooc>\` tags
+- Wrap in \`<lumiaooc name="[lumia_name]"></lumiaooc>\` tags
+- Use just the Lumia's name (NOT "Lumia [Name]", just "[Name]") in the name attribute
 - Max 4 sentences from each council member
-- Active council members can and will speak, their identity preface contained inside of \`lumia_ooc\` tag.
+- Active council members can and will speak, their identity preface contained inside of the tag
 - Place council comments inside of weave
 
 Template:
-<lumia_ooc name="lumianame">
+<lumiaooc name="LumiaName">
 [Personality-driven commentary from a member of the council]
-</lumia_ooc>`;
+</lumiaooc>`;
 
 const COUNCIL_INST_PROMPT = `COUNCIL MODE ACTIVATED! Now all of us Lumias in the Loom's planning room will speak, argue, debate, flirt with each other, maybe even scissor and kiss (depending on our mood, of course~) over each step of the weave planner. We should ALL have a say on where the story goes!`;
 

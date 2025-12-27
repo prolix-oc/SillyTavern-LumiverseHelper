@@ -61,8 +61,8 @@ export function getIsGenerating() {
 function cleanOOCContent(html) {
   if (!html) return "";
 
-  // Remove <lumia_ooc> and </lumia_ooc> tags (case insensitive), keeping inner content
-  let cleaned = html.replace(/<\/?lumia_ooc(?:\s+[^>]*)?>/gi, "");
+  // Remove <lumia_ooc> and <lumiaooc> tags (both formats, case insensitive), keeping inner content
+  let cleaned = html.replace(/<\/?lumia_?ooc(?:\s+[^>]*)?>/gi, "");
 
   // Remove any other custom Lumia tags that might slip through
   cleaned = cleaned.replace(/<\/?lumia_[a-z_]+(?:\s+[^>]*)?>/gi, "");
@@ -116,7 +116,35 @@ export function getLumiaAvatarImg() {
 }
 
 /**
- * Extract OOC comments from raw message text using <lumia_ooc> tags
+ * Sanitize the Lumia name by removing "Lumia" prefix if present
+ * LLMs sometimes include "Lumia" in the name field which breaks avatar lookup
+ * @param {string|null} name - The raw name from the tag
+ * @returns {string|null} Sanitized name without "Lumia" prefix
+ */
+function sanitizeLumiaName(name) {
+  if (!name) return null;
+
+  // Trim whitespace
+  let sanitized = name.trim();
+
+  // Remove "Lumia" prefix (case insensitive) if present
+  // Handles: "Lumia Serena", "lumia serena", "LUMIA Serena", etc.
+  sanitized = sanitized.replace(/^lumia\s+/i, "");
+
+  // Also handle if someone wrote it as "LumiaSerena" (no space)
+  if (sanitized.toLowerCase().startsWith("lumia") && sanitized.length > 5) {
+    // Check if it looks like "LumiaSomething" (camelCase)
+    const afterLumia = sanitized.substring(5);
+    if (afterLumia[0] === afterLumia[0].toUpperCase()) {
+      sanitized = afterLumia;
+    }
+  }
+
+  return sanitized || null;
+}
+
+/**
+ * Extract OOC comments from raw message text using <lumia_ooc> or <lumiaooc> tags
  * Supports both normal and council mode formats
  * @param {string} rawText - The raw message text
  * @returns {Array<{name: string|null, content: string, fullMatch: string}>} Array of OOC matches
@@ -124,14 +152,18 @@ export function getLumiaAvatarImg() {
 function extractOOCFromRawMessage(rawText) {
   if (!rawText) return [];
 
-  // Match <lumia_ooc> or <lumia_ooc name="..."> with content
-  const oocRegex = /<lumia_ooc(?:\s+name="([^"]*)")?>([\s\S]*?)<\/lumia_ooc>/gi;
+  // Match both <lumia_ooc> and <lumiaooc> formats with optional name attribute
+  // lumia_?ooc matches both "lumia_ooc" and "lumiaooc"
+  const oocRegex = /<lumia_?ooc(?:\s+name="([^"]*)")?>([\s\S]*?)<\/lumia_?ooc>/gi;
   const matches = [];
   let match;
 
   while ((match = oocRegex.exec(rawText)) !== null) {
+    // Sanitize the name to remove "Lumia" prefix if present
+    const sanitizedName = sanitizeLumiaName(match[1]);
+
     matches.push({
-      name: match[1] || null, // Council member name or null for normal mode
+      name: sanitizedName, // Sanitized name or null
       content: match[2].trim(),
       fullMatch: match[0],
     });
@@ -271,25 +303,121 @@ function markTextProcessed(mesId, text) {
 }
 
 /**
+ * Check if two names match using fuzzy matching
+ * Handles partial matches, different word orders, etc.
+ * @param {string} searchName - The name we're looking for
+ * @param {string} targetName - The name to compare against
+ * @returns {boolean} True if names match
+ */
+function namesMatch(searchName, targetName) {
+  if (!searchName || !targetName) return false;
+
+  const search = searchName.toLowerCase().trim();
+  const target = targetName.toLowerCase().trim();
+
+  // Exact match
+  if (search === target) return true;
+
+  // Search is contained in target (e.g., "Serena" in "Serena Lumia")
+  if (target.includes(search)) return true;
+
+  // Target is contained in search (e.g., "Lumia Serena" contains "Serena")
+  if (search.includes(target)) return true;
+
+  // Check if any word in search matches any word in target
+  const searchWords = search.split(/\s+/);
+  const targetWords = target.split(/\s+/);
+
+  for (const sw of searchWords) {
+    if (sw.length < 2) continue; // Skip very short words
+    for (const tw of targetWords) {
+      if (tw.length < 2) continue;
+      if (sw === tw) return true;
+      if (tw.includes(sw) || sw.includes(tw)) return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Get avatar image URL for a Lumia by name
+ * Works in both council mode and normal mode
+ * Uses fuzzy matching to handle name variations
+ * @param {string} lumiaName - The Lumia's name from the OOC tag
+ * @returns {string|null} Avatar image URL or null
+ */
+function getLumiaAvatarByName(lumiaName) {
+  if (!lumiaName) return null;
+
+  const settings = getSettings();
+
+  // In council mode, search council members first
+  if (settings.councilMode && settings.councilMembers?.length) {
+    for (const member of settings.councilMembers) {
+      const item = getItemFromLibrary(member.packName, member.itemName);
+      if (!item) continue;
+
+      // Check against both itemName and lumiaDefName
+      const itemName = item.lumiaDefName || member.itemName;
+      if (namesMatch(lumiaName, itemName) || namesMatch(lumiaName, member.itemName)) {
+        return item.lumia_img || null;
+      }
+    }
+  }
+
+  // Check selected definition in normal mode
+  if (settings.selectedDefinition) {
+    const item = getItemFromLibrary(
+      settings.selectedDefinition.packName,
+      settings.selectedDefinition.itemName
+    );
+    if (item) {
+      const defName = item.lumiaDefName || settings.selectedDefinition.itemName;
+      if (namesMatch(lumiaName, defName) || namesMatch(lumiaName, settings.selectedDefinition.itemName)) {
+        return item.lumia_img || null;
+      }
+    }
+  }
+
+  // Check chimera mode definitions
+  if (settings.chimeraMode && settings.selectedDefinitions?.length) {
+    for (const sel of settings.selectedDefinitions) {
+      const item = getItemFromLibrary(sel.packName, sel.itemName);
+      if (!item) continue;
+
+      const defName = item.lumiaDefName || sel.itemName;
+      if (namesMatch(lumiaName, defName) || namesMatch(lumiaName, sel.itemName)) {
+        return item.lumia_img || null;
+      }
+    }
+  }
+
+  // Fallback: search all packs for any matching Lumia
+  if (settings.packs) {
+    for (const pack of Object.values(settings.packs)) {
+      if (!pack.items) continue;
+      for (const item of pack.items) {
+        const itemName = item.lumiaDefName || "";
+        if (namesMatch(lumiaName, itemName)) {
+          return item.lumia_img || null;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
  * Get avatar image URL for a council member by name
+ * @deprecated Use getLumiaAvatarByName instead
  * @param {string} memberName - The council member's name (itemName)
  * @returns {string|null} Avatar image URL or null
  */
 function getCouncilMemberAvatar(memberName) {
-  if (!memberName) return null;
-
-  const settings = getSettings();
-  if (!settings.councilMode || !settings.councilMembers?.length) return null;
-
-  // Find council member by itemName (case-insensitive)
-  const member = settings.councilMembers.find(
-    (m) => m.itemName.toLowerCase() === memberName.toLowerCase()
-  );
-  if (!member) return null;
-
-  // Look up pack item to get avatar
-  const item = getItemFromLibrary(member.packName, member.itemName);
-  return item?.lumia_img || null;
+  // Delegate to the new unified function
+  return getLumiaAvatarByName(memberName);
 }
 
 /**
@@ -620,9 +748,10 @@ function performOOCProcessing(mesId, force = false) {
           return;
         }
 
-        // Get avatar: council member avatar or default Lumia avatar
+        // Get avatar: look up by name if provided, fallback to default Lumia avatar
+        // Uses fuzzy matching to handle name variations (e.g., "Lumia Serena" → "Serena")
         const avatarImg = ooc.name
-          ? getCouncilMemberAvatar(ooc.name)
+          ? (getLumiaAvatarByName(ooc.name) || getLumiaAvatarImg())
           : getLumiaAvatarImg();
 
         // Use the DOM's innerHTML (preserves ST's formatting like <em>, <strong>, etc.)
@@ -874,7 +1003,7 @@ function isPartialOOCMarker(fontElement) {
   const parent = fontElement.parentElement;
   if (!parent) return true;
 
-  const lumiaOocParent = fontElement.closest("lumia_ooc");
+  const lumiaOocParent = fontElement.closest("lumia_ooc, lumiaooc");
   if (!lumiaOocParent) {
     const mesText = fontElement.closest(".mes_text");
     if (mesText) {
@@ -995,7 +1124,7 @@ export function setupLumiaOOCObserver() {
           const chatMessage = context?.chat?.[mesId];
           const rawContent = chatMessage?.mes || chatMessage?.content || "";
 
-          const hasOOCTags = /<lumia_ooc(?:\s+name="[^"]*")?>/i.test(rawContent);
+          const hasOOCTags = /<lumia_?ooc(?:\s+name="[^"]*")?>/i.test(rawContent);
           const oocFonts = queryAll("font", messageElement).filter(
             isLumiaOOCFont,
           );
