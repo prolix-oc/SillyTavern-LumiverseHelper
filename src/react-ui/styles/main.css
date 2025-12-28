@@ -7445,10 +7445,17 @@ details.lumia-panel[open] .lumia-panel-chevron {
     cursor: pointer;
     transition: background 0.2s ease;
     text-align: left;
+    /* Mobile touch fixes */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(147, 112, 219, 0.2);
 }
 
 .lumiverse-council-add-item:hover {
     background: rgba(147, 112, 219, 0.1);
+}
+
+.lumiverse-council-add-item:active {
+    background: rgba(147, 112, 219, 0.2);
 }
 
 .lumiverse-council-add-item:last-child {
@@ -7466,6 +7473,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     justify-content: center;
     color: var(--lumiverse-primary);
     flex-shrink: 0;
+    pointer-events: none; /* Allow parent button to capture touch */
 }
 
 .lumiverse-council-add-item-avatar img {
@@ -7477,6 +7485,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
 .lumiverse-council-add-item-info {
     flex: 1;
     min-width: 0;
+    pointer-events: none; /* Allow parent button to capture touch */
 }
 
 .lumiverse-council-add-item-name {
@@ -8147,6 +8156,11 @@ details.lumia-panel[open] .lumia-panel-chevron {
     border-color: var(--lumiverse-primary);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(147, 112, 219, 0.15);
+}
+
+.lumiverse-council-select-card:active {
+    transform: scale(0.98);
+    border-color: var(--lumiverse-primary);
 }
 
 .lumiverse-council-select-card-image {
