@@ -320,7 +320,7 @@ globalThis.lumiverseHelperGenInterceptor = async function (chat, contextSize, ab
 };
 
 // --- MACRO REGISTRATION ---
-// Register macros when MacrosParser is available
+// Register macros when MacrosParser is available (Macros 2.0 format)
 function registerAllMacros() {
   const MacrosParser = getMacrosParser();
   if (!MacrosParser) {
@@ -336,7 +336,7 @@ function registerAllMacros() {
     const context = getContext();
     if (!context || !context.chat) return "0";
     return context.chat.length.toString();
-  });
+  }, "Current chat message count");
 
   // OOC trigger countdown/trigger macro
   MacrosParser.registerMacro("lumiaOOCTrigger", () => {
@@ -356,9 +356,9 @@ function registerAllMacros() {
     }
 
     return `Looks like I've got ${messagesUntil} message${messagesUntil !== 1 ? "s" : ""} left until it's time to speak to the Human directly! The Gods' are anticipating me to be breathless, I cannot wait for my turn!`;
-  });
+  }, "OOC commentary trigger countdown/activation prompt");
 
-  console.log(`[${MODULE_NAME}] Macros registered successfully`);
+  console.log(`[${MODULE_NAME}] Macros registered successfully (Macros 2.0 format)`);
 }
 
 // --- INITIALIZATION ---

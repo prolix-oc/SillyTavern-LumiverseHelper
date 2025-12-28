@@ -80,6 +80,11 @@ export function ensureRandomLumia() {
 /**
  * Process nested {{randomLumia}} macros in content
  * Expands all randomLumia macro variants using the current random selection
+ *
+ * Supports both formats:
+ * - OLD: {{randomLumia.name}} (dot notation - for backwards compatibility)
+ * - NEW: {{randomLumia .name}} (space-separated - Macros 2.0 format)
+ *
  * @param {string} content - The content to process
  * @returns {string} Content with randomLumia macros expanded
  */
@@ -104,22 +109,29 @@ export function processNestedRandomLumiaMacros(content) {
     let previousContent = processed;
 
     // Order matters: replace specific variants before generic ones
+    // Support BOTH old dot notation ({{randomLumia.name}}) and new space format ({{randomLumia .name}})
+
+    // .name variant
     processed = processed.replace(
-      /\{\{randomLumia\.name\}\}/g,
+      /\{\{randomLumia[.\s]+name\}\}/g,
       currentRandomLumia.lumiaDefName || "",
     );
+    // .pers variant
     processed = processed.replace(
-      /\{\{randomLumia\.pers\}\}/g,
+      /\{\{randomLumia[.\s]+pers\}\}/g,
       currentRandomLumia.lumia_personality || "",
     );
+    // .behav variant
     processed = processed.replace(
-      /\{\{randomLumia\.behav\}\}/g,
+      /\{\{randomLumia[.\s]+behav\}\}/g,
       currentRandomLumia.lumia_behavior || "",
     );
+    // .phys variant
     processed = processed.replace(
-      /\{\{randomLumia\.phys\}\}/g,
+      /\{\{randomLumia[.\s]+phys\}\}/g,
       currentRandomLumia.lumiaDef || "",
     );
+    // Base variant (no suffix)
     processed = processed.replace(
       /\{\{randomLumia\}\}/g,
       currentRandomLumia.lumiaDef || "",
@@ -531,49 +543,92 @@ export function getLoomContent(selection) {
 }
 
 /**
+ * Parse the variable/parameter from a macro call
+ * In Macros 2.0, space-separated params like {{macro .param}} pass the param to handler
+ * @param {Object} namedArgs - The named arguments object from macro handler
+ * @returns {string} The parsed variable (e.g., "name", "len", "phys", etc.) or empty string
+ */
+function parseVariable(namedArgs) {
+  if (!namedArgs) return "";
+
+  // The new macro system may pass the variable in different ways:
+  // 1. As namedArgs._raw (the raw argument string)
+  // 2. As the first unnamed argument
+  // 3. As a named parameter
+  const rawArg = namedArgs._raw || namedArgs[0] || "";
+
+  // Handle space-separated format: ".name" or "name"
+  if (typeof rawArg === "string") {
+    // Strip leading dot if present: ".name" -> "name"
+    return rawArg.replace(/^\./, "").trim().toLowerCase();
+  }
+
+  return "";
+}
+
+/**
  * Register all Lumia-related macros with MacrosParser
+ * Updated for SillyTavern 1.15 Macros 2.0 system
+ *
+ * Macro changes for Macros 2.0:
+ * - OLD: {{randomLumia.name}} - dot notation (no longer works)
+ * - NEW: {{randomLumia .name}} - space-separated with variable param
+ *
  * @param {Object} MacrosParser - The SillyTavern MacrosParser instance
  */
 export function registerLumiaMacros(MacrosParser) {
-  console.log("[LumiverseHelper] Registering Lumia macros...");
+  console.log("[LumiverseHelper] Registering Lumia macros (Macros 2.0 format)...");
 
-  // Random Lumia macros
-  MacrosParser.registerMacro("randomLumia", () => {
+  // ============================================
+  // randomLumia macro - handles all variants
+  // Usage: {{randomLumia}} or {{randomLumia .name}} or {{randomLumia .phys}} etc.
+  // ============================================
+  MacrosParser.registerMacro("randomLumia", (namedArgs) => {
     ensureRandomLumia();
     const currentRandomLumia = getCurrentRandomLumia();
-    const result = currentRandomLumia ? currentRandomLumia.lumiaDef || "" : "";
-    console.log("[LumiverseHelper] randomLumia macro called, result length:", result.length);
-    return result;
-  });
+    if (!currentRandomLumia) return "";
 
-  MacrosParser.registerMacro("randomLumia.phys", () => {
-    ensureRandomLumia();
-    const currentRandomLumia = getCurrentRandomLumia();
-    return currentRandomLumia ? currentRandomLumia.lumiaDef || "" : "";
-  });
+    const variable = parseVariable(namedArgs);
+    console.log("[LumiverseHelper] randomLumia macro called with variable:", variable || "(none)");
 
-  MacrosParser.registerMacro("randomLumia.pers", () => {
-    ensureRandomLumia();
-    const currentRandomLumia = getCurrentRandomLumia();
-    return currentRandomLumia ? currentRandomLumia.lumia_personality || "" : "";
-  });
+    switch (variable) {
+      case "name":
+        return currentRandomLumia.lumiaDefName || "";
+      case "phys":
+        return currentRandomLumia.lumiaDef || "";
+      case "pers":
+        return currentRandomLumia.lumia_personality || "";
+      case "behav":
+        return currentRandomLumia.lumia_behavior || "";
+      default:
+        // No variable or unrecognized = return definition
+        const result = currentRandomLumia.lumiaDef || "";
+        console.log("[LumiverseHelper] randomLumia result length:", result.length);
+        return result;
+    }
+  }, "Random Lumia from loaded packs. Use {{randomLumia .name}}, {{randomLumia .phys}}, {{randomLumia .pers}}, {{randomLumia .behav}}");
 
-  MacrosParser.registerMacro("randomLumia.behav", () => {
-    ensureRandomLumia();
-    const currentRandomLumia = getCurrentRandomLumia();
-    return currentRandomLumia ? currentRandomLumia.lumia_behavior || "" : "";
-  });
-
-  MacrosParser.registerMacro("randomLumia.name", () => {
-    ensureRandomLumia();
-    const currentRandomLumia = getCurrentRandomLumia();
-    return currentRandomLumia ? currentRandomLumia.lumiaDefName || "" : "";
-  });
-
-  // Selected Lumia macros
-  MacrosParser.registerMacro("lumiaDef", () => {
+  // ============================================
+  // lumiaDef macro - handles .len variant
+  // Usage: {{lumiaDef}} or {{lumiaDef .len}}
+  // ============================================
+  MacrosParser.registerMacro("lumiaDef", (namedArgs) => {
     const currentSettings = getSettings();
-    console.log("[LumiverseHelper] lumiaDef macro called, councilMode:", currentSettings.councilMode, "chimeraMode:", currentSettings.chimeraMode, "selectedDefinition:", currentSettings.selectedDefinition);
+    const variable = parseVariable(namedArgs);
+
+    // Handle .len variant
+    if (variable === "len") {
+      if (currentSettings.councilMode && currentSettings.councilMembers?.length > 0) {
+        return String(currentSettings.councilMembers.length);
+      }
+      if (currentSettings.chimeraMode && currentSettings.selectedDefinitions?.length > 0) {
+        return String(currentSettings.selectedDefinitions.length);
+      }
+      return currentSettings.selectedDefinition ? "1" : "0";
+    }
+
+    // Default: return definition content
+    console.log("[LumiverseHelper] lumiaDef macro called, councilMode:", currentSettings.councilMode, "chimeraMode:", currentSettings.chimeraMode);
 
     // Council mode takes priority: multiple independent Lumias
     if (currentSettings.councilMode && currentSettings.councilMembers?.length > 0) {
@@ -599,121 +654,110 @@ export function registerLumiaMacros(MacrosParser) {
     const result = getLumiaContent("def", currentSettings.selectedDefinition);
     console.log("[LumiverseHelper] lumiaDef result length:", result.length);
     return result;
-  });
+  }, "Selected Lumia definition. Use {{lumiaDef}} for content or {{lumiaDef .len}} for count");
 
-  MacrosParser.registerMacro("lumiaDef.len", () => {
+  // ============================================
+  // lumiaBehavior macro - handles .len variant
+  // Usage: {{lumiaBehavior}} or {{lumiaBehavior .len}}
+  // ============================================
+  MacrosParser.registerMacro("lumiaBehavior", (namedArgs) => {
     const currentSettings = getSettings();
-    // In Council mode, return count of council members
-    if (currentSettings.councilMode && currentSettings.councilMembers?.length > 0) {
-      return String(currentSettings.councilMembers.length);
-    }
-    // In Chimera mode, return count of selected definitions
-    if (currentSettings.chimeraMode && currentSettings.selectedDefinitions?.length > 0) {
-      return String(currentSettings.selectedDefinitions.length);
-    }
-    return currentSettings.selectedDefinition ? "1" : "0";
-  });
+    const variable = parseVariable(namedArgs);
 
-  MacrosParser.registerMacro("lumiaBehavior", () => {
-    const currentSettings = getSettings();
+    // Handle .len variant
+    if (variable === "len") {
+      if (currentSettings.councilMode && currentSettings.councilMembers?.length > 0) {
+        const total = currentSettings.councilMembers.reduce(
+          (sum, member) => sum + (member.behaviors?.length || 0),
+          0,
+        );
+        return String(total);
+      }
+      return String(currentSettings.selectedBehaviors?.length || 0);
+    }
 
-    // Council mode: get behaviors per member
+    // Default: return behavior content
     if (currentSettings.councilMode && currentSettings.councilMembers?.length > 0) {
       return getCouncilBehaviorContent(currentSettings.councilMembers);
     }
-
-    // Normal mode
     return getLumiaContent("behavior", currentSettings.selectedBehaviors);
-  });
+  }, "Selected Lumia behaviors. Use {{lumiaBehavior}} for content or {{lumiaBehavior .len}} for count");
 
-  MacrosParser.registerMacro("lumiaBehavior.len", () => {
+  // ============================================
+  // lumiaPersonality macro - handles .len variant
+  // Usage: {{lumiaPersonality}} or {{lumiaPersonality .len}}
+  // ============================================
+  MacrosParser.registerMacro("lumiaPersonality", (namedArgs) => {
     const currentSettings = getSettings();
-    // In Council mode, count total behaviors across all members
-    if (currentSettings.councilMode && currentSettings.councilMembers?.length > 0) {
-      const total = currentSettings.councilMembers.reduce(
-        (sum, member) => sum + (member.behaviors?.length || 0),
-        0,
-      );
-      return String(total);
+    const variable = parseVariable(namedArgs);
+
+    // Handle .len variant
+    if (variable === "len") {
+      if (currentSettings.councilMode && currentSettings.councilMembers?.length > 0) {
+        const total = currentSettings.councilMembers.reduce(
+          (sum, member) => sum + (member.personalities?.length || 0),
+          0,
+        );
+        return String(total);
+      }
+      return String(currentSettings.selectedPersonalities?.length || 0);
     }
-    return String(currentSettings.selectedBehaviors?.length || 0);
-  });
 
-  MacrosParser.registerMacro("lumiaPersonality", () => {
-    const currentSettings = getSettings();
-
-    // Council mode: get personalities per member
+    // Default: return personality content
     if (currentSettings.councilMode && currentSettings.councilMembers?.length > 0) {
       return getCouncilPersonalityContent(currentSettings.councilMembers);
     }
+    return getLumiaContent("personality", currentSettings.selectedPersonalities);
+  }, "Selected Lumia personalities. Use {{lumiaPersonality}} for content or {{lumiaPersonality .len}} for count");
 
-    // Normal mode
-    return getLumiaContent(
-      "personality",
-      currentSettings.selectedPersonalities,
-    );
-  });
-
-  MacrosParser.registerMacro("lumiaPersonality.len", () => {
+  // ============================================
+  // Loom content macros - each handles .len variant
+  // ============================================
+  MacrosParser.registerMacro("loomStyle", (namedArgs) => {
     const currentSettings = getSettings();
-    // In Council mode, count total personalities across all members
-    if (currentSettings.councilMode && currentSettings.councilMembers?.length > 0) {
-      const total = currentSettings.councilMembers.reduce(
-        (sum, member) => sum + (member.personalities?.length || 0),
-        0,
-      );
-      return String(total);
+    const variable = parseVariable(namedArgs);
+
+    if (variable === "len") {
+      return String(currentSettings.selectedLoomStyle?.length || 0);
     }
-    return String(currentSettings.selectedPersonalities?.length || 0);
-  });
 
-  // Loom content macros
-  MacrosParser.registerMacro("loomStyle", () => {
-    const currentSettings = getSettings();
-    if (
-      !currentSettings.selectedLoomStyle ||
-      currentSettings.selectedLoomStyle.length === 0
-    )
+    if (!currentSettings.selectedLoomStyle || currentSettings.selectedLoomStyle.length === 0) {
       return "";
+    }
     return getLoomContent(currentSettings.selectedLoomStyle);
-  });
+  }, "Selected Loom narrative style. Use {{loomStyle}} for content or {{loomStyle .len}} for count");
 
-  MacrosParser.registerMacro("loomStyle.len", () => {
+  MacrosParser.registerMacro("loomUtils", (namedArgs) => {
     const currentSettings = getSettings();
-    return String(currentSettings.selectedLoomStyle?.length || 0);
-  });
+    const variable = parseVariable(namedArgs);
 
-  MacrosParser.registerMacro("loomUtils", () => {
-    const currentSettings = getSettings();
-    if (
-      !currentSettings.selectedLoomUtils ||
-      currentSettings.selectedLoomUtils.length === 0
-    )
+    if (variable === "len") {
+      return String(currentSettings.selectedLoomUtils?.length || 0);
+    }
+
+    if (!currentSettings.selectedLoomUtils || currentSettings.selectedLoomUtils.length === 0) {
       return "";
+    }
     return getLoomContent(currentSettings.selectedLoomUtils);
-  });
+  }, "Selected Loom utilities. Use {{loomUtils}} for content or {{loomUtils .len}} for count");
 
-  MacrosParser.registerMacro("loomUtils.len", () => {
+  MacrosParser.registerMacro("loomRetrofits", (namedArgs) => {
     const currentSettings = getSettings();
-    return String(currentSettings.selectedLoomUtils?.length || 0);
-  });
+    const variable = parseVariable(namedArgs);
 
-  MacrosParser.registerMacro("loomRetrofits", () => {
-    const currentSettings = getSettings();
-    if (
-      !currentSettings.selectedLoomRetrofits ||
-      currentSettings.selectedLoomRetrofits.length === 0
-    )
+    if (variable === "len") {
+      return String(currentSettings.selectedLoomRetrofits?.length || 0);
+    }
+
+    if (!currentSettings.selectedLoomRetrofits || currentSettings.selectedLoomRetrofits.length === 0) {
       return "";
+    }
     return getLoomContent(currentSettings.selectedLoomRetrofits);
-  });
+  }, "Selected Loom retrofits. Use {{loomRetrofits}} for content or {{loomRetrofits .len}} for count");
 
-  MacrosParser.registerMacro("loomRetrofits.len", () => {
-    const currentSettings = getSettings();
-    return String(currentSettings.selectedLoomRetrofits?.length || 0);
-  });
-
-  // OOC-related macros
+  // ============================================
+  // OOC-related macros (no variants needed)
+  // ============================================
   MacrosParser.registerMacro("lumiaOOC", () => {
     const currentSettings = getSettings();
     // Return council OOC prompt if in council mode with members
@@ -724,7 +768,7 @@ export function registerLumiaMacros(MacrosParser) {
     // Return normal OOC prompt
     console.log("[LumiverseHelper] lumiaOOC: Using normal mode prompt");
     return OOC_PROMPT_NORMAL;
-  });
+  }, "Lumia OOC commentary prompt (adapts to council mode)");
 
   MacrosParser.registerMacro("lumiaCouncilInst", () => {
     const currentSettings = getSettings();
@@ -734,5 +778,5 @@ export function registerLumiaMacros(MacrosParser) {
     }
     console.log("[LumiverseHelper] lumiaCouncilInst: Council mode active, returning instruction");
     return COUNCIL_INST_PROMPT;
-  });
+  }, "Council mode instruction prompt (empty when council mode is off)");
 }

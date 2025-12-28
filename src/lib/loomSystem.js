@@ -288,13 +288,16 @@ export function hideLoomSumBlocks(messageElement) {
 
 /**
  * Register Loom-related macros with MacrosParser
+ * Updated for SillyTavern 1.15 Macros 2.0 system
  * @param {Object} MacrosParser - The SillyTavern MacrosParser instance
  */
 export function registerLoomMacros(MacrosParser) {
+  console.log("[LumiverseHelper] Registering Loom macros (Macros 2.0 format)...");
+
   // Register loomSummary macro - injects the stored summary
   MacrosParser.registerMacro("loomSummary", () => {
     return getLoomSummary();
-  });
+  }, "Returns the stored Loom summary from chat metadata");
 
   // Register loomSummaryPrompt macro - injects the summarization directive
   MacrosParser.registerMacro("loomSummaryPrompt", () => {
@@ -333,7 +336,7 @@ When the current narrative segment reaches a natural pause or transition point, 
 
 Format the summary as dense but readable prose, preserving enough detail that the narrative could be resumed naturally from this point. Prioritize information that would be essential for maintaining story continuity.
 </loom_summary_directive>`;
-  });
+  }, "Loom summarization directive prompt for in-context summary generation");
 
   // Register loomLastUserMessage macro - returns the last user message content
   // Only active when Sovereign Hand features are enabled
@@ -347,23 +350,23 @@ Format the summary as dense but readable prose, preserving enough detail that th
     // Falls back to captured content if chat is not available
     const liveContent = findLastUserMessage();
     return liveContent || getLastUserMessageContent();
-  });
+  }, "Last user message content (requires Sovereign Hand enabled)");
 
   // Register loomSovHandActive macro - returns Yes/No status
   MacrosParser.registerMacro("loomSovHandActive", () => {
     const settings = getSettings();
     return settings.sovereignHand?.enabled ? "**Yes.**" : "**No.**";
-  });
+  }, "Sovereign Hand status indicator (Yes/No)");
 
   // Register lastMessageName macro - returns the name from the absolute last message
   MacrosParser.registerMacro("lastMessageName", () => {
     return getLastMessageName();
-  });
+  }, "Name of the sender of the last message in chat");
 
   // Register loomLastCharMessage macro - returns the last character/assistant message content
   MacrosParser.registerMacro("loomLastCharMessage", () => {
     return getLastCharMessageContent();
-  });
+  }, "Last character/assistant message content");
 
   // Register loomContinuePrompt macro - standalone "continue without user input" instructions
   // Only returns content when Sovereign Hand is enabled AND no user message was captured this generation
@@ -388,7 +391,7 @@ Continue the scene naturally as expected:
 - React to the environment or internal character thoughts
 - Do NOT wait for or reference missing Human input
 - Treat this as a natural story continuation`;
-  });
+  }, "Continuation mode prompt when continuing from character's last message");
 
   // Register loomSovHand macro - returns the full Sovereign Hand prompt
   // Dynamically replaces {{loomLastUserMessage}} with captured content
@@ -466,5 +469,5 @@ ${userMessageSection}
 - **Examples Are Not Concrete:** The Human may write differently than expected, or be less verbose. Pay attention to their input. ALWAYS add tasteful variety and dye the threads more colorful according to the Gods' Prose guidelines.
 
 This power remains in effect until explicitly revoked. I wield this sacred privilege with wisdom, ensuring the Human's vision is not just followed, but elevated.${continuationText}`;
-  });
+  }, "Full Sovereign Hand co-pilot mode prompt with user message injection");
 }
