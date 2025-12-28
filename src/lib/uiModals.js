@@ -8,6 +8,7 @@ import { getSettings, saveSettings, MODULE_NAME, LOOM_SUMMARY_KEY } from "./sett
 import { getItemFromLibrary, escapeHtml } from "./dataProcessor.js";
 import { generateLoomSummary, getProviderDefaults, PROVIDER_CONFIG, getProviderConfig, getIsSummarizing } from "./summarization.js";
 import { showLumiaEditorModal, showPackEditorModal, canEditPack } from "./lumiaEditor.js";
+import { notifyReactOfSettingsChange } from "./reactBridge.js";
 
 // Note: processAllLumiaOOCComments is imported dynamically to avoid circular dependency
 let processAllLumiaOOCCommentsRef = null;
@@ -729,6 +730,7 @@ export function showMiscFeaturesModal() {
     settings.lumiaOOCStyle = styleValue;
 
     saveSettings();
+    notifyReactOfSettingsChange();
     toastr.success("OOC settings saved!");
     closeModal();
 
@@ -1627,6 +1629,7 @@ export function showSummarizationModal() {
     };
 
     saveSettings();
+    notifyReactOfSettingsChange();
     toastr.success("Summarization settings saved!");
     closeModal();
   });
@@ -2024,6 +2027,7 @@ export function showPromptSettingsModal() {
     };
 
     saveSettings();
+    notifyReactOfSettingsChange();
     toastr.success("Prompt settings saved!");
     closeModal();
   });

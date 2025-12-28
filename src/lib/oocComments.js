@@ -61,11 +61,11 @@ export function getIsGenerating() {
 function cleanOOCContent(html) {
   if (!html) return "";
 
-  // Remove <lumia_ooc> and <lumiaooc> tags (both formats, case insensitive), keeping inner content
-  let cleaned = html.replace(/<\/?lumia_?ooc(?:\s+[^>]*)?>/gi, "");
+  // Remove <lumia_ooc>, <lumiaooc>, <lumio_ooc>, <lumioooc> tags (all formats, case insensitive), keeping inner content
+  let cleaned = html.replace(/<\/?lumi[ao]_?ooc(?:\s+[^>]*)?>/gi, "");
 
-  // Remove any other custom Lumia tags that might slip through
-  cleaned = cleaned.replace(/<\/?lumia_[a-z_]+(?:\s+[^>]*)?>/gi, "");
+  // Remove any other custom Lumia/Lumio tags that might slip through
+  cleaned = cleaned.replace(/<\/?lumi[ao]_[a-z_]+(?:\s+[^>]*)?>/gi, "");
 
   // Remove <font> tags but keep their inner content
   // This strips the legacy OOC detection method (purple font color)
@@ -153,9 +153,9 @@ function sanitizeLumiaName(name) {
 function extractOOCFromRawMessage(rawText) {
   if (!rawText) return [];
 
-  // Match both <lumia_ooc> and <lumiaooc> formats with optional name attribute
-  // lumia_?ooc matches both "lumia_ooc" and "lumiaooc"
-  const oocRegex = /<lumia_?ooc(?:\s+name="([^"]*)")?>([\s\S]*?)<\/lumia_?ooc>/gi;
+  // Match all OOC tag formats: <lumia_ooc>, <lumiaooc>, <lumio_ooc>, <lumioooc>
+  // lumi[ao]_?ooc matches: "lumia_ooc", "lumiaooc", "lumio_ooc", "lumioooc"
+  const oocRegex = /<lumi[ao]_?ooc(?:\s+name="([^"]*)")?>([\s\S]*?)<\/lumi[ao]_?ooc>/gi;
   const matches = [];
   let match;
 
@@ -725,28 +725,35 @@ function performOOCProcessing(mesId, force = false) {
       return; // Silent return - element may not be rendered yet
     }
 
-    // Check if already processed (unless force is true)
-    const existingBoxes = queryAll("[data-lumia-ooc]", messageElement);
-    if (existingBoxes.length > 0 && !force) {
-      return; // Already processed
-    }
-
     // Clear tracking for this message if forcing reprocess
     if (force) {
       clearProcessedTexts(mesId);
     }
-
-    let processedCount = 0;
 
     // Get raw message content for tag-based detection
     const context = getContext();
     const chatMessage = context?.chat?.[mesId];
     const rawContent = chatMessage?.mes || chatMessage?.content || "";
 
-    // STEP 1: Parse raw content for <lumia_ooc> tags
-    // ST strips custom tags from DOM, so we must extract content from raw message
+    // Count OOCs from both sources: tags in raw content AND font elements in DOM
     const oocMatches = extractOOCFromRawMessage(rawContent);
+    const existingBoxes = queryAll("[data-lumia-ooc]", messageElement);
+    const fontOOCs = queryAll("font", messageElement).filter(isLumiaOOCFont);
 
+    // Total expected OOCs = tag-based + font-based (that aren't already in boxes)
+    const unprocessedFontOOCs = fontOOCs.filter(f => !f.closest("[data-lumia-ooc]"));
+    const totalExpectedOOCs = oocMatches.length + unprocessedFontOOCs.length;
+
+    // Skip only if we've already wrapped ALL OOCs (not just some)
+    // This fixes the bug where partial renders caused later OOCs to be missed
+    if (existingBoxes.length > 0 && existingBoxes.length >= totalExpectedOOCs && !force) {
+      return; // All OOCs already processed
+    }
+
+    let processedCount = 0;
+
+    // STEP 1: Process <lumia_ooc> tags found in raw content
+    // (oocMatches was already extracted above for the early-exit check)
     if (oocMatches.length > 0) {
       console.log(
         `[${MODULE_NAME}] Found ${oocMatches.length} <lumia_ooc> tag(s) in raw content for message ${mesId}`,
@@ -1040,7 +1047,7 @@ function isPartialOOCMarker(fontElement) {
   const parent = fontElement.parentElement;
   if (!parent) return true;
 
-  const lumiaOocParent = fontElement.closest("lumia_ooc, lumiaooc");
+  const lumiaOocParent = fontElement.closest("lumia_ooc, lumiaooc, lumio_ooc, lumioooc");
   if (!lumiaOocParent) {
     const mesText = fontElement.closest(".mes_text");
     if (mesText) {
@@ -1161,7 +1168,7 @@ export function setupLumiaOOCObserver() {
           const chatMessage = context?.chat?.[mesId];
           const rawContent = chatMessage?.mes || chatMessage?.content || "";
 
-          const hasOOCTags = /<lumia_?ooc(?:\s+name="[^"]*")?>/i.test(rawContent);
+          const hasOOCTags = /<lumi[ao]_?ooc(?:\s+name="[^"]*")?>/i.test(rawContent);
           const oocFonts = queryAll("font", messageElement).filter(
             isLumiaOOCFont,
           );
