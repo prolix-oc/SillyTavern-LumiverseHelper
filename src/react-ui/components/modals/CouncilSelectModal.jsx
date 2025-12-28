@@ -59,7 +59,8 @@ function SelectableLumiaCard({ item, packName, onAdd, animationIndex }) {
     const animationDelay = Math.min(animationIndex * 30, 300);
 
     return (
-        <div
+        <button
+            type="button"
             className="lumiverse-council-select-card lumia-card-appear"
             style={{ animationDelay: `${animationDelay}ms` }}
             onClick={() => onAdd({ packName, itemName: item.lumiaDefName })}
@@ -91,7 +92,7 @@ function SelectableLumiaCard({ item, packName, onAdd, animationIndex }) {
                 <span className="lumiverse-council-select-card-name">{displayName}</span>
                 <span className="lumiverse-council-select-card-pack">{packName}</span>
             </div>
-        </div>
+        </button>
     );
 }
 

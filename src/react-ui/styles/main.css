@@ -8123,7 +8123,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     padding: 4px 0;
 }
 
-/* Selectable card */
+/* Selectable card - now a button for iOS touch compatibility */
 .lumiverse-council-select-card {
     display: flex;
     flex-direction: column;
@@ -8133,6 +8133,14 @@ details.lumia-panel[open] .lumia-panel-chevron {
     overflow: hidden;
     cursor: pointer;
     transition: all 0.2s ease;
+    /* Button reset */
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    text-align: left;
+    /* Mobile touch fixes */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(147, 112, 219, 0.2);
 }
 
 .lumiverse-council-select-card:hover {
@@ -8145,6 +8153,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     position: relative;
     aspect-ratio: 1;
     background: rgba(147, 112, 219, 0.1);
+    pointer-events: none; /* Allow parent button to capture touch */
 }
 
 .lumiverse-council-select-card-image img {
@@ -8187,6 +8196,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
 .lumiverse-council-select-card-info {
     padding: 8px;
     text-align: center;
+    pointer-events: none; /* Allow parent button to capture touch */
 }
 
 .lumiverse-council-select-card-name {
@@ -8313,6 +8323,12 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
     .lumiverse-council-select-card-pack {
         display: none;
+    }
+
+    /* Always show plus icon on touch devices since hover doesn't work */
+    .lumiverse-council-select-card-add {
+        opacity: 1;
+        transform: scale(1);
     }
 
     .lumiverse-council-select-footer {
