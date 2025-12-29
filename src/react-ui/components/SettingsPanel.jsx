@@ -1070,6 +1070,7 @@ function SettingsPanel() {
                         <MacroItem code="{{lumiaDef}}" description="Physical Definition" />
                         <MacroItem code="{{lumiaBehavior}}" description="Behavior(s)" />
                         <MacroItem code="{{lumiaPersonality}}" description="Personality(s)" />
+                        <MacroItem code="{{lumiaCouncilModeActive}}" description="Yes/No status indicator" />
                     </div>
                 </div>
 

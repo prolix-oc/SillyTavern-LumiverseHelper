@@ -779,4 +779,13 @@ export function registerLumiaMacros(MacrosParser) {
     console.log("[LumiverseHelper] lumiaCouncilInst: Council mode active, returning instruction");
     return COUNCIL_INST_PROMPT;
   }, "Council mode instruction prompt (empty when council mode is off)");
+
+  MacrosParser.registerMacro("lumiaCouncilModeActive", () => {
+    const currentSettings = getSettings();
+    // Return Yes only if council mode is active with members. Otherwise No.
+    if (!currentSettings.councilMode || !currentSettings.councilMembers?.length) {
+      return "**No.**";
+    }
+    return "**Yes.**";
+  }, "Council Mode status indicator (Yes/No — requires members for yes)");
 }
