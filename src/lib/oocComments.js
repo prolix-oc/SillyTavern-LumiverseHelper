@@ -1004,6 +1004,117 @@ function createOOCWhisperBubble(content, avatarImg, isAlt = false, memberName = 
 }
 
 /**
+ * Clean up DOM structure surrounding an OOC comment box after insertion
+ *
+ * When the Range API extracts and replaces content, it can leave behind:
+ * 1. Legacy <font color="#9370DB"> wrappers from old OOC format
+ * 2. Empty <p>, <div> elements that had their content removed
+ * 3. Stray <br> tags that were between content sections
+ *
+ * This function cleans all of these to ensure proper rendering.
+ *
+ * @param {HTMLElement} commentBox - The OOC comment box that was just inserted
+ */
+function cleanupOOCBoxSurroundings(commentBox) {
+  if (!commentBox) return;
+
+  let currentElement = commentBox;
+  let parent = currentElement.parentElement;
+
+  // Walk up the tree, unwrapping legacy font tags and cleaning empty wrappers
+  while (parent && !parent.classList?.contains("mes_text")) {
+    const nextParent = parent.parentElement;
+
+    // Check if parent is a legacy Lumia OOC font tag
+    if (parent.tagName === "FONT") {
+      const color = parent.getAttribute("color")?.toLowerCase();
+      if (color === LUMIA_OOC_COLOR_LOWER || color === "rgb(147, 112, 219)") {
+        // This is a legacy OOC font wrapper - unwrap it
+        // First, remove any sibling <br> tags inside the font
+        const siblings = Array.from(parent.childNodes);
+        siblings.forEach((sibling) => {
+          if (sibling === currentElement) return;
+          if (sibling.nodeType === Node.ELEMENT_NODE && sibling.tagName === "BR") {
+            sibling.remove();
+          } else if (sibling.nodeType === Node.TEXT_NODE && !sibling.textContent?.trim()) {
+            sibling.remove();
+          }
+        });
+
+        // Now unwrap: move our box out, then remove the empty font tag
+        if (parent.parentNode) {
+          parent.parentNode.insertBefore(currentElement, parent);
+          // If font tag is now empty or only has whitespace, remove it
+          if (!parent.textContent?.trim() && !parent.querySelector("[data-lumia-ooc]")) {
+            parent.remove();
+          }
+        }
+        // Update current element reference for next iteration
+        parent = nextParent;
+        continue;
+      }
+    }
+
+    // Check if parent is an empty <p> or <div> that should be unwrapped
+    if (parent.matches?.("p, div")) {
+      // Check if parent only contains our box (and possibly whitespace/br)
+      const meaningfulChildren = Array.from(parent.childNodes).filter((child) => {
+        if (child === currentElement) return true;
+        if (child.nodeType === Node.TEXT_NODE && !child.textContent?.trim()) return false;
+        if (child.nodeType === Node.ELEMENT_NODE && child.tagName === "BR") return false;
+        return true;
+      });
+
+      if (meaningfulChildren.length === 1 && meaningfulChildren[0] === currentElement) {
+        // Parent only contains our box - unwrap it
+        if (parent.parentNode) {
+          parent.parentNode.insertBefore(currentElement, parent);
+          parent.remove();
+        }
+        parent = nextParent;
+        continue;
+      }
+    }
+
+    // Move to next parent
+    currentElement = parent;
+    parent = nextParent;
+  }
+
+  // Clean up siblings at the final position
+  parent = commentBox.parentElement;
+  if (parent) {
+    // Remove adjacent <br> tags and empty elements
+    const removeIfEmpty = (element) => {
+      if (!element || element === commentBox) return;
+      if (element.nodeType === Node.ELEMENT_NODE) {
+        if (element.tagName === "BR") {
+          element.remove();
+        } else if (element.matches?.("p, div, font") &&
+                   !element.textContent?.trim() &&
+                   !element.querySelector("img, [data-lumia-ooc]")) {
+          element.remove();
+        }
+      }
+    };
+
+    // Check previous and next siblings
+    removeIfEmpty(commentBox.previousElementSibling);
+    removeIfEmpty(commentBox.nextElementSibling);
+
+    // Also check for text nodes that are just whitespace with <br>
+    const prevSibling = commentBox.previousSibling;
+    const nextSibling = commentBox.nextSibling;
+    if (prevSibling?.nodeType === Node.TEXT_NODE && !prevSibling.textContent?.trim()) {
+      prevSibling.remove();
+    }
+    if (nextSibling?.nodeType === Node.TEXT_NODE && !nextSibling.textContent?.trim()) {
+      nextSibling.remove();
+    }
+  }
+}
+
+/**
  * Internal: Perform the actual DOM updates for OOC comments in a message
  * Called by the RAF batch renderer - does not handle scroll preservation
  *
@@ -1092,24 +1203,9 @@ function performOOCProcessing(mesId, force = false) {
           const commentBox = createOOCCommentBox(surgicalMatch.innerHTML, avatarImg, processedCount, ooc.name);
           surgicalMatch.range.insertNode(commentBox);
 
-          // Clean up empty parent elements left behind after content extraction
-          // The Range API removes content but leaves empty <p> tags which cause extra spacing
-          const parent = commentBox.parentElement;
-          if (parent) {
-            // Check siblings for empty/whitespace-only block elements
-            const siblings = Array.from(parent.children);
-            siblings.forEach((sibling) => {
-              if (sibling === commentBox) return;
-              if (sibling.matches("p, div") && !sibling.textContent?.trim() && !sibling.querySelector("img, [data-lumia-ooc]")) {
-                sibling.remove();
-              }
-            });
-
-            // If parent itself is a <p> and now only contains our box, unwrap it
-            if (parent.matches("p") && parent.children.length === 1 && parent.children[0] === commentBox) {
-              parent.replaceWith(commentBox);
-            }
-          }
+          // Clean up surrounding DOM structure left behind after content extraction
+          // This handles: empty elements, legacy font tags, stray <br> tags
+          cleanupOOCBoxSurroundings(commentBox);
 
           markTextProcessed(mesId, plainText);
           processedCount++;
