@@ -65,7 +65,6 @@ import {
   scheduleOOCProcessingAfterRender,
   unhideAndProcessOOCMarkers,
   setupLumiaOOCObserver,
-  isLumiaOOCFont,
   setIsGenerating,
   initializeRAFBatchRenderer,
   flushPendingUpdates,
@@ -498,22 +497,15 @@ jQuery(async () => {
         hideLoomSumBlocks(messageElement);
         unhideAndProcessOOCMarkers(messageElement);
 
-        // Check for OOC content using multiple methods:
-        // 1. <lumia_ooc>, <lumiaooc>, <lumio_ooc>, or <lumioooc> elements in DOM (ST may render these as custom elements)
-        // 2. Same tags in raw content (backup - in case DOM doesn't have them yet)
-        // 3. <font> elements with OOC color in DOM (fallback for old format)
-        const lumiaOocElements = queryAll("lumia_ooc, lumiaooc, lumio_ooc, lumioooc", messageElement);
-        const fontElements = queryAll("font", messageElement);
-        const oocFonts = fontElements.filter(isLumiaOOCFont);
-
-        // Also check raw content as backup
+        // Check for OOC tags in raw content - ONLY tag-based detection
+        // Legacy font-based detection has been removed
         const context = getContext();
         const chatMessage = context?.chat?.[mesId];
         const rawContent = chatMessage?.mes || chatMessage?.content || "";
-        const hasOOCTagsInRaw = /<lumi[ao]_?ooc(?:\s+name="[^"]*")?>/i.test(rawContent);
+        const hasOOCTags = /<lumi[ao]_?ooc[^>]*>/i.test(rawContent);
 
-        if (lumiaOocElements.length > 0 || oocFonts.length > 0 || hasOOCTagsInRaw) {
-          console.log(`[${MODULE_NAME}] Found OOC content (lumia_ooc elements: ${lumiaOocElements.length}, fonts: ${oocFonts.length}, tags in raw: ${hasOOCTagsInRaw}), scheduling OOC processing for message ${mesId}`);
+        if (hasOOCTags) {
+          console.log(`[${MODULE_NAME}] Found OOC tags in raw content, scheduling OOC processing for message ${mesId}`);
           processLumiaOOCComments(mesId);
         }
       }

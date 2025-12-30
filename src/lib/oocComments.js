@@ -954,11 +954,13 @@ function createOOCWhisperBubble(content, avatarImg, isAlt = false, memberName = 
  * Internal: Perform the actual DOM updates for OOC comments in a message
  * Called by the RAF batch renderer - does not handle scroll preservation
  *
- * HYBRID APPROACH:
+ * TAG-ONLY APPROACH:
  * 1. Parse raw message content for <lumia_ooc> tags (ST strips custom tags from DOM)
- * 2. Use findAndReplaceDOMText to locate text content in the rendered DOM
+ * 2. Use Range API to surgically locate and wrap text content in the rendered DOM
  * 3. Replace matched text with styled OOC comment box
- * 4. Fall back to <font> element detection for backwards compatibility
+ *
+ * NOTE: Legacy font-based detection has been removed. Only <lumiaooc>/<lumia_ooc> tags
+ * are processed. Any font tags inside OOC content are stripped during cleaning.
  *
  * @param {number} mesId - The message ID to process
  * @param {boolean} force - Force reprocessing even if OOC boxes exist
@@ -982,25 +984,18 @@ function performOOCProcessing(mesId, force = false) {
     const chatMessage = context?.chat?.[mesId];
     const rawContent = chatMessage?.mes || chatMessage?.content || "";
 
-    // Count OOCs from both sources: tags in raw content AND font elements in DOM
+    // Extract OOC matches from raw content - ONLY tag-based detection
     const oocMatches = extractOOCFromRawMessage(rawContent);
     const existingBoxes = queryAll("[data-lumia-ooc]", messageElement);
-    const fontOOCs = queryAll("font", messageElement).filter(isLumiaOOCFont);
 
-    // Total expected OOCs = tag-based + font-based (that aren't already in boxes)
-    const unprocessedFontOOCs = fontOOCs.filter(f => !f.closest("[data-lumia-ooc]"));
-    const totalExpectedOOCs = oocMatches.length + unprocessedFontOOCs.length;
-
-    // Skip only if we've already wrapped ALL OOCs (not just some)
-    // This fixes the bug where partial renders caused later OOCs to be missed
-    if (existingBoxes.length > 0 && existingBoxes.length >= totalExpectedOOCs && !force) {
+    // Skip if we've already wrapped all expected OOCs
+    if (existingBoxes.length > 0 && existingBoxes.length >= oocMatches.length && !force) {
       return; // All OOCs already processed
     }
 
     let processedCount = 0;
 
-    // STEP 1: Process <lumia_ooc> tags found in raw content
-    // (oocMatches was already extracted above for the early-exit check)
+    // Process <lumia_ooc> tags found in raw content
     if (oocMatches.length > 0) {
       console.log(
         `[${MODULE_NAME}] Found ${oocMatches.length} <lumia_ooc> tag(s) in raw content for message ${mesId}`,
@@ -1078,85 +1073,6 @@ function performOOCProcessing(mesId, force = false) {
           console.log(
             `[${MODULE_NAME}] Replaced OOC #${index + 1} with styled box (element fallback method)`,
           );
-        }
-      });
-    }
-
-    // STEP 2: Process <font> elements with OOC color
-    // This is a fallback for messages that don't use <lumia_ooc> tags
-    const fontElements = queryAll("font", messageElement).filter(isLumiaOOCFont);
-
-    if (fontElements.length > 0) {
-      console.log(
-        `[${MODULE_NAME}] Found ${fontElements.length} OOC font element(s) in DOM for message ${mesId}`,
-      );
-
-      fontElements.forEach((fontElement, index) => {
-        // Skip if inside an already-processed OOC box
-        if (fontElement.closest("[data-lumia-ooc]")) {
-          console.log(`[${MODULE_NAME}] Skipping font #${index + 1}: already inside processed box`);
-          return;
-        }
-
-        // Get content from font element
-        const rawFontContent = fontElement.innerHTML;
-        const cleanContent = cleanOOCContent(rawFontContent);
-
-        if (!cleanContent) {
-          console.log(
-            `[${MODULE_NAME}] Skipping font #${index + 1}: empty after cleaning`,
-          );
-          return;
-        }
-
-        // Check if this text was already processed (by tag-based detection)
-        const plainText = htmlToPlainText(rawFontContent);
-        if (isTextProcessed(mesId, plainText)) {
-          console.log(`[${MODULE_NAME}] Skipping font #${index + 1}: already processed by tag detection`);
-          return;
-        }
-
-        console.log(
-          `[${MODULE_NAME}] Processing font #${index + 1}: "${cleanContent.substring(0, 50)}${cleanContent.length > 50 ? "..." : ""}"`,
-        );
-
-        // Mark as processed
-        markTextProcessed(mesId, plainText);
-
-        // Get default Lumia avatar (no member name available from font-only format)
-        const avatarImg = getLumiaAvatarImg();
-
-        // Create styled box
-        const commentBox = createOOCCommentBox(cleanContent, avatarImg, processedCount);
-
-        // Find the outermost element to replace
-        // Walk up to find any containing block element that only contains this OOC
-        let elementToReplace = fontElement;
-        let current = fontElement.parentElement;
-
-        while (current && current !== messageElement) {
-          const tagName = current.tagName?.toLowerCase();
-
-          // Stop at block-level elements
-          if (tagName === "p" || tagName === "div") {
-            // Only replace the block if it contains just this OOC content
-            const blockText = current.textContent?.trim();
-            const fontText = fontElement.textContent?.trim();
-            if (blockText === fontText) {
-              elementToReplace = current;
-            }
-            break;
-          }
-          current = current.parentElement;
-        }
-
-        // Replace the element
-        if (elementToReplace.parentNode) {
-          elementToReplace.parentNode.replaceChild(commentBox, elementToReplace);
-          console.log(
-            `[${MODULE_NAME}] Replaced font #${index + 1} (${elementToReplace.tagName}) with styled box`,
-          );
-          processedCount++;
         }
       });
     }
@@ -1301,67 +1217,11 @@ export function scheduleOOCProcessingAfterRender() {
 }
 
 /**
- * Check if a font element is a partial/incomplete OOC marker during streaming
- * @param {HTMLElement} fontElement - The font element to check
- * @returns {boolean} True if it appears to be a partial OOC marker
- */
-function isPartialOOCMarker(fontElement) {
-  if (!isLumiaOOCFont(fontElement)) return false;
-
-  const parent = fontElement.parentElement;
-  if (!parent) return true;
-
-  const lumiaOocParent = fontElement.closest("lumia_ooc, lumiaooc, lumio_ooc, lumioooc");
-  if (!lumiaOocParent) {
-    const mesText = fontElement.closest(".mes_text");
-    if (mesText) {
-      const isStreaming = mesText
-        .closest(".mes")
-        ?.classList.contains("last_mes");
-      return isStreaming;
-    }
-  }
-
-  return false;
-}
-
-/**
- * Hide partial OOC markers during streaming
- * @param {HTMLElement} messageElement - The message element to process
- */
-function hideStreamingOOCMarkers(messageElement) {
-  const fontElements = queryAll("font", messageElement);
-  const oocFonts = fontElements.filter(isLumiaOOCFont);
-
-  oocFonts.forEach((fontElement) => {
-    if (isPartialOOCMarker(fontElement)) {
-      if (!fontElement.classList.contains("lumia-ooc-marker-hidden")) {
-        fontElement.classList.add("lumia-ooc-marker-hidden");
-        fontElement.style.display = "none";
-        console.log(
-          `[${MODULE_NAME}] Hiding partial OOC marker during streaming`,
-        );
-      }
-    }
-  });
-}
-
-/**
- * Unhide and process OOC markers after streaming completes
+ * Process OOC comments after streaming completes
+ * Legacy font-based hiding has been removed - this now just triggers OOC processing
  * @param {HTMLElement} messageElement - The message element to process
  */
 export function unhideAndProcessOOCMarkers(messageElement) {
-  const hiddenMarkers = queryAll(".lumia-ooc-marker-hidden", messageElement);
-
-  if (hiddenMarkers.length === 0) return;
-
-  console.log(`[${MODULE_NAME}] Unhiding ${hiddenMarkers.length} OOC markers`);
-
-  hiddenMarkers.forEach((marker) => {
-    marker.classList.remove("lumia-ooc-marker-hidden");
-    marker.style.display = "";
-  });
-
   const mesBlock = messageElement.closest("div[mesid]");
   if (mesBlock) {
     const mesId = parseInt(mesBlock.getAttribute("mesid"), 10);
@@ -1388,14 +1248,8 @@ export function setupLumiaOOCObserver() {
           messageElements = Array.from(node.querySelectorAll(".mes_text"));
         }
 
-        // Check for OOC font elements (fallback method - fonts remain visible in DOM)
-        // Tag-based detection via raw content is handled by CHARACTER_MESSAGE_RENDERED
-        if (node.tagName === "FONT" && isLumiaOOCFont(node)) {
-          const mesText = node.closest(".mes_text");
-          if (mesText && !messageElements.includes(mesText)) {
-            messageElements.push(mesText);
-          }
-        }
+        // NOTE: Legacy font-based OOC detection has been removed.
+        // Only <lumiaooc>/<lumia_ooc> tags in raw content trigger OOC processing.
 
         if (
           node.nodeType === Node.TEXT_NODE ||
@@ -1426,20 +1280,16 @@ export function setupLumiaOOCObserver() {
 
           const mesId = parseInt(mesBlock.getAttribute("mesid"), 10);
 
-          // Check for OOC content: tags in raw content, or font elements in DOM (fallback)
-          // DOM-based tag detection is unreliable as ST hides custom tags by default
+          // Check for OOC tags in raw content - ONLY tag-based detection
           const context = getContext();
           const chatMessage = context?.chat?.[mesId];
           const rawContent = chatMessage?.mes || chatMessage?.content || "";
 
-          const hasOOCTags = /<lumi[ao]_?ooc(?:\s+name="[^"]*")?>/i.test(rawContent);
-          const oocFonts = queryAll("font", messageElement).filter(
-            isLumiaOOCFont,
-          );
+          const hasOOCTags = /<lumi[ao]_?ooc[^>]*>/i.test(rawContent);
 
-          if (hasOOCTags || oocFonts.length > 0) {
+          if (hasOOCTags) {
             console.log(
-              `[${MODULE_NAME}] Observer: Processing OOC in message ${mesId} (tags in raw: ${hasOOCTags}, fonts in DOM: ${oocFonts.length})`,
+              `[${MODULE_NAME}] Observer: Processing OOC tags in message ${mesId}`,
             );
             processLumiaOOCComments(mesId);
           }
