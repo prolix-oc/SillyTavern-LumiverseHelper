@@ -779,4 +779,67 @@ export function registerLumiaMacros(MacrosParser) {
     console.log("[LumiverseHelper] lumiaCouncilInst: Council mode active, returning instruction");
     return COUNCIL_INST_PROMPT;
   }, "Council mode instruction prompt (empty when council mode is off)");
+
+  // ============================================
+  // lumiaSelf macro - Self-address pronouns
+  // Returns singular or plural pronouns based on council mode
+  // Usage: {{lumiaSelf .1}} {{lumiaSelf .2}} {{lumiaSelf .3}} {{lumiaSelf .4}}
+  // ============================================
+  MacrosParser.registerMacro("lumiaSelf", (namedArgs) => {
+    const currentSettings = getSettings();
+    const variable = parseVariable(namedArgs);
+
+    // Pronoun maps: [singular, plural]
+    const pronounMap = {
+      "1": ["my", "our"],       // possessive determiner: "my domain" / "our domain"
+      "2": ["mine", "ours"],    // possessive pronoun: "this is mine" / "this is ours"
+      "3": ["me", "us"],        // object pronoun: "listen to me" / "listen to us"
+      "4": ["I", "we"],         // subject pronoun: "I think" / "we think"
+    };
+
+    const pronouns = pronounMap[variable];
+    if (!pronouns) {
+      console.warn(`[LumiverseHelper] lumiaSelf: Invalid variable "${variable}", expected .1, .2, .3, or .4`);
+      return "";
+    }
+
+    // Council mode uses plural self-address (our/ours/us/we)
+    const isCouncil = currentSettings.councilMode && currentSettings.councilMembers?.length > 0;
+    const result = isCouncil ? pronouns[1] : pronouns[0];
+
+    console.log(`[LumiverseHelper] lumiaSelf .${variable}: ${result} (council: ${isCouncil})`);
+    return result;
+  }, "Lumia self-address pronouns. {{lumiaSelf .1}}=my/our, {{lumiaSelf .2}}=mine/ours, {{lumiaSelf .3}}=me/us, {{lumiaSelf .4}}=I/we. Returns plural in council mode.");
+
+  // ============================================
+  // lumiaPn macro - Third-person pronouns (PLACEHOLDER - NOT ACTIVE)
+  // Would return gendered pronouns based on Lumia's defined gender
+  // Usage: {{lumiaPn .1}} {{lumiaPn .2}} {{lumiaPn .3}}
+  // ============================================
+  // TODO: Enable when pronoun injection packs are ready
+  // MacrosParser.registerMacro("lumiaPn", (namedArgs) => {
+  //   const currentSettings = getSettings();
+  //   const variable = parseVariable(namedArgs);
+  //
+  //   // Pronoun maps: [masculine, feminine]
+  //   const pronounMap = {
+  //     "1": ["he", "she"],     // subject pronoun
+  //     "2": ["him", "her"],    // object pronoun
+  //     "3": ["his", "hers"],   // possessive pronoun
+  //   };
+  //
+  //   const pronouns = pronounMap[variable];
+  //   if (!pronouns) {
+  //     console.warn(`[LumiverseHelper] lumiaPn: Invalid variable "${variable}", expected .1, .2, or .3`);
+  //     return "";
+  //   }
+  //
+  //   // TODO: Determine gender from Lumia definition or pack metadata
+  //   // For now, this macro is disabled until gender data is available
+  //   // const isMasculine = ???;
+  //   // const result = isMasculine ? pronouns[0] : pronouns[1];
+  //
+  //   console.warn("[LumiverseHelper] lumiaPn: Macro not yet active - no gender data available");
+  //   return "";
+  // }, "Lumia third-person pronouns. {{lumiaPn .1}}=he/she, {{lumiaPn .2}}=him/her, {{lumiaPn .3}}=his/hers. PLACEHOLDER - not yet active.");
 }

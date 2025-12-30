@@ -147,37 +147,102 @@ function sanitizeLumiaName(name) {
 /**
  * Extract OOC comments from raw message text using <lumia_ooc> or <lumiaooc> tags
  * Supports both normal and council mode formats
+ *
+ * PRECISE MATCHING STRUCTURE:
+ * 1. Opening tag with name attribute: <lumia_ooc name="Name"> or <lumiaooc name="Name">
+ * 2. Whitespace/newline
+ * 3. Content (narrative comments)
+ * 4. Whitespace/newline
+ * 5. Closing tag that MATCHES the opening: </lumia_ooc> or </lumiaooc>
+ *
+ * Uses backreference to ensure opening/closing tags use same variant.
+ *
  * @param {string} rawText - The raw message text
  * @returns {Array<{name: string|null, content: string, fullMatch: string}>} Array of OOC matches
  */
 function extractOOCFromRawMessage(rawText) {
   if (!rawText) return [];
 
-  // Match all OOC tag formats: <lumia_ooc>, <lumiaooc>, <lumio_ooc>, <lumioooc>
-  // lumi[ao]_?ooc matches: "lumia_ooc", "lumiaooc", "lumio_ooc", "lumioooc"
-  const oocRegex = /<lumi[ao]_?ooc(?:\s+name="([^"]*)")?>([\s\S]*?)<\/lumi[ao]_?ooc>/gi;
+  // Precise regex with backreference to ensure matching open/close tags
+  // Group 1: Tag variant (lumia_ooc, lumiaooc, lumio_ooc, lumioooc)
+  // Group 2: Name attribute value (required)
+  // Group 3: Content between tags
+  // \1 backreference ensures closing tag matches opening tag exactly
+  const oocRegex = /<(lumi[ao]_?ooc)\s+name="([^"]*)">\s*([\s\S]*?)\s*<\/\1>/gi;
   const matches = [];
   let match;
 
   while ((match = oocRegex.exec(rawText)) !== null) {
+    const tagVariant = match[1];
+    const rawName = match[2];
+    const content = match[3];
+
     // Sanitize the name to remove "Lumia" prefix if present
-    const sanitizedName = sanitizeLumiaName(match[1]);
+    const sanitizedName = sanitizeLumiaName(rawName);
+
+    console.log(`[${MODULE_NAME}] Extracted OOC: tag=${tagVariant}, name="${rawName}" → "${sanitizedName}", content length=${content.length}`);
 
     matches.push({
-      name: sanitizedName, // Sanitized name or null
-      content: match[2].trim(),
+      name: sanitizedName,
+      content: content.trim(),
       fullMatch: match[0],
     });
+  }
+
+  // Fallback: Also try matching OOC tags without name attribute (legacy/simple format)
+  // Only if we found no matches with the precise regex
+  if (matches.length === 0) {
+    const fallbackRegex = /<(lumi[ao]_?ooc)(?:\s+name="([^"]*)")?>\s*([\s\S]*?)\s*<\/\1>/gi;
+    while ((match = fallbackRegex.exec(rawText)) !== null) {
+      const sanitizedName = sanitizeLumiaName(match[2]);
+      matches.push({
+        name: sanitizedName,
+        content: match[3].trim(),
+        fullMatch: match[0],
+      });
+    }
   }
 
   return matches;
 }
 
 /**
+ * Strip markdown formatting characters from text
+ * SillyTavern renders markdown, so *text* becomes <em>text</em> in DOM
+ * We need to strip these from search text to match the rendered DOM content
+ * @param {string} text - Text that may contain markdown
+ * @returns {string} Text with markdown formatting stripped
+ */
+function stripMarkdownFormatting(text) {
+  if (!text) return "";
+
+  let result = text;
+
+  // Remove bold/italic markers: **text**, *text*, __text__, _text_
+  // Process longer patterns first to avoid partial matches
+  result = result.replace(/\*\*\*(.+?)\*\*\*/g, "$1"); // ***bold italic***
+  result = result.replace(/\*\*(.+?)\*\*/g, "$1");     // **bold**
+  result = result.replace(/\*(.+?)\*/g, "$1");         // *italic*
+  result = result.replace(/___(.+?)___/g, "$1");       // ___bold italic___
+  result = result.replace(/__(.+?)__/g, "$1");         // __bold__
+  result = result.replace(/_(.+?)_/g, "$1");           // _italic_
+
+  // Handle standalone asterisks at start (like "*sighs*" action markers)
+  // These often appear as *action* at the start of OOC content
+  result = result.replace(/^\*([^*]+)\*/g, "$1");
+
+  // Normalize quotes: smart quotes to straight quotes for matching
+  result = result.replace(/[""]/g, '"');
+  result = result.replace(/['']/g, "'");
+
+  return result;
+}
+
+/**
  * Strip HTML tags and convert to plain text for matching
- * Preserves meaningful whitespace but normalizes multiple spaces
+ * Also strips markdown formatting since ST renders it to HTML
  * @param {string} html - HTML content
- * @returns {string} Plain text content
+ * @returns {string} Plain text content ready for DOM matching
  */
 function htmlToPlainText(html) {
   if (!html) return "";
@@ -189,6 +254,9 @@ function htmlToPlainText(html) {
   // Get text content (browser handles entity decoding)
   let text = temp.textContent || temp.innerText || "";
 
+  // Strip markdown formatting (ST renders *text* as <em>, so DOM won't have asterisks)
+  text = stripMarkdownFormatting(text);
+
   // Normalize whitespace: collapse multiple spaces/newlines to single space
   text = text.replace(/\s+/g, " ").trim();
 
@@ -197,7 +265,13 @@ function htmlToPlainText(html) {
 
 /**
  * Find text in a container and return the matching element's formatted content
- * Simple and direct approach - walks text nodes to find matches
+ *
+ * IMPROVED MATCHING STRATEGY:
+ * 1. Skip elements already wrapped in [data-lumia-ooc] (already processed)
+ * 2. Use longer prefix matching (min 50 chars or full text if shorter)
+ * 3. Verify substantial content overlap, not just prefix
+ * 4. For council mode with multiple OOCs, this prevents cross-matching
+ *
  * @param {HTMLElement} container - Container element to search within
  * @param {string} searchText - Text to find (will be normalized)
  * @returns {{element: HTMLElement, innerHTML: string}|null} Matched element and its innerHTML, or null
@@ -209,20 +283,50 @@ function findMatchingElement(container, searchText) {
   const normalizedSearch = searchText.replace(/\s+/g, " ").trim().toLowerCase();
   if (!normalizedSearch) return null;
 
+  // Use longer prefix for matching to avoid cross-matching similar OOCs
+  // Use at least 50 chars or full text if shorter
+  const matchPrefix = normalizedSearch.substring(0, Math.min(50, normalizedSearch.length));
+
   // First, check all <p> tags - ST wraps content in paragraphs
   const paragraphs = queryAll("p", container);
 
   for (let pIdx = 0; pIdx < paragraphs.length; pIdx++) {
     const p = paragraphs[pIdx];
-    const pText = (p.textContent || "").replace(/\s+/g, " ").trim();
+
+    // Skip paragraphs already inside a wrapped OOC box
+    if (p.closest("[data-lumia-ooc]")) {
+      continue;
+    }
+
+    // Normalize DOM text: strip any remaining markdown and normalize quotes
+    const pText = stripMarkdownFormatting((p.textContent || "").replace(/\s+/g, " ").trim());
     const pTextLower = pText.toLowerCase();
 
-    // Check if this paragraph contains our search text (first 30 chars)
-    if (!pTextLower.includes(normalizedSearch.substring(0, 30))) {
+    // Check if this paragraph contains our search prefix
+    if (!pTextLower.includes(matchPrefix)) {
+      continue;
+    }
+
+    // Additional verification: Check for substantial content overlap
+    // The paragraph text should contain most of the search text (at least 80%)
+    const overlapThreshold = Math.min(normalizedSearch.length, pTextLower.length) * 0.8;
+    let overlapCount = 0;
+
+    // Count how many characters from search text appear in paragraph
+    for (let i = 0; i < normalizedSearch.length && i < pTextLower.length; i++) {
+      if (pTextLower.includes(normalizedSearch.substring(i, i + 10))) {
+        overlapCount += 10;
+        i += 9; // Skip ahead
+      }
+    }
+
+    if (overlapCount < overlapThreshold && normalizedSearch.length > 50) {
+      // Not enough overlap for longer texts, try next paragraph
       continue;
     }
 
     // Found a match - return the element and its formatted innerHTML
+    console.log(`[${MODULE_NAME}] findMatchingElement: Matched paragraph ${pIdx} with ${overlapCount}/${normalizedSearch.length} char overlap`);
     return {
       element: p,
       innerHTML: p.innerHTML,
@@ -234,17 +338,24 @@ function findMatchingElement(container, searchText) {
   let node;
 
   while ((node = walker.nextNode())) {
-    const nodeText = node.nodeValue || "";
+    // Skip nodes inside already-wrapped OOC boxes
+    if (node.parentElement?.closest("[data-lumia-ooc]")) {
+      continue;
+    }
+
+    // Normalize node text for comparison
+    const nodeText = stripMarkdownFormatting(node.nodeValue || "");
     const nodeTextLower = nodeText.toLowerCase();
 
-    if (nodeTextLower.includes(normalizedSearch.substring(0, 30))) {
+    if (nodeTextLower.includes(matchPrefix)) {
       // Find the parent element
       let target = node.parentElement;
       while (target && target !== container && target.tagName !== "P" && target.tagName !== "DIV") {
         target = target.parentElement;
       }
 
-      if (target && target !== container) {
+      if (target && target !== container && !target.closest("[data-lumia-ooc]")) {
+        console.log(`[${MODULE_NAME}] findMatchingElement: Matched via text walker fallback`);
         return {
           element: target,
           innerHTML: target.innerHTML,
