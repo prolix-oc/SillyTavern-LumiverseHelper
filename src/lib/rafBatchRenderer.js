@@ -307,6 +307,20 @@ export function hasPendingUpdates() {
 }
 
 /**
+ * Reset the RAF scheduler state for a fresh start
+ * Call this when switching chats to ensure clean processing
+ */
+export function resetRAFState() {
+  // Cancel any pending operations
+  cancelAllPendingUpdates();
+
+  // Reset first render flag so next update is immediate
+  isFirstRenderPending = true;
+
+  console.log(`[${MODULE_NAME}] RAF: State reset for fresh processing`);
+}
+
+/**
  * Get the count of pending individual message updates
  * @returns {number} Number of pending message updates
  */

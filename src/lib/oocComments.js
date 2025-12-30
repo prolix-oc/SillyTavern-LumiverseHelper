@@ -53,10 +53,15 @@ export function getIsGenerating() {
 }
 
 /**
- * Clean OOC content by removing lumia_ooc tags, font tags, and trimming whitespace
+ * Clean OOC content by removing lumia_ooc tags, font tags, and normalizing whitespace/breaks
  * Preserves inner content of removed tags (like <em>, <strong>, etc.)
+ *
+ * CRITICAL: When Range API extracts content spanning multiple <p> elements,
+ * we can end up with excessive <br> tags and empty block elements causing spacing issues.
+ * This function aggressively normalizes to prevent layout problems in OOC wrappers.
+ *
  * @param {string} html - The raw innerHTML content
- * @returns {string} Cleaned content with tags stripped and whitespace trimmed
+ * @returns {string} Cleaned content with tags stripped and whitespace normalized
  */
 function cleanOOCContent(html) {
   if (!html) return "";
@@ -71,8 +76,22 @@ function cleanOOCContent(html) {
   // This strips the legacy OOC detection method (purple font color)
   cleaned = cleaned.replace(/<\/?font(?:\s+[^>]*)?>/gi, "");
 
-  // Collapse multiple newlines/breaks into single ones
-  cleaned = cleaned.replace(/(<br\s*\/?>\s*){2,}/gi, "<br>");
+  // Remove empty <p> and <div> tags entirely (they add unwanted margins)
+  cleaned = cleaned.replace(/<(p|div)>\s*<\/\1>/gi, "");
+
+  // Convert <p> and <div> tags to simple line breaks to flatten structure
+  // Opening tag becomes nothing, closing tag becomes <br> (will be normalized below)
+  cleaned = cleaned.replace(/<(p|div)(?:\s+[^>]*)?>/gi, "");
+  cleaned = cleaned.replace(/<\/(p|div)>/gi, "<br>");
+
+  // Normalize all whitespace around <br> tags
+  // This handles cases like: text<br>   <br>text or text<br>\n<br>text
+  cleaned = cleaned.replace(/\s*<br\s*\/?>\s*/gi, "<br>");
+
+  // Collapse multiple consecutive <br> tags (now that whitespace is normalized)
+  cleaned = cleaned.replace(/(<br>){2,}/gi, "<br>");
+
+  // Collapse multiple newlines into single ones
   cleaned = cleaned.replace(/(\n\s*){2,}/g, "\n");
 
   // Trim leading/trailing whitespace and line breaks
@@ -1219,55 +1238,90 @@ export function processAllLumiaOOCComments(clearExisting = false) {
 
 /**
  * Schedule OOC processing after chat render completes
- * Uses RAF batching for optimal timing - no artificial delays
+ * Uses RAF batching for optimal timing with proper DOM sync verification
+ *
+ * CRITICAL: When CHAT_CHANGED fires, the old chat's DOM may still be present.
+ * We must wait for SillyTavern to finish replacing the DOM before processing.
+ * Strategy:
+ * 1. Add initial delay to let ST start the DOM transition
+ * 2. Wait until DOM message count matches context chat length
+ * 3. Only then process OOC comments
  */
 export function scheduleOOCProcessingAfterRender() {
   // Clear any pending timers
   if (oocProcessingTimer) clearTimeout(oocProcessingTimer);
   if (oocRenderWaitTimer) clearTimeout(oocRenderWaitTimer);
 
-  const maxWaitTime = 1000; // Reduced from 3000ms
-  const checkInterval = 16; // One frame at 60fps
-  const startTime = Date.now();
+  // Clear all processed text tracking on chat change - fresh start for new chat
+  clearAllProcessedTexts();
+
+  const maxWaitTime = 2000; // Allow time for complex chats to render
+  const checkInterval = 50; // Check every 50ms for DOM stability
+  const initialDelay = 100; // Wait 100ms for ST to start DOM transition
 
   function checkAndProcess() {
-    const chatElement = document.getElementById("chat");
-    const context = getContext();
+    const startTime = Date.now();
 
-    const hasContextMessages = context?.chat?.length > 0;
-    const messageElements = chatElement
-      ? queryAll(".mes_text", chatElement)
-      : [];
-    const hasDOMMessages = messageElements.length > 0;
+    function doCheck() {
+      const chatElement = document.getElementById("chat");
+      const context = getContext();
 
-    if (Date.now() - startTime > maxWaitTime) {
-      console.log(
-        `[${MODULE_NAME}] Max wait time reached, processing OOCs now`,
-      );
-      processAllLumiaOOCComments();
-      return;
+      const contextMessageCount = context?.chat?.length || 0;
+      const messageElements = chatElement
+        ? queryAll(".mes_text", chatElement)
+        : [];
+      const domMessageCount = messageElements.length;
+
+      // Timeout check
+      if (Date.now() - startTime > maxWaitTime) {
+        console.log(
+          `[${MODULE_NAME}] Max wait time reached (context: ${contextMessageCount}, DOM: ${domMessageCount}), processing OOCs now`,
+        );
+        processAllLumiaOOCComments();
+        return;
+      }
+
+      // Empty chat case - process immediately (nothing to do)
+      if (contextMessageCount === 0) {
+        console.log(`[${MODULE_NAME}] Empty chat detected, no OOC processing needed`);
+        return;
+      }
+
+      // DOM not ready yet - keep waiting
+      if (domMessageCount === 0) {
+        oocRenderWaitTimer = setTimeout(doCheck, checkInterval);
+        return;
+      }
+
+      // DOM has messages - verify it matches context count (allows for some mismatch from system messages)
+      // Consider DOM ready if it has at least 80% of expected messages or exact match
+      const readyThreshold = Math.max(1, Math.floor(contextMessageCount * 0.8));
+      if (domMessageCount >= readyThreshold) {
+        // Additional check: verify the last message element exists and has content
+        const lastMesId = contextMessageCount - 1;
+        const lastMessageElement = query(`div[mesid="${lastMesId}"] .mes_text`);
+
+        if (lastMessageElement && lastMessageElement.textContent?.trim()) {
+          console.log(
+            `[${MODULE_NAME}] DOM ready with ${domMessageCount}/${contextMessageCount} messages, scheduling OOC processing`,
+          );
+          processAllLumiaOOCComments();
+          return;
+        }
+      }
+
+      // Not ready yet, keep checking
+      oocRenderWaitTimer = setTimeout(doCheck, checkInterval);
     }
 
-    if (hasContextMessages && !hasDOMMessages) {
-      // DOM not ready yet, check again next frame
-      oocRenderWaitTimer = setTimeout(checkAndProcess, checkInterval);
-      return;
-    }
-
-    if (hasDOMMessages || !hasContextMessages) {
-      // DOM ready - process immediately via RAF batching
-      console.log(
-        `[${MODULE_NAME}] DOM ready with ${messageElements.length} messages, scheduling OOC processing`,
-      );
-      processAllLumiaOOCComments();
-      return;
-    }
-
-    oocRenderWaitTimer = setTimeout(checkAndProcess, checkInterval);
+    doCheck();
   }
 
-  // Start checking immediately via RAF for optimal timing
-  requestAnimationFrame(checkAndProcess);
+  // Add initial delay to let SillyTavern start the DOM transition
+  // This prevents us from seeing stale DOM from the previous chat
+  oocProcessingTimer = setTimeout(() => {
+    requestAnimationFrame(checkAndProcess);
+  }, initialDelay);
 }
 
 /**
@@ -1387,3 +1441,9 @@ export function initializeRAFBatchRenderer() {
  * Useful when updates need to be visible immediately
  */
 export { flushPendingUpdates } from "./rafBatchRenderer.js";
+
+/**
+ * Reset RAF scheduler state for fresh processing
+ * Call this when switching chats
+ */
+export { resetRAFState } from "./rafBatchRenderer.js";

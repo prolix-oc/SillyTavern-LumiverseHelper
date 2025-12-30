@@ -69,6 +69,7 @@ import {
   initializeRAFBatchRenderer,
   flushPendingUpdates,
   clearProcessedTexts,
+  resetRAFState,
 } from "./lib/oocComments.js";
 
 import {
@@ -537,7 +538,9 @@ jQuery(async () => {
     });
 
     eventSource.on(event_types.CHAT_CHANGED, () => {
-      console.log(`[${MODULE_NAME}] CHAT_CHANGED event - scheduling OOC reprocessing and loom summary capture`);
+      console.log(`[${MODULE_NAME}] CHAT_CHANGED event - resetting state and scheduling OOC reprocessing`);
+      // Reset RAF state for fresh processing on new chat
+      resetRAFState();
       captureLoomSummary();
       scheduleOOCProcessingAfterRender();
       requestAnimationFrame(() => {
