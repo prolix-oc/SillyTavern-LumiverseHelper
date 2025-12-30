@@ -271,6 +271,9 @@ function stripMarkdownFormatting(text) {
   result = result.replace(/[""]/g, '"');
   result = result.replace(/['']/g, "'");
 
+  // Normalize ellipses: convert Unicode ellipsis to three periods
+  result = result.replace(/…/g, "...");
+
   return result;
 }
 
@@ -339,12 +342,24 @@ function findAndWrapOOCContent(container, searchText, rawOOCContent) {
   // Accumulate text as we walk to find the match position
   let accumulatedText = "";
   const textNodes = [];
+  let lastBlockElement = null;
 
   while ((node = walker.nextNode())) {
     // Skip nodes inside already-wrapped OOC boxes
     if (node.parentElement?.closest("[data-lumia-ooc]")) {
       continue;
     }
+
+    // Check if we're in a new block element - add space between blocks
+    // This ensures "paragraph1.paragraph2" becomes "paragraph1. paragraph2" for matching
+    const currentBlock = node.parentElement?.closest("p, div, li, blockquote, h1, h2, h3, h4, h5, h6");
+    if (lastBlockElement && currentBlock && currentBlock !== lastBlockElement) {
+      // Add a space if accumulated text doesn't end with whitespace
+      if (accumulatedText.length > 0 && !/\s$/.test(accumulatedText)) {
+        accumulatedText += " ";
+      }
+    }
+    lastBlockElement = currentBlock;
 
     textNodes.push({
       node: node,
@@ -355,7 +370,12 @@ function findAndWrapOOCContent(container, searchText, rawOOCContent) {
   }
 
   // Normalize accumulated text for matching
-  const normalizedAccumulated = accumulatedText.replace(/\s+/g, " ");
+  // Also normalize ellipses and quotes to match search text normalization
+  const normalizedAccumulated = accumulatedText
+    .replace(/\s+/g, " ")
+    .replace(/…/g, "...")
+    .replace(/[""]/g, '"')
+    .replace(/['']/g, "'");
   const normalizedAccumulatedLower = normalizedAccumulated.toLowerCase();
 
   // Find where the OOC content starts in the accumulated text
@@ -478,8 +498,15 @@ function findMatchingElement(container, searchText) {
       continue;
     }
 
-    // Normalize DOM text
-    const pText = stripMarkdownFormatting((p.textContent || "").replace(/\s+/g, " ").trim());
+    // Normalize DOM text - apply same normalization as search text
+    const pText = stripMarkdownFormatting(
+      (p.textContent || "")
+        .replace(/\s+/g, " ")
+        .replace(/…/g, "...")
+        .replace(/[""]/g, '"')
+        .replace(/['']/g, "'")
+        .trim()
+    );
     const pTextLower = pText.toLowerCase();
 
     // Check if this paragraph contains our search prefix
