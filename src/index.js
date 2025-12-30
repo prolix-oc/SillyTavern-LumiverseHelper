@@ -446,7 +446,10 @@ jQuery(async () => {
   // --- UI EVENT LISTENERS (Legacy jQuery for compatibility) ---
   jQuery("#lumia-fetch-btn").on("click", () => {
     const url = jQuery("#lumia-url-input").val();
-    fetchWorldBook(url).then(() => refreshUIDisplay());
+    fetchWorldBook(url).then(() => {
+      refreshUIDisplay();
+      notifyReactOfSettingsChange();
+    });
   });
 
   jQuery("#lumia-open-definitions-btn").on("click", () => showSelectionModal("definition"));
@@ -472,6 +475,7 @@ jQuery(async () => {
         const data = JSON.parse(e.target.result);
         handleNewBook(data, file.name, false);
         refreshUIDisplay();
+        notifyReactOfSettingsChange();
       } catch (error) {
         console.error("Lumia Injector Error:", error);
         toastr.error("Failed to parse: " + error.message);

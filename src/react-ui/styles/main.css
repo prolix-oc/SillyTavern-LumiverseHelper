@@ -6003,6 +6003,8 @@ details.lumia-panel[open] .lumia-panel-chevron {
     width: 90vw;
     max-width: 600px;
     z-index: 9999;
+    /* Ensure flex children don't overflow */
+    min-height: 0;
 }
 
 /* Selection Modal Variant (wider for cards) */
@@ -6020,7 +6022,8 @@ details.lumia-panel[open] .lumia-panel-chevron {
     display: flex;
     flex-direction: column;
     height: 100%;
-    max-height: 85vh;
+    min-height: 0; /* Allow flex children to shrink properly */
+    overflow: hidden; /* Let child scroll container handle overflow */
 }
 
 /* Modal Header - Inner (for modals with custom headers) */
@@ -6219,16 +6222,21 @@ details.lumia-panel[open] .lumia-panel-chevron {
     font-size: 14px;
 }
 
-/* Modal Footer */
+/* Modal Footer - Pinned to bottom */
 .lumia-modal-footer {
     display: flex;
     justify-content: flex-end;
     gap: 10px;
     padding: 16px 20px;
-    background: rgba(0, 0, 0, 0.15);
-    border-top: 1px solid rgba(128, 128, 128, 0.1);
+    background: rgba(22, 18, 32, 0.98);
+    border-top: 1px solid rgba(128, 128, 128, 0.15);
     flex-shrink: 0;
     margin-top: auto;
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    /* Subtle shadow to indicate floating */
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
 }
 
 /* Modal Buttons */
