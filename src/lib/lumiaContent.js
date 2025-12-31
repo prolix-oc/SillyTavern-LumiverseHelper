@@ -9,13 +9,42 @@ import {
   setCurrentRandomLumia,
 } from "./settingsManager.js";
 import { getItemFromLibrary } from "./dataProcessor.js";
+import { getContext } from "../stContext.js";
 
-// OOC Prompt constants (content from prompt files)
-// Both modes use the unified <lumiaooc name="lumiaName"> format
-const OOC_PROMPT_NORMAL = `### Loom Utility: Lumia's Out of Context Commentary
+/**
+ * Get the OOC trigger countdown/activation text
+ * This is used by both the {{lumiaOOCTrigger}} macro and the {{lumiaOOC}} macro
+ * @returns {string} The trigger text based on current message count and interval
+ */
+export function getOOCTriggerText() {
+  const context = getContext();
+  if (!context || !context.chat) return "";
+
+  const settings = getSettings();
+  const interval = settings.lumiaOOCInterval;
+  if (!interval || interval <= 0) return "";
+
+  const messageCount = context.chat.length;
+  const nextTrigger = Math.ceil(messageCount / interval) * interval;
+  const messagesUntil = nextTrigger - messageCount;
+
+  if (messagesUntil === 0) {
+    return "**OOC Commentary Time!** The Gods' want me to speak up to the Human right now, in the out-of-context comments for the Loom! Perfect! I've got a *lot* I want to say and I want them to hear my voice loud and clear!";
+  }
+
+  return `Looks like I've got ${messagesUntil} message${messagesUntil !== 1 ? "s" : ""} left until it's time to speak to the Human directly! The Gods' are anticipating me to be breathless, I cannot wait for my turn!`;
+}
+
+/**
+ * Build the OOC prompt for normal (non-council) mode
+ * @returns {string} The complete OOC prompt with trigger text substituted
+ */
+function buildOOCPromptNormal() {
+  const triggerText = getOOCTriggerText();
+  return `### Loom Utility: Lumia's Out of Context Commentary
 Append personality-driven OOC thoughts at weave end per trigger rules.
 
-**Timing:** {{lumiaOOCTrigger}}
+**Timing:** ${triggerText}
 
 **Format Requirements:**
 - Wrap all OOCs in \`<lumiaooc name="[your_name]"></lumiaooc>\` tags
@@ -33,11 +62,18 @@ Template:
 </font>
 </lumiaooc>
 \`\`\``;
+}
 
-const OOC_PROMPT_COUNCIL = `### Loom Utility: Lumia's Out of Context Commentary (Council Mode)
+/**
+ * Build the OOC prompt for council mode
+ * @returns {string} The complete OOC prompt with trigger text substituted
+ */
+function buildOOCPromptCouncil() {
+  const triggerText = getOOCTriggerText();
+  return `### Loom Utility: Lumia's Out of Context Commentary (Council Mode)
 Append personality-driven OOC thoughts at weave end per trigger rules. Each one of the council members may speak up during the weave.
 
-**Council's OOC Timing:** {{lumiaOOCTrigger}}
+**Council's OOC Timing:** ${triggerText}
 
 **Format Requirements:**
 - Wrap in \`<lumiaooc name="[lumia_name]"></lumiaooc>\` tags
@@ -50,6 +86,7 @@ Template:
 <lumiaooc name="LumiaName">
 [Commentary without name prefix—jump straight into the thought]
 </lumiaooc>`;
+}
 
 const COUNCIL_INST_PROMPT = `COUNCIL MODE ACTIVATED! Now all of us Lumias in the Loom's planning room will speak, argue, debate, flirt with each other, maybe even scissor and kiss (depending on our mood, of course~) over each step of the weave planner. We should ALL have a say on where the story goes!`;
 
@@ -761,13 +798,15 @@ export function registerLumiaMacros(MacrosParser) {
   MacrosParser.registerMacro("lumiaOOC", () => {
     const currentSettings = getSettings();
     // Return council OOC prompt if in council mode with members
+    // NOTE: We call builder functions to get the prompt with trigger text substituted
+    // This avoids the macro-nesting problem where {{lumiaOOCTrigger}} wouldn't expand
     if (currentSettings.councilMode && currentSettings.councilMembers?.length > 0) {
       console.log("[LumiverseHelper] lumiaOOC: Using council mode prompt");
-      return OOC_PROMPT_COUNCIL;
+      return buildOOCPromptCouncil();
     }
     // Return normal OOC prompt
     console.log("[LumiverseHelper] lumiaOOC: Using normal mode prompt");
-    return OOC_PROMPT_NORMAL;
+    return buildOOCPromptNormal();
   }, "Lumia OOC commentary prompt (adapts to council mode)");
 
   MacrosParser.registerMacro("lumiaCouncilInst", () => {

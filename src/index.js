@@ -48,7 +48,7 @@ import {
   restoreSummaryMarkers,
 } from "./lib/summarization.js";
 
-import { registerLumiaMacros } from "./lib/lumiaContent.js";
+import { registerLumiaMacros, getOOCTriggerText } from "./lib/lumiaContent.js";
 
 import {
   processLoomConditionals,
@@ -340,23 +340,9 @@ function registerAllMacros() {
   }, "Current chat message count");
 
   // OOC trigger countdown/trigger macro
+  // Uses shared function from lumiaContent.js to avoid code duplication
   MacrosParser.registerMacro("lumiaOOCTrigger", () => {
-    const context = getContext();
-    if (!context || !context.chat) return "";
-
-    const settings = getSettings();
-    const interval = settings.lumiaOOCInterval;
-    if (!interval || interval <= 0) return "";
-
-    const messageCount = context.chat.length;
-    const nextTrigger = Math.ceil(messageCount / interval) * interval;
-    const messagesUntil = nextTrigger - messageCount;
-
-    if (messagesUntil === 0) {
-      return "**OOC Commentary Time!** The Gods' want me to speak up to the Human right now, in the out-of-context comments for the Loom! Perfect! I've got a *lot* I want to say and I want them to hear my voice loud and clear!";
-    }
-
-    return `Looks like I've got ${messagesUntil} message${messagesUntil !== 1 ? "s" : ""} left until it's time to speak to the Human directly! The Gods' are anticipating me to be breathless, I cannot wait for my turn!`;
+    return getOOCTriggerText();
   }, "OOC commentary trigger countdown/activation prompt");
 
   console.log(`[${MODULE_NAME}] Macros registered successfully (Macros 2.0 format)`);
