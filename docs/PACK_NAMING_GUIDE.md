@@ -1,10 +1,10 @@
-# Pack Developer Naming Guide
+# Pack Developer Guide
 
-This guide explains the naming conventions for Lumia Injector packs. Proper naming ensures your content is correctly parsed and displayed to users.
+This guide explains how to create Lumia and Loom content packs for the Lumiverse Helper extension.
 
 ## Overview
 
-Lumia Injector recognizes **4 item types** within packs:
+Lumiverse Helper recognizes **4 item types** within packs:
 
 | Type                  | Category | Purpose                                    |
 | --------------------- | -------- | ------------------------------------------ |
@@ -15,327 +15,283 @@ Lumia Injector recognizes **4 item types** within packs:
 
 ---
 
-## Pack Names
+## Native Pack Format (Recommended)
 
-Pack names are the top-level identifier for your content collection.
+The native Lumiverse format is a structured JSON schema with separate arrays for Lumia and Loom items.
 
-### Naming Rules
+### Pack Structure
 
-- Pack names are derived from the **filename** when fetched via URL
-- For uploads, the user provides the pack name
-- Pack names must be **unique** - duplicates will prompt an overwrite confirmation
+```json
+{
+  "packName": "My Character Pack",
+  "packAuthor": "YourName",
+  "coverUrl": "https://example.com/cover.png",
+  "version": 1,
+  "packExtras": [],
+  "lumiaItems": [],
+  "loomItems": []
+}
+```
 
-### Best Practices
+### Pack Fields
 
-- Use descriptive, concise names
-- Avoid special characters that may cause filesystem issues
-- Include version numbers if you plan to release updates (e.g., `MyPack_v2`)
-
-**Examples:**
-
-- `FantasyCharacters.json`
-- `SciFi_Companions_v3.json`
-- `NarrativeStyles_Premium.json`
+| Field         | Type   | Required | Description                              |
+| ------------- | ------ | -------- | ---------------------------------------- |
+| `packName`    | string | Yes      | Display name for the pack                |
+| `packAuthor`  | string | No       | Creator/author name                      |
+| `coverUrl`    | string | No       | URL to pack cover image (400x300px recommended) |
+| `version`     | number | No       | Pack version number (default: 1)         |
+| `packExtras`  | array  | No       | Additional pack metadata (reserved)      |
+| `lumiaItems`  | array  | Yes      | Array of Lumia character items           |
+| `loomItems`   | array  | No       | Array of Loom narrative items            |
 
 ---
 
-## Pack Metadata
+## Lumia Items
 
-Pack metadata provides information about the pack itself, displayed in the pack browser. This is a special entry that sets the cover image and author name for your pack.
+Each Lumia item represents a character with definition, personality, and behavior combined into a single object.
 
-### Comment Format
-
-The metadata entry is identified by its comment field:
-
-```
-Metadata
-```
-
-Or with parentheses:
-
-```
-(Metadata)
-```
-
-Both formats are recognized (case-insensitive).
-
-### Content Tags
-
-| Tag                  | Purpose                                    |
-| -------------------- | ------------------------------------------ |
-| `[cover_img=URL]`    | Cover image displayed in the pack browser  |
-| `[author_name=Name]` | Author/creator name shown on the pack card |
-
-### Complete Metadata Example
+### Lumia Item Structure
 
 ```json
 {
-  "comment": "Metadata",
-  "content": "[cover_img=https://example.com/pack-cover.png][author_name=JohnDoe]"
+  "lumiaName": "Aria",
+  "lumiaDefinition": "Aria is a tall elven woman with silver hair and piercing blue eyes...",
+  "lumiaPersonality": "Introverted but deeply caring. Values honesty and loyalty above all else.",
+  "lumiaBehavior": "Speaks softly and deliberately. Often pauses mid-sentence to gather her thoughts.",
+  "avatarUrl": "https://example.com/aria.png",
+  "genderIdentity": 0,
+  "authorName": "JohnDoe",
+  "version": 1
 }
 ```
 
-### Display Behavior
+### Lumia Item Fields
 
-- If no metadata entry exists, the pack shows a placeholder image and "Unknown Author"
-- Cover images are lazy-loaded in the browser for performance
-- The metadata entry itself is not processed as a Lumia or Loom item
+| Field             | Type   | Required | Description                                      |
+| ----------------- | ------ | -------- | ------------------------------------------------ |
+| `lumiaName`       | string | Yes      | Character's display name                         |
+| `lumiaDefinition` | string | Yes      | Physical description and background              |
+| `lumiaPersonality`| string | No       | Personality traits and characteristics           |
+| `lumiaBehavior`   | string | No       | Behavioral patterns and tendencies               |
+| `avatarUrl`       | string | No       | URL to character portrait image                  |
+| `genderIdentity`  | number | No       | Pronoun preference: 0=she/her, 1=he/him, 2=they/them |
+| `authorName`      | string | No       | Creator of this specific character               |
+| `version`         | number | No       | Item version number (default: 1)                 |
 
-### Best Practices
+### Gender Identity Values
 
-- Use a high-quality square or landscape image for the cover (recommended: 400x300px or similar)
-- Host images on reliable services (imgur, GitHub raw, etc.)
-- Keep author names concise
+| Value | Pronouns   |
+| ----- | ---------- |
+| 0     | she/her    |
+| 1     | he/him     |
+| 2     | they/them  |
 
----
-
-## Item Naming Convention
-
-All items within a pack are identified by a **comment field** in the World Book entry. The name is extracted from **parentheses** in the comment.
-
-```
-Category (ItemName)
-```
-
-### Critical Rule
-
-**Items without parentheses in the comment field will be IGNORED.**
-
----
-
-## Lumia Items (Definition, Behavior, Personality)
-
-Lumia items describe characters with three aspects: physical definition, behavior, and personality. Items with the **same name** are **merged** into a single Lumia character.
-
-### Lumia Definition
-
-Physical description of a character.
-
-**Comment Format Options:**
-
-```
-Lumia (CharacterName)
-Definition (CharacterName)
-```
-
-**Alternative:** Set `outletName` to `"Lumia_Description"`
-
-**Example Entry:**
+### Complete Lumia Pack Example
 
 ```json
 {
-  "comment": "Lumia (Aria)",
-  "content": "Aria is a tall elven woman with silver hair...",
-  "outletName": "Lumia_Description"
-}
-```
-
-### Lumia Behavior
-
-Behavioral patterns and tendencies.
-
-**Comment Format:**
-
-```
-Behavior (CharacterName)
-```
-
-**Alternative:** Set `outletName` to `"Lumia_Behavior"`
-
-**Example Entry:**
-
-```json
-{
-  "comment": "Behavior (Aria)",
-  "content": "Aria speaks softly and deliberately. She pauses before answering questions...",
-  "outletName": "Lumia_Behavior"
-}
-```
-
-### Lumia Personality
-
-Personality traits and characteristics.
-
-**Comment Format:**
-
-```
-Personality (CharacterName)
-```
-
-**Alternative:** Set `outletName` to `"Lumia_Personality"`
-
-**Example Entry:**
-
-```json
-{
-  "comment": "Personality (Aria)",
-  "content": "Aria is introverted but deeply caring. She values honesty above all...",
-  "outletName": "Lumia_Personality"
-}
-```
-
-### Complete Lumia Character Example
-
-A full character with all three components:
-
-```json
-{
-  "entries": {
-    "0": {
-      "comment": "Lumia (Aria)",
-      "content": "[lumia_img=https://example.com/aria.png][lumia_author=JohnDoe]Aria is a tall elven woman with silver hair and piercing blue eyes.",
-      "outletName": "Lumia_Description"
+  "packName": "Fantasy Characters",
+  "packAuthor": "JohnDoe",
+  "coverUrl": "https://example.com/fantasy-pack.png",
+  "version": 1,
+  "packExtras": [],
+  "lumiaItems": [
+    {
+      "lumiaName": "Aria",
+      "lumiaDefinition": "Aria is a tall elven woman with silver hair that cascades down to her waist. Her piercing blue eyes reflect centuries of wisdom. She wears flowing robes of deep forest green.",
+      "lumiaPersonality": "Introverted but deeply caring. Values honesty and loyalty above all else. Has a dry sense of humor that emerges unexpectedly.",
+      "lumiaBehavior": "Speaks softly and deliberately. Often pauses mid-sentence to gather her thoughts. Tilts her head slightly when listening intently.",
+      "avatarUrl": "https://example.com/aria.png",
+      "genderIdentity": 0,
+      "authorName": "JohnDoe",
+      "version": 1
     },
-    "1": {
-      "comment": "Behavior (Aria)",
-      "content": "Aria speaks softly and deliberately. She often pauses mid-sentence to gather her thoughts.",
-      "outletName": "Lumia_Behavior"
-    },
-    "2": {
-      "comment": "Personality (Aria)",
-      "content": "Introverted but deeply caring. Values honesty and loyalty above all else.",
-      "outletName": "Lumia_Personality"
+    {
+      "lumiaName": "Marcus",
+      "lumiaDefinition": "Marcus is a weathered human knight in his late forties. His graying beard is neatly trimmed, and a prominent scar runs across his left cheek. He wears well-maintained plate armor.",
+      "lumiaPersonality": "Stoic and disciplined, but harbors a deep sense of guilt over past failures. Protective of those he considers under his care.",
+      "lumiaBehavior": "Stands at attention even when relaxed. Speaks in measured, formal tones. Often checks exits and potential threats when entering new spaces.",
+      "avatarUrl": "https://example.com/marcus.png",
+      "genderIdentity": 1,
+      "authorName": "JohnDoe",
+      "version": 1
     }
-  }
+  ],
+  "loomItems": []
 }
 ```
 
-**Result:** These three entries merge into one Lumia item named "Aria".
-
 ---
 
-## Loom Items (Narrative Style, Utilities, Retrofits)
+## Loom Items
 
-Loom items are standalone content pieces for narrative control. Unlike Lumia items, Loom items are **not merged** - each entry remains separate.
+Loom items provide narrative guidance, utilities, and system modifications. Each item belongs to a category.
+
+### Loom Item Structure
+
+```json
+{
+  "loomName": "Gothic Horror",
+  "loomContent": "Write in a dark, atmospheric style. Use vivid sensory descriptions emphasizing shadows, decay, and unease.",
+  "loomCategory": "Narrative Style",
+  "authorName": "JohnDoe",
+  "version": 1
+}
+```
+
+### Loom Item Fields
+
+| Field          | Type   | Required | Description                              |
+| -------------- | ------ | -------- | ---------------------------------------- |
+| `loomName`     | string | Yes      | Display name for the item                |
+| `loomContent`  | string | Yes      | The actual content/instructions          |
+| `loomCategory` | string | Yes      | Category (see below)                     |
+| `authorName`   | string | No       | Creator of this item                     |
+| `version`      | number | No       | Item version number (default: 1)         |
 
 ### Loom Categories
 
-| Category            | Purpose                               |
-| ------------------- | ------------------------------------- |
-| **Narrative Style** | Writing style and prose guidance      |
-| **Loom Utilities**  | Utility functions and helper content  |
-| **Retrofits**       | System modifications and enhancements |
+| Category           | Purpose                                      |
+| ------------------ | -------------------------------------------- |
+| `Narrative Style`  | Writing style and prose guidance             |
+| `Loom Utilities`   | Utility functions and helper content         |
+| `Retrofits`        | System modifications and enhancements        |
 
-### Naming Format
-
-Loom items use **exact category prefixes** before the parentheses:
-
-```
-Narrative Style (ItemName)
-Loom Utilities (ItemName)
-Retrofits (ItemName)
-```
-
-**The category prefix must match exactly (case-sensitive).**
-
-### Nested Parentheses Support
-
-Loom item names can contain nested parentheses for additional descriptions:
-
-```
-Narrative Style (Kafka (Surreal Bureaucratic Horror))
-Loom Utilities (Scene Manager (Advanced))
-Retrofits (Memory System (v2))
-```
-
-The parser captures everything between the first `(` after the category and the final `)` at the end of the comment.
-
-### Narrative Style Example
+### Complete Loom Pack Example
 
 ```json
 {
-  "comment": "Narrative Style (Gothic Horror)",
-  "content": "Write in a dark, atmospheric style. Use vivid sensory descriptions emphasizing shadows, decay, and unease. Sentences should be longer and more complex, building tension gradually."
-}
-```
-
-### Loom Utilities Example
-
-```json
-{
-  "comment": "Loom Utilities (Scene Transition)",
-  "content": "When transitioning between scenes, use a brief temporal or spatial marker followed by sensory grounding in the new location."
-}
-```
-
-### Retrofits Example
-
-```json
-{
-  "comment": "Retrofits (Memory Enhancement)",
-  "content": "Track and reference previous conversations, character states, and plot points. Maintain consistency with established facts."
+  "packName": "Narrative Styles Collection",
+  "packAuthor": "JaneDoe",
+  "coverUrl": "https://example.com/styles-pack.png",
+  "version": 1,
+  "packExtras": [],
+  "lumiaItems": [],
+  "loomItems": [
+    {
+      "loomName": "Gothic Horror",
+      "loomContent": "Write in a dark, atmospheric style. Use vivid sensory descriptions emphasizing shadows, decay, and unease. Sentences should be longer and more complex, building tension gradually. Favor archaic vocabulary and formal prose.",
+      "loomCategory": "Narrative Style",
+      "authorName": "JaneDoe",
+      "version": 1
+    },
+    {
+      "loomName": "Scene Transition Helper",
+      "loomContent": "When transitioning between scenes, use a brief temporal or spatial marker followed by sensory grounding in the new location. Example: 'Three hours later, the rain had stopped...'",
+      "loomCategory": "Loom Utilities",
+      "authorName": "JaneDoe",
+      "version": 1
+    },
+    {
+      "loomName": "Memory Enhancement",
+      "loomContent": "Track and reference previous conversations, character states, and plot points. Maintain consistency with established facts. When uncertain, acknowledge what was previously established.",
+      "loomCategory": "Retrofits",
+      "authorName": "JaneDoe",
+      "version": 1
+    }
+  ]
 }
 ```
 
 ---
 
-## Metadata Tags
+## Mixed Pack Example
 
-Lumia Definitions support optional metadata tags within the content field.
-
-### Image Tag
-
-Add a character portrait:
-
-```
-[lumia_img=https://example.com/image.png]
-```
-
-### Author Tag
-
-Credit the content creator:
-
-```
-[lumia_author=AuthorName]
-```
-
-### Usage Example
+Packs can contain both Lumia and Loom items:
 
 ```json
 {
-  "comment": "Lumia (Aria)",
-  "content": "[lumia_img=https://i.imgur.com/abc123.png][lumia_author=JohnDoe]Aria is a tall elven woman with silver hair..."
+  "packName": "Complete Fantasy Kit",
+  "packAuthor": "StudioName",
+  "coverUrl": "https://example.com/kit.png",
+  "version": 2,
+  "packExtras": [],
+  "lumiaItems": [
+    {
+      "lumiaName": "Aria",
+      "lumiaDefinition": "A tall elven mage with silver hair...",
+      "lumiaPersonality": "Wise and patient...",
+      "lumiaBehavior": "Speaks in measured tones...",
+      "avatarUrl": "https://example.com/aria.png",
+      "genderIdentity": 0,
+      "authorName": "StudioName",
+      "version": 1
+    }
+  ],
+  "loomItems": [
+    {
+      "loomName": "High Fantasy Style",
+      "loomContent": "Write with epic scope and grandeur...",
+      "loomCategory": "Narrative Style",
+      "authorName": "StudioName",
+      "version": 1
+    }
+  ]
 }
 ```
 
-The tags are automatically stripped from the displayed content.
+---
+
+## Pack Extras (Advanced)
+
+The `packExtras` array allows for additional pack-level content. This is reserved for future use but follows this structure:
+
+```json
+{
+  "packExtras": [
+    {
+      "type": "bar",
+      "name": "Custom Status Bar",
+      "description": "A status bar for tracking...",
+      "content": "..."
+    }
+  ]
+}
+```
 
 ---
 
-## Quick Reference
+## Best Practices
 
-| Item Type       | Comment Format                        | Merges?      |
-| --------------- | ------------------------------------- | ------------ |
-| Definition      | `Lumia (Name)` or `Definition (Name)` | Yes, by name |
-| Behavior        | `Behavior (Name)`                     | Yes, by name |
-| Personality     | `Personality (Name)`                  | Yes, by name |
-| Narrative Style | `Narrative Style (Name)`              | No           |
-| Loom Utilities  | `Loom Utilities (Name)`               | No           |
-| Retrofits       | `Retrofits (Name)`                    | No           |
+### Pack Names
+- Use descriptive, concise names
+- Avoid special characters that may cause filesystem issues
+- Include version numbers for updates (e.g., "My Pack v2")
 
----
+### Cover Images
+- Use high-quality images (recommended: 400x300px)
+- Host on reliable services (imgur, GitHub raw, etc.)
+- Use landscape or square aspect ratios
 
-## Common Mistakes
+### Character Definitions
+- Be specific and detailed in physical descriptions
+- Include distinctive features that make the character memorable
+- Mention typical clothing, accessories, or equipment
 
-1. **Missing parentheses** - Entry will be ignored
-   - Wrong: `Lumia Aria`
-   - Correct: `Lumia (Aria)`
+### Personality & Behavior
+- Focus on actionable traits the AI can portray
+- Include speech patterns, mannerisms, and habits
+- Describe how the character reacts in different situations
 
-2. **Typos in Loom categories** - Entry will be treated as Lumia
-   - Wrong: `Narrative Styles (Gothic)` (note the 's')
-   - Correct: `Narrative Style (Gothic)`
-
-3. **Mismatched names for Lumia merging** - Creates separate characters
-   - `Lumia (Aria)` + `Behavior (aria)` = Two separate items (case matters)
-
-4. **Missing content** - Entry will be skipped
-   - Always ensure the `content` field has actual text
+### Loom Content
+- Be clear and directive in writing style guidance
+- Provide examples where helpful
+- Keep utility content focused on specific techniques
 
 ---
 
-## File Structure
+## Legacy World Book Format
 
-Your World Book JSON should follow this structure:
+For backward compatibility, Lumiverse Helper also supports the SillyTavern World Book format. See the [Legacy Format Reference](#legacy-world-book-format-reference) below.
+
+---
+
+## Legacy World Book Format Reference
+
+The World Book format uses comment-based naming to identify items.
+
+### File Structure
 
 ```json
 {
@@ -346,13 +302,64 @@ Your World Book JSON should follow this structure:
 }
 ```
 
-Or as a flat array:
+### Naming Convention
 
-```json
-[
-  { "comment": "...", "content": "..." },
-  { "comment": "...", "content": "..." }
-]
+Items are identified by a **comment field** with the name in **parentheses**:
+
+```
+Category (ItemName)
 ```
 
-Both formats are supported.
+### Lumia Items
+
+```json
+{
+  "comment": "Lumia (Aria)",
+  "content": "[lumia_img=https://example.com/aria.png][lumia_author=JohnDoe]Aria is a tall elven woman..."
+}
+```
+
+```json
+{
+  "comment": "Behavior (Aria)",
+  "content": "Speaks softly and deliberately..."
+}
+```
+
+```json
+{
+  "comment": "Personality (Aria)",
+  "content": "Introverted but deeply caring..."
+}
+```
+
+Items with the same name in parentheses are merged into a single character.
+
+### Loom Items
+
+```json
+{
+  "comment": "Narrative Style (Gothic Horror)",
+  "content": "Write in a dark, atmospheric style..."
+}
+```
+
+### Pack Metadata
+
+```json
+{
+  "comment": "Metadata",
+  "content": "[cover_img=https://example.com/cover.png][author_name=JohnDoe]"
+}
+```
+
+### Quick Reference
+
+| Item Type       | Comment Format                        |
+| --------------- | ------------------------------------- |
+| Definition      | `Lumia (Name)` or `Definition (Name)` |
+| Behavior        | `Behavior (Name)`                     |
+| Personality     | `Personality (Name)`                  |
+| Narrative Style | `Narrative Style (Name)`              |
+| Loom Utilities  | `Loom Utilities (Name)`               |
+| Retrofits       | `Retrofits (Name)`                    |
