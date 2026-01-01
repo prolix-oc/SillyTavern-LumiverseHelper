@@ -2197,7 +2197,7 @@ export async function showLucidCardsModal() {
     if (e.key === "Escape") closeModal();
   });
 
-  // Fetch data from Lucid.cards API
+  // Fetch data from Lucid.cards API (new /api/lumia-dlc endpoint)
   const fetchLucidCards = async () => {
     $modal.find(".lucid-cards-loading").show();
     $modal.find(".lucid-cards-error").hide();
@@ -2207,7 +2207,7 @@ export async function showLucidCardsModal() {
 
     try {
       const response = await fetch(
-        "https://lucid.cards/api/raw/world-books?lumiverse=true",
+        "https://lucid.cards/api/lumia-dlc",
       );
       if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
       cachedData = await response.json();
@@ -2223,6 +2223,7 @@ export async function showLucidCardsModal() {
   };
 
   // Render content based on current category
+  // New API format: packs have packName, coverUrl, packAuthor directly
   const renderContent = () => {
     if (!cachedData || !cachedData.categories) {
       $modal.find(".lucid-cards-loading").hide();
@@ -2240,10 +2241,10 @@ export async function showLucidCardsModal() {
     // Find the category - use flexible matching since API names may vary
     // Map tab categories to possible API category names
     const categoryNameMap = {
-      "Lumia DLCs": ["Lumia DLCs", "Lumia", "DLCs", "Lumia Packs"],
-      "Loom Utilities": ["Loom Utilities", "Utilities", "Loom Utils"],
-      "Loom Retrofits": ["Loom Retrofits", "Retrofits", "Retrofit"],
-      "Loom Narratives": ["Loom Narratives", "Narratives", "Narrative Styles", "Narrative"],
+      "Lumia DLCs": ["Lumia DLCs", "Lumia", "DLCs", "Lumia Packs", "lumia"],
+      "Loom Utilities": ["Loom Utilities", "Utilities", "Loom Utils", "utilities"],
+      "Loom Retrofits": ["Loom Retrofits", "Retrofits", "Retrofit", "retrofits"],
+      "Loom Narratives": ["Loom Narratives", "Narratives", "Narrative Styles", "Narrative", "narratives", "styles"],
     };
 
     const possibleNames = categoryNameMap[currentCategory] || [currentCategory];
@@ -2259,7 +2260,9 @@ export async function showLucidCardsModal() {
       );
     });
 
-    if (!category || !category.books || category.books.length === 0) {
+    // Support both "books" (old) and "packs" (new) array names
+    const items = category?.packs || category?.books || [];
+    if (!category || items.length === 0) {
       $content.html(
         '<div class="lucid-cards-empty">No items available in this category.</div>',
       );
@@ -2268,25 +2271,42 @@ export async function showLucidCardsModal() {
     }
 
     // Use unified card grid layout for all categories
-    const cardsHtml = category.books
-      .map((book) => {
-        const escapedName = escapeHtml(book.prettyName);
-        const escapedPath = escapeHtml(book.path);
-        // We'll fetch metadata when displaying - for now show placeholder
+    // New format: pack has packName, coverUrl, packAuthor, downloadPath
+    // Old format: book has prettyName, path
+    const cardsHtml = items
+      .map((item) => {
+        // Support both old and new formats
+        const name = item.packName || item.prettyName || "Unknown";
+        const escapedName = escapeHtml(name);
+        const downloadPath = item.downloadPath || item.path || "";
+        const escapedPath = escapeHtml(downloadPath);
+        const coverUrl = item.coverUrl || null;
+        const authorName = item.packAuthor || item.authorName || null;
+
+        // If we have cover/author data, render directly; otherwise show placeholder
+        const imageHtml = coverUrl
+          ? `<img src="${escapeHtml(coverUrl)}" alt="" loading="lazy" class="lumia-img-loaded">`
+          : `<div class="lucid-dlc-card-placeholder">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+            </div>`;
+
+        const authorHtml = authorName
+          ? escapeHtml(authorName)
+          : (item.path ? "Loading..." : "Unknown Author");
+
         return `
-                  <div class="lucid-dlc-card" data-path="${escapedPath}" data-name="${escapedName}">
+                  <div class="lucid-dlc-card" data-path="${escapedPath}" data-name="${escapedName}"
+                       data-cover-img="${escapeHtml(coverUrl || "")}" data-author="${escapeHtml(authorName || "")}">
                       <div class="lucid-dlc-card-image">
-                          <div class="lucid-dlc-card-placeholder">
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                                  <polyline points="21 15 16 10 5 21"></polyline>
-                              </svg>
-                          </div>
+                          ${imageHtml}
                       </div>
                       <div class="lucid-dlc-card-info">
                           <div class="lucid-dlc-card-title">${escapedName}</div>
-                          <div class="lucid-dlc-card-author">Loading...</div>
+                          <div class="lucid-dlc-card-author">${authorHtml}</div>
                       </div>
                   </div>
               `;
@@ -2295,9 +2315,12 @@ export async function showLucidCardsModal() {
 
     $content.html(`<div class="lucid-dlc-grid">${cardsHtml}</div>`);
 
-    // Fetch metadata for each card asynchronously
-    category.books.forEach((book) => {
-      fetchBookMetadata(book.path, $content);
+    // Only fetch metadata for old-format items that don't have cover/author
+    items.forEach((item) => {
+      const needsMetadata = !item.coverUrl && !item.packAuthor && item.path;
+      if (needsMetadata) {
+        fetchBookMetadata(item.path, $content);
+      }
     });
 
     $content.show();
@@ -2455,9 +2478,9 @@ export async function showLucidCardsModal() {
 
       const data = await response.json();
 
-      // Use existing handleNewBook from dataProcessor
-      const { handleNewBook } = await import("./dataProcessor.js");
-      handleNewBook(data, selectedBook.name, true);
+      // Use importPack for native format, falls back to handleNewBook for old format
+      const { importPack } = await import("./dataProcessor.js");
+      importPack(data, selectedBook.name, true);
 
       toastr.success(`Successfully imported "${selectedBook.name}"!`);
 
