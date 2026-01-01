@@ -188,6 +188,31 @@ function getLumiaItemField(item, field) {
     return null;
 }
 
+/**
+ * Find a pack by name from the packs object
+ * Searches by key first, then by pack.name and pack.packName properties
+ * @param {Object} packs - The packs object from state
+ * @param {string} packName - The pack name to find
+ * @returns {Object|null} The pack or null
+ */
+function findPackByName(packs, packName) {
+    if (!packs || !packName) return null;
+
+    // Direct key lookup first
+    if (packs[packName]) {
+        return packs[packName];
+    }
+
+    // Search by pack.name or pack.packName properties
+    for (const [key, pack] of Object.entries(packs)) {
+        if (pack.name === packName || pack.packName === packName) {
+            return pack;
+        }
+    }
+
+    return null;
+}
+
 // Actions object - these modify the store
 const actions = {
     // Settings actions
@@ -481,7 +506,7 @@ const actions = {
      */
     areAllTraitsEnabledForLumia: (packName, itemName) => {
         const state = store.getState();
-        const pack = state.packs[packName];
+        const pack = findPackByName(state.packs, packName);
         if (!pack) return false;
 
         const item = findLumiaInPack(pack, itemName);
@@ -527,7 +552,7 @@ const actions = {
      */
     toggleAllTraitsForLumia: (packName, itemName) => {
         const state = store.getState();
-        const pack = state.packs[packName];
+        const pack = findPackByName(state.packs, packName);
         if (!pack) return false;
 
         const item = findLumiaInPack(pack, itemName);
@@ -616,7 +641,7 @@ const actions = {
      */
     enableAllTraitsForLumia: (packName, itemName) => {
         const state = store.getState();
-        const pack = state.packs[packName];
+        const pack = findPackByName(state.packs, packName);
         if (!pack) return;
 
         const item = findLumiaInPack(pack, itemName);
@@ -872,8 +897,8 @@ const actions = {
     addCouncilMember: (member) => {
         const state = store.getState();
 
-        // Look up the Lumia item to get its inherent traits
-        const pack = state.packs[member.packName];
+        // Look up the pack using helper that supports both name formats
+        const pack = findPackByName(state.packs, member.packName);
         const item = findLumiaInPack(pack, member.itemName);
 
         const behaviors = [];
