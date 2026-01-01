@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useSyncExternalStore } from 'react';
 import { useSettings, useSelections, useLoomSelections, useLumiverseActions, usePacks, saveToExtension, useLumiverseStore } from '../store/LumiverseContext';
 import { useAdaptiveImagePosition } from '../hooks/useAdaptiveImagePosition';
-import { exportPackAsWorldBook } from './modals/PackEditorModal';
+import { exportPack } from './modals/PackEditorModal';
 import { CollapsibleContent } from './Collapsible';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
@@ -1183,8 +1183,8 @@ function SettingsPanel() {
                                         </span>
                                         <button
                                             className="lumia-btn lumia-btn-icon"
-                                            onClick={() => exportPackAsWorldBook(pack)}
-                                            title="Export as World Book JSON"
+                                            onClick={() => exportPack(pack)}
+                                            title="Export as Lumiverse Pack"
                                             type="button"
                                         >
                                             {Icons.download}

@@ -212,7 +212,9 @@ const actions = {
         const state = store.getState();
         const packsObj = { ...state.packs };
         customPacks.forEach(pack => {
-            packsObj[pack.name] = { ...pack, isCustom: true };
+            // Support both new (packName) and legacy (name) formats
+            const packName = pack.packName || pack.name;
+            packsObj[packName] = { ...pack, isCustom: true };
         });
         store.setState({ packs: packsObj });
     },
@@ -264,9 +266,12 @@ const actions = {
         const state = store.getState();
         const packsObj = state.packs && typeof state.packs === 'object' ? { ...state.packs } : {};
 
-        // Find and remove the pack by id or name
+        // Find and remove the pack by id or name - support both new (packName) and legacy (name)
         for (const [key, pack] of Object.entries(packsObj)) {
-            if (pack.id === packIdOrName || pack.name === packIdOrName || key === packIdOrName) {
+            if (pack.id === packIdOrName ||
+                pack.name === packIdOrName ||
+                pack.packName === packIdOrName ||
+                key === packIdOrName) {
                 delete packsObj[key];
                 break;
             }

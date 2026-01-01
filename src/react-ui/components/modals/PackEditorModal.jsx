@@ -83,77 +83,6 @@ function generateId() {
 }
 
 /**
- * Default World Book entry template (from old lumiaEditor.js)
- */
-const DEFAULT_WB_ENTRY = {
-    key: [],
-    keysecondary: [],
-    constant: false,
-    vectorized: false,
-    selective: false,
-    selectiveLogic: 0,
-    addMemo: true,
-    order: 100,
-    position: 0,
-    disable: false,
-    excludeRecursion: false,
-    preventRecursion: false,
-    delayUntilRecursion: false,
-    probability: 100,
-    useProbability: true,
-    depth: 4,
-    group: '',
-    groupOverride: false,
-    groupWeight: 100,
-    scanDepth: null,
-    caseSensitive: null,
-    matchWholeWords: null,
-    useGroupScoring: null,
-    automationId: '',
-    role: null,
-    sticky: 0,
-    cooldown: 0,
-    delay: 0,
-};
-
-/**
- * Serialize a Lumia item to World Book entry format
- */
-function serializeLumiaToWorldBookEntry(lumiaItem, entryType, uid) {
-    const name = lumiaItem.lumiaDefName;
-    let comment = '';
-    let content = '';
-
-    if (entryType === 'definition') {
-        comment = `Lumia (${name})`;
-        const contentParts = [];
-        if (lumiaItem.lumia_img) {
-            contentParts.push(`[lumia_img=${lumiaItem.lumia_img}]`);
-        }
-        if (lumiaItem.defAuthor) {
-            contentParts.push(`[lumia_author=${lumiaItem.defAuthor}]`);
-        }
-        if (lumiaItem.lumiaDef) {
-            contentParts.push(lumiaItem.lumiaDef);
-        }
-        content = contentParts.join('\n');
-    } else if (entryType === 'behavior') {
-        comment = `Behavior (${name})`;
-        content = lumiaItem.lumia_behavior || '';
-    } else if (entryType === 'personality') {
-        comment = `Personality (${name})`;
-        content = lumiaItem.lumia_personality || '';
-    }
-
-    return {
-        ...DEFAULT_WB_ENTRY,
-        uid: uid,
-        comment: comment,
-        content: content,
-    };
-}
-
-/**
  * Generate native Lumiverse pack JSON from pack data
  * Uses the new v2 schema with lumiaItems and loomItems arrays
  */
@@ -218,9 +147,9 @@ function generateNativePackJson(pack) {
 }
 
 /**
- * Download pack as native Lumiverse JSON file (new v2 format)
+ * Download pack as native Lumiverse JSON file (v2 format)
  */
-export function exportPackAsWorldBook(pack) {
+export function exportPack(pack) {
     const nativePack = generateNativePackJson(pack);
     const jsonString = JSON.stringify(nativePack, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
@@ -229,11 +158,38 @@ export function exportPackAsWorldBook(pack) {
     const packName = pack.packName || pack.name || 'pack';
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${packName.replace(/[^a-z0-9]/gi, '_')}.json`;
+    a.download = `${packName.replace(/[^a-z0-9]/gi, '_')}_lumiverse.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+}
+
+/**
+ * Helper to get pack name (v2: packName, v1: name)
+ */
+function getPackName(pack) {
+    return pack.packName || pack.name || '';
+}
+
+/**
+ * Helper to get pack author (v2: packAuthor, v1: author)
+ */
+function getPackAuthor(pack) {
+    return pack.packAuthor || pack.author || '';
+}
+
+/**
+ * Helper to get Lumia items count (v2: lumiaItems, v1: items with lumiaDefName)
+ */
+function getLumiaCount(pack) {
+    if (pack.lumiaItems && pack.lumiaItems.length > 0) {
+        return pack.lumiaItems.length;
+    }
+    if (pack.items && pack.items.length > 0) {
+        return pack.items.filter(item => item.lumiaDefName || item.lumiaName).length;
+    }
+    return 0;
 }
 
 /**
@@ -242,38 +198,43 @@ export function exportPackAsWorldBook(pack) {
  * For editing pack-level settings: name, author, cover image.
  * Individual Lumia items are managed via PackSelectorModal → LumiaEditorModal.
  *
- * OLD CODE pack structure:
- * {
- *   name: string,          // Pack identifier
- *   items: [...],          // Array of Lumia items
- *   url: '',               // Empty string for custom packs
- *   isCustom: true,        // Marks as user-created
- *   author: string,        // Pack author
- *   coverUrl: string       // Cover image URL
- * }
+ * Supports both v2 and v1 pack structures:
+ * v2: { packName, packAuthor, lumiaItems[], loomItems[], ... }
+ * v1: { name, author, items[], ... }
  */
 function PackEditorModal({ packId, onClose }) {
     const { customPacks } = usePacks();
     const actions = useLumiverseActions();
 
-    // Find existing pack if editing
+    // Find existing pack if editing - support both name and packName
     const existingPack = packId
-        ? customPacks.find((p) => p.id === packId || p.name === packId)
+        ? customPacks.find((p) => p.id === packId || p.name === packId || p.packName === packId)
         : null;
 
-    // Local state for the pack being edited
+    // Local state for the pack being edited (normalize to v2 schema for editing)
     const [pack, setPack] = useState(() => {
         if (existingPack) {
-            return { ...existingPack };
+            // Keep the original pack but ensure we have both old and new field names for compatibility
+            return {
+                ...existingPack,
+                // Ensure v2 fields exist (if they don't, copy from v1)
+                packName: existingPack.packName || existingPack.name || '',
+                packAuthor: existingPack.packAuthor || existingPack.author || '',
+            };
         }
+        // New pack in v2 schema
         return {
             id: generateId(),
-            name: '',
-            author: '',
+            packName: '',
+            name: '', // Keep legacy field for compatibility
+            packAuthor: '',
             coverUrl: '',
             url: '',
             isCustom: true,
-            items: [],
+            version: 1,
+            packExtras: [],
+            lumiaItems: [],
+            loomItems: [],
         };
     });
 
@@ -290,9 +251,10 @@ function PackEditorModal({ packId, onClose }) {
     // Validate pack
     const validate = () => {
         const newErrors = {};
+        const packName = getPackName(pack);
 
-        if (!pack.name.trim()) {
-            newErrors.name = 'Pack name is required';
+        if (!packName.trim()) {
+            newErrors.packName = 'Pack name is required';
         }
 
         setErrors(newErrors);
@@ -305,10 +267,16 @@ function PackEditorModal({ packId, onClose }) {
             return;
         }
 
+        // Ensure both packName and name are synced for compatibility
+        const packToSave = {
+            ...pack,
+            name: getPackName(pack), // Sync legacy field
+        };
+
         if (existingPack) {
-            actions.updateCustomPack(pack.id || pack.name, pack);
+            actions.updateCustomPack(pack.id || getPackName(existingPack), packToSave);
         } else {
-            actions.addCustomPack(pack);
+            actions.addCustomPack(packToSave);
         }
 
         saveToExtension();
@@ -317,30 +285,39 @@ function PackEditorModal({ packId, onClose }) {
 
     // Delete pack
     const handleDelete = () => {
-        if (window.confirm(`Are you sure you want to delete "${pack.name}"? This will remove all Lumias in this pack.`)) {
-            actions.removeCustomPack(pack.id || pack.name);
+        const packName = getPackName(pack);
+        if (window.confirm(`Are you sure you want to delete "${packName}"? This will remove all Lumias in this pack.`)) {
+            actions.removeCustomPack(pack.id || packName);
             saveToExtension();
             onClose();
         }
     };
 
-    // Export pack as World Book JSON
+    // Export pack as native Lumiverse JSON
     const handleExport = () => {
-        if (!pack.name.trim()) {
+        const packName = getPackName(pack);
+        if (!packName.trim()) {
             alert('Please enter a pack name before exporting.');
             return;
         }
-        exportPackAsWorldBook(pack);
+        exportPack(pack);
     };
 
     // Open pack selector to manage Lumias
     const handleManageLumias = () => {
+        const packName = getPackName(pack);
         // Save current pack state first
-        if (pack.name.trim()) {
+        if (packName.trim()) {
+            // Ensure both packName and name are synced for compatibility
+            const packToSave = {
+                ...pack,
+                name: packName, // Sync legacy field
+            };
+
             if (existingPack) {
-                actions.updateCustomPack(pack.id || pack.name, pack);
+                actions.updateCustomPack(pack.id || getPackName(existingPack), packToSave);
             } else {
-                actions.addCustomPack(pack);
+                actions.addCustomPack(packToSave);
             }
             saveToExtension();
         }
@@ -349,8 +326,8 @@ function PackEditorModal({ packId, onClose }) {
         onClose();
     };
 
-    // Get Lumia count
-    const lumiaCount = (pack.items || []).filter(item => item.lumiaDefName).length;
+    // Get Lumia count using helper function
+    const lumiaCount = getLumiaCount(pack);
 
     return (
         <div className="lumiverse-pack-editor-modal">
@@ -362,18 +339,25 @@ function PackEditorModal({ packId, onClose }) {
                         <h3>{existingPack ? 'Edit Pack' : 'New Pack'}</h3>
                     </div>
 
-                    <FormField label="Pack Name" required error={errors.name}>
+                    <FormField label="Pack Name" required error={errors.packName}>
                         <TextInput
-                            value={pack.name}
-                            onChange={(val) => updatePack('name', val)}
+                            value={getPackName(pack)}
+                            onChange={(val) => {
+                                // Update both packName and name for compatibility
+                                setPack(prev => ({ ...prev, packName: val, name: val }));
+                                if (errors.packName) setErrors(prev => ({ ...prev, packName: null }));
+                            }}
                             placeholder="My Custom Pack"
                         />
                     </FormField>
 
                     <FormField label="Author">
                         <TextInput
-                            value={pack.author || ''}
-                            onChange={(val) => updatePack('author', val)}
+                            value={getPackAuthor(pack)}
+                            onChange={(val) => {
+                                // Update both packAuthor and author for compatibility
+                                setPack(prev => ({ ...prev, packAuthor: val, author: val }));
+                            }}
                             placeholder="Your name"
                         />
                     </FormField>
@@ -424,7 +408,7 @@ function PackEditorModal({ packId, onClose }) {
                         className="lumiverse-btn lumiverse-btn--secondary"
                         onClick={handleExport}
                         type="button"
-                        title="Export as SillyTavern World Book JSON"
+                        title="Export as Lumiverse Pack"
                     >
                         <Download size={14} />
                         Export

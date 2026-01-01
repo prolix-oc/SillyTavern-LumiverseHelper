@@ -5,6 +5,20 @@ import clsx from 'clsx';
 import { Folder, FolderPlus, Check, ChevronRight, ChevronDown, Plus, Edit2, User, ScrollText } from 'lucide-react';
 
 /**
+ * Get pack name with fallback for different formats (v2: packName, v1: name)
+ */
+function getPackName(pack) {
+    return pack.packName || pack.name || 'Unknown Pack';
+}
+
+/**
+ * Get pack author with fallback for different formats
+ */
+function getPackAuthor(pack) {
+    return pack.packAuthor || pack.author || null;
+}
+
+/**
  * Get Lumia name with fallback for different formats
  */
 function getLumiaName(item) {
@@ -128,7 +142,8 @@ function PackSelectorModal({ onSelect, onClose }) {
 
     // Handle clicking on a pack - toggle expansion
     const handlePackClick = useCallback((pack) => {
-        setExpandedPackName(prev => prev === pack.name ? null : pack.name);
+        const packName = getPackName(pack);
+        setExpandedPackName(prev => prev === packName ? null : packName);
     }, []);
 
     // Handle adding a new item - opens type selector
@@ -160,15 +175,19 @@ function PackSelectorModal({ onSelect, onClose }) {
             return;
         }
 
-        // Create the new pack
+        // Create the new pack (v2 schema)
         const newPack = {
             id: `pack_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            name: name,
-            author: newPackAuthor.trim() || '',
-            coverUrl: newPackCover.trim() || '',
+            packName: name,
+            name: name, // Keep legacy field for compatibility
+            packAuthor: newPackAuthor.trim() || null,
+            coverUrl: newPackCover.trim() || null,
             url: '',
             isCustom: true,
-            items: [],
+            version: 1,
+            packExtras: [],
+            lumiaItems: [],
+            loomItems: [],
         };
 
         actions.addCustomPack(newPack);
@@ -223,14 +242,16 @@ function PackSelectorModal({ onSelect, onClose }) {
                     ) : (
                         <div className="lumiverse-pack-selector-list">
                             {editablePacks.map((pack) => {
-                                const isExpanded = expandedPackName === pack.name;
+                                const packName = getPackName(pack);
+                                const packAuthor = getPackAuthor(pack);
+                                const isExpanded = expandedPackName === packName;
                                 const lumiaItems = getLumiaItems(pack);
                                 const loomItems = getLoomItems(pack);
                                 const counts = getItemCount(pack);
 
                                 return (
                                     <div
-                                        key={pack.id || pack.name}
+                                        key={pack.id || packName}
                                         className={clsx(
                                             'lumiverse-pack-selector-item-wrapper',
                                             isExpanded && 'lumiverse-pack-selector-item-wrapper--expanded'
@@ -247,14 +268,14 @@ function PackSelectorModal({ onSelect, onClose }) {
                                             </div>
                                             <div className="lumiverse-pack-selector-item-info">
                                                 <span className="lumiverse-pack-selector-pack-name">
-                                                    {pack.name}
+                                                    {packName}
                                                 </span>
                                                 <span className="lumiverse-pack-selector-item-meta">
                                                     {counts.lumiaCount > 0 && `${counts.lumiaCount} Lumia${counts.lumiaCount !== 1 ? 's' : ''}`}
                                                     {counts.lumiaCount > 0 && counts.loomCount > 0 && ' • '}
                                                     {counts.loomCount > 0 && `${counts.loomCount} Loom${counts.loomCount !== 1 ? 's' : ''}`}
                                                     {counts.total === 0 && 'Empty'}
-                                                    {pack.author && ` • by ${pack.author}`}
+                                                    {packAuthor && ` • by ${packAuthor}`}
                                                 </span>
                                             </div>
                                             {isExpanded ? (
@@ -270,7 +291,7 @@ function PackSelectorModal({ onSelect, onClose }) {
                                                 {/* Add New Item Button */}
                                                 <button
                                                     className="lumiverse-pack-selector-add-item"
-                                                    onClick={() => handleAddNewItem(pack.name)}
+                                                    onClick={() => handleAddNewItem(packName)}
                                                     type="button"
                                                 >
                                                     <Plus size={14} strokeWidth={2} />
@@ -285,7 +306,7 @@ function PackSelectorModal({ onSelect, onClose }) {
                                                             <LumiaItemRow
                                                                 key={getLumiaName(item) || `lumia-${index}`}
                                                                 item={item}
-                                                                packName={pack.name}
+                                                                packName={packName}
                                                                 onEdit={handleEditItem}
                                                             />
                                                         ))}
@@ -294,7 +315,7 @@ function PackSelectorModal({ onSelect, onClose }) {
                                                             <LoomItemRow
                                                                 key={getLoomName(item) || `loom-${index}`}
                                                                 item={item}
-                                                                packName={pack.name}
+                                                                packName={packName}
                                                                 onEdit={handleEditItem}
                                                             />
                                                         ))}
