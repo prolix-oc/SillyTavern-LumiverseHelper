@@ -73,7 +73,6 @@ function LumiaCard({
     isDominant,
     onSelect,
     onSetDominant,
-    onEnableAll,
     showDominant,
     isDefinition,
     animationIndex,
@@ -82,6 +81,7 @@ function LumiaCard({
 }) {
     const [imageLoaded, setImageLoaded] = useState(false);
     const [imageError, setImageError] = useState(false);
+    const actions = useLumiverseActions();
 
     // Get display values - OLD CODE FORMAT
     // item.lumiaDefName is the name field for Lumia items
@@ -91,6 +91,9 @@ function LumiaCard({
 
     // Check if this item has multiple content types
     const showEnableAll = hasMultipleContentTypes(item);
+
+    // Check if all traits are currently enabled (for toggle visual state)
+    const isAllEnabled = showEnableAll && actions.areAllTraitsEnabledForLumia(packName, displayName);
 
     // Adaptive image positioning based on aspect ratio
     const { objectPosition } = useAdaptiveImagePosition(imgToShow);
@@ -115,7 +118,8 @@ function LumiaCard({
 
     const handleEnableAllClick = (e) => {
         e.stopPropagation();
-        if (onEnableAll) onEnableAll(item);
+        const enabled = actions.toggleAllTraitsForLumia(packName, displayName);
+        saveToExtension();
     };
 
     // Staggered animation delay
@@ -153,11 +157,11 @@ function LumiaCard({
                 )}
 
                 {/* Enable All Icon - shows when item has multiple content types */}
-                {showEnableAll && onEnableAll && (
+                {showEnableAll && (
                     <div
-                        className="lumia-enable-all-icon"
+                        className={clsx('lumia-enable-all-icon', isAllEnabled && 'all-enabled')}
                         onClick={handleEnableAllClick}
-                        title="Enable all traits for this Lumia"
+                        title={isAllEnabled ? "Disable all traits for this Lumia" : "Enable all traits for this Lumia"}
                     >
                         <Icon name="sparkles" />
                     </div>
@@ -214,7 +218,6 @@ function PackSection({
     isDominant,
     onSelect,
     onSetDominant,
-    onEnableAll,
     showDominant,
     onRemovePack,
     onEditItem,
@@ -275,7 +278,6 @@ function PackSection({
                             isDominant={isDominant(item, packName)}
                             onSelect={(item) => onSelect(item, packName)}
                             onSetDominant={(item) => onSetDominant(item, packName)}
-                            onEnableAll={onEnableAll ? (item) => onEnableAll(item, packName) : undefined}
                             showDominant={showDominant}
                             isDefinition={type === 'definitions'}
                             animationIndex={index}
@@ -642,18 +644,6 @@ function SelectionModal({
         });
     }, [actions]);
 
-    /**
-     * Handle enabling all traits for a Lumia item
-     * Uses the enableAllTraitsForLumia action from the store
-     * Memoized with useCallback to prevent unnecessary child re-renders
-     */
-    const handleEnableAll = useCallback((item, packName) => {
-        const itemName = item.lumiaDefName;
-        if (itemName) {
-            actions.enableAllTraitsForLumia(packName, itemName);
-            saveToExtension();
-        }
-    }, [actions]);
 
     return (
         <div className="lumia-modal-selection-content">
@@ -734,7 +724,6 @@ function SelectionModal({
                                 isDominant={isDominant}
                                 onSelect={handleSelect}
                                 onSetDominant={handleSetDominant}
-                                onEnableAll={handleEnableAll}
                                 showDominant={allowDominant && config.isMulti}
                                 onRemovePack={handleRemovePack}
                                 onEditItem={handleEditItem}

@@ -130,17 +130,25 @@ function LumiaDetailCard({ item, packName, selections, actions }) {
         }
     }, [isPersonalitySelected, actions, packName, item.lumiaDefName]);
 
-    const handleEnableAll = useCallback(() => {
-        actions.enableAllTraitsForLumia(packName, item.lumiaDefName);
-        saveToExtension();
-        if (typeof toastr !== 'undefined') {
-            toastr.success(`Enabled all traits for "${item.lumiaDefName}"`);
-        }
-    }, [actions, packName, item.lumiaDefName]);
-
     const hasDefinition = !!item.lumiaDef;
     const hasBehavior = !!item.lumia_behavior;
     const hasPersonality = !!item.lumia_personality;
+
+    // Check if all traits are enabled (for toggle behavior)
+    const hasMultipleContentTypes = [hasDefinition, hasBehavior, hasPersonality].filter(Boolean).length > 1;
+    const isAllEnabled = hasMultipleContentTypes && actions.areAllTraitsEnabledForLumia(packName, item.lumiaDefName);
+
+    const handleToggleAll = useCallback(() => {
+        const enabled = actions.toggleAllTraitsForLumia(packName, item.lumiaDefName);
+        saveToExtension();
+        if (typeof toastr !== 'undefined') {
+            if (enabled) {
+                toastr.success(`Enabled all traits for "${item.lumiaDefName}"`);
+            } else {
+                toastr.info(`Disabled all traits for "${item.lumiaDefName}"`);
+            }
+        }
+    }, [actions, packName, item.lumiaDefName]);
 
     return (
         <div className="lumiverse-pack-detail-lumia">
@@ -212,14 +220,14 @@ function LumiaDetailCard({ item, packName, selections, actions }) {
                         onClick={handleAddPersonality}
                     />
                 )}
-                {(hasDefinition || hasBehavior || hasPersonality) && (
+                {hasMultipleContentTypes && (
                     <button
-                        className="lumiverse-pack-detail-action lumiverse-pack-detail-action--enable-all"
-                        onClick={handleEnableAll}
-                        title="Enable all traits for this Lumia"
+                        className={`lumiverse-pack-detail-action lumiverse-pack-detail-action--enable-all${isAllEnabled ? ' all-enabled' : ''}`}
+                        onClick={handleToggleAll}
+                        title={isAllEnabled ? "Disable all traits for this Lumia" : "Enable all traits for this Lumia"}
                         type="button"
                     >
-                        Enable All
+                        {isAllEnabled ? 'Disable All' : 'Enable All'}
                     </button>
                 )}
             </div>

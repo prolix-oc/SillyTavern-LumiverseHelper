@@ -6654,6 +6654,24 @@ details.lumia-panel[open] .lumia-panel-chevron {
     stroke-linejoin: round;
 }
 
+/* All-enabled state - shows when all traits are active */
+.lumia-enable-all-icon.all-enabled {
+    opacity: 1;
+    background: rgba(76, 175, 80, 0.95);
+    border-color: rgba(76, 175, 80, 0.6);
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4);
+}
+
+.lumia-enable-all-icon.all-enabled:hover {
+    background: rgba(56, 142, 60, 1);
+    border-color: rgba(76, 175, 80, 0.8);
+    box-shadow: 0 2px 12px rgba(76, 175, 80, 0.6);
+}
+
+.lumia-enable-all-icon.all-enabled svg {
+    stroke: rgba(255, 255, 255, 0.95);
+}
+
 /* Selection Checkmark Overlay */
 .lumia-card-check {
     position: absolute;
@@ -8763,6 +8781,18 @@ details.lumia-panel[open] .lumia-panel-chevron {
     background: var(--lumiverse-bg-hover);
     border-color: var(--lumiverse-border-hover);
     color: var(--lumiverse-text);
+}
+
+.lumiverse-pack-detail-action--enable-all.all-enabled {
+    background: rgba(76, 175, 80, 0.15);
+    border-color: rgba(76, 175, 80, 0.6);
+    border-style: solid;
+    color: rgba(76, 175, 80, 1);
+}
+
+.lumiverse-pack-detail-action--enable-all.all-enabled:hover {
+    background: rgba(76, 175, 80, 0.25);
+    border-color: rgba(76, 175, 80, 0.8);
 }
 
 /* Pack browser - View button */

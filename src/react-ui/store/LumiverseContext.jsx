@@ -404,7 +404,142 @@ const actions = {
     },
 
     /**
-     * Enable all traits for a Lumia item
+     * Check if all traits for a Lumia item are currently enabled
+     * Returns true only if every trait the item has is selected
+     *
+     * @param {string} packName - The pack containing the item
+     * @param {string} itemName - The lumiaDefName of the item
+     * @returns {boolean} - true if all traits are enabled
+     */
+    areAllTraitsEnabledForLumia: (packName, itemName) => {
+        const state = store.getState();
+        const pack = state.packs[packName];
+        if (!pack) return false;
+
+        const item = pack.items.find(i => i.lumiaDefName === itemName);
+        if (!item) return false;
+
+        // Check definition
+        if (item.lumiaDef) {
+            const def = state.selectedDefinition;
+            if (!def || def.packName !== packName || def.itemName !== itemName) {
+                return false;
+            }
+        }
+
+        // Check behavior
+        if (item.lumia_behavior) {
+            const behaviors = state.selectedBehaviors || [];
+            const hasBehavior = behaviors.some(
+                b => b.packName === packName && b.itemName === itemName
+            );
+            if (!hasBehavior) return false;
+        }
+
+        // Check personality
+        if (item.lumia_personality) {
+            const personalities = state.selectedPersonalities || [];
+            const hasPersonality = personalities.some(
+                p => p.packName === packName && p.itemName === itemName
+            );
+            if (!hasPersonality) return false;
+        }
+
+        return true;
+    },
+
+    /**
+     * Toggle all traits for a Lumia item
+     * If all traits are enabled, disables them all
+     * If not all traits are enabled, enables them all
+     *
+     * @param {string} packName - The pack containing the item
+     * @param {string} itemName - The lumiaDefName of the item
+     * @returns {boolean} - true if traits were enabled, false if disabled
+     */
+    toggleAllTraitsForLumia: (packName, itemName) => {
+        const state = store.getState();
+        const pack = state.packs[packName];
+        if (!pack) return false;
+
+        const item = pack.items.find(i => i.lumiaDefName === itemName);
+        if (!item) return false;
+
+        const allEnabled = actions.areAllTraitsEnabledForLumia(packName, itemName);
+
+        if (allEnabled) {
+            // Disable all traits for this Lumia
+            const newState = {};
+
+            // Clear definition if it matches this item
+            if (item.lumiaDef) {
+                const def = state.selectedDefinition;
+                if (def && def.packName === packName && def.itemName === itemName) {
+                    newState.selectedDefinition = null;
+                }
+            }
+
+            // Remove behavior if present
+            if (item.lumia_behavior) {
+                const behaviors = state.selectedBehaviors || [];
+                newState.selectedBehaviors = behaviors.filter(
+                    b => !(b.packName === packName && b.itemName === itemName)
+                );
+            }
+
+            // Remove personality if present
+            if (item.lumia_personality) {
+                const personalities = state.selectedPersonalities || [];
+                newState.selectedPersonalities = personalities.filter(
+                    p => !(p.packName === packName && p.itemName === itemName)
+                );
+            }
+
+            if (Object.keys(newState).length > 0) {
+                store.setState(newState);
+            }
+            return false; // Traits were disabled
+        } else {
+            // Enable all traits for this Lumia
+            const selection = { packName, itemName };
+            const newState = {};
+
+            // Set definition if item has one
+            if (item.lumiaDef) {
+                newState.selectedDefinition = selection;
+            }
+
+            // Add behavior if item has one and not already selected
+            if (item.lumia_behavior) {
+                const behaviors = state.selectedBehaviors || [];
+                const alreadySelected = behaviors.some(
+                    b => b.packName === packName && b.itemName === itemName
+                );
+                if (!alreadySelected) {
+                    newState.selectedBehaviors = [...behaviors, selection];
+                }
+            }
+
+            // Add personality if item has one and not already selected
+            if (item.lumia_personality) {
+                const personalities = state.selectedPersonalities || [];
+                const alreadySelected = personalities.some(
+                    p => p.packName === packName && p.itemName === itemName
+                );
+                if (!alreadySelected) {
+                    newState.selectedPersonalities = [...personalities, selection];
+                }
+            }
+
+            if (Object.keys(newState).length > 0) {
+                store.setState(newState);
+            }
+            return true; // Traits were enabled
+        }
+    },
+
+    /**
+     * Enable all traits for a Lumia item (legacy, use toggleAllTraitsForLumia for toggle behavior)
      * Sets the definition (if item has one) and adds behaviors/personalities
      * without duplicating already-selected items
      *
