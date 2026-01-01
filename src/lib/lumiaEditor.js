@@ -1091,6 +1091,7 @@ export function showPackEditorModal(packName) {
 
 /**
  * Generate native Lumiverse pack JSON format
+ * Converts from legacy format if needed
  * @param {string} packName - The pack name to export
  * @returns {Object} Native pack JSON object
  */
@@ -1102,14 +1103,58 @@ export function generateNativePackJson(packName) {
     throw new Error(`Pack "${packName}" not found`);
   }
 
+  const packAuthor = pack.packAuthor || pack.author || null;
+
+  // Get lumiaItems - support both new format (lumiaItems) and legacy format (items)
+  let lumiaItems = [];
+  if (pack.lumiaItems && pack.lumiaItems.length > 0) {
+    // Already in new format - normalize field names
+    lumiaItems = pack.lumiaItems.map(item => ({
+      lumiaName: item.lumiaName || item.lumiaDefName || "Unknown",
+      lumiaDefinition: item.lumiaDefinition || item.lumiaDef || "",
+      lumiaPersonality: item.lumiaPersonality || item.lumia_personality || "",
+      lumiaBehavior: item.lumiaBehavior || item.lumia_behavior || "",
+      avatarUrl: item.avatarUrl || item.lumia_img || null,
+      genderIdentity: item.genderIdentity ?? 0,
+      authorName: item.authorName || packAuthor || null,
+      version: item.version || 1,
+    }));
+  } else if (pack.items && pack.items.length > 0) {
+    // Convert from legacy format
+    lumiaItems = pack.items
+      .filter(item => item.lumiaDefName || item.lumiaDef)
+      .map(item => ({
+        lumiaName: item.lumiaDefName || item.lumiaName || "Unknown",
+        lumiaDefinition: item.lumiaDef || item.lumiaDefinition || "",
+        lumiaPersonality: item.lumia_personality || item.lumiaPersonality || "",
+        lumiaBehavior: item.lumia_behavior || item.lumiaBehavior || "",
+        avatarUrl: item.lumia_img || item.avatarUrl || null,
+        genderIdentity: item.genderIdentity ?? 0,
+        authorName: item.authorName || packAuthor || null,
+        version: item.version || 1,
+      }));
+  }
+
+  // Get loomItems - support both new format and legacy format
+  let loomItems = [];
+  if (pack.loomItems && pack.loomItems.length > 0) {
+    loomItems = pack.loomItems.map(item => ({
+      loomName: item.loomName || item.name || "Unknown",
+      loomContent: item.loomContent || item.content || "",
+      loomCategory: item.loomCategory || item.category || "Loom Utilities",
+      authorName: item.authorName || packAuthor || null,
+      version: item.version || 1,
+    }));
+  }
+
   return {
-    packName: pack.packName || pack.name,
-    packAuthor: pack.packAuthor || pack.author || null,
+    packName: pack.packName || pack.name || packName,
+    packAuthor,
     coverUrl: pack.coverUrl || null,
     version: pack.version || 1,
     packExtras: pack.packExtras || [],
-    lumiaItems: pack.lumiaItems || [],
-    loomItems: pack.loomItems || [],
+    lumiaItems,
+    loomItems,
   };
 }
 

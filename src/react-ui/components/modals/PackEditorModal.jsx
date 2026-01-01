@@ -154,69 +154,82 @@ function serializeLumiaToWorldBookEntry(lumiaItem, entryType, uid) {
 }
 
 /**
- * Generate World Book JSON from pack data
+ * Generate native Lumiverse pack JSON from pack data
+ * Uses the new v2 schema with lumiaItems and loomItems arrays
  */
-function generateWorldBookJson(pack) {
-    const entries = {};
-    let uid = 0;
+function generateNativePackJson(pack) {
+    // Get pack metadata (support both old and new field names)
+    const packName = pack.packName || pack.name || 'Unnamed Pack';
+    const packAuthor = pack.packAuthor || pack.author || null;
+    const coverUrl = pack.coverUrl || null;
+    const version = pack.version || 1;
 
-    // Add metadata entry first if pack has author or cover
-    if (pack.author || pack.coverUrl) {
-        let metadataContent = '';
-        if (pack.coverUrl) {
-            metadataContent += `[cover_img=${pack.coverUrl}]`;
-        }
-        if (pack.author) {
-            metadataContent += `[author_name=${pack.author}]`;
-        }
-
-        entries[uid] = {
-            ...DEFAULT_WB_ENTRY,
-            uid: uid,
-            comment: 'Metadata',
-            content: metadataContent,
-        };
-        uid++;
+    // Get lumiaItems - support both new format (lumiaItems) and legacy format (items)
+    let lumiaItems = [];
+    if (pack.lumiaItems && pack.lumiaItems.length > 0) {
+        // Already in new format
+        lumiaItems = pack.lumiaItems.map(item => ({
+            lumiaName: item.lumiaName || item.lumiaDefName || 'Unknown',
+            lumiaDefinition: item.lumiaDefinition || item.lumiaDef || '',
+            lumiaPersonality: item.lumiaPersonality || item.lumia_personality || '',
+            lumiaBehavior: item.lumiaBehavior || item.lumia_behavior || '',
+            avatarUrl: item.avatarUrl || item.lumia_img || null,
+            genderIdentity: item.genderIdentity ?? 0,
+            authorName: item.authorName || packAuthor || null,
+            version: item.version || 1,
+        }));
+    } else if (pack.items && pack.items.length > 0) {
+        // Convert from legacy format
+        lumiaItems = pack.items
+            .filter(item => item.lumiaDefName || item.lumiaDef)
+            .map(item => ({
+                lumiaName: item.lumiaDefName || item.lumiaName || 'Unknown',
+                lumiaDefinition: item.lumiaDef || item.lumiaDefinition || '',
+                lumiaPersonality: item.lumia_personality || item.lumiaPersonality || '',
+                lumiaBehavior: item.lumia_behavior || item.lumiaBehavior || '',
+                avatarUrl: item.lumia_img || item.avatarUrl || null,
+                genderIdentity: item.genderIdentity ?? 0,
+                authorName: item.authorName || packAuthor || null,
+                version: item.version || 1,
+            }));
     }
 
-    for (const item of (pack.items || [])) {
-        // Skip non-Lumia items
-        if (!item.lumiaDefName) continue;
-
-        // Add definition entry if present
-        if (item.lumiaDef) {
-            entries[uid] = serializeLumiaToWorldBookEntry(item, 'definition', uid);
-            uid++;
-        }
-
-        // Add behavior entry if present
-        if (item.lumia_behavior) {
-            entries[uid] = serializeLumiaToWorldBookEntry(item, 'behavior', uid);
-            uid++;
-        }
-
-        // Add personality entry if present
-        if (item.lumia_personality) {
-            entries[uid] = serializeLumiaToWorldBookEntry(item, 'personality', uid);
-            uid++;
-        }
+    // Get loomItems - support both new format and legacy format
+    let loomItems = [];
+    if (pack.loomItems && pack.loomItems.length > 0) {
+        loomItems = pack.loomItems.map(item => ({
+            loomName: item.loomName || item.name || 'Unknown',
+            loomContent: item.loomContent || item.content || '',
+            loomCategory: item.loomCategory || item.category || 'Loom Utilities',
+            authorName: item.authorName || packAuthor || null,
+            version: item.version || 1,
+        }));
     }
 
-    return { entries };
+    return {
+        packName,
+        packAuthor,
+        coverUrl,
+        version,
+        packExtras: pack.packExtras || [],
+        lumiaItems,
+        loomItems,
+    };
 }
 
 /**
- * Download pack as World Book JSON file
+ * Download pack as native Lumiverse JSON file (new v2 format)
  */
 export function exportPackAsWorldBook(pack) {
-    const worldBook = generateWorldBookJson(pack);
-    const jsonString = JSON.stringify(worldBook, null, 2);
+    const nativePack = generateNativePackJson(pack);
+    const jsonString = JSON.stringify(nativePack, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
 
+    const packName = pack.packName || pack.name || 'pack';
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${(pack.name || 'pack').replace(/[^a-z0-9]/gi, '_')}_worldbook.json`;
+    a.download = `${packName.replace(/[^a-z0-9]/gi, '_')}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
