@@ -3591,6 +3591,110 @@ details.lumia-panel[open] .lumia-panel-chevron {
   margin-top: 2px;
 }
 
+/* Card Check Mark for Multi-Select */
+.lucid-dlc-card-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.2s ease;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.lucid-dlc-card-check svg {
+  width: 14px;
+  height: 14px;
+  stroke: white;
+  stroke-width: 3;
+  fill: none;
+}
+
+.lucid-dlc-card:hover .lucid-dlc-card-check {
+  opacity: 0.6;
+}
+
+.lucid-dlc-card.selected .lucid-dlc-card-check {
+  opacity: 1;
+  background: rgba(100, 149, 237, 0.9);
+  border-color: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 2px 8px rgba(100, 149, 237, 0.4);
+}
+
+/* Imported and Already-Imported states */
+.lucid-dlc-card.imported .lucid-dlc-card-check,
+.lucid-dlc-card.already-imported .lucid-dlc-card-check {
+  opacity: 1;
+  background: rgba(80, 200, 120, 0.9);
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+.lucid-dlc-card.already-imported {
+  opacity: 0.6;
+}
+
+.lucid-dlc-card.already-imported::before {
+  content: "Already installed";
+  position: absolute;
+  bottom: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: rgba(255, 255, 255, 0.9);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  z-index: 3;
+  white-space: nowrap;
+}
+
+/* Footer Selection Controls */
+.lucid-cards-selection-controls {
+  display: flex;
+  gap: 8px;
+  margin-right: auto;
+  margin-left: 12px;
+}
+
+.lucid-cards-selected-count {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+}
+
+.lucid-cards-count-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(100, 149, 237, 0.9);
+}
+
+/* Text-style button for select all/clear */
+.lumia-modal-btn-text {
+  background: transparent;
+  border: none;
+  color: rgba(147, 112, 219, 0.8);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+}
+
+.lumia-modal-btn-text:hover {
+  background: rgba(147, 112, 219, 0.1);
+  color: rgba(147, 112, 219, 1);
+}
+
 /* Loom Items List */
 .lucid-loom-list {
   display: flex;

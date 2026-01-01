@@ -2114,9 +2114,12 @@ export async function showLucidCardsModal() {
             </div>
             <div class="lumia-modal-footer lucid-cards-footer">
                 <button class="lumia-modal-btn lumia-modal-btn-secondary lucid-cards-close-btn">Close</button>
-                <div class="lucid-cards-selected-info" style="display: none;">
-                    <span class="lucid-cards-selected-name"></span>
-                    <span class="lucid-cards-selected-author"></span>
+                <div class="lucid-cards-selection-controls" style="display: none;">
+                    <button class="lumia-modal-btn lumia-modal-btn-text lucid-cards-select-all-btn">Select All</button>
+                    <button class="lumia-modal-btn lumia-modal-btn-text lucid-cards-clear-btn">Clear</button>
+                </div>
+                <div class="lucid-cards-selected-count" style="display: none;">
+                    <span class="lucid-cards-count-text">0 selected</span>
                 </div>
                 <button class="lumia-modal-btn lumia-modal-btn-primary lucid-cards-import-btn" style="display: none;">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2124,7 +2127,7 @@ export async function showLucidCardsModal() {
                         <polyline points="7 10 12 15 17 10"></polyline>
                         <line x1="12" y1="15" x2="12" y2="3"></line>
                     </svg>
-                    Add to Lumiverse
+                    <span class="lucid-cards-import-text">Import Packs</span>
                 </button>
             </div>
         </dialog>
@@ -2135,8 +2138,26 @@ export async function showLucidCardsModal() {
 
   // State management
   let currentCategory = "Lumia DLCs";
-  let selectedBook = null;
+  let selectedBooks = []; // Multi-select: array of { path, name, author }
   let cachedData = null;
+
+  // Helper to update footer based on selection count
+  const updateFooterState = () => {
+    const count = selectedBooks.length;
+    if (count === 0) {
+      $modal.find(".lucid-cards-selection-controls").hide();
+      $modal.find(".lucid-cards-selected-count").hide();
+      $modal.find(".lucid-cards-import-btn").hide();
+    } else {
+      $modal.find(".lucid-cards-selection-controls").show();
+      $modal.find(".lucid-cards-selected-count").show();
+      $modal.find(".lucid-cards-count-text").text(`${count} selected`);
+      $modal.find(".lucid-cards-import-text").text(count === 1 ? "Import Pack" : `Import ${count} Packs`);
+      $modal.find(".lucid-cards-import-btn").show();
+    }
+    // Recalculate height constraints after footer size changes
+    requestAnimationFrame(() => applyLucidCardsHeightConstraints());
+  };
 
   // Apply height constraints similar to other modals, but accounting for tabs
   const applyLucidCardsHeightConstraints = () => {
@@ -2300,6 +2321,9 @@ export async function showLucidCardsModal() {
                        data-cover-img="${escapeHtml(coverUrl || "")}" data-author="${escapeHtml(authorName || "")}">
                       <div class="lucid-dlc-card-image">
                           ${imageHtml}
+                          <div class="lucid-dlc-card-check">
+                              ${SVG_ICONS.check}
+                          </div>
                       </div>
                       <div class="lucid-dlc-card-info">
                           <div class="lucid-dlc-card-title">${escapedName}</div>
@@ -2314,9 +2338,10 @@ export async function showLucidCardsModal() {
     $content.html(`<div class="lucid-dlc-grid">${cardsHtml}</div>`);
     $content.show();
 
-    // Deselect when switching categories
-    selectedBook = null;
-    $modal.find(".lucid-cards-selected-info, .lucid-cards-import-btn").hide();
+    // Clear selection when switching categories
+    selectedBooks = [];
+    $modal.find(".lucid-dlc-card").removeClass("selected");
+    updateFooterState();
   };
 
   // Fetch metadata for a specific book
@@ -2406,40 +2431,56 @@ export async function showLucidCardsModal() {
     $modal.find(".lucid-cards-tab").removeClass("active");
     $(this).addClass("active");
     currentCategory = $(this).data("category");
-    selectedBook = null;
-    $modal.find(".lucid-cards-selected-info, .lucid-cards-import-btn").hide();
+    selectedBooks = [];
+    $modal.find(".lucid-dlc-card").removeClass("selected");
+    updateFooterState();
     renderContent();
   });
 
-  // Handle card selection (unified for all categories)
+  // Handle card selection - multi-select toggle
   $modal.on("click", ".lucid-dlc-card", function () {
     const $this = $(this);
-    const wasSelected = $this.hasClass("selected");
+    const path = $this.data("path");
+    const name = $this.data("name");
+    const author = $this.data("author") || "Unknown Author";
 
-    // Deselect all
-    $modal.find(".lucid-dlc-card").removeClass("selected");
+    // Find if already selected
+    const existingIndex = selectedBooks.findIndex(b => b.path === path);
 
-    if (wasSelected) {
-      selectedBook = null;
-      $modal.find(".lucid-cards-selected-info, .lucid-cards-import-btn").hide();
+    if (existingIndex >= 0) {
+      // Remove from selection
+      selectedBooks.splice(existingIndex, 1);
+      $this.removeClass("selected");
     } else {
+      // Add to selection
+      selectedBooks.push({ path, name, author });
       $this.addClass("selected");
-      selectedBook = {
-        path: $this.data("path"),
-        name: $this.data("name"),
-        author: $this.data("author") || "Unknown Author",
-      };
-
-      // Show selected info and import button
-      $modal.find(".lucid-cards-selected-name").text(selectedBook.name);
-      $modal
-        .find(".lucid-cards-selected-author")
-        .text(`by ${selectedBook.author}`);
-      $modal.find(".lucid-cards-selected-info, .lucid-cards-import-btn").show();
     }
 
-    // Recalculate height constraints after footer size changes
-    requestAnimationFrame(() => applyLucidCardsHeightConstraints());
+    updateFooterState();
+  });
+
+  // Handle select all button
+  $modal.find(".lucid-cards-select-all-btn").click(function () {
+    const $cards = $modal.find(".lucid-dlc-card");
+    selectedBooks = [];
+    $cards.each(function () {
+      const $card = $(this);
+      $card.addClass("selected");
+      selectedBooks.push({
+        path: $card.data("path"),
+        name: $card.data("name"),
+        author: $card.data("author") || "Unknown Author",
+      });
+    });
+    updateFooterState();
+  });
+
+  // Handle clear selection button
+  $modal.find(".lucid-cards-clear-btn").click(function () {
+    selectedBooks = [];
+    $modal.find(".lucid-dlc-card").removeClass("selected");
+    updateFooterState();
   });
 
   // Handle close button
@@ -2448,49 +2489,95 @@ export async function showLucidCardsModal() {
   // Handle retry button
   $modal.find(".lucid-cards-retry-btn").click(fetchLucidCards);
 
-  // Handle import button
+  // Handle import button - batch import with skip-existing
   $modal.find(".lucid-cards-import-btn").click(async function () {
-    if (!selectedBook) return;
+    if (selectedBooks.length === 0) return;
 
     const $btn = $(this);
     const originalHtml = $btn.html();
-    $btn.prop("disabled", true).html(`
-            <svg class="lucid-cards-btn-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-            </svg>
-            Importing...
-        `);
+    const total = selectedBooks.length;
+    let imported = 0;
+    let skipped = 0;
+    let failed = 0;
 
-    try {
-      const response = await fetch(`https://lucid.cards${selectedBook.path}`);
-      if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+    // Get settings and importPack function
+    const settings = getSettings();
+    const { importPack } = await import("./dataProcessor.js");
 
-      const data = await response.json();
+    // Disable button and show progress
+    $btn.prop("disabled", true);
 
-      // New API wraps pack data in { success, pack: {...}, slug, downloadUrl }
-      if (data.success === false) {
-        throw new Error(data.error || "Failed to fetch pack");
+    for (let i = 0; i < selectedBooks.length; i++) {
+      const book = selectedBooks[i];
+
+      // Update progress
+      $btn.html(`
+        <svg class="lucid-cards-btn-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+        </svg>
+        Importing ${i + 1} of ${total}...
+      `);
+
+      // Check if pack already exists - skip if so
+      if (settings.packs[book.name]) {
+        skipped++;
+        // Mark the card as already-imported
+        const escapedPath = escapeHtml(book.path);
+        $modal.find(`.lucid-dlc-card[data-path="${escapedPath}"]`).addClass("already-imported");
+        continue;
       }
 
-      // Extract the pack data from the response wrapper
-      const packData = data.pack || data;
+      try {
+        const response = await fetch(`https://lucid.cards${book.path}`);
+        if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
 
-      // Use importPack for native format, falls back to handleNewBook for old format
-      const { importPack } = await import("./dataProcessor.js");
-      importPack(packData, selectedBook.name, true);
+        const data = await response.json();
 
-      toastr.success(`Successfully imported "${selectedBook.name}"!`);
+        // New API wraps pack data in { success, pack: {...}, slug, downloadUrl }
+        if (data.success === false) {
+          throw new Error(data.error || "Failed to fetch pack");
+        }
 
-      // Deselect after import
-      $modal.find(".lucid-dlc-card").removeClass("selected");
-      selectedBook = null;
-      $modal.find(".lucid-cards-selected-info, .lucid-cards-import-btn").hide();
-    } catch (error) {
-      console.error(`[${MODULE_NAME}] Import failed:`, error);
-      toastr.error(`Failed to import: ${error.message}`);
-    } finally {
-      $btn.prop("disabled", false).html(originalHtml);
+        // Extract the pack data from the response wrapper
+        const packData = data.pack || data;
+
+        // Import the pack (this calls saveSettings internally)
+        importPack(packData, book.name, true);
+        imported++;
+
+        // Mark the card as imported
+        const escapedPath = escapeHtml(book.path);
+        $modal.find(`.lucid-dlc-card[data-path="${escapedPath}"]`).addClass("imported");
+      } catch (error) {
+        console.error(`[${MODULE_NAME}] Import failed for "${book.name}":`, error);
+        failed++;
+      }
     }
+
+    // Notify React of the new packs so UI updates
+    notifyReactOfSettingsChange();
+
+    // Show summary toast
+    const parts = [];
+    if (imported > 0) parts.push(`${imported} imported`);
+    if (skipped > 0) parts.push(`${skipped} skipped (already exist)`);
+    if (failed > 0) parts.push(`${failed} failed`);
+
+    if (imported > 0) {
+      toastr.success(`Import complete: ${parts.join(", ")}`);
+    } else if (skipped > 0 && failed === 0) {
+      toastr.info(`All ${skipped} packs already exist`);
+    } else {
+      toastr.error(`Import failed: ${parts.join(", ")}`);
+    }
+
+    // Clear selection after import
+    selectedBooks = [];
+    $modal.find(".lucid-dlc-card").removeClass("selected");
+    updateFooterState();
+
+    // Restore button
+    $btn.prop("disabled", false).html(originalHtml);
   });
 
   $modal[0].showModal();
