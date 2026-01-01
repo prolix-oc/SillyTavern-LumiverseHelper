@@ -2223,8 +2223,8 @@ export async function showLucidCardsModal() {
     $modal.find(".lucid-cards-loading").show();
     $modal.find(".lucid-cards-error").hide();
     $modal.find(".lucid-cards-content").hide();
-    $modal.find(".lucid-cards-selected-info, .lucid-cards-import-btn").hide();
-    selectedBook = null;
+    selectedBooks = [];
+    updateFooterState();
 
     try {
       const response = await fetch(
