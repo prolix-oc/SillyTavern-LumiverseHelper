@@ -839,9 +839,13 @@ function createOOCRawText(content, memberName = null) {
  * @param {string|null} memberName - Council member name, or null for default "Lumia"
  */
 function createOOCSocialCard(content, avatarImg, memberName = null) {
+  const settings = getSettings();
+  const isCouncil = settings.councilMode && settings.councilMembers?.length > 0;
+
   const displayName = memberName || "Lumia";
-  const threadText = memberName ? "speaks from the Council" : "weaving through the Loom";
-  const placeholderLetter = memberName ? memberName.charAt(0).toUpperCase() : "L";
+  // Only show "speaks from the Council" if actually in council mode
+  const threadText = isCouncil ? "speaks from the Council" : "weaving through the Loom";
+  const placeholderLetter = (memberName || "Lumia").charAt(0).toUpperCase();
 
   // Create avatar container with ethereal glow ring
   const avatarElement = avatarImg
@@ -908,7 +912,7 @@ function createOOCSocialCard(content, avatarImg, memberName = null) {
  */
 function createOOCMarginNote(content, avatarImg, isAlt = false, memberName = null) {
   const displayName = memberName || "Lumia";
-  const placeholderLetter = memberName ? memberName.charAt(0).toUpperCase() : "L";
+  const placeholderLetter = (memberName || "Lumia").charAt(0).toUpperCase();
 
   // Create the hanging tag with avatar or letter
   const tagContent = avatarImg
@@ -970,7 +974,7 @@ function createOOCMarginNote(content, avatarImg, isAlt = false, memberName = nul
 function createOOCWhisperBubble(content, avatarImg, isAlt = false, memberName = null) {
   const displayName = memberName || "Lumia";
   const whisperText = `${displayName} whispers...`;
-  const placeholderLetter = memberName ? memberName.charAt(0).toUpperCase() : "L";
+  const placeholderLetter = (memberName || "Lumia").charAt(0).toUpperCase();
 
   // Create the avatar element (outside the bubble, prominent)
   const avatar = avatarImg
