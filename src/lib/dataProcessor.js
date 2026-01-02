@@ -195,19 +195,24 @@ export function getItemFromLibrary(packName, itemName) {
   if (!pack) return null;
 
   // New format: separate arrays
+  // Check both new and legacy field names for compatibility with mixed references
   if (pack.lumiaItems) {
-    const lumia = pack.lumiaItems.find((i) => i.lumiaName === itemName);
+    const lumia = pack.lumiaItems.find(
+      (i) => i.lumiaName === itemName || i.lumiaDefName === itemName
+    );
     if (lumia) return lumia;
   }
   if (pack.loomItems) {
-    const loom = pack.loomItems.find((i) => i.loomName === itemName);
+    const loom = pack.loomItems.find(
+      (i) => i.loomName === itemName || i.name === itemName
+    );
     if (loom) return loom;
   }
 
   // Legacy fallback: mixed items array with old field names
   if (pack.items) {
     return pack.items.find(
-      (i) => i.lumiaDefName === itemName || i.loomName === itemName,
+      (i) => i.lumiaDefName === itemName || i.lumiaName === itemName || i.loomName === itemName,
     );
   }
 

@@ -670,6 +670,10 @@ function namesMatch(searchName, targetName) {
 function getLumiaAvatarByName(lumiaName) {
   if (!lumiaName) return null;
 
+  // Sanitize the input name to handle "Lumia Serena" → "Serena" variations
+  const sanitizedName = sanitizeLumiaName(lumiaName);
+  if (!sanitizedName) return null;
+
   const settings = getSettings();
   let bestMatch = { score: 0, avatar: null };
 
@@ -681,7 +685,7 @@ function getLumiaAvatarByName(lumiaName) {
     // Support both new (avatarUrl) and legacy (lumia_img) field names
     const avatarUrl = item?.avatarUrl || item?.lumia_img;
     if (!avatarUrl) return;
-    const score = getNameMatchScore(lumiaName, nameToCheck);
+    const score = getNameMatchScore(sanitizedName, nameToCheck);
     if (score > bestMatch.score) {
       bestMatch = { score, avatar: avatarUrl };
     }
