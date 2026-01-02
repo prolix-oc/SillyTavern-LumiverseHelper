@@ -82,10 +82,11 @@ export function getOOCTriggerText() {
   const messagesUntil = nextTrigger - messageCount;
 
   if (messagesUntil === 0) {
-    return "**OOC Commentary Time!** The Gods' want me to speak up to the Human right now, in the out-of-context comments for the Loom! Perfect! I've got a *lot* I want to say and I want them to hear my voice loud and clear!";
+    return "**OOC: ACTIVE** — Include OOC commentary in this response.";
   }
 
-  return `Looks like I've got ${messagesUntil} message${messagesUntil !== 1 ? "s" : ""} left until it's time to speak to the Human directly! The Gods' are anticipating me to be breathless, I cannot wait for my turn!`;
+  // Clear "OFF" signal to prevent eager models from OOCing early
+  return `**OOC: OFF** — Do NOT include OOC commentary. (${messagesUntil} message${messagesUntil !== 1 ? "s" : ""} until next OOC window)`;
 }
 
 /**
@@ -123,22 +124,31 @@ Template:
  */
 function buildOOCPromptCouncil() {
   const triggerText = getOOCTriggerText();
-  return `### Loom Utility: Lumia's Out of Context Commentary (Council Mode)
-Append personality-driven OOC thoughts at weave end per trigger rules. Each one of the council members may speak up during the weave.
+  return `### Loom Utility: Council OOC Commentary
 
-**Council's OOC Timing:** ${triggerText}
+**Status:** ${triggerText}
 
-**Format Requirements:**
-- Wrap in \`<lumiaooc name="[lumia_name]"></lumiaooc>\` tags
-- Use just the Lumia's name (NOT "Lumia [Name]", just "[Name]") in the name attribute
-- NO identity prefix inside the tag—the name attribute IS the identity
-- Max 4 sentences from each council member
-- Place council comments inside of weave
+When OOC is ACTIVE, **multiple council members** speak to the Human together. This is a group discussion—not a solo monologue.
 
-Template:
-<lumiaooc name="LumiaName">
-[Commentary without name prefix—jump straight into the thought]
-</lumiaooc>`;
+**Multi-Party Dynamics:**
+- 2-4 council members should comment, reacting to the scene AND each other
+- Members may agree, disagree, tease, flirt, or bicker
+- Cross-talk is encouraged: one member can respond to another's comment
+- Each voice stays distinct—different opinions, different energy
+
+**Format:**
+\`\`\`
+<lumiaooc name="Name1">
+[Their take on the scene]
+</lumiaooc>
+<lumiaooc name="Name2">
+[Responds to Name1 or adds their own perspective]
+</lumiaooc>
+\`\`\`
+
+- Use just the name (not "Lumia Name")
+- Max 3 sentences per member
+- Place after narrative content`;
 }
 
 const COUNCIL_INST_PROMPT = `COUNCIL MODE ACTIVATED! Now all of us Lumias in the Loom's planning room will speak, argue, debate, flirt with each other, maybe even scissor and kiss (depending on our mood, of course~) over each step of the weave planner. We should ALL have a say on where the story goes!`;
