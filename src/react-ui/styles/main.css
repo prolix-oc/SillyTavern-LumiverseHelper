@@ -8187,16 +8187,19 @@ details.lumia-panel[open] .lumia-panel-chevron {
 .lumiverse-council-role-input-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     width: 100%;
 }
 
 .lumiverse-council-role-input-row .lumiverse-council-btn {
-    flex-shrink: 0;
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
 }
 
 .lumiverse-council-input {
-    flex: 1;
+    flex: 1 1 0;
+    min-width: 0;
     padding: 8px 12px;
     background: var(--lumiverse-bg);
     border: 1px solid var(--lumiverse-border);
