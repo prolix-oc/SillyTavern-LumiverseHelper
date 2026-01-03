@@ -151,13 +151,16 @@ const Icons = {
  * Individual Lumia item in the pack list with adaptive image positioning
  */
 function LumiaPackItem({ item, packName, onEdit, editIcon }) {
-    const { objectPosition } = useAdaptiveImagePosition(item.lumia_img);
+    // Support both new schema (avatarUrl, lumiaName) and legacy (lumia_img, lumiaDefName)
+    const avatarUrl = item.avatarUrl || item.lumia_img;
+    const displayName = item.lumiaName || item.lumiaDefName;
+    const { objectPosition } = useAdaptiveImagePosition(avatarUrl);
 
     return (
         <div className="lumia-pack-lumia-item">
-            {item.lumia_img && (
+            {avatarUrl && (
                 <img
-                    src={item.lumia_img}
+                    src={avatarUrl}
                     alt=""
                     className="lumia-pack-lumia-avatar"
                     style={{ objectPosition }}
@@ -165,7 +168,7 @@ function LumiaPackItem({ item, packName, onEdit, editIcon }) {
                 />
             )}
             <span className="lumia-pack-lumia-name">
-                {item.lumiaDefName}
+                {displayName}
             </span>
             <button
                 className="lumia-btn lumia-btn-icon lumia-btn-icon-sm"

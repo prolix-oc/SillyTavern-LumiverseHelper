@@ -12,6 +12,7 @@ const SVG_ICONS = {
     search: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`,
     sort: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="14" y2="6"></line><line x1="4" y1="12" x2="11" y2="12"></line><line x1="4" y1="18" x2="8" y2="18"></line><polyline points="15 15 18 18 21 15"></polyline><line x1="18" y1="9" x2="18" y2="18"></line></svg>`,
     clear: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`,
+    edit: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`,
 };
 
 function Icon({ name, className }) {
@@ -89,9 +90,14 @@ function SearchInput({ value, onChange, placeholder }) {
 /**
  * Individual Loom item row
  */
-function LoomItem({ item, packName, isSelected, onToggle, isMulti }) {
+function LoomItem({ item, packName, isSelected, onToggle, isMulti, isEditable, onEdit }) {
     // Handle different field names for item name
     const itemName = item.loomName || item.itemName || item.name || 'Unknown';
+
+    const handleEditClick = (e) => {
+        e.stopPropagation();
+        if (onEdit) onEdit(packName, item);
+    };
 
     return (
         <div
@@ -107,16 +113,28 @@ function LoomItem({ item, packName, isSelected, onToggle, isMulti }) {
             <div className="lumiverse-loom-item-content">
                 <span className="lumiverse-loom-item-name">{itemName}</span>
             </div>
-            <div className="lumiverse-loom-item-toggle">
-                {isMulti ? (
-                    <div className={clsx('lumiverse-toggle-switch', isSelected && 'checked')}>
-                        <div className="lumiverse-toggle-track">
-                            <div className="lumiverse-toggle-thumb" />
-                        </div>
-                    </div>
-                ) : (
-                    <span className={clsx('lumiverse-radio-dot', isSelected && 'checked')} />
+            <div className="lumiverse-loom-item-actions">
+                {isEditable && onEdit && (
+                    <button
+                        className="lumiverse-loom-item-edit"
+                        onClick={handleEditClick}
+                        title="Edit this Loom item"
+                        type="button"
+                    >
+                        <Icon name="edit" />
+                    </button>
                 )}
+                <div className="lumiverse-loom-item-toggle">
+                    {isMulti ? (
+                        <div className={clsx('lumiverse-toggle-switch', isSelected && 'checked')}>
+                            <div className="lumiverse-toggle-track">
+                                <div className="lumiverse-toggle-thumb" />
+                            </div>
+                        </div>
+                    ) : (
+                        <span className={clsx('lumiverse-radio-dot', isSelected && 'checked')} />
+                    )}
+                </div>
             </div>
         </div>
     );
@@ -384,6 +402,11 @@ function LoomSelectionModal({ type, onClose }) {
         saveToExtension();
     }, [actions]);
 
+    // Handle editing a Loom item (opens loomEditor modal)
+    const handleEditItem = useCallback((packName, item) => {
+        actions.openModal('loomEditor', { packName, editingItem: item });
+    }, [actions]);
+
     const totalItems = sortedPacks.reduce((sum, pack) => sum + pack.loomItems.length, 0);
     const selectedCount = currentSelections.length;
 
@@ -492,6 +515,8 @@ function LoomSelectionModal({ type, onClose }) {
                                             isSelected={isSelected(packName, itemName)}
                                             onToggle={handleToggle}
                                             isMulti={isMulti}
+                                            isEditable={pack.isEditable}
+                                            onEdit={handleEditItem}
                                         />
                                     );
                                 })}
