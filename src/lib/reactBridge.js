@@ -10,7 +10,7 @@
  * so window.LumiverseUI is available immediately - no dynamic loading needed.
  */
 
-import { getSettings, saveSettings, MODULE_NAME, clearClaudeCache } from "./settingsManager.js";
+import { getSettings, saveSettings, MODULE_NAME, clearClaudeCache, resetAllSettings } from "./settingsManager.js";
 import { getEventSource, getEventTypes } from "../stContext.js";
 
 // Track if React UI is loaded
@@ -184,6 +184,7 @@ export async function initializeReactUI(container) {
       getCallbacks,
       notifySettingsChange: notifyReactOfSettingsChange,
       clearClaudeCache: clearClaudeCache,
+      resetAllSettings: resetAllSettings,
     };
     console.log("[ReactBridge] Bridge API exposed on window.LumiverseBridge");
 

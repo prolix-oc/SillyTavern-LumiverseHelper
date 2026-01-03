@@ -560,6 +560,31 @@ export function clearClaudeCache() {
 }
 
 /**
+ * Reset all settings to defaults (nuclear option)
+ * This completely wipes all extension settings and reloads the page.
+ * On reload, the extension will initialize with fresh DEFAULT_SETTINGS.
+ */
+export function resetAllSettings() {
+  const extension_settings = getExtensionSettings();
+  const saveSettingsDebounced = getSaveSettingsDebounced();
+
+  console.log(`[${MODULE_NAME}] NUCLEAR RESET: Wiping all extension settings...`);
+
+  // Delete the entire settings key
+  delete extension_settings[SETTINGS_KEY];
+
+  // Force a save to persist the deletion
+  saveSettingsDebounced();
+
+  console.log(`[${MODULE_NAME}] Settings wiped. Page will reload...`);
+
+  // Small delay to ensure save completes, then reload
+  setTimeout(() => {
+    window.location.reload();
+  }, 500);
+}
+
+/**
  * Get the extension directory path
  * Note: In bundled mode, this is less reliable - use for compatibility only
  * @returns {string} Extension directory path

@@ -5,7 +5,7 @@ import { exportPack } from './modals/PackEditorModal';
 import { CollapsibleContent } from './Collapsible';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
-import { Eye, Sparkles, Wrench, Layers, Trash2, Users, Bookmark, Plus, ChevronDown, Check, X } from 'lucide-react';
+import { Eye, Sparkles, Wrench, Layers, Trash2, Users, Bookmark, Plus, ChevronDown, Check, X, AlertTriangle } from 'lucide-react';
 
 /* global LumiverseBridge, toastr */
 
@@ -782,6 +782,35 @@ function SettingsPanel() {
         saveToExtension();
     }, []);
 
+    // Handle nuclear reset - wipe all settings and reload
+    const handleNuclearReset = useCallback(() => {
+        const confirmed = window.confirm(
+            'WARNING: This will completely reset ALL Lumiverse Helper settings to defaults.\n\n' +
+            'This includes:\n' +
+            '- All downloaded packs\n' +
+            '- All custom packs\n' +
+            '- All Lumia and Loom selections\n' +
+            '- All presets\n' +
+            '- All advanced settings\n\n' +
+            'The page will reload after reset.\n\n' +
+            'Are you sure you want to continue?'
+        );
+
+        if (confirmed) {
+            if (typeof LumiverseBridge !== 'undefined' && LumiverseBridge.resetAllSettings) {
+                if (typeof toastr !== 'undefined') {
+                    toastr.warning('Resetting all settings...');
+                }
+                LumiverseBridge.resetAllSettings();
+            } else {
+                console.error('[SettingsPanel] resetAllSettings not available on bridge');
+                if (typeof toastr !== 'undefined') {
+                    toastr.error('Reset function not available. Please reload the page.');
+                }
+            }
+        }
+    }, []);
+
     // Handle button position toggle
     const handleButtonPositionToggle = useCallback((useDefault) => {
         store.setState({
@@ -1376,6 +1405,27 @@ function SettingsPanel() {
                     </div>
                 </Panel>
             )}
+
+            {/* Danger Zone - Reset Settings */}
+            <CollapsiblePanel
+                title="Danger Zone"
+                icon={<AlertTriangle size={16} strokeWidth={1.5} />}
+            >
+                <div className="lumia-danger-zone">
+                    <p className="lumia-danger-zone-description">
+                        If you're experiencing issues with the extension, you can reset all settings to their defaults.
+                        This will remove all packs, selections, and configurations.
+                    </p>
+                    <button
+                        className="lumia-btn lumia-btn-danger lumia-btn-full"
+                        onClick={handleNuclearReset}
+                        type="button"
+                    >
+                        <AlertTriangle size={16} strokeWidth={1.5} />
+                        Reset All Settings
+                    </button>
+                </div>
+            </CollapsiblePanel>
         </div>
     );
 }
