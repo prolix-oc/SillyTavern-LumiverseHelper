@@ -1100,19 +1100,19 @@ export function registerLumiaMacros(MacrosParser) {
   // }, "Lumia third-person pronouns. {{lumiaPn .1}}=he/she, {{lumiaPn .2}}=him/her, {{lumiaPn .3}}=his/hers. PLACEHOLDER - not yet active.");
 
   // ============================================
-  // lumiaCouncilModeActive macro - Council mode status indicator
+  // lumiaCouncilModeActive macro - Council mode status indicator - Macros 2.0 Conditional Compatible
   // ============================================
-  MacrosParser.registerMacro("lumiaCouncilModeActive", {
+    MacrosParser.registerMacro("lumiaCouncilModeActive", {
     handler: () => {
       const currentSettings = getSettings();
-      // Return Yes only if council mode is active with members. Otherwise No.
+      // Return yes only if council mode is active with members. Otherwise no. ST Conditional Compatible.
       if (!currentSettings.councilMode || !currentSettings.councilMembers?.length) {
-        return "**No.**";
+        return "no";
       }
-      return "**Yes.**";
+      return "yes";
     },
-    description: "Returns Council mode status. '**Yes.**' if active with members, '**No.**' otherwise.",
-    returns: "Bold Yes or No indicator",
+    description: "Returns Council Mode status indicator. 'yes' if active with members, 'no' otherwise. ST Conditional Compatible.",
+    returns: "'yes' if enabled, 'no' if disabled. ST Conditional Compatible.",
     returnType: "string",
     exampleUsage: ["{{lumiaCouncilModeActive}}"],
   });

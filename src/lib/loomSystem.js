@@ -446,14 +446,14 @@ Format the summary as dense but readable prose, preserving enough detail that th
     exampleUsage: ["{{loomLastUserMessage}}"],
   });
 
-  // Register loomSovHandActive macro - returns Yes/No status
+  // Register loomSovHandActive macro - returns Yes/No status in ST Conditional Macro Compatible format.
   MacrosParser.registerMacro("loomSovHandActive", {
     handler: () => {
       const settings = getSettings();
-      return settings.sovereignHand?.enabled ? "**Yes.**" : "**No.**";
+      return settings.sovereignHand?.enabled ? "yes" : "no";
     },
-    description: "Returns Sovereign Hand status indicator.",
-    returns: "'**Yes.**' if enabled, '**No.**' if disabled",
+    description: "Returns Sovereign Hand status indicator. ST Conditional Compatible.",
+    returns: "'yes' if enabled, 'no' if disabled. ST Conditional Compatible.",
     returnType: "string",
     exampleUsage: ["{{loomSovHandActive}}"],
   });

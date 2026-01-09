@@ -1112,7 +1112,7 @@ function SettingsPanel() {
                         <MacroItem code="{{lumiaDef}}" description="Physical Definition" />
                         <MacroItem code="{{lumiaBehavior}}" description="Behavior(s)" />
                         <MacroItem code="{{lumiaPersonality}}" description="Personality(s)" />
-                        <MacroItem code="{{lumiaCouncilModeActive}}" description="Yes/No status indicator" />
+                        <MacroItem code="{{lumiaCouncilModeActive}}" description="Yes/No status indicator, (conditional ready)" />
                     </div>
                 </div>
 
@@ -1156,7 +1156,7 @@ function SettingsPanel() {
                     <div className="lumia-macro-group-title">Sovereign Hand</div>
                     <div className="lumia-macro-list">
                         <MacroItem code="{{loomSovHand}}" description="Full Sovereign Hand prompt (with user message)" />
-                        <MacroItem code="{{loomSovHandActive}}" description="Yes/No status indicator" />
+                        <MacroItem code="{{loomSovHandActive}}" description="Yes/No status indicator (conditional ready)" />
                         <MacroItem code="{{loomLastUserMessage}}" description="Last user message content" />
                         <MacroItem code="{{loomLastCharMessage}}" description="Last character message content" />
                         <MacroItem code="{{lastMessageName}}" description="Name of whoever sent the last message" />
