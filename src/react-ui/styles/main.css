@@ -7892,6 +7892,34 @@ details.lumia-panel[open] .lumia-panel-chevron {
     cursor: not-allowed;
 }
 
+/* Button container for dual buttons */
+.lumiverse-council-add-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.lumiverse-council-add-buttons .lumiverse-council-add-btn {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Secondary button variant */
+.lumiverse-council-add-btn--secondary {
+    background: rgba(100, 180, 255, 0.1);
+    border-color: rgba(100, 180, 255, 0.3);
+    color: #64b4ff;
+}
+
+.lumiverse-council-add-btn--secondary:hover:not(:disabled) {
+    background: rgba(100, 180, 255, 0.15);
+    border-color: rgba(100, 180, 255, 0.5);
+}
+
+/* Pack icon in quick add dropdown */
+.lumiverse-council-pack-icon {
+    background: rgba(100, 180, 255, 0.1);
+}
+
 /* Add dropdown */
 .lumiverse-council-add-dropdown {
     background: rgba(30, 30, 46, 0.95);

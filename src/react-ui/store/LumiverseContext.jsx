@@ -963,6 +963,81 @@ const actions = {
         store.setState({ councilMembers: [] });
     },
 
+    /**
+     * Add all Lumias from a pack to the Council
+     * Skips Lumias without definitions and those already in the council
+     * @param {string} packName - Name of the pack to add members from
+     * @returns {number} Count of members added
+     */
+    addCouncilMembersFromPack: (packName) => {
+        const state = store.getState();
+        const pack = findPackByName(state.packs, packName);
+        if (!pack) return 0;
+
+        // Get Lumia items (handle both v2 and legacy formats)
+        let lumiaItems = [];
+        if (pack.lumiaItems && pack.lumiaItems.length > 0) {
+            // v2 format: filter to items with definitions
+            lumiaItems = pack.lumiaItems.filter(i =>
+                i.lumiaDefinition || i.lumiaDef
+            );
+        } else if (pack.items && pack.items.length > 0) {
+            // Legacy format: filter to Lumia items with definitions
+            lumiaItems = pack.items.filter(i =>
+                (i.lumiaDefName || i.lumiaName) && (i.lumiaDef || i.lumiaDefinition)
+            );
+        }
+
+        if (lumiaItems.length === 0) return 0;
+
+        // Build set of existing council members for fast lookup
+        const existingSet = new Set(
+            state.councilMembers.map(m => `${m.packName}:${m.itemName}`)
+        );
+
+        // Filter out already-added members
+        const toAdd = lumiaItems.filter(item => {
+            const itemName = item.lumiaName || item.lumiaDefName;
+            return !existingSet.has(`${packName}:${itemName}`);
+        });
+
+        if (toAdd.length === 0) return 0;
+
+        // Create new council members with auto-attached traits
+        const newMembers = toAdd.map(item => {
+            const itemName = item.lumiaName || item.lumiaDefName;
+            const behaviors = [];
+            const personalities = [];
+
+            // Auto-attach inherent behavior if exists
+            if (getLumiaItemField(item, 'behavior')) {
+                behaviors.push({ packName, itemName });
+            }
+
+            // Auto-attach inherent personality if exists
+            if (getLumiaItemField(item, 'personality')) {
+                personalities.push({ packName, itemName });
+            }
+
+            return {
+                id: crypto.randomUUID(),
+                packName,
+                itemName,
+                behaviors,
+                personalities,
+                dominantBehavior: null,
+                dominantPersonality: null,
+                role: '',
+            };
+        });
+
+        store.setState({
+            councilMembers: [...state.councilMembers, ...newMembers],
+        });
+
+        return newMembers.length;
+    },
+
     // UI actions
     openModal: (modalName, props = {}) => {
         store.setState({

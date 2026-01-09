@@ -1,7 +1,9 @@
 import React, { useState, useMemo, useSyncExternalStore, useCallback } from 'react';
 import clsx from 'clsx';
-import { Users, Plus, Trash2, ChevronDown, ChevronUp, Edit2, X, Check, Zap, Heart, Star } from 'lucide-react';
+import { Users, Plus, Trash2, ChevronDown, ChevronUp, Edit2, X, Check, Zap, Heart, Star, Package } from 'lucide-react';
 import { useLumiverseStore, useLumiverseActions, usePacks, saveToExtension } from '../../store/LumiverseContext';
+
+/* global toastr */
 
 // Get store for direct state access
 const store = useLumiverseStore;
@@ -340,6 +342,119 @@ function AddMemberDropdown({ packs, existingMembers, onAdd, onClose }) {
 }
 
 /**
+ * Quick add pack dropdown - add all Lumias from a pack at once
+ */
+function QuickAddPackDropdown({ packs, existingMembers, onAddPack, onClose }) {
+    const [searchTerm, setSearchTerm] = useState('');
+
+    // Get packs with available (not-yet-added) Lumias and their counts
+    const availablePacks = useMemo(() => {
+        const existing = new Set(existingMembers.map(m => `${m.packName}:${m.itemName}`));
+        const packList = [];
+
+        const packsArray = Array.isArray(packs) ? packs : Object.values(packs || {});
+        packsArray.forEach(pack => {
+            const packName = pack.name || pack.packName;
+            let availableCount = 0;
+
+            // New format: lumiaItems array
+            if (pack.lumiaItems && pack.lumiaItems.length > 0) {
+                pack.lumiaItems.forEach(item => {
+                    const itemName = item.lumiaName || item.lumiaDefName;
+                    const itemDef = item.lumiaDefinition || item.lumiaDef;
+                    if (!itemName || !itemDef) return;
+                    const key = `${packName}:${itemName}`;
+                    if (!existing.has(key)) availableCount++;
+                });
+            }
+            // Legacy format: items array
+            else if (pack.items) {
+                pack.items.forEach(item => {
+                    if (!item.lumiaDefName || !item.lumiaDef) return;
+                    const key = `${packName}:${item.lumiaDefName}`;
+                    if (!existing.has(key)) availableCount++;
+                });
+            }
+
+            // Only include packs with available Lumias
+            if (availableCount > 0) {
+                packList.push({
+                    packName,
+                    availableCount,
+                    coverUrl: pack.coverUrl,
+                });
+            }
+        });
+
+        // Filter by search term
+        if (searchTerm.trim()) {
+            const term = searchTerm.toLowerCase();
+            return packList.filter(pack =>
+                pack.packName.toLowerCase().includes(term)
+            );
+        }
+
+        return packList;
+    }, [packs, existingMembers, searchTerm]);
+
+    return (
+        <div className="lumiverse-council-add-dropdown lumiverse-council-pack-dropdown">
+            <div className="lumiverse-council-add-header">
+                <input
+                    type="text"
+                    className="lumiverse-council-search"
+                    placeholder="Search packs..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    autoFocus
+                />
+                <button
+                    className="lumiverse-council-btn"
+                    onClick={onClose}
+                    title="Close"
+                    type="button"
+                >
+                    <X size={16} strokeWidth={2} />
+                </button>
+            </div>
+            <div className="lumiverse-council-add-list">
+                {availablePacks.length === 0 ? (
+                    <div className="lumiverse-council-add-empty">
+                        {searchTerm ? 'No matching packs found' : 'All Lumias from all packs are already in the council'}
+                    </div>
+                ) : (
+                    availablePacks.map((pack) => (
+                        <button
+                            key={pack.packName}
+                            className="lumiverse-council-add-item lumiverse-council-pack-item"
+                            onClick={() => {
+                                onAddPack(pack.packName);
+                                onClose();
+                            }}
+                            type="button"
+                        >
+                            <div className="lumiverse-council-add-item-avatar lumiverse-council-pack-icon">
+                                {pack.coverUrl ? (
+                                    <img src={pack.coverUrl} alt={pack.packName} />
+                                ) : (
+                                    <Package size={18} strokeWidth={1.5} />
+                                )}
+                            </div>
+                            <div className="lumiverse-council-add-item-info">
+                                <span className="lumiverse-council-add-item-name">{pack.packName}</span>
+                                <span className="lumiverse-council-add-item-pack">
+                                    {pack.availableCount} Lumia{pack.availableCount !== 1 ? 's' : ''} available
+                                </span>
+                            </div>
+                        </button>
+                    ))
+                )}
+            </div>
+        </div>
+    );
+}
+
+/**
  * Empty state component
  */
 function EmptyState() {
@@ -361,6 +476,7 @@ function CouncilManager() {
     const actions = useLumiverseActions();
     const { allPacks } = usePacks();
     const [isAddingMember, setIsAddingMember] = useState(false);
+    const [isAddingPack, setIsAddingPack] = useState(false);
 
     // Subscribe to council state
     const councilMode = useSyncExternalStore(
@@ -377,6 +493,19 @@ function CouncilManager() {
     const handleAddMember = useCallback((member) => {
         actions.addCouncilMember(member);
         saveToExtension();
+    }, [actions]);
+
+    const handleAddPack = useCallback((packName) => {
+        const addedCount = actions.addCouncilMembersFromPack(packName);
+        saveToExtension();
+        // Show feedback
+        if (typeof toastr !== 'undefined') {
+            if (addedCount > 0) {
+                toastr.success(`Added ${addedCount} Lumia${addedCount !== 1 ? 's' : ''} from "${packName}" to the council`);
+            } else {
+                toastr.info('No new Lumias to add from this pack');
+            }
+        }
     }, [actions]);
 
     const handleUpdateMember = useCallback((memberId, updates) => {
@@ -439,17 +568,36 @@ function CouncilManager() {
                         onAdd={handleAddMember}
                         onClose={() => setIsAddingMember(false)}
                     />
+                ) : isAddingPack ? (
+                    <QuickAddPackDropdown
+                        packs={packsObj}
+                        existingMembers={councilMembers}
+                        onAddPack={handleAddPack}
+                        onClose={() => setIsAddingPack(false)}
+                    />
                 ) : (
-                    <button
-                        className="lumiverse-council-add-btn"
-                        onClick={() => setIsAddingMember(true)}
-                        disabled={!councilMode}
-                        title={councilMode ? 'Add a council member' : 'Enable Council Mode first'}
-                        type="button"
-                    >
-                        <Plus size={16} strokeWidth={2} />
-                        <span>Add Council Member</span>
-                    </button>
+                    <div className="lumiverse-council-add-buttons">
+                        <button
+                            className="lumiverse-council-add-btn"
+                            onClick={() => setIsAddingMember(true)}
+                            disabled={!councilMode}
+                            title={councilMode ? 'Add a council member' : 'Enable Council Mode first'}
+                            type="button"
+                        >
+                            <Plus size={16} strokeWidth={2} />
+                            <span>Add Member</span>
+                        </button>
+                        <button
+                            className="lumiverse-council-add-btn lumiverse-council-add-btn--secondary"
+                            onClick={() => setIsAddingPack(true)}
+                            disabled={!councilMode}
+                            title={councilMode ? 'Add all Lumias from a pack' : 'Enable Council Mode first'}
+                            type="button"
+                        >
+                            <Package size={16} strokeWidth={2} />
+                            <span>Quick Add Pack</span>
+                        </button>
+                    </div>
                 )}
             </div>
 

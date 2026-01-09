@@ -408,8 +408,13 @@ function getCouncilBehaviorContent(councilMembers) {
     }
 
     // Then add any additional behaviors selected for this member
+    // Skip the member's own item since we already added their inherent behavior above
     const additionalBehaviors = member.behaviors || [];
     additionalBehaviors.forEach((sel) => {
+      // Skip self-reference to avoid duplicating inherent behavior
+      if (sel.packName === member.packName && sel.itemName === member.itemName) {
+        return;
+      }
       const behaviorItem = getItemFromLibrary(sel.packName, sel.itemName);
       const behaviorContent = getLumiaField(behaviorItem, "behavior");
       if (!behaviorItem || !behaviorContent) return;
@@ -469,8 +474,13 @@ function getCouncilPersonalityContent(councilMembers) {
     }
 
     // Then add any additional personalities selected for this member
+    // Skip the member's own item since we already added their inherent personality above
     const additionalPersonalities = member.personalities || [];
     additionalPersonalities.forEach((sel) => {
+      // Skip self-reference to avoid duplicating inherent personality
+      if (sel.packName === member.packName && sel.itemName === member.itemName) {
+        return;
+      }
       const persItem = getItemFromLibrary(sel.packName, sel.itemName);
       const persContent = getLumiaField(persItem, "personality");
       if (!persItem || !persContent) return;
