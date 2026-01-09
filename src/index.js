@@ -62,6 +62,7 @@ import {
 import {
   processLumiaOOCComments,
   processAllLumiaOOCComments,
+  processAllOOCCommentsSynchronous,
   scheduleOOCProcessingAfterRender,
   unhideAndProcessOOCMarkers,
   setupLumiaOOCObserver,
@@ -418,7 +419,13 @@ jQuery(async () => {
     notifyReactOfSettingsChange();
   });
   registerReactCallback("refreshOOCComments", (clearExisting = true) => {
-    processAllLumiaOOCComments(clearExisting);
+    if (clearExisting) {
+      // Style change - use synchronous processing to prevent race conditions
+      processAllOOCCommentsSynchronous();
+    } else {
+      // Normal refresh - use RAF batching
+      processAllLumiaOOCComments(clearExisting);
+    }
   });
   registerReactCallback("generateSummary", async () => {
     // Generate summary with manual trigger and visual feedback

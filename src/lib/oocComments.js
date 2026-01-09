@@ -21,6 +21,7 @@ import {
   scheduleOOCUpdate,
   scheduleFullReprocess,
   flushPendingUpdates,
+  cancelAllPendingUpdates,
 } from "./rafBatchRenderer.js";
 
 // Lumia OOC color constant - the specific purple color used for Lumia's OOC comments
@@ -33,6 +34,9 @@ let oocRenderWaitTimer = null;
 
 // Flag to track if generation is in progress (prevents observer interference)
 let isGenerating = false;
+
+// Guard to prevent concurrent full OOC processing
+let isProcessingAllOOC = false;
 
 /**
  * Set the generation state flag
@@ -1303,51 +1307,66 @@ export function processLumiaOOCComments(mesId, force = false) {
  * @param {boolean} clearExisting - Whether to clear existing OOC boxes first
  */
 function performAllOOCProcessing(clearExisting = false) {
+  // Guard against concurrent processing
+  if (isProcessingAllOOC) {
+    console.log(`[${MODULE_NAME}] Skipping concurrent full OOC processing`);
+    return;
+  }
+
   const context = getContext();
   if (!context || !context.chat) return;
 
-  console.log(
-    `[${MODULE_NAME}] Processing all OOC comments in chat (${context.chat.length} messages)${clearExisting ? " [clearing existing]" : ""}`,
-  );
+  isProcessingAllOOC = true;
 
-  // If clearing existing OOC boxes (e.g., style change), remove them all first
-  if (clearExisting) {
-    // Clear ALL tracking so texts can be reprocessed with new style
-    clearAllProcessedTexts();
+  try {
+    console.log(
+      `[${MODULE_NAME}] Processing all OOC comments in chat (${context.chat.length} messages)${clearExisting ? " [clearing existing]" : ""}`,
+    );
 
-    const allOOCBoxes = queryAll("[data-lumia-ooc]");
-    allOOCBoxes.forEach((box) => {
-      // Get the text content from the appropriate element based on style
-      let content = "";
-      const marginText = box.querySelector(".lumia-ooc-margin-text");
-      const whisperText = box.querySelector(".lumia-ooc-whisper-text");
-      const socialContent = box.querySelector(".lumia-ooc-content");
+    // If clearing existing OOC boxes (e.g., style change), remove them all first
+    if (clearExisting) {
+      // STEP 1: Unwrap ALL existing OOC boxes FIRST (restore font tags)
+      // This must happen BEFORE clearing tracking to ensure DOM state is consistent
+      const allOOCBoxes = queryAll("[data-lumia-ooc]");
+      allOOCBoxes.forEach((box) => {
+        // Get the text content from the appropriate element based on style
+        let content = "";
+        const marginText = box.querySelector(".lumia-ooc-margin-text");
+        const whisperText = box.querySelector(".lumia-ooc-whisper-text");
+        const socialContent = box.querySelector(".lumia-ooc-content");
 
-      if (marginText) content = marginText.innerHTML;
-      else if (whisperText) content = whisperText.innerHTML;
-      else if (socialContent) content = socialContent.innerHTML;
+        if (marginText) content = marginText.innerHTML;
+        else if (whisperText) content = whisperText.innerHTML;
+        else if (socialContent) content = socialContent.innerHTML;
 
-      // Recreate the original font element structure
-      const fontElement = document.createElement("font");
-      fontElement.setAttribute("color", LUMIA_OOC_COLOR);
-      fontElement.innerHTML = content;
+        // Recreate the original font element structure
+        const fontElement = document.createElement("font");
+        fontElement.setAttribute("color", LUMIA_OOC_COLOR);
+        fontElement.innerHTML = content;
 
-      // Replace the box with the font element
-      if (box.parentNode) {
-        box.parentNode.replaceChild(fontElement, box);
-      }
-    });
-  }
+        // Replace the box with the font element
+        if (box.parentNode) {
+          box.parentNode.replaceChild(fontElement, box);
+        }
+      });
 
-  // Process each message in the chat - both OOC comments and loom_sum hiding
-  for (let i = 0; i < context.chat.length; i++) {
-    // Hide loom_sum blocks in the DOM
-    const messageElement = query(`div[mesid="${i}"] .mes_text`);
-    if (messageElement) {
-      hideLoomSumBlocks(messageElement);
+      // STEP 2: Clear tracking AFTER DOM is unwrapped
+      // Now that all boxes are back to font elements, clear tracking for fresh re-wrap
+      clearAllProcessedTexts();
     }
-    // Directly process - we're already in RAF context
-    performOOCProcessing(i);
+
+    // Process each message in the chat - both OOC comments and loom_sum hiding
+    for (let i = 0; i < context.chat.length; i++) {
+      // Hide loom_sum blocks in the DOM
+      const messageElement = query(`div[mesid="${i}"] .mes_text`);
+      if (messageElement) {
+        hideLoomSumBlocks(messageElement);
+      }
+      // Directly process - we're already in RAF context
+      performOOCProcessing(i);
+    }
+  } finally {
+    isProcessingAllOOC = false;
   }
 }
 
@@ -1359,6 +1378,27 @@ function performAllOOCProcessing(clearExisting = false) {
  */
 export function processAllLumiaOOCComments(clearExisting = false) {
   scheduleFullReprocess(clearExisting);
+}
+
+/**
+ * Synchronously reprocess all OOC comments - used for style changes
+ * Bypasses RAF batching to ensure atomic update without race conditions.
+ * This prevents issues where switching styles leaves some comments unwrapped.
+ */
+export function processAllOOCCommentsSynchronous() {
+  // Cancel any pending RAF updates to prevent competing operations
+  cancelAllPendingUpdates();
+
+  // Save scroll position before DOM changes
+  const scrollY = window.scrollY;
+
+  // Perform synchronous full reprocess with clearing
+  performAllOOCProcessing(true);
+
+  // Restore scroll position after DOM changes
+  window.scrollTo(window.scrollX, scrollY);
+
+  console.log(`[${MODULE_NAME}] Synchronous OOC reprocessing complete`);
 }
 
 /**
