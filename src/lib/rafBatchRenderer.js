@@ -37,6 +37,12 @@ const STREAMING_DEBOUNCE_MS = 100;
 /** Minimum time between RAF flushes during streaming (ms) */
 const MIN_FLUSH_INTERVAL_MS = 50;
 
+/** Chunk size for batch processing - messages per chunk before yielding */
+export const OOC_PROCESSING_CHUNK_SIZE = 15;
+
+/** Whether chunked processing is currently active */
+let isChunkedProcessingActive = false;
+
 /** @type {number} Last flush timestamp */
 let lastFlushTime = 0;
 
@@ -179,10 +185,19 @@ function scheduleFlush() {
 // --- FLUSHING ---
 
 /**
- * Process all pending updates in a single batch
- * Called by requestAnimationFrame
+ * Yield control to the browser's event loop
+ * Prevents page freezing during long batch operations
+ * @returns {Promise<void>}
  */
-function flushUpdates() {
+export function yieldToBrowser() {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+/**
+ * Process all pending updates in a single batch with chunked yielding
+ * Called by requestAnimationFrame - runs async but doesn't block
+ */
+async function flushUpdates() {
   rafId = null;
   lastFlushTime = performance.now();
 
@@ -193,35 +208,53 @@ function flushUpdates() {
     return;
   }
 
+  // Guard against concurrent chunked processing
+  if (isChunkedProcessingActive) {
+    console.log(`[${MODULE_NAME}] RAF: Skipping flush - chunked processing active`);
+    return;
+  }
+
+  isChunkedProcessingActive = true;
+
   // Save scroll position BEFORE any DOM changes
   const scrollY = window.scrollY;
 
   const updateCount = hasFullReprocess ? "full" : pendingOOCUpdates.size;
-  console.log(`[${MODULE_NAME}] RAF: Flushing ${updateCount} update(s)`);
+  console.log(`[${MODULE_NAME}] RAF: Flushing ${updateCount} update(s) [chunked]`);
 
   const startTime = performance.now();
 
   try {
     if (hasFullReprocess) {
-      // Full reprocess takes precedence
+      // Full reprocess takes precedence - callback handles chunking internally
       if (processAllOOCCallback) {
-        processAllOOCCallback(pendingClearExisting);
+        await processAllOOCCallback(pendingClearExisting);
       }
       pendingFullReprocess = false;
       pendingClearExisting = false;
     } else {
-      // Process individual message updates
-      const updates = new Map(pendingOOCUpdates);
+      // Process individual message updates in chunks with yielding
+      const updates = Array.from(pendingOOCUpdates.values());
       pendingOOCUpdates.clear();
 
-      for (const [, data] of updates) {
+      for (let i = 0; i < updates.length; i++) {
         if (processOOCCallback) {
-          processOOCCallback(data.mesId, data.force);
+          processOOCCallback(updates[i].mesId, updates[i].force);
+        }
+
+        // Yield every chunk to prevent page freeze
+        if (
+          (i + 1) % OOC_PROCESSING_CHUNK_SIZE === 0 &&
+          i < updates.length - 1
+        ) {
+          await yieldToBrowser();
         }
       }
     }
   } catch (error) {
     console.error(`[${MODULE_NAME}] RAF: Error during flush:`, error);
+  } finally {
+    isChunkedProcessingActive = false;
   }
 
   // Restore scroll position AFTER all DOM changes
@@ -286,6 +319,7 @@ export function cancelAllPendingUpdates() {
   pendingOOCUpdates.clear();
   pendingFullReprocess = false;
   pendingClearExisting = false;
+  isChunkedProcessingActive = false;
 
   if (debounceTimer !== null) {
     clearTimeout(debounceTimer);
@@ -297,6 +331,7 @@ export function cancelAllPendingUpdates() {
     rafId = null;
   }
 }
+
 
 /**
  * Check if there are any pending updates

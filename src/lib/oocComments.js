@@ -22,6 +22,8 @@ import {
   scheduleFullReprocess,
   flushPendingUpdates,
   cancelAllPendingUpdates,
+  yieldToBrowser,
+  OOC_PROCESSING_CHUNK_SIZE,
 } from "./rafBatchRenderer.js";
 
 // Lumia OOC color constant - the specific purple color used for Lumia's OOC comments
@@ -1302,11 +1304,12 @@ export function processLumiaOOCComments(mesId, force = false) {
 }
 
 /**
- * Internal: Perform full chat OOC processing
- * Called by the RAF batch renderer - does not handle scroll preservation
+ * Internal: Perform full chat OOC processing with chunked yielding
+ * Called by the RAF batch renderer - supports async chunked processing to prevent UI freeze
  * @param {boolean} clearExisting - Whether to clear existing OOC boxes first
+ * @returns {Promise<void>}
  */
-function performAllOOCProcessing(clearExisting = false) {
+async function performAllOOCProcessing(clearExisting = false) {
   // Guard against concurrent processing
   if (isProcessingAllOOC) {
     console.log(`[${MODULE_NAME}] Skipping concurrent full OOC processing`);
@@ -1319,10 +1322,12 @@ function performAllOOCProcessing(clearExisting = false) {
   isProcessingAllOOC = true;
 
   try {
+    const chatLength = context.chat.length;
     console.log(
-      `[${MODULE_NAME}] Processing all OOC comments in chat (${context.chat.length} messages)${clearExisting ? " [clearing existing]" : ""}`,
+      `[${MODULE_NAME}] Processing all OOC comments in chat (${chatLength} messages)${clearExisting ? " [clearing existing]" : ""} [chunked]`,
     );
 
+    // PHASE 1: Synchronous atomic unwrap (must NOT yield to avoid race conditions)
     // If clearing existing OOC boxes (e.g., style change), remove them all first
     if (clearExisting) {
       // STEP 1: Unwrap ALL existing OOC boxes FIRST (restore font tags)
@@ -1355,15 +1360,21 @@ function performAllOOCProcessing(clearExisting = false) {
       clearAllProcessedTexts();
     }
 
+    // PHASE 2: Chunked re-wrap with browser yielding to prevent UI freeze
     // Process each message in the chat - both OOC comments and loom_sum hiding
-    for (let i = 0; i < context.chat.length; i++) {
+    for (let i = 0; i < chatLength; i++) {
       // Hide loom_sum blocks in the DOM
       const messageElement = query(`div[mesid="${i}"] .mes_text`);
       if (messageElement) {
         hideLoomSumBlocks(messageElement);
       }
-      // Directly process - we're already in RAF context
+      // Process OOC comments for this message
       performOOCProcessing(i);
+
+      // Yield every chunk to prevent page freeze
+      if ((i + 1) % OOC_PROCESSING_CHUNK_SIZE === 0 && i < chatLength - 1) {
+        await yieldToBrowser();
+      }
     }
   } finally {
     isProcessingAllOOC = false;
@@ -1381,24 +1392,27 @@ export function processAllLumiaOOCComments(clearExisting = false) {
 }
 
 /**
- * Synchronously reprocess all OOC comments - used for style changes
- * Bypasses RAF batching to ensure atomic update without race conditions.
- * This prevents issues where switching styles leaves some comments unwrapped.
+ * Reprocess all OOC comments for style changes with chunked processing
+ * The unwrap phase is synchronous/atomic to prevent race conditions.
+ * The re-wrap phase is chunked to prevent UI freezing.
+ * Bypasses RAF batching to ensure immediate start without competing operations.
+ * @returns {Promise<void>}
  */
-export function processAllOOCCommentsSynchronous() {
+export async function processAllOOCCommentsSynchronous() {
   // Cancel any pending RAF updates to prevent competing operations
   cancelAllPendingUpdates();
 
   // Save scroll position before DOM changes
   const scrollY = window.scrollY;
 
-  // Perform synchronous full reprocess with clearing
-  performAllOOCProcessing(true);
+  // Perform chunked full reprocess with clearing
+  // The unwrap inside is atomic, re-wrap yields to browser
+  await performAllOOCProcessing(true);
 
   // Restore scroll position after DOM changes
   window.scrollTo(window.scrollX, scrollY);
 
-  console.log(`[${MODULE_NAME}] Synchronous OOC reprocessing complete`);
+  console.log(`[${MODULE_NAME}] Chunked OOC reprocessing complete`);
 }
 
 /**
