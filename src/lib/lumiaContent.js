@@ -12,6 +12,27 @@ import {
 import { getItemFromLibrary } from "./dataProcessor.js";
 import { getContext } from "../stContext.js";
 
+// Track the last AI message index to detect swipe/regenerate vs new generation
+// When macro expands, if chat ends at this same index, we're regenerating (not adding new)
+let lastAIMessageIndex = -1;
+
+/**
+ * Update the last AI message index after a generation completes
+ * Called from index.js on GENERATION events
+ * @param {number} index - The index of the last AI message, or -1 to reset
+ */
+export function setLastAIMessageIndex(index) {
+  lastAIMessageIndex = index;
+}
+
+/**
+ * Get the last AI message index for swipe/regen detection
+ * @returns {number} The last AI message index
+ */
+export function getLastAIMessageIndex() {
+  return lastAIMessageIndex;
+}
+
 /**
  * Get a Lumia field value, supporting both new and legacy field names
  * New format fields are tried first, then fallback to legacy field names
@@ -77,7 +98,14 @@ export function getOOCTriggerText() {
   const interval = settings.lumiaOOCInterval;
   if (!interval || interval <= 0) return "";
 
-  const messageCount = context.chat.length;
+  const rawMessageCount = context.chat.length;
+
+  // Detect swipe/regenerate: if the last AI message index matches current chat end,
+  // we're regenerating that message, not creating a new one.
+  // In this case, subtract 1 from count so the trigger calculation matches the original generation.
+  const isSwipeOrRegen = lastAIMessageIndex >= 0 && lastAIMessageIndex === rawMessageCount - 1;
+  const messageCount = isSwipeOrRegen ? rawMessageCount - 1 : rawMessageCount;
+
   const nextTrigger = Math.ceil(messageCount / interval) * interval;
   const messagesUntil = nextTrigger - messageCount;
 

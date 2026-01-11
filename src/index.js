@@ -48,7 +48,7 @@ import {
   restoreSummaryMarkers,
 } from "./lib/summarization.js";
 
-import { registerLumiaMacros, getOOCTriggerText } from "./lib/lumiaContent.js";
+import { registerLumiaMacros, getOOCTriggerText, setLastAIMessageIndex } from "./lib/lumiaContent.js";
 
 import {
   processLoomConditionals,
@@ -501,6 +501,14 @@ jQuery(async () => {
       captureLoomSummary();
       checkAutoSummarization();
 
+      // Track the AI message index for swipe/regenerate detection
+      // This helps getOOCTriggerText() calculate consistent triggers across swipes
+      const context = getContext();
+      if (context?.chat) {
+        setLastAIMessageIndex(context.chat.length - 1);
+        console.log(`[${MODULE_NAME}] Tracked last AI message at index ${context.chat.length - 1}`);
+      }
+
       const messageElement = query(`div[mesid="${mesId}"] .mes_text`);
       if (messageElement) {
         hideLoomSumBlocks(messageElement);
@@ -508,7 +516,6 @@ jQuery(async () => {
 
         // Check for OOC tags in raw content - ONLY tag-based detection
         // Legacy font-based detection has been removed
-        const context = getContext();
         const chatMessage = context?.chat?.[mesId];
         const rawContent = chatMessage?.mes || chatMessage?.content || "";
         const hasOOCTags = /<lumi[ao]_?ooc[^>]*>/i.test(rawContent);
@@ -549,6 +556,8 @@ jQuery(async () => {
       console.log(`[${MODULE_NAME}] CHAT_CHANGED event - resetting state and scheduling OOC reprocessing`);
       // Reset RAF state for fresh processing on new chat
       resetRAFState();
+      // Reset AI message tracking for swipe/regen detection
+      setLastAIMessageIndex(-1);
       captureLoomSummary();
       scheduleOOCProcessingAfterRender();
       requestAnimationFrame(() => {
