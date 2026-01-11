@@ -265,6 +265,7 @@ globalThis.lumiverseHelperGenInterceptor = async function (chat, contextSize, ab
   }
 
   // Calculate "keep depth" thresholds
+  const htmlKeepDepth = contextFilters.htmlTags?.keepDepth ?? 3;
   const detailsKeepDepth = contextFilters.detailsBlocks?.keepDepth ?? 3;
   const loomKeepDepth = contextFilters.loomItems?.keepDepth ?? 5;
   const fontKeepDepth = contextFilters.htmlTags?.fontKeepDepth ?? 3;
@@ -283,7 +284,7 @@ globalThis.lumiverseHelperGenInterceptor = async function (chat, contextSize, ab
       if (!content || typeof content !== "string") return content;
       let result = content;
 
-      if (htmlFilterEnabled) {
+      if (htmlFilterEnabled && depthFromEnd >= htmlKeepDepth) {
         result = stripHtmlTags(result);
       }
       if (htmlFilterEnabled && fontFilterEnabled && depthFromEnd >= fontKeepDepth) {

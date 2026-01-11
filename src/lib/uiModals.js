@@ -1792,6 +1792,11 @@ export function showPromptSettingsModal() {
                                     </div>
                                 </div>
                                 <div class="lumia-filter-options ${htmlTags.enabled ? "" : "lumia-filter-options-hidden"}">
+                                    <label class="lumia-input-label">
+                                        <span>Keep HTML in last N messages:</span>
+                                        <input type="number" id="lumia-filter-html-depth" class="lumia-input-number" value="${htmlTags.keepDepth || 3}" min="0" max="100" />
+                                    </label>
+                                    <span class="lumia-input-hint">HTML tags in older messages will be stripped to save tokens</span>
                                     <!-- Strip Fonts Sub-toggle -->
                                     <div class="lumia-filter-sub-item">
                                         <div class="lumia-toggle-row">
@@ -2012,6 +2017,7 @@ export function showPromptSettingsModal() {
 
     settings.contextFilters.htmlTags = {
       enabled: $modal.find("#lumia-filter-html-toggle").is(":checked"),
+      keepDepth: parseInt($modal.find("#lumia-filter-html-depth").val()) || 3,
       stripFonts: $modal.find("#lumia-filter-fonts-toggle").is(":checked"),
       fontKeepDepth: parseInt($modal.find("#lumia-filter-fonts-depth").val()) || 3,
     };

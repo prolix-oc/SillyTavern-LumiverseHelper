@@ -51,6 +51,7 @@ const DEFAULT_SETTINGS = {
   contextFilters: {
     htmlTags: {
       enabled: false,
+      keepDepth: 3, // Number of recent messages to keep HTML tags in
       stripFonts: false, // Whether to also strip <font> tags
       fontKeepDepth: 3, // Number of recent messages to keep <font> tags in
     },
@@ -384,9 +385,12 @@ export function migrateSettings() {
   }
   // Ensure nested defaults exist
   if (!settings.contextFilters.htmlTags) {
-    settings.contextFilters.htmlTags = { enabled: false, stripFonts: false, fontKeepDepth: 3 };
+    settings.contextFilters.htmlTags = { enabled: false, keepDepth: 3, stripFonts: false, fontKeepDepth: 3 };
   }
   // Ensure new htmlTags sub-fields exist
+  if (settings.contextFilters.htmlTags.keepDepth === undefined) {
+    settings.contextFilters.htmlTags.keepDepth = 3;
+  }
   if (settings.contextFilters.htmlTags.stripFonts === undefined) {
     settings.contextFilters.htmlTags.stripFonts = false;
   }

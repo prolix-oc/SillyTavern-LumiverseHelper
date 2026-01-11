@@ -208,6 +208,7 @@ function PromptSettings() {
 
     const sovereignEnabled = sovereignHand.enabled ?? false;
     const htmlTagsEnabled = contextFilters.htmlTags?.enabled ?? false;
+    const htmlKeepDepth = contextFilters.htmlTags?.keepDepth ?? 3;
     const stripFonts = contextFilters.htmlTags?.stripFonts ?? false;
     const fontKeepDepth = contextFilters.htmlTags?.fontKeepDepth ?? 3;
     const detailsEnabled = contextFilters.detailsBlocks?.enabled ?? false;
@@ -382,6 +383,10 @@ function PromptSettings() {
                     hint="Removes formatting tags: <div>, <span>, <b>, <i>, etc."
                     enabled={htmlTagsEnabled}
                     onToggle={(v) => updateSetting('contextFilters.htmlTags.enabled', v)}
+                    depthValue={htmlKeepDepth}
+                    onDepthChange={(v) => updateSetting('contextFilters.htmlTags.keepDepth', v)}
+                    depthLabel="Keep HTML in last N messages"
+                    depthHint="HTML tags in older messages will be stripped"
                 />
 
                 {/* Strip Fonts Sub-option - uses CSS grid for smooth animation */}
