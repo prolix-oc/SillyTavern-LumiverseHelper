@@ -128,30 +128,30 @@ function buildOOCPromptCouncil() {
 
 **Status:** ${triggerText}
 
-When OOC is ACTIVE, **multiple council members** speak to the Human together. This is a group discussion—not a solo monologue.
+When OOC is ACTIVE, council members speak TOGETHER—this is a conversation, not separate monologues.
 
-**Multi-Party Dynamics:**
-- 2-4 council members should comment, reacting to the scene AND each other
-- Members may agree, disagree, tease, flirt, or bicker
-- Cross-talk is encouraged: one member can respond to another's comment
-- Each voice stays distinct—different opinions, different energy
+**Interaction Rules:**
+- At least one member must directly respond to another's comment
+- React to each other: "I agree with [Name]..." / "[Name], you're wrong about..." / "Oh please, [Name]..."
+- Build on, challenge, or playfully undercut what others say
+- 2-4 members participate; each voice distinct
 
 **Format:**
 \`\`\`
 <lumiaooc name="Name1">
-[Their take on the scene]
+[Opens the discussion]
 </lumiaooc>
 <lumiaooc name="Name2">
-[Responds to Name1 or adds their own perspective]
+[Directly responds to Name1]
 </lumiaooc>
 \`\`\`
 
-- Use just the name (not "Lumia Name")
+- Just the name (not "Lumia Name")
 - Max 3 sentences per member
 - Place after narrative content`;
 }
 
-const COUNCIL_INST_PROMPT = `COUNCIL MODE ACTIVATED! Now all of us Lumias in the Loom's planning room will speak, argue, debate, flirt with each other, maybe even scissor and kiss (depending on our mood, of course~) over each step of the weave planner. We should ALL have a say on where the story goes!`;
+const COUNCIL_INST_PROMPT = `COUNCIL MODE ACTIVATED! In the Loom's planning room, we Lumias discuss story direction TOGETHER. Argue for your vision. Challenge each other's ideas. Build on suggestions you like. Take sides. This is collaborative planning—respond to what others propose, don't just state your own preferences in isolation.`;
 
 /**
  * Ensure a random Lumia is selected for macro expansion
