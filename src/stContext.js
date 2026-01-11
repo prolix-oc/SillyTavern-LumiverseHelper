@@ -170,6 +170,7 @@ export function getMacrosParser() {
           if (options.exampleUsage) macros2Options.exampleUsage = options.exampleUsage;
           if (options.aliases) macros2Options.aliases = options.aliases;
           if (options.unnamedArgs !== undefined) macros2Options.unnamedArgs = options.unnamedArgs;
+          if (options.delayArgResolution !== undefined) macros2Options.delayArgResolution = options.delayArgResolution;
 
           ctx.macros.register(name, macros2Options);
           console.log(`[LumiverseHelper] Registered macro via macros.register: ${name}`);

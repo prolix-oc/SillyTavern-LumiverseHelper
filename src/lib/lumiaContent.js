@@ -666,17 +666,15 @@ export function getLoomContent(selection) {
 /**
  * Parse the variable/parameter from a macro call
  * In Macros 2.0, space-separated params like {{macro .param}} pass the param to handler
- * @param {Object} namedArgs - The named arguments object from macro handler
+ * @param {Object} context - The MacroExecutionContext from Macros 2.0 handler
  * @returns {string} The parsed variable (e.g., "name", "len", "phys", etc.) or empty string
  */
-function parseVariable(namedArgs) {
-  if (!namedArgs) return "";
+function parseVariable(context) {
+  if (!context) return "";
 
-  // The new macro system may pass the variable in different ways:
-  // 1. As namedArgs._raw (the raw argument string)
-  // 2. As the first unnamed argument
-  // 3. As a named parameter
-  const rawArg = namedArgs._raw || namedArgs[0] || "";
+  // Macros 2.0 passes context with unnamedArgs array
+  // Fall back to legacy patterns for backwards compatibility
+  const rawArg = context.unnamedArgs?.[0] || context._raw || context[0] || "";
 
   // Handle space-separated format: ".name" or "name"
   if (typeof rawArg === "string") {
@@ -705,29 +703,38 @@ export function registerLumiaMacros(MacrosParser) {
   // Usage: {{randomLumia}} or {{randomLumia .name}} or {{randomLumia .phys}} etc.
   // ============================================
   MacrosParser.registerMacro("randomLumia", {
-    handler: (namedArgs) => {
+    delayArgResolution: true,
+    handler: (context) => {
+      const { resolve } = context;
       ensureRandomLumia();
       const currentRandomLumia = getCurrentRandomLumia();
       if (!currentRandomLumia) return "";
 
-      const variable = parseVariable(namedArgs);
+      const variable = parseVariable(context);
       console.log("[LumiverseHelper] randomLumia macro called with variable:", variable || "(none)");
 
+      let result;
       switch (variable) {
         case "name":
+          // Name doesn't need macro resolution
           return getLumiaField(currentRandomLumia, "name") || "";
         case "phys":
-          return getLumiaField(currentRandomLumia, "def") || "";
+          result = getLumiaField(currentRandomLumia, "def") || "";
+          break;
         case "pers":
-          return getLumiaField(currentRandomLumia, "personality") || "";
+          result = getLumiaField(currentRandomLumia, "personality") || "";
+          break;
         case "behav":
-          return getLumiaField(currentRandomLumia, "behavior") || "";
+          result = getLumiaField(currentRandomLumia, "behavior") || "";
+          break;
         default:
           // No variable or unrecognized = return definition
-          const result = getLumiaField(currentRandomLumia, "def") || "";
+          result = getLumiaField(currentRandomLumia, "def") || "";
           console.log("[LumiverseHelper] randomLumia result length:", result.length);
-          return result;
+          break;
       }
+      // Resolve any nested macros in the content (e.g., {{char}}, {{user}})
+      return resolve ? resolve(result) : result;
     },
     description: "Returns a random Lumia from loaded packs. Selects once per generation and caches the result.",
     returns: "Lumia content based on the specified property, or physical definition by default",
@@ -755,11 +762,13 @@ export function registerLumiaMacros(MacrosParser) {
   // Usage: {{lumiaDef}} or {{lumiaDef .len}}
   // ============================================
   MacrosParser.registerMacro("lumiaDef", {
-    handler: (namedArgs) => {
+    delayArgResolution: true,
+    handler: (context) => {
+      const { resolve } = context;
       const currentSettings = getSettings();
-      const variable = parseVariable(namedArgs);
+      const variable = parseVariable(context);
 
-      // Handle .len variant
+      // Handle .len variant - returns count, no resolution needed
       if (variable === "len") {
         if (currentSettings.councilMode && currentSettings.councilMembers?.length > 0) {
           return String(currentSettings.councilMembers.length);
@@ -773,30 +782,31 @@ export function registerLumiaMacros(MacrosParser) {
       // Default: return definition content
       console.log("[LumiverseHelper] lumiaDef macro called, councilMode:", currentSettings.councilMode, "chimeraMode:", currentSettings.chimeraMode);
 
+      let result;
+
       // Council mode takes priority: multiple independent Lumias
       if (currentSettings.councilMode && currentSettings.councilMembers?.length > 0) {
         console.log("[LumiverseHelper] lumiaDef: Council mode with", currentSettings.councilMembers.length, "members");
-        const result = getCouncilDefContent(currentSettings.councilMembers);
+        result = getCouncilDefContent(currentSettings.councilMembers);
         console.log("[LumiverseHelper] lumiaDef Council result length:", result.length);
-        return result;
       }
-
       // Chimera mode: fuse multiple definitions
-      if (currentSettings.chimeraMode && currentSettings.selectedDefinitions?.length > 0) {
+      else if (currentSettings.chimeraMode && currentSettings.selectedDefinitions?.length > 0) {
         console.log("[LumiverseHelper] lumiaDef: Chimera mode with", currentSettings.selectedDefinitions.length, "definitions");
-        const result = getChimeraContent(currentSettings.selectedDefinitions);
+        result = getChimeraContent(currentSettings.selectedDefinitions);
         console.log("[LumiverseHelper] lumiaDef Chimera result length:", result.length);
-        return result;
       }
-
       // Normal single definition
-      if (!currentSettings.selectedDefinition) {
+      else if (!currentSettings.selectedDefinition) {
         console.log("[LumiverseHelper] lumiaDef: No definition selected, returning empty");
         return "";
+      } else {
+        result = getLumiaContent("def", currentSettings.selectedDefinition);
+        console.log("[LumiverseHelper] lumiaDef result length:", result.length);
       }
-      const result = getLumiaContent("def", currentSettings.selectedDefinition);
-      console.log("[LumiverseHelper] lumiaDef result length:", result.length);
-      return result;
+
+      // Resolve any nested macros in the content (e.g., {{char}}, {{user}})
+      return resolve ? resolve(result) : result;
     },
     description: "Returns the selected Lumia physical definition. Adapts to Council mode (multiple Lumias) or Chimera mode (fused definitions).",
     returns: "Physical definition content, or count if .len is specified",
@@ -818,11 +828,13 @@ export function registerLumiaMacros(MacrosParser) {
   // Usage: {{lumiaBehavior}} or {{lumiaBehavior .len}}
   // ============================================
   MacrosParser.registerMacro("lumiaBehavior", {
-    handler: (namedArgs) => {
+    delayArgResolution: true,
+    handler: (context) => {
+      const { resolve } = context;
       const currentSettings = getSettings();
-      const variable = parseVariable(namedArgs);
+      const variable = parseVariable(context);
 
-      // Handle .len variant
+      // Handle .len variant - returns count, no resolution needed
       if (variable === "len") {
         if (currentSettings.councilMode && currentSettings.councilMembers?.length > 0) {
           const total = currentSettings.councilMembers.reduce(
@@ -835,10 +847,14 @@ export function registerLumiaMacros(MacrosParser) {
       }
 
       // Default: return behavior content
+      let result;
       if (currentSettings.councilMode && currentSettings.councilMembers?.length > 0) {
-        return getCouncilBehaviorContent(currentSettings.councilMembers);
+        result = getCouncilBehaviorContent(currentSettings.councilMembers);
+      } else {
+        result = getLumiaContent("behavior", currentSettings.selectedBehaviors);
       }
-      return getLumiaContent("behavior", currentSettings.selectedBehaviors);
+      // Resolve any nested macros in the content (e.g., {{char}}, {{user}})
+      return resolve ? resolve(result) : result;
     },
     description: "Returns all selected Lumia behavioral traits. Adapts to Council mode for multi-member behaviors.",
     returns: "Behavior content, or count if .len is specified",
@@ -860,11 +876,13 @@ export function registerLumiaMacros(MacrosParser) {
   // Usage: {{lumiaPersonality}} or {{lumiaPersonality .len}}
   // ============================================
   MacrosParser.registerMacro("lumiaPersonality", {
-    handler: (namedArgs) => {
+    delayArgResolution: true,
+    handler: (context) => {
+      const { resolve } = context;
       const currentSettings = getSettings();
-      const variable = parseVariable(namedArgs);
+      const variable = parseVariable(context);
 
-      // Handle .len variant
+      // Handle .len variant - returns count, no resolution needed
       if (variable === "len") {
         if (currentSettings.councilMode && currentSettings.councilMembers?.length > 0) {
           const total = currentSettings.councilMembers.reduce(
@@ -877,10 +895,14 @@ export function registerLumiaMacros(MacrosParser) {
       }
 
       // Default: return personality content
+      let result;
       if (currentSettings.councilMode && currentSettings.councilMembers?.length > 0) {
-        return getCouncilPersonalityContent(currentSettings.councilMembers);
+        result = getCouncilPersonalityContent(currentSettings.councilMembers);
+      } else {
+        result = getLumiaContent("personality", currentSettings.selectedPersonalities);
       }
-      return getLumiaContent("personality", currentSettings.selectedPersonalities);
+      // Resolve any nested macros in the content (e.g., {{char}}, {{user}})
+      return resolve ? resolve(result) : result;
     },
     description: "Returns all selected Lumia personality traits. Adapts to Council mode for multi-member personalities.",
     returns: "Personality content, or count if .len is specified",
@@ -901,10 +923,13 @@ export function registerLumiaMacros(MacrosParser) {
   // Loom content macros - each handles .len variant
   // ============================================
   MacrosParser.registerMacro("loomStyle", {
-    handler: (namedArgs) => {
+    delayArgResolution: true,
+    handler: (context) => {
+      const { resolve } = context;
       const currentSettings = getSettings();
-      const variable = parseVariable(namedArgs);
+      const variable = parseVariable(context);
 
+      // Handle .len variant - returns count, no resolution needed
       if (variable === "len") {
         return String(currentSettings.selectedLoomStyle?.length || 0);
       }
@@ -912,7 +937,9 @@ export function registerLumiaMacros(MacrosParser) {
       if (!currentSettings.selectedLoomStyle || currentSettings.selectedLoomStyle.length === 0) {
         return "";
       }
-      return getLoomContent(currentSettings.selectedLoomStyle);
+      const result = getLoomContent(currentSettings.selectedLoomStyle);
+      // Resolve any nested macros in the content (e.g., {{char}}, {{user}})
+      return resolve ? resolve(result) : result;
     },
     description: "Returns the selected Loom narrative style content for prose guidance.",
     returns: "Narrative style content, or count if .len is specified",
@@ -930,10 +957,13 @@ export function registerLumiaMacros(MacrosParser) {
   });
 
   MacrosParser.registerMacro("loomUtils", {
-    handler: (namedArgs) => {
+    delayArgResolution: true,
+    handler: (context) => {
+      const { resolve } = context;
       const currentSettings = getSettings();
-      const variable = parseVariable(namedArgs);
+      const variable = parseVariable(context);
 
+      // Handle .len variant - returns count, no resolution needed
       if (variable === "len") {
         return String(currentSettings.selectedLoomUtils?.length || 0);
       }
@@ -941,7 +971,9 @@ export function registerLumiaMacros(MacrosParser) {
       if (!currentSettings.selectedLoomUtils || currentSettings.selectedLoomUtils.length === 0) {
         return "";
       }
-      return getLoomContent(currentSettings.selectedLoomUtils);
+      const result = getLoomContent(currentSettings.selectedLoomUtils);
+      // Resolve any nested macros in the content (e.g., {{char}}, {{user}})
+      return resolve ? resolve(result) : result;
     },
     description: "Returns all selected Loom utility prompts (OOC, formatting, special instructions).",
     returns: "Utility content, or count if .len is specified",
@@ -959,10 +991,13 @@ export function registerLumiaMacros(MacrosParser) {
   });
 
   MacrosParser.registerMacro("loomRetrofits", {
-    handler: (namedArgs) => {
+    delayArgResolution: true,
+    handler: (context) => {
+      const { resolve } = context;
       const currentSettings = getSettings();
-      const variable = parseVariable(namedArgs);
+      const variable = parseVariable(context);
 
+      // Handle .len variant - returns count, no resolution needed
       if (variable === "len") {
         return String(currentSettings.selectedLoomRetrofits?.length || 0);
       }
@@ -970,7 +1005,9 @@ export function registerLumiaMacros(MacrosParser) {
       if (!currentSettings.selectedLoomRetrofits || currentSettings.selectedLoomRetrofits.length === 0) {
         return "";
       }
-      return getLoomContent(currentSettings.selectedLoomRetrofits);
+      const result = getLoomContent(currentSettings.selectedLoomRetrofits);
+      // Resolve any nested macros in the content (e.g., {{char}}, {{user}})
+      return resolve ? resolve(result) : result;
     },
     description: "Returns all selected Loom retrofit prompts for character/story modifications.",
     returns: "Retrofit content, or count if .len is specified",
@@ -991,18 +1028,24 @@ export function registerLumiaMacros(MacrosParser) {
   // OOC-related macros (no variants needed)
   // ============================================
   MacrosParser.registerMacro("lumiaOOC", {
-    handler: () => {
+    delayArgResolution: true,
+    handler: (context) => {
+      const { resolve } = context;
       const currentSettings = getSettings();
+      let result;
       // Return council OOC prompt if in council mode with members
       // NOTE: We call builder functions to get the prompt with trigger text substituted
       // This avoids the macro-nesting problem where {{lumiaOOCTrigger}} wouldn't expand
       if (currentSettings.councilMode && currentSettings.councilMembers?.length > 0) {
         console.log("[LumiverseHelper] lumiaOOC: Using council mode prompt");
-        return buildOOCPromptCouncil();
+        result = buildOOCPromptCouncil();
+      } else {
+        // Return normal OOC prompt
+        console.log("[LumiverseHelper] lumiaOOC: Using normal mode prompt");
+        result = buildOOCPromptNormal();
       }
-      // Return normal OOC prompt
-      console.log("[LumiverseHelper] lumiaOOC: Using normal mode prompt");
-      return buildOOCPromptNormal();
+      // Resolve any nested macros in the content (e.g., {{char}}, {{user}})
+      return resolve ? resolve(result) : result;
     },
     description: "Returns the OOC (Out-of-Context) commentary prompt. Adapts format for Council mode.",
     returns: "OOC prompt with timing trigger and format instructions",
@@ -1011,14 +1054,17 @@ export function registerLumiaMacros(MacrosParser) {
   });
 
   MacrosParser.registerMacro("lumiaCouncilInst", {
-    handler: () => {
+    delayArgResolution: true,
+    handler: (context) => {
+      const { resolve } = context;
       const currentSettings = getSettings();
       // Only return instruction if council mode is active with members
       if (!currentSettings.councilMode || !currentSettings.councilMembers?.length) {
         return "";
       }
       console.log("[LumiverseHelper] lumiaCouncilInst: Council mode active, returning instruction");
-      return COUNCIL_INST_PROMPT;
+      // Resolve any nested macros in the content (e.g., {{char}}, {{user}})
+      return resolve ? resolve(COUNCIL_INST_PROMPT) : COUNCIL_INST_PROMPT;
     },
     description: "Returns Council mode instruction prompt. Empty when Council mode is disabled or has no members.",
     returns: "Council instruction text or empty string",
@@ -1032,9 +1078,9 @@ export function registerLumiaMacros(MacrosParser) {
   // Usage: {{lumiaSelf .1}} {{lumiaSelf .2}} {{lumiaSelf .3}} {{lumiaSelf .4}}
   // ============================================
   MacrosParser.registerMacro("lumiaSelf", {
-    handler: (namedArgs) => {
+    handler: (context) => {
       const currentSettings = getSettings();
-      const variable = parseVariable(namedArgs);
+      const variable = parseVariable(context);
 
       // Pronoun maps: [singular, plural]
       const pronounMap = {
@@ -1112,8 +1158,8 @@ export function registerLumiaMacros(MacrosParser) {
   // ============================================
   // lumiaCouncilModeActive macro - Council mode status indicator - Macros 2.0 Conditional Compatible
   // ============================================
-    MacrosParser.registerMacro("lumiaCouncilModeActive", {
-    handler: () => {
+  MacrosParser.registerMacro("lumiaCouncilModeActive", {
+    handler: (context) => {
       const currentSettings = getSettings();
       // Return yes only if council mode is active with members. Otherwise no. ST Conditional Compatible.
       if (!currentSettings.councilMode || !currentSettings.councilMembers?.length) {

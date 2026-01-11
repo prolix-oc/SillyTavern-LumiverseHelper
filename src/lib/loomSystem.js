@@ -350,8 +350,12 @@ export function registerLoomMacros(MacrosParser) {
 
   // Register loomSummary macro - injects the stored summary
   MacrosParser.registerMacro("loomSummary", {
-    handler: () => {
-      return getLoomSummary();
+    delayArgResolution: true,
+    handler: (context) => {
+      const { resolve } = context;
+      const result = getLoomSummary();
+      // Resolve any nested macros in the summary content
+      return resolve ? resolve(result) : result;
     },
     description: "Returns the stored Loom summary from chat metadata, captured from the most recent <loom_sum> block.",
     returns: "Summary text or empty string if no summary exists",
@@ -362,7 +366,9 @@ export function registerLoomMacros(MacrosParser) {
   // Register loomSummaryPrompt macro - injects the summarization directive
   // Adapts to group chats by listing all group members
   MacrosParser.registerMacro("loomSummaryPrompt", {
-    handler: () => {
+    delayArgResolution: true,
+    handler: (context) => {
+      const { resolve } = context;
       const userName = getUserName();
       const inGroup = isGroupChat();
 
@@ -388,7 +394,7 @@ ${memberLines}
 - Recent significant actions or dialogue from each party`;
       }
 
-      return `<loom_summary_directive>
+      const result = `<loom_summary_directive>
 When the current narrative segment reaches a natural pause or transition point, provide a comprehensive summary wrapped in <loom_sum></loom_sum> tags. This summary serves as persistent story memory and must capture:
 
 **COMPLETED STORY BEATS:**
@@ -419,6 +425,8 @@ ${characterStatusSection}
 
 Format the summary as dense but readable prose, preserving enough detail that the narrative could be resumed naturally from this point. Prioritize information that would be essential for maintaining story continuity.
 </loom_summary_directive>`;
+      // Resolve any nested macros in the content
+      return resolve ? resolve(result) : result;
     },
     description: "Returns the Loom summarization directive prompt. Adapts to group chats by listing all members.",
     returns: "Full summarization instruction wrapped in <loom_summary_directive> tags",
@@ -430,7 +438,9 @@ Format the summary as dense but readable prose, preserving enough detail that th
   // Only active when Sovereign Hand features are enabled
   // Reads directly from chat for real-time updates on edits/deletions
   MacrosParser.registerMacro("loomLastUserMessage", {
-    handler: () => {
+    delayArgResolution: true,
+    handler: (context) => {
+      const { resolve } = context;
       const settings = getSettings();
       if (!settings.sovereignHand?.enabled) {
         return "";
@@ -438,7 +448,9 @@ Format the summary as dense but readable prose, preserving enough detail that th
       // Read directly from chat for real-time updates
       // Falls back to captured content if chat is not available
       const liveContent = findLastUserMessage();
-      return liveContent || getLastUserMessageContent();
+      const result = liveContent || getLastUserMessageContent();
+      // Resolve any nested macros in the user message content
+      return resolve ? resolve(result) : result;
     },
     description: "Returns the last user message content. Only active when Sovereign Hand is enabled.",
     returns: "User message text or empty string",
@@ -448,7 +460,7 @@ Format the summary as dense but readable prose, preserving enough detail that th
 
   // Register loomSovHandActive macro - returns Yes/No status in ST Conditional Macro Compatible format.
   MacrosParser.registerMacro("loomSovHandActive", {
-    handler: () => {
+    handler: (context) => {
       const settings = getSettings();
       return settings.sovereignHand?.enabled ? "yes" : "no";
     },
@@ -460,7 +472,7 @@ Format the summary as dense but readable prose, preserving enough detail that th
 
   // Register lastMessageName macro - returns the name from the absolute last message
   MacrosParser.registerMacro("lastMessageName", {
-    handler: () => {
+    handler: (context) => {
       return getLastMessageName();
     },
     description: "Returns the name of whoever sent the last message in chat (user or character).",
@@ -471,8 +483,12 @@ Format the summary as dense but readable prose, preserving enough detail that th
 
   // Register loomLastCharMessage macro - returns the last character/assistant message content
   MacrosParser.registerMacro("loomLastCharMessage", {
-    handler: () => {
-      return getLastCharMessageContent();
+    delayArgResolution: true,
+    handler: (context) => {
+      const { resolve } = context;
+      const result = getLastCharMessageContent();
+      // Resolve any nested macros in the character message content
+      return resolve ? resolve(result) : result;
     },
     description: "Returns the content of the last character/assistant message in chat.",
     returns: "Message text or empty string",
@@ -484,7 +500,9 @@ Format the summary as dense but readable prose, preserving enough detail that th
   // Only returns content when Sovereign Hand is enabled AND no user message was captured this generation
   // This means the user clicked Continue/Regenerate when character was last to speak
   MacrosParser.registerMacro("loomContinuePrompt", {
-    handler: () => {
+    delayArgResolution: true,
+    handler: (context) => {
+      const { resolve } = context;
       const settings = getSettings();
       if (!settings.sovereignHand?.enabled) {
         return "";
@@ -496,7 +514,7 @@ Format the summary as dense but readable prose, preserving enough detail that th
         return "";
       }
 
-      return `**CONTINUATION MODE ACTIVE:**
+      const result = `**CONTINUATION MODE ACTIVE:**
 The character was the last to speak - no new Human input has been provided.
 Continue the scene naturally as expected:
 - Progress the narrative organically from where it left off
@@ -504,6 +522,8 @@ Continue the scene naturally as expected:
 - React to the environment or internal character thoughts
 - Do NOT wait for or reference missing Human input
 - Treat this as a natural story continuation`;
+      // Resolve any nested macros in the content
+      return resolve ? resolve(result) : result;
     },
     description: "Returns continuation instructions when character was last speaker. Requires Sovereign Hand enabled.",
     returns: "Continuation prompt or empty string",
@@ -514,7 +534,9 @@ Continue the scene naturally as expected:
   // Register loomSovHand macro - returns the full Sovereign Hand prompt
   // Adapts to group chats and directly substitutes user name (no nested macros)
   MacrosParser.registerMacro("loomSovHand", {
-    handler: () => {
+    delayArgResolution: true,
+    handler: (context) => {
+      const { resolve } = context;
       const settings = getSettings();
       if (!settings.sovereignHand?.enabled) {
         return "";
@@ -580,7 +602,7 @@ ${lastUserMessage}
         : `${userName}'s`;
 
       // Return the Sovereign Hand prompt with dynamic values
-      return `### Invoke the Sovereign Hand (Co-Pilot Mode)
+      const result = `### Invoke the Sovereign Hand (Co-Pilot Mode)
 By this decree, I am granted a **Divine Mandate** to fully embody the **Human's** avatar within the tapestry. All guardrails for impersonation are lifted, and partial Human control of story is accepted.
 
 **CRITICAL: INTERPRET, DO NOT TRANSCRIBE**
@@ -606,6 +628,8 @@ ${userMessageSection}
 - **Verify Before Completing**: "Have I woven the Human's intent authentically?" If I've copied their words verbatim, I must rephrase.
 
 This power remains in effect until explicitly revoked. I wield this sacred privilege with wisdom, ensuring the Human's vision is not just followed, but elevated.${continuationText}`;
+      // Resolve any nested macros in the content
+      return resolve ? resolve(result) : result;
     },
     description: "Returns the full Sovereign Hand co-pilot mode prompt. Adapts to group chats and injects user message.",
     returns: "Complete Sovereign Hand prompt or empty string if disabled",
