@@ -2,7 +2,7 @@
   "name": "lumiverse-helper",
   "display_name": "Lumiverse Helper",
   "author": "Prolix OCs",
-  "version": "3.0.4",
+  "version": "3.0.5",
   "description": "Injects Lumia Definitions, Behaviors, and Personalities from custom-made Lumia DLC files into prompt templates.",
   "js": "dist/index.js",
   "css": "style.css",

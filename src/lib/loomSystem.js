@@ -343,6 +343,11 @@ export function hideLoomSumBlocks(messageElement) {
 /**
  * Register Loom-related macros with MacrosParser
  * Updated for SillyTavern 1.15 Macros 2.0 system
+ *
+ * Macro syntax for Macros 2.0:
+ * - Arguments use :: separator: {{macro::arg}}
+ * - Handlers destructure from context: ({ unnamedArgs: [arg], resolve }) => {...}
+ *
  * @param {Object} MacrosParser - The SillyTavern MacrosParser instance
  */
 export function registerLoomMacros(MacrosParser) {
@@ -351,8 +356,7 @@ export function registerLoomMacros(MacrosParser) {
   // Register loomSummary macro - injects the stored summary
   MacrosParser.registerMacro("loomSummary", {
     delayArgResolution: true,
-    handler: (context) => {
-      const { resolve } = context;
+    handler: ({ resolve }) => {
       const result = getLoomSummary();
       // Resolve any nested macros in the summary content
       return resolve ? resolve(result) : result;
@@ -367,8 +371,7 @@ export function registerLoomMacros(MacrosParser) {
   // Adapts to group chats by listing all group members
   MacrosParser.registerMacro("loomSummaryPrompt", {
     delayArgResolution: true,
-    handler: (context) => {
-      const { resolve } = context;
+    handler: ({ resolve }) => {
       const userName = getUserName();
       const inGroup = isGroupChat();
 
@@ -439,8 +442,7 @@ Format the summary as dense but readable prose, preserving enough detail that th
   // Reads directly from chat for real-time updates on edits/deletions
   MacrosParser.registerMacro("loomLastUserMessage", {
     delayArgResolution: true,
-    handler: (context) => {
-      const { resolve } = context;
+    handler: ({ resolve }) => {
       const settings = getSettings();
       if (!settings.sovereignHand?.enabled) {
         return "";
@@ -460,7 +462,7 @@ Format the summary as dense but readable prose, preserving enough detail that th
 
   // Register loomSovHandActive macro - returns Yes/No status in ST Conditional Macro Compatible format.
   MacrosParser.registerMacro("loomSovHandActive", {
-    handler: (context) => {
+    handler: () => {
       const settings = getSettings();
       return settings.sovereignHand?.enabled ? "yes" : "no";
     },
@@ -472,7 +474,7 @@ Format the summary as dense but readable prose, preserving enough detail that th
 
   // Register lastMessageName macro - returns the name from the absolute last message
   MacrosParser.registerMacro("lastMessageName", {
-    handler: (context) => {
+    handler: () => {
       return getLastMessageName();
     },
     description: "Returns the name of whoever sent the last message in chat (user or character).",
@@ -484,8 +486,7 @@ Format the summary as dense but readable prose, preserving enough detail that th
   // Register loomLastCharMessage macro - returns the last character/assistant message content
   MacrosParser.registerMacro("loomLastCharMessage", {
     delayArgResolution: true,
-    handler: (context) => {
-      const { resolve } = context;
+    handler: ({ resolve }) => {
       const result = getLastCharMessageContent();
       // Resolve any nested macros in the character message content
       return resolve ? resolve(result) : result;
@@ -501,8 +502,7 @@ Format the summary as dense but readable prose, preserving enough detail that th
   // This means the user clicked Continue/Regenerate when character was last to speak
   MacrosParser.registerMacro("loomContinuePrompt", {
     delayArgResolution: true,
-    handler: (context) => {
-      const { resolve } = context;
+    handler: ({ resolve }) => {
       const settings = getSettings();
       if (!settings.sovereignHand?.enabled) {
         return "";
@@ -535,8 +535,7 @@ Continue the scene naturally as expected:
   // Adapts to group chats and directly substitutes user name (no nested macros)
   MacrosParser.registerMacro("loomSovHand", {
     delayArgResolution: true,
-    handler: (context) => {
-      const { resolve } = context;
+    handler: ({ resolve }) => {
       const settings = getSettings();
       if (!settings.sovereignHand?.enabled) {
         return "";

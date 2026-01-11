@@ -335,7 +335,7 @@ function registerAllMacros() {
 
   // Message count macro - returns simple count, no resolution needed
   MacrosParser.registerMacro("lumiaMessageCount", {
-    handler: (macroContext) => {
+    handler: () => {
       const stContext = getContext();
       if (!stContext || !stContext.chat) return "0";
       return stContext.chat.length.toString();
@@ -349,7 +349,7 @@ function registerAllMacros() {
   // OOC trigger countdown/trigger macro
   // Uses shared function from lumiaContent.js to avoid code duplication
   MacrosParser.registerMacro("lumiaOOCTrigger", {
-    handler: (macroContext) => {
+    handler: () => {
       return getOOCTriggerText();
     },
     description: "Returns OOC trigger countdown or activation message based on message count and interval setting.",

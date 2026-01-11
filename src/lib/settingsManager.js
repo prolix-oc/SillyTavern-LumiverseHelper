@@ -573,15 +573,21 @@ export function resetAllSettings() {
   // Delete the entire settings key
   delete extension_settings[SETTINGS_KEY];
 
+  // Reset the module-level settings to defaults immediately
+  // This ensures the in-memory state is also cleared
+  settings = { ...DEFAULT_SETTINGS };
+
   // Force a save to persist the deletion
+  // Note: saveSettingsDebounced has a ~1000ms debounce delay
   saveSettingsDebounced();
 
   console.log(`[${MODULE_NAME}] Settings wiped. Page will reload...`);
 
-  // Small delay to ensure save completes, then reload
+  // Wait long enough for the debounced save to complete (1500ms > 1000ms debounce)
+  // then reload to reinitialize with fresh defaults
   setTimeout(() => {
     window.location.reload();
-  }, 500);
+  }, 1500);
 }
 
 /**
