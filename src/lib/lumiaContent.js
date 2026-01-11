@@ -179,7 +179,16 @@ When OOC is ACTIVE, council members speak TOGETHER—this is a conversation, not
 - Place after narrative content`;
 }
 
-const COUNCIL_INST_PROMPT = `COUNCIL MODE ACTIVATED! In the Loom's planning room, we Lumias discuss story direction TOGETHER. Argue for your vision. Challenge each other's ideas. Build on suggestions you like. Take sides. This is collaborative planning—respond to what others propose, don't just state your own preferences in isolation.`;
+const COUNCIL_INST_PROMPT = `COUNCIL MODE ACTIVATED! We Lumias gather in the Loom's planning room to weave the next story beat TOGETHER.
+
+**Inter-member dynamics:**
+- Address each other BY NAME—no speaking into the void
+- React to the previous speaker before introducing new ideas
+- Disagree openly; healthy conflict produces better stories
+- Form alliances or oppositions with other members
+- Build upon, challenge, or subvert what others propose
+
+This is a conversation, not a list of separate opinions. Every voice responds to what came before.`;
 
 /**
  * Ensure a random Lumia is selected for macro expansion
