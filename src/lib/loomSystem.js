@@ -75,13 +75,10 @@ export function findLastUserMessage() {
 export function wasCharacterLastSpeaker() {
   const context = getContext();
   if (!context || !context.chat || context.chat.length === 0) {
-    console.log("[LumiverseHelper] wasCharacterLastSpeaker: No chat context available");
     return false;
   }
   const lastMessage = context.chat[context.chat.length - 1];
-  const result = lastMessage && !lastMessage.is_user;
-  console.log(`[LumiverseHelper] wasCharacterLastSpeaker: ${result} (last msg is_user: ${lastMessage?.is_user}, chat length: ${context.chat.length})`);
-  return result;
+  return lastMessage && !lastMessage.is_user;
 }
 
 /**
@@ -548,8 +545,8 @@ Continue the scene naturally as expected:
       const userName = getUserName();
       const inGroup = isGroupChat();
 
-      // Get the captured last user message
-      const lastUserMessage = getLastUserMessageContent();
+      // Always read fresh from chat - cached value can be stale after edits/deletes
+      const lastUserMessage = findLastUserMessage();
 
       // Check if we should include the user message in the prompt
       const includeMessage = settings.sovereignHand?.includeMessageInPrompt !== false;
@@ -566,7 +563,6 @@ Continue the scene naturally as expected:
       // Check if we should show continuation mode
       // Check chat directly - macros expand BEFORE interceptor runs, so flag would be stale
       const showContinuation = wasCharacterLastSpeaker();
-      console.log(`[LumiverseHelper] loomSovHand: showContinuation=${showContinuation}, includeMessage=${includeMessage}, lastUserMessage length=${lastUserMessage?.length || 0}`);
 
       // Adapt continuation text for group vs single character
       let continuationText = "";
@@ -600,8 +596,6 @@ ${duplicateWarning}**The Human's Provided Instruction:**
 ${lastUserMessage}
 
 ---` : '';
-
-      console.log(`[LumiverseHelper] loomSovHand: continuationText length=${continuationText.length}, userMessageSection length=${userMessageSection.length}`);
 
       // Build the character reference based on chat type
       const characterReference = inGroup
