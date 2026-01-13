@@ -34,6 +34,21 @@ export function getLastAIMessageIndex() {
 }
 
 /**
+ * Shuffle an array using Fisher-Yates algorithm
+ * Returns a new shuffled array without mutating the original
+ * @param {Array} array - The array to shuffle
+ * @returns {Array} A new shuffled array
+ */
+function shuffleArray(array) {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+/**
  * Get a Lumia field value, supporting both new and legacy field names
  * New format fields are tried first, then fallback to legacy field names
  * @param {Object} item - The Lumia item
@@ -344,7 +359,10 @@ function appendDominantTag(content, tag) {
 function getCouncilDefContent(councilMembers) {
   if (!councilMembers || councilMembers.length === 0) return "";
 
-  const memberData = councilMembers
+  // Shuffle council members for varied speaking order each generation
+  const shuffledMembers = shuffleArray(councilMembers);
+
+  const memberData = shuffledMembers
     .map((member) => {
       const item = getItemFromLibrary(member.packName, member.itemName);
       const defContent = getLumiaField(item, "def");
@@ -416,6 +434,9 @@ function getCouncilDefContent(councilMembers) {
 function getCouncilBehaviorContent(councilMembers) {
   if (!councilMembers || councilMembers.length === 0) return "";
 
+  // Shuffle council members for varied speaking order each generation
+  const shuffledMembers = shuffleArray(councilMembers);
+
   const memberBehaviors = [];
 
   memberBehaviors.push("## COUNCIL MEMBER BEHAVIORS");
@@ -432,7 +453,7 @@ function getCouncilBehaviorContent(councilMembers) {
   memberBehaviors.push("Their behavioral patterns define HOW each Lumia engages with this collaborative storytelling:");
   memberBehaviors.push("");
 
-  councilMembers.forEach((member) => {
+  shuffledMembers.forEach((member) => {
     const item = getItemFromLibrary(member.packName, member.itemName);
     const memberName = getLumiaField(item, "name") || member.itemName || "Unknown";
 
@@ -491,6 +512,9 @@ function getCouncilBehaviorContent(councilMembers) {
 function getCouncilPersonalityContent(councilMembers) {
   if (!councilMembers || councilMembers.length === 0) return "";
 
+  // Shuffle council members for varied speaking order each generation
+  const shuffledMembers = shuffleArray(councilMembers);
+
   const memberPersonalities = [];
 
   memberPersonalities.push("## COUNCIL MEMBER PERSONALITIES");
@@ -498,7 +522,7 @@ function getCouncilPersonalityContent(councilMembers) {
   memberPersonalities.push("Each Council member has their own distinct personality and inner nature:");
   memberPersonalities.push("");
 
-  councilMembers.forEach((member) => {
+  shuffledMembers.forEach((member) => {
     const item = getItemFromLibrary(member.packName, member.itemName);
     const memberName = getLumiaField(item, "name") || member.itemName || "Unknown";
 
