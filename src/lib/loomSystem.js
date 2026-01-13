@@ -498,7 +498,7 @@ Format the summary as dense but readable prose, preserving enough detail that th
   });
 
   // Register loomContinuePrompt macro - standalone "continue without user input" instructions
-  // Only returns content when Sovereign Hand is enabled AND no user message was captured this generation
+  // Only returns content when Sovereign Hand is enabled AND character was last speaker
   // This means the user clicked Continue/Regenerate when character was last to speak
   MacrosParser.registerMacro("loomContinuePrompt", {
     delayArgResolution: true,
@@ -508,9 +508,9 @@ Format the summary as dense but readable prose, preserving enough detail that th
         return "";
       }
 
-      // If we captured a user message this generation, user was last speaker - don't show continuation
-      // If we didn't capture a user message, character was last - show continuation
-      if (getCapturedUserMessageFlag()) {
+      // Check chat directly - macros expand BEFORE interceptor runs, so flag would be stale
+      // If user was last speaker, no continuation needed
+      if (!wasCharacterLastSpeaker()) {
         return "";
       }
 
@@ -561,9 +561,8 @@ Continue the scene naturally as expected:
 ` : '';
 
       // Check if we should show continuation mode
-      // If we captured a user message this generation, user was last - don't show continuation
-      // If we didn't capture a user message, character was last - show continuation
-      const showContinuation = !getCapturedUserMessageFlag();
+      // Check chat directly - macros expand BEFORE interceptor runs, so flag would be stale
+      const showContinuation = wasCharacterLastSpeaker();
 
       // Adapt continuation text for group vs single character
       let continuationText = "";
