@@ -8977,6 +8977,125 @@ details.lumia-panel[open] .lumia-panel-chevron {
     border-left: 2px solid var(--lumiverse-border, var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.1)));
 }
 
+/* Viewport Panel Quirks Section */
+.lumiverse-vp-quirks-section {
+    margin-top: 16px;
+    padding: 12px;
+    background: var(--SmartThemeBotMesBlurTintColor, rgba(0, 0, 0, 0.1));
+    border-radius: 8px;
+}
+
+.lumiverse-vp-quirks-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.lumiverse-vp-quirks-label {
+    font-weight: 600;
+    font-size: 0.9em;
+    color: var(--lumiverse-text, var(--SmartThemeBodyColor, #fff));
+}
+
+.lumiverse-vp-quirks-edit-btn {
+    padding: 4px 8px;
+    background: transparent;
+    border: 1px solid var(--lumiverse-border, var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.1)));
+    border-radius: 4px;
+    color: var(--lumiverse-text-muted, var(--SmartThemeEmColor, #888));
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.lumiverse-vp-quirks-edit-btn:hover {
+    background: rgba(147, 112, 219, 0.2);
+    color: var(--lumiverse-text, var(--SmartThemeBodyColor, #fff));
+}
+
+.lumiverse-vp-quirks-hint {
+    font-size: 0.8em;
+    color: var(--lumiverse-text-muted, var(--SmartThemeEmColor, #888));
+    margin: 0 0 8px 0;
+}
+
+.lumiverse-vp-quirks-hint code {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.9em;
+}
+
+.lumiverse-vp-quirks-textarea {
+    width: 100%;
+    min-height: 60px;
+    padding: 8px;
+    background: var(--lumiverse-bg, var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.2)));
+    border: 1px solid var(--lumiverse-border, var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.1)));
+    border-radius: 6px;
+    color: inherit;
+    font-family: inherit;
+    font-size: 0.85em;
+    resize: vertical;
+}
+
+.lumiverse-vp-quirks-textarea:focus {
+    outline: none;
+    border-color: var(--lumiverse-primary, #9370DB);
+}
+
+.lumiverse-vp-quirks-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.lumiverse-vp-quirks-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: transparent;
+    border: 1px solid var(--lumiverse-border, var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.1)));
+    border-radius: 4px;
+    color: var(--lumiverse-text-muted, var(--SmartThemeEmColor, #888));
+    font-size: 0.8em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.lumiverse-vp-quirks-btn:hover {
+    background: rgba(147, 112, 219, 0.2);
+    color: var(--lumiverse-text, var(--SmartThemeBodyColor, #fff));
+}
+
+.lumiverse-vp-quirks-btn--primary {
+    background: var(--lumiverse-primary, #9370DB);
+    border-color: var(--lumiverse-primary, #9370DB);
+    color: white;
+}
+
+.lumiverse-vp-quirks-btn--primary:hover {
+    background: var(--lumiverse-primary-light, #a388e0);
+}
+
+.lumiverse-vp-quirks-preview {
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 6px;
+    font-size: 0.85em;
+}
+
+.lumiverse-vp-quirks-text {
+    white-space: pre-wrap;
+}
+
+.lumiverse-vp-quirks-empty {
+    color: var(--lumiverse-text-muted, var(--SmartThemeEmColor, #888));
+    font-style: italic;
+}
+
 /* ----------------------------------------
    Collapsible Component - CSS Grid Based
    High-performance alternative to height animations.

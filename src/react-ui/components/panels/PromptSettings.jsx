@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useSyncExternalStore } from 'react';
 import { CollapsibleContent } from '../Collapsible';
 import clsx from 'clsx';
-import { Hand, Filter, ChevronDown, Info, Layers, Users } from 'lucide-react';
+import { Hand, Filter, ChevronDown, Info, Layers, Users, Edit2, Check, X } from 'lucide-react';
 import { useLumiverseStore, useLumiverseActions, saveToExtension } from '../../store/LumiverseContext';
 
 // Get the store for direct access (old code uses root-level settings)
@@ -20,6 +20,7 @@ const selectCouncilMode = () => store.getState().councilMode || false;
 const selectSelectedDefinitionsCount = () => store.getState().selectedDefinitions?.length || 0;
 const selectCouncilMembersCount = () => store.getState().councilMembers?.length || 0;
 const selectStateSynthesis = () => store.getState().stateSynthesis || DEFAULT_STATE_SYNTHESIS;
+const selectLumiaQuirks = () => store.getState().lumiaQuirks || '';
 
 /**
  * Toggle switch component
@@ -212,6 +213,15 @@ function PromptSettings() {
         selectStateSynthesis,
         selectStateSynthesis
     );
+    const lumiaQuirks = useSyncExternalStore(
+        store.subscribe,
+        selectLumiaQuirks,
+        selectLumiaQuirks
+    );
+
+    // Local state for editing quirks (non-council mode)
+    const [quirksValue, setQuirksValue] = useState(lumiaQuirks);
+    const [isEditingQuirks, setIsEditingQuirks] = useState(false);
 
     const sovereignEnabled = sovereignHand.enabled ?? false;
     const htmlTagsEnabled = contextFilters.htmlTags?.enabled ?? false;
@@ -265,6 +275,17 @@ function PromptSettings() {
         actions.setStateSynthesisEnabled(enabled);
         saveToExtension();
     }, [actions]);
+
+    const handleQuirksSave = useCallback(() => {
+        actions.setLumiaQuirks(quirksValue);
+        saveToExtension();
+        setIsEditingQuirks(false);
+    }, [actions, quirksValue]);
+
+    const handleQuirksCancel = useCallback(() => {
+        setQuirksValue(lumiaQuirks);
+        setIsEditingQuirks(false);
+    }, [lumiaQuirks]);
 
     // Determine which mode is active for status display
     const lumiaModeActive = chimeraMode || councilMode;
@@ -358,6 +379,64 @@ function PromptSettings() {
                         />
                     </CollapsibleContent>
                 </div>
+
+                {/* Behavioral Quirks - Show when NOT in council mode (council mode shows in CouncilManager) */}
+                {!councilMode && (
+                    <div className="lumiverse-vp-quirks-section">
+                        <div className="lumiverse-vp-quirks-header">
+                            <span className="lumiverse-vp-quirks-label">Behavioral Quirks</span>
+                            {!isEditingQuirks && (
+                                <button
+                                    className="lumiverse-vp-quirks-edit-btn"
+                                    onClick={() => setIsEditingQuirks(true)}
+                                    title="Edit quirks"
+                                    type="button"
+                                >
+                                    <Edit2 size={12} strokeWidth={1.5} />
+                                </button>
+                            )}
+                        </div>
+                        <p className="lumiverse-vp-quirks-hint">
+                            Extra behavioral modifications. Use <code>{'{{lumiaQuirks}}'}</code>
+                        </p>
+
+                        {isEditingQuirks ? (
+                            <div className="lumiverse-vp-quirks-edit">
+                                <textarea
+                                    className="lumiverse-vp-quirks-textarea"
+                                    placeholder="Enter behavioral quirks..."
+                                    value={quirksValue}
+                                    onChange={(e) => setQuirksValue(e.target.value)}
+                                    rows={3}
+                                />
+                                <div className="lumiverse-vp-quirks-actions">
+                                    <button
+                                        className="lumiverse-vp-quirks-btn lumiverse-vp-quirks-btn--primary"
+                                        onClick={handleQuirksSave}
+                                        type="button"
+                                    >
+                                        <Check size={12} strokeWidth={2} /> Save
+                                    </button>
+                                    <button
+                                        className="lumiverse-vp-quirks-btn"
+                                        onClick={handleQuirksCancel}
+                                        type="button"
+                                    >
+                                        <X size={12} strokeWidth={2} /> Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="lumiverse-vp-quirks-preview">
+                                {lumiaQuirks?.trim() ? (
+                                    <span className="lumiverse-vp-quirks-text">{lumiaQuirks}</span>
+                                ) : (
+                                    <span className="lumiverse-vp-quirks-empty">No quirks set</span>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
             </CollapsibleSection>
 
             {/* Sovereign Hand Section */}

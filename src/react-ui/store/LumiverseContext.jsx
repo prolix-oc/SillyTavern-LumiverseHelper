@@ -75,7 +75,7 @@ const initialState = {
     selectedDefinitions: [],      // Array of { packName, itemName } - used in Chimera mode
     councilMode: false,
     councilMembers: [],           // Array of council member configurations
-    councilQuirks: '',            // User text for council behavioral quirks
+    lumiaQuirks: '',              // User text for behavioral quirks (all modes)
     stateSynthesis: {
         enabled: false,           // Toggle for non-council synthesis prompt
     },
@@ -713,7 +713,7 @@ const actions = {
             selectedDefinitions: [...(state.selectedDefinitions || [])],
             councilMode: state.councilMode || false,
             councilMembers: JSON.parse(JSON.stringify(state.councilMembers || [])),
-            councilQuirks: state.councilQuirks || '',
+            lumiaQuirks: state.lumiaQuirks || '',
         };
 
         store.setState({
@@ -748,8 +748,10 @@ const actions = {
         if (preset.councilMode !== undefined) {
             updates.councilMode = preset.councilMode;
             updates.councilMembers = preset.councilMembers || [];
-            updates.councilQuirks = preset.councilQuirks || '';
         }
+
+        // Load lumiaQuirks (works in all modes, fallback to old councilQuirks for legacy presets)
+        updates.lumiaQuirks = preset.lumiaQuirks || preset.councilQuirks || '';
 
         store.setState(updates);
     },
@@ -792,7 +794,7 @@ const actions = {
             selectedDefinitions: [...(state.selectedDefinitions || [])],
             councilMode: state.councilMode || false,
             councilMembers: JSON.parse(JSON.stringify(state.councilMembers || [])),
-            councilQuirks: state.councilQuirks || '',
+            lumiaQuirks: state.lumiaQuirks || '',
         };
 
         store.setState({
@@ -971,11 +973,11 @@ const actions = {
     },
 
     /**
-     * Set council quirks text
+     * Set lumia quirks text (works in all modes)
      * @param {string} quirks - The quirks text
      */
-    setCouncilQuirks: (quirks) => {
-        store.setState({ councilQuirks: quirks });
+    setLumiaQuirks: (quirks) => {
+        store.setState({ lumiaQuirks: quirks });
     },
 
     /**

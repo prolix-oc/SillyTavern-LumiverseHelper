@@ -14,7 +14,7 @@ const EMPTY_ARRAY = [];
 // Stable selector functions
 const selectCouncilMode = () => store.getState().councilMode || false;
 const selectCouncilMembers = () => store.getState().councilMembers || EMPTY_ARRAY;
-const selectCouncilQuirks = () => store.getState().councilQuirks || '';
+const selectLumiaQuirks = () => store.getState().lumiaQuirks || '';
 
 /**
  * Find a Lumia item in a pack - supports both new and legacy formats
@@ -490,14 +490,14 @@ function CouncilManager() {
         selectCouncilMembers,
         selectCouncilMembers
     );
-    const councilQuirks = useSyncExternalStore(
+    const lumiaQuirks = useSyncExternalStore(
         store.subscribe,
-        selectCouncilQuirks,
-        selectCouncilQuirks
+        selectLumiaQuirks,
+        selectLumiaQuirks
     );
 
     // Local state for editing quirks
-    const [quirksValue, setQuirksValue] = useState(councilQuirks);
+    const [quirksValue, setQuirksValue] = useState(lumiaQuirks);
     const [isEditingQuirks, setIsEditingQuirks] = useState(false);
 
     const handleAddMember = useCallback((member) => {
@@ -534,15 +534,15 @@ function CouncilManager() {
     }, [actions]);
 
     const handleQuirksSave = useCallback(() => {
-        actions.setCouncilQuirks(quirksValue);
+        actions.setLumiaQuirks(quirksValue);
         saveToExtension();
         setIsEditingQuirks(false);
     }, [actions, quirksValue]);
 
     const handleQuirksCancel = useCallback(() => {
-        setQuirksValue(councilQuirks);
+        setQuirksValue(lumiaQuirks);
         setIsEditingQuirks(false);
-    }, [councilQuirks]);
+    }, [lumiaQuirks]);
 
     // Build packs object for lookups - support both name and packName
     const packsObj = useMemo(() => {
@@ -597,7 +597,7 @@ function CouncilManager() {
                         )}
                     </div>
                     <p className="lumiverse-council-quirks-hint">
-                        Extra behavioral modifications. Use <code>{'{{lumiaCouncilQuirks}}'}</code>
+                        Extra behavioral modifications. Use <code>{'{{lumiaQuirks}}'}</code>
                     </p>
 
                     {isEditingQuirks ? (
@@ -628,8 +628,8 @@ function CouncilManager() {
                         </div>
                     ) : (
                         <div className="lumiverse-council-quirks-preview">
-                            {councilQuirks?.trim() ? (
-                                <span className="lumiverse-council-quirks-text">{councilQuirks}</span>
+                            {lumiaQuirks?.trim() ? (
+                                <span className="lumiverse-council-quirks-text">{lumiaQuirks}</span>
                             ) : (
                                 <span className="lumiverse-council-quirks-empty">No quirks set</span>
                             )}

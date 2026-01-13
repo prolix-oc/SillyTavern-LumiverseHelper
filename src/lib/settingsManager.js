@@ -41,7 +41,7 @@ const DEFAULT_SETTINGS = {
   selectedDefinitions: [], // Array of { packName, itemName } - used in Chimera mode
   councilMode: false,
   councilMembers: [], // Array of council member configurations
-  councilQuirks: '', // User text for council behavioral quirks
+  lumiaQuirks: '', // User text for behavioral quirks (works in all modes)
   stateSynthesis: {
     enabled: false, // Toggle for non-council synthesis prompt
   },
@@ -496,7 +496,14 @@ export function migrateSettings() {
   // Ensure Council mode defaults
   if (settings.councilMode === undefined) settings.councilMode = false;
   if (!settings.councilMembers) settings.councilMembers = [];
-  if (settings.councilQuirks === undefined) settings.councilQuirks = '';
+
+  // Migrate councilQuirks → lumiaQuirks (quirks now work in all modes)
+  if (settings.councilQuirks !== undefined && settings.lumiaQuirks === undefined) {
+    settings.lumiaQuirks = settings.councilQuirks;
+    delete settings.councilQuirks;
+    migrated = true;
+  }
+  if (settings.lumiaQuirks === undefined) settings.lumiaQuirks = '';
   if (!settings.stateSynthesis) settings.stateSynthesis = { enabled: false };
 
   return migrated;

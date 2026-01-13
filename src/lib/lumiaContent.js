@@ -1200,28 +1200,52 @@ export function registerLumiaMacros(MacrosParser) {
   });
 
   // ============================================
-  // lumiaCouncilQuirks macro - Council behavioral quirks
-  // Returns formatted quirks text when council mode is active AND quirks text exists
+  // lumiaQuirks macro - Universal behavioral quirks (all modes)
+  // Returns formatted quirks text when quirks are set
   // ============================================
+  const lumiaQuirksHandler = ({ resolve }) => {
+    const currentSettings = getSettings();
+
+    // Return empty if no quirks set
+    if (!currentSettings.lumiaQuirks?.trim()) {
+      return "";
+    }
+
+    // Determine mode for header text
+    const isCouncilActive = currentSettings.councilMode &&
+                            currentSettings.councilMembers?.length > 0;
+    const isChimeraActive = currentSettings.chimeraMode &&
+                            currentSettings.selectedDefinitions?.length > 0;
+
+    let header;
+    if (isCouncilActive) {
+      header = "**Council Quirks**\nThere are a few extra behavioral quirks to the council today.";
+    } else if (isChimeraActive) {
+      header = "**Chimera Quirks**\nThere are a few extra behavioral quirks to this fused form.";
+    } else {
+      header = "**Behavioral Quirks**\nThere are a few extra behavioral quirks to embody.";
+    }
+
+    const result = `${header} They are as follows:
+${currentSettings.lumiaQuirks.trim()}`;
+
+    return resolve ? resolve(result) : result;
+  };
+
+  MacrosParser.registerMacro("lumiaQuirks", {
+    delayArgResolution: true,
+    handler: lumiaQuirksHandler,
+    description: "Returns formatted behavioral quirks when quirks text is set. Works in all modes (single, chimera, council).",
+    returns: "Formatted quirks prompt or empty string",
+    returnType: "string",
+    exampleUsage: ["{{lumiaQuirks}}"],
+  });
+
+  // Backwards compatibility alias for council quirks
   MacrosParser.registerMacro("lumiaCouncilQuirks", {
     delayArgResolution: true,
-    handler: ({ resolve }) => {
-      const currentSettings = getSettings();
-      const isCouncilActive = currentSettings.councilMode &&
-                              currentSettings.councilMembers?.length > 0;
-
-      // Return empty if not in council mode or no quirks set
-      if (!isCouncilActive || !currentSettings.councilQuirks?.trim()) {
-        return "";
-      }
-
-      const result = `**Council Quirks**
-There are a few extra behavioral quirks to the council today. They are as follows:
-${currentSettings.councilQuirks.trim()}`;
-
-      return resolve ? resolve(result) : result;
-    },
-    description: "Returns formatted council behavioral quirks when council mode is active and quirks text is set.",
+    handler: lumiaQuirksHandler,
+    description: "[Deprecated - use {{lumiaQuirks}}] Alias for lumiaQuirks macro.",
     returns: "Formatted quirks prompt or empty string",
     returnType: "string",
     exampleUsage: ["{{lumiaCouncilQuirks}}"],
