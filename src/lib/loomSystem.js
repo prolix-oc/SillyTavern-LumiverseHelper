@@ -75,10 +75,13 @@ export function findLastUserMessage() {
 export function wasCharacterLastSpeaker() {
   const context = getContext();
   if (!context || !context.chat || context.chat.length === 0) {
+    console.log("[LumiverseHelper] wasCharacterLastSpeaker: No chat context available");
     return false;
   }
   const lastMessage = context.chat[context.chat.length - 1];
-  return lastMessage && !lastMessage.is_user;
+  const result = lastMessage && !lastMessage.is_user;
+  console.log(`[LumiverseHelper] wasCharacterLastSpeaker: ${result} (last msg is_user: ${lastMessage?.is_user}, chat length: ${context.chat.length})`);
+  return result;
 }
 
 /**
@@ -563,6 +566,7 @@ Continue the scene naturally as expected:
       // Check if we should show continuation mode
       // Check chat directly - macros expand BEFORE interceptor runs, so flag would be stale
       const showContinuation = wasCharacterLastSpeaker();
+      console.log(`[LumiverseHelper] loomSovHand: showContinuation=${showContinuation}, includeMessage=${includeMessage}, lastUserMessage length=${lastUserMessage?.length || 0}`);
 
       // Adapt continuation text for group vs single character
       let continuationText = "";
@@ -575,24 +579,29 @@ Continue the scene naturally as expected:
 ---
 
 **CONTINUATION MODE (GROUP CHAT):**
-Note: ${lastSpeaker} was the last to speak. Continue the scene naturally without waiting for Human input. Progress the narrative organically, with group members interacting as appropriate. Maintain momentum and each character's distinct voice.`;
+Note: ${lastSpeaker} was the last to speak. No new Human instruction has been provided.
+Continue the scene naturally without waiting for Human input. Progress the narrative organically, with group members interacting as appropriate. Maintain momentum and each character's distinct voice.`;
         } else {
           continuationText = `
 
 ---
 
 **CONTINUATION MODE:**
-Note: The character was the last to speak. Continue the scene naturally without waiting for Human input. Progress the narrative organically, maintaining momentum and character voice.`;
+Note: The character was the last to speak. No new Human instruction has been provided.
+Continue the scene naturally without waiting for Human input. Progress the narrative organically, maintaining momentum and character voice.`;
         }
       }
 
-      // Conditionally include the user message section
-      const userMessageSection = includeMessage ? `
+      // Only include user message section when NOT in continuation mode
+      // In continuation mode, there's no new instruction - don't re-show the old one
+      const userMessageSection = (includeMessage && !showContinuation && lastUserMessage) ? `
 
 ${duplicateWarning}**The Human's Provided Instruction:**
 ${lastUserMessage}
 
 ---` : '';
+
+      console.log(`[LumiverseHelper] loomSovHand: continuationText length=${continuationText.length}, userMessageSection length=${userMessageSection.length}`);
 
       // Build the character reference based on chat type
       const characterReference = inGroup
