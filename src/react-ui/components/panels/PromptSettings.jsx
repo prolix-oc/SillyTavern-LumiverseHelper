@@ -342,25 +342,6 @@ function PromptSettings() {
                     </CollapsibleContent>
                 </div>
 
-                {/* Smart Synthesis Info */}
-                <div className="lumiverse-vp-mode-option lumiverse-vp-mode-option--sub">
-                    <div className="lumiverse-vp-smart-info">
-                        <span className="lumiverse-vp-smart-label">Smart Synthesis</span>
-                        <span className="lumiverse-vp-smart-hint">One macro, auto-adapts to mode</span>
-                    </div>
-                    <InfoBox
-                        items={councilMode ? [
-                            <><code>{'{{lumiaStateSynthesis}}'}</code> → Council Sound-Off</>,
-                            'Encourages council members to engage WITH EACH OTHER',
-                            'Members stay distinct; no voice blending',
-                        ] : [
-                            <><code>{'{{lumiaStateSynthesis}}'}</code> → State Synthesis</>,
-                            'Auto-outputs when multiple behaviors, personalities, or chimera defs active',
-                            'In council mode, switches to council soundoff instead',
-                        ]}
-                    />
-                </div>
-
                 {/* Behavioral Quirks - Universal, works in all modes */}
                 <div className="lumiverse-vp-quirks-section">
                         <div className="lumiverse-vp-quirks-header">
