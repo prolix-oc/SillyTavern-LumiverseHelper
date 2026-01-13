@@ -9134,6 +9134,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
 .lumiverse-vp-quirks-preview {
     padding: 8px;
+    min-height: 60px;
     background: rgba(0, 0, 0, 0.1);
     border-radius: 6px;
     font-size: 0.85em;
