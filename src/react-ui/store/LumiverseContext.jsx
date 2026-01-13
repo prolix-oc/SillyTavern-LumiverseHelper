@@ -713,6 +713,7 @@ const actions = {
             selectedDefinitions: [...(state.selectedDefinitions || [])],
             councilMode: state.councilMode || false,
             councilMembers: JSON.parse(JSON.stringify(state.councilMembers || [])),
+            councilQuirks: state.councilQuirks || '',
         };
 
         store.setState({
@@ -747,6 +748,7 @@ const actions = {
         if (preset.councilMode !== undefined) {
             updates.councilMode = preset.councilMode;
             updates.councilMembers = preset.councilMembers || [];
+            updates.councilQuirks = preset.councilQuirks || '';
         }
 
         store.setState(updates);
@@ -790,6 +792,7 @@ const actions = {
             selectedDefinitions: [...(state.selectedDefinitions || [])],
             councilMode: state.councilMode || false,
             councilMembers: JSON.parse(JSON.stringify(state.councilMembers || [])),
+            councilQuirks: state.councilQuirks || '',
         };
 
         store.setState({
