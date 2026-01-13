@@ -76,6 +76,7 @@ const initialState = {
     councilMode: false,
     councilMembers: [],           // Array of council member configurations
     lumiaQuirks: '',              // User text for behavioral quirks (all modes)
+    lumiaQuirksEnabled: true,     // Toggle to enable/disable quirks output without deleting
     stateSynthesis: {
         enabled: false,           // Toggle for non-council synthesis prompt
     },
@@ -714,6 +715,7 @@ const actions = {
             councilMode: state.councilMode || false,
             councilMembers: JSON.parse(JSON.stringify(state.councilMembers || [])),
             lumiaQuirks: state.lumiaQuirks || '',
+            lumiaQuirksEnabled: state.lumiaQuirksEnabled !== false, // Default true for legacy
         };
 
         store.setState({
@@ -752,6 +754,7 @@ const actions = {
 
         // Load lumiaQuirks (works in all modes, fallback to old councilQuirks for legacy presets)
         updates.lumiaQuirks = preset.lumiaQuirks || preset.councilQuirks || '';
+        updates.lumiaQuirksEnabled = preset.lumiaQuirksEnabled !== false; // Default true for legacy
 
         store.setState(updates);
     },
@@ -795,6 +798,7 @@ const actions = {
             councilMode: state.councilMode || false,
             councilMembers: JSON.parse(JSON.stringify(state.councilMembers || [])),
             lumiaQuirks: state.lumiaQuirks || '',
+            lumiaQuirksEnabled: state.lumiaQuirksEnabled !== false,
         };
 
         store.setState({
@@ -978,6 +982,14 @@ const actions = {
      */
     setLumiaQuirks: (quirks) => {
         store.setState({ lumiaQuirks: quirks });
+    },
+
+    /**
+     * Set lumia quirks enabled/disabled
+     * @param {boolean} enabled - Whether quirks are enabled
+     */
+    setLumiaQuirksEnabled: (enabled) => {
+        store.setState({ lumiaQuirksEnabled: enabled });
     },
 
     /**

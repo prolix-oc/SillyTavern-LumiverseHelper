@@ -1206,8 +1206,8 @@ export function registerLumiaMacros(MacrosParser) {
   const lumiaQuirksHandler = ({ resolve }) => {
     const currentSettings = getSettings();
 
-    // Return empty if no quirks set
-    if (!currentSettings.lumiaQuirks?.trim()) {
+    // Return empty if quirks are disabled or not set
+    if (currentSettings.lumiaQuirksEnabled === false || !currentSettings.lumiaQuirks?.trim()) {
       return "";
     }
 

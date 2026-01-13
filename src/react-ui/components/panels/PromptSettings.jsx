@@ -19,6 +19,7 @@ const selectCouncilMode = () => store.getState().councilMode || false;
 const selectSelectedDefinitionsCount = () => store.getState().selectedDefinitions?.length || 0;
 const selectCouncilMembersCount = () => store.getState().councilMembers?.length || 0;
 const selectLumiaQuirks = () => store.getState().lumiaQuirks || '';
+const selectLumiaQuirksEnabled = () => store.getState().lumiaQuirksEnabled !== false;
 
 /**
  * Toggle switch component
@@ -211,6 +212,11 @@ function PromptSettings() {
         selectLumiaQuirks,
         selectLumiaQuirks
     );
+    const lumiaQuirksEnabled = useSyncExternalStore(
+        store.subscribe,
+        selectLumiaQuirksEnabled,
+        selectLumiaQuirksEnabled
+    );
 
     // Local state for editing quirks (non-council mode)
     const [quirksValue, setQuirksValue] = useState(lumiaQuirks);
@@ -274,6 +280,11 @@ function PromptSettings() {
         setQuirksValue(lumiaQuirks);
         setIsEditingQuirks(false);
     }, [lumiaQuirks]);
+
+    const handleQuirksEnabledChange = useCallback((enabled) => {
+        actions.setLumiaQuirksEnabled(enabled);
+        saveToExtension();
+    }, [actions]);
 
     // Determine which mode is active for status display
     const lumiaModeActive = chimeraMode || councilMode;
@@ -343,10 +354,23 @@ function PromptSettings() {
                 </div>
 
                 {/* Behavioral Quirks - Universal, works in all modes */}
-                <div className="lumiverse-vp-quirks-section">
+                <div className={clsx('lumiverse-vp-quirks-section', !lumiaQuirksEnabled && 'lumiverse-vp-quirks-section--disabled')}>
                         <div className="lumiverse-vp-quirks-header">
-                            <span className="lumiverse-vp-quirks-label">Behavioral Quirks</span>
-                            {!isEditingQuirks && (
+                            <div className="lumiverse-vp-quirks-header-left">
+                                <span className="lumiverse-vp-quirks-label">Behavioral Quirks</span>
+                                <button
+                                    className={clsx('lumiverse-vp-quirks-toggle', lumiaQuirksEnabled && 'lumiverse-vp-quirks-toggle--on')}
+                                    onClick={() => handleQuirksEnabledChange(!lumiaQuirksEnabled)}
+                                    title={lumiaQuirksEnabled ? 'Disable quirks' : 'Enable quirks'}
+                                    type="button"
+                                    aria-pressed={lumiaQuirksEnabled}
+                                >
+                                    <span className="lumiverse-vp-quirks-toggle-track">
+                                        <span className="lumiverse-vp-quirks-toggle-thumb" />
+                                    </span>
+                                </button>
+                            </div>
+                            {!isEditingQuirks && lumiaQuirksEnabled && (
                                 <button
                                     className="lumiverse-vp-quirks-edit-btn"
                                     onClick={() => setIsEditingQuirks(true)}
@@ -361,7 +385,7 @@ function PromptSettings() {
                             Extra behavioral modifications. Use <code>{'{{lumiaQuirks}}'}</code>
                         </p>
 
-                        {isEditingQuirks ? (
+                        {isEditingQuirks && lumiaQuirksEnabled ? (
                             <div className="lumiverse-vp-quirks-edit">
                                 <textarea
                                     className="lumiverse-vp-quirks-textarea"
