@@ -5,7 +5,7 @@ import { useAdaptiveImagePosition } from '../../hooks/useAdaptiveImagePosition';
 import { CollapsibleContent } from '../Collapsible';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
-import { Search, X, Package, FileText, Zap, Heart, ChevronDown, Sparkles, Check, Eye, Filter } from 'lucide-react';
+import { Search, X, Package, FileText, Zap, Heart, ChevronDown, Sparkles, Check, Eye, Filter, Trash2 } from 'lucide-react';
 
 /**
  * Get a Lumia field with fallback for old/new format
@@ -578,6 +578,11 @@ function PackBrowser() {
         actions.openPackDetail(packName);
     }, [actions]);
 
+    const handleClearAll = useCallback(() => {
+        actions.clearAllSelections();
+        saveToExtension();
+    }, [actions]);
+
     return (
         <div className="lumiverse-pack-browser">
             {/* Stats */}
@@ -636,6 +641,25 @@ function PackBrowser() {
                     ))
                 )}
             </div>
+
+            {/* Clear All Selections */}
+            <AnimatePresence>
+                {selectedCount > 0 && (
+                    <motion.button
+                        className="lumiverse-browser-clear-all"
+                        onClick={handleClearAll}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 8 }}
+                        transition={{ duration: 0.2 }}
+                        type="button"
+                    >
+                        <Trash2 size={14} strokeWidth={1.5} />
+                        <span>Clear All Selections</span>
+                        <span className="lumiverse-browser-clear-count">{selectedCount}</span>
+                    </motion.button>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
