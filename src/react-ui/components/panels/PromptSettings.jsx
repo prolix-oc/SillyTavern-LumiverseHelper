@@ -10,6 +10,7 @@ const store = useLumiverseStore;
 // Stable fallback constants for useSyncExternalStore
 const EMPTY_OBJECT = {};
 const DEFAULT_SOVEREIGN_HAND = { enabled: false, excludeLastMessage: true, includeMessageInPrompt: true };
+const DEFAULT_STATE_SYNTHESIS = { enabled: false };
 
 // Stable selector functions
 const selectSovereignHand = () => store.getState().sovereignHand || DEFAULT_SOVEREIGN_HAND;
@@ -18,6 +19,7 @@ const selectChimeraMode = () => store.getState().chimeraMode || false;
 const selectCouncilMode = () => store.getState().councilMode || false;
 const selectSelectedDefinitionsCount = () => store.getState().selectedDefinitions?.length || 0;
 const selectCouncilMembersCount = () => store.getState().councilMembers?.length || 0;
+const selectStateSynthesis = () => store.getState().stateSynthesis || DEFAULT_STATE_SYNTHESIS;
 
 /**
  * Toggle switch component
@@ -205,6 +207,11 @@ function PromptSettings() {
         selectCouncilMembersCount,
         selectCouncilMembersCount
     );
+    const stateSynthesis = useSyncExternalStore(
+        store.subscribe,
+        selectStateSynthesis,
+        selectStateSynthesis
+    );
 
     const sovereignEnabled = sovereignHand.enabled ?? false;
     const htmlTagsEnabled = contextFilters.htmlTags?.enabled ?? false;
@@ -251,6 +258,11 @@ function PromptSettings() {
 
     const handleCouncilModeChange = useCallback((enabled) => {
         actions.setCouncilMode(enabled);
+        saveToExtension();
+    }, [actions]);
+
+    const handleStateSynthesisChange = useCallback((enabled) => {
+        actions.setStateSynthesisEnabled(enabled);
         saveToExtension();
     }, [actions]);
 
@@ -318,6 +330,32 @@ function PromptSettings() {
                         <p className="lumiverse-vp-mode-note">
                             Configure council members in the Council tab.
                         </p>
+                    </CollapsibleContent>
+                </div>
+
+                {/* State Synthesis - Only for non-council mode */}
+                <div className="lumiverse-vp-mode-option lumiverse-vp-mode-option--sub">
+                    <Toggle
+                        id="state-synthesis-toggle"
+                        checked={stateSynthesis.enabled}
+                        onChange={handleStateSynthesisChange}
+                        label="State Synthesis"
+                        hint="Blend multiple personalities into coherent self (non-council only)"
+                        disabled={councilMode}
+                    />
+                    <CollapsibleContent
+                        isOpen={stateSynthesis.enabled && !councilMode}
+                        className="lumiverse-vp-mode-details"
+                        duration={150}
+                    >
+                        <InfoBox
+                            muted={councilMode}
+                            items={[
+                                <><code>{'{{lumiaStateSynthesis}}'}</code> outputs synthesis prompt</>,
+                                'Helps multiple personalities blend into unified self-description',
+                                'Automatically disabled in Council Mode',
+                            ]}
+                        />
                     </CollapsibleContent>
                 </div>
             </CollapsibleSection>

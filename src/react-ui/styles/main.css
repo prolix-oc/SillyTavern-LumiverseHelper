@@ -8889,6 +8889,94 @@ details.lumia-panel[open] .lumia-panel-chevron {
     }
 }
 
+/* Council Quirks Section */
+.lumiverse-council-quirks-section {
+    margin: 16px 0;
+    padding: 12px;
+    background: var(--SmartThemeBotMesBlurTintColor, rgba(0, 0, 0, 0.1));
+    border-radius: 8px;
+}
+
+.lumiverse-council-quirks-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.lumiverse-council-quirks-label {
+    font-weight: 600;
+    font-size: 0.9em;
+    color: var(--lumiverse-text, var(--SmartThemeBodyColor, #fff));
+}
+
+.lumiverse-council-quirks-hint {
+    font-size: 0.8em;
+    color: var(--lumiverse-text-muted, var(--SmartThemeEmColor, #888));
+    margin: 0 0 8px 0;
+}
+
+.lumiverse-council-quirks-hint code {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.9em;
+}
+
+.lumiverse-council-textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 8px;
+    background: var(--lumiverse-bg, var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.2)));
+    border: 1px solid var(--lumiverse-border, var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.1)));
+    border-radius: 6px;
+    color: inherit;
+    font-family: inherit;
+    font-size: 0.9em;
+    resize: vertical;
+}
+
+.lumiverse-council-textarea:focus {
+    outline: none;
+    border-color: var(--lumiverse-primary, #9370DB);
+}
+
+.lumiverse-council-quirks-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.lumiverse-council-quirks-preview {
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 6px;
+    font-size: 0.9em;
+}
+
+.lumiverse-council-quirks-text {
+    white-space: pre-wrap;
+}
+
+.lumiverse-council-quirks-empty {
+    color: var(--lumiverse-text-muted, var(--SmartThemeEmColor, #888));
+    font-style: italic;
+}
+
+.lumiverse-council-btn--sm {
+    padding: 4px 8px;
+    font-size: 12px;
+    border-radius: 4px;
+}
+
+/* State Synthesis sub-option styling */
+.lumiverse-vp-mode-option--sub {
+    margin-left: 16px;
+    padding-left: 12px;
+    border-left: 2px solid var(--lumiverse-border, var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.1)));
+}
+
 /* ----------------------------------------
    Collapsible Component - CSS Grid Based
    High-performance alternative to height animations.

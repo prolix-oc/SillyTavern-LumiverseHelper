@@ -75,6 +75,10 @@ const initialState = {
     selectedDefinitions: [],      // Array of { packName, itemName } - used in Chimera mode
     councilMode: false,
     councilMembers: [],           // Array of council member configurations
+    councilQuirks: '',            // User text for council behavioral quirks
+    stateSynthesis: {
+        enabled: false,           // Toggle for non-council synthesis prompt
+    },
 
     // OOC settings
     oocEnabled: true,
@@ -961,6 +965,25 @@ const actions = {
      */
     clearCouncilMembers: () => {
         store.setState({ councilMembers: [] });
+    },
+
+    /**
+     * Set council quirks text
+     * @param {string} quirks - The quirks text
+     */
+    setCouncilQuirks: (quirks) => {
+        store.setState({ councilQuirks: quirks });
+    },
+
+    /**
+     * Set state synthesis enabled
+     * @param {boolean} enabled - Whether synthesis is enabled
+     */
+    setStateSynthesisEnabled: (enabled) => {
+        const state = store.getState();
+        store.setState({
+            stateSynthesis: { ...state.stateSynthesis, enabled },
+        });
     },
 
     /**

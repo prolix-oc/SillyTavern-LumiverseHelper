@@ -1198,4 +1198,58 @@ export function registerLumiaMacros(MacrosParser) {
     returnType: "string",
     exampleUsage: ["{{lumiaCouncilModeActive}}"],
   });
+
+  // ============================================
+  // lumiaCouncilQuirks macro - Council behavioral quirks
+  // Returns formatted quirks text when council mode is active AND quirks text exists
+  // ============================================
+  MacrosParser.registerMacro("lumiaCouncilQuirks", {
+    delayArgResolution: true,
+    handler: ({ resolve }) => {
+      const currentSettings = getSettings();
+      const isCouncilActive = currentSettings.councilMode &&
+                              currentSettings.councilMembers?.length > 0;
+
+      // Return empty if not in council mode or no quirks set
+      if (!isCouncilActive || !currentSettings.councilQuirks?.trim()) {
+        return "";
+      }
+
+      const result = `**Council Quirks**
+There are a few extra behavioral quirks to the council today. They are as follows:
+${currentSettings.councilQuirks.trim()}`;
+
+      return resolve ? resolve(result) : result;
+    },
+    description: "Returns formatted council behavioral quirks when council mode is active and quirks text is set.",
+    returns: "Formatted quirks prompt or empty string",
+    returnType: "string",
+    exampleUsage: ["{{lumiaCouncilQuirks}}"],
+  });
+
+  // ============================================
+  // lumiaStateSynthesis macro - Non-council personality blending
+  // Returns synthesis prompt when toggle enabled AND NOT in council mode
+  // ============================================
+  MacrosParser.registerMacro("lumiaStateSynthesis", {
+    delayArgResolution: true,
+    handler: ({ resolve }) => {
+      const currentSettings = getSettings();
+      const isCouncilActive = currentSettings.councilMode &&
+                              currentSettings.councilMembers?.length > 0;
+
+      // Return empty if in council mode OR toggle disabled
+      if (isCouncilActive || !currentSettings.stateSynthesis?.enabled) {
+        return "";
+      }
+
+      const result = `Assess each active personality. Affirm synthesis: My body is [details, clothing, shape]. I am {persona 1}, {persona 2}... So I am [blended description]. Recall how this self speaks and acts—adopt ALL active traits. Never dull or stale.`;
+
+      return resolve ? resolve(result) : result;
+    },
+    description: "Returns state synthesis prompt when enabled and not in council mode. Helps blend multiple personalities into a coherent self-description.",
+    returns: "Synthesis prompt or empty string",
+    returnType: "string",
+    exampleUsage: ["{{lumiaStateSynthesis}}"],
+  });
 }

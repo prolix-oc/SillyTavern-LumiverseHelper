@@ -41,6 +41,10 @@ const DEFAULT_SETTINGS = {
   selectedDefinitions: [], // Array of { packName, itemName } - used in Chimera mode
   councilMode: false,
   councilMembers: [], // Array of council member configurations
+  councilQuirks: '', // User text for council behavioral quirks
+  stateSynthesis: {
+    enabled: false, // Toggle for non-council synthesis prompt
+  },
   lumiaOOCInterval: null,
   lumiaOOCStyle: "social",
   sovereignHand: {
@@ -492,6 +496,8 @@ export function migrateSettings() {
   // Ensure Council mode defaults
   if (settings.councilMode === undefined) settings.councilMode = false;
   if (!settings.councilMembers) settings.councilMembers = [];
+  if (settings.councilQuirks === undefined) settings.councilQuirks = '';
+  if (!settings.stateSynthesis) settings.stateSynthesis = { enabled: false };
 
   return migrated;
 }
