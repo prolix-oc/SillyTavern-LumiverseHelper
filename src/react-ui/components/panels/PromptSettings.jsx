@@ -361,9 +361,8 @@ function PromptSettings() {
                     />
                 </div>
 
-                {/* Behavioral Quirks - Show when NOT in council mode (council mode shows in CouncilManager) */}
-                {!councilMode && (
-                    <div className="lumiverse-vp-quirks-section">
+                {/* Behavioral Quirks - Universal, works in all modes */}
+                <div className="lumiverse-vp-quirks-section">
                         <div className="lumiverse-vp-quirks-header">
                             <span className="lumiverse-vp-quirks-label">Behavioral Quirks</span>
                             {!isEditingQuirks && (
@@ -416,8 +415,7 @@ function PromptSettings() {
                                 )}
                             </div>
                         )}
-                    </div>
-                )}
+                </div>
             </CollapsibleSection>
 
             {/* Sovereign Hand Section */}

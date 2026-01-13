@@ -14,7 +14,6 @@ const EMPTY_ARRAY = [];
 // Stable selector functions
 const selectCouncilMode = () => store.getState().councilMode || false;
 const selectCouncilMembers = () => store.getState().councilMembers || EMPTY_ARRAY;
-const selectLumiaQuirks = () => store.getState().lumiaQuirks || '';
 
 /**
  * Find a Lumia item in a pack - supports both new and legacy formats
@@ -490,16 +489,6 @@ function CouncilManager() {
         selectCouncilMembers,
         selectCouncilMembers
     );
-    const lumiaQuirks = useSyncExternalStore(
-        store.subscribe,
-        selectLumiaQuirks,
-        selectLumiaQuirks
-    );
-
-    // Local state for editing quirks
-    const [quirksValue, setQuirksValue] = useState(lumiaQuirks);
-    const [isEditingQuirks, setIsEditingQuirks] = useState(false);
-
     const handleAddMember = useCallback((member) => {
         actions.addCouncilMember(member);
         saveToExtension();
@@ -532,17 +521,6 @@ function CouncilManager() {
         actions.setCouncilMode(enabled);
         saveToExtension();
     }, [actions]);
-
-    const handleQuirksSave = useCallback(() => {
-        actions.setLumiaQuirks(quirksValue);
-        saveToExtension();
-        setIsEditingQuirks(false);
-    }, [actions, quirksValue]);
-
-    const handleQuirksCancel = useCallback(() => {
-        setQuirksValue(lumiaQuirks);
-        setIsEditingQuirks(false);
-    }, [lumiaQuirks]);
 
     // Build packs object for lookups - support both name and packName
     const packsObj = useMemo(() => {
@@ -579,64 +557,6 @@ function CouncilManager() {
             <p className="lumiverse-council-desc">
                 Create a council of independent Lumias that collaborate, each with their own identity, behaviors, and personalities.
             </p>
-
-            {/* Council Quirks Section - only show when council mode is active */}
-            {councilMode && (
-                <div className="lumiverse-council-quirks-section">
-                    <div className="lumiverse-council-quirks-header">
-                        <span className="lumiverse-council-quirks-label">Council Quirks</span>
-                        {!isEditingQuirks && (
-                            <button
-                                className="lumiverse-council-btn lumiverse-council-btn--sm"
-                                onClick={() => setIsEditingQuirks(true)}
-                                title="Edit quirks"
-                                type="button"
-                            >
-                                <Edit2 size={12} strokeWidth={1.5} />
-                            </button>
-                        )}
-                    </div>
-                    <p className="lumiverse-council-quirks-hint">
-                        Extra behavioral modifications. Use <code>{'{{lumiaQuirks}}'}</code>
-                    </p>
-
-                    {isEditingQuirks ? (
-                        <div className="lumiverse-council-quirks-edit">
-                            <textarea
-                                className="lumiverse-council-textarea"
-                                placeholder="Enter behavioral quirks for the council..."
-                                value={quirksValue}
-                                onChange={(e) => setQuirksValue(e.target.value)}
-                                rows={4}
-                            />
-                            <div className="lumiverse-council-quirks-actions">
-                                <button
-                                    className="lumiverse-council-btn lumiverse-council-btn--primary"
-                                    onClick={handleQuirksSave}
-                                    type="button"
-                                >
-                                    <Check size={14} strokeWidth={2} /> Save
-                                </button>
-                                <button
-                                    className="lumiverse-council-btn"
-                                    onClick={handleQuirksCancel}
-                                    type="button"
-                                >
-                                    <X size={14} strokeWidth={2} /> Cancel
-                                </button>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="lumiverse-council-quirks-preview">
-                            {lumiaQuirks?.trim() ? (
-                                <span className="lumiverse-council-quirks-text">{lumiaQuirks}</span>
-                            ) : (
-                                <span className="lumiverse-council-quirks-empty">No quirks set</span>
-                            )}
-                        </div>
-                    )}
-                </div>
-            )}
 
             {/* Add member button / dropdown */}
             <div className="lumiverse-council-add-section">
