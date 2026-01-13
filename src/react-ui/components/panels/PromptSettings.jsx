@@ -10,7 +10,6 @@ const store = useLumiverseStore;
 // Stable fallback constants for useSyncExternalStore
 const EMPTY_OBJECT = {};
 const DEFAULT_SOVEREIGN_HAND = { enabled: false, excludeLastMessage: true, includeMessageInPrompt: true };
-const DEFAULT_STATE_SYNTHESIS = { enabled: false };
 
 // Stable selector functions
 const selectSovereignHand = () => store.getState().sovereignHand || DEFAULT_SOVEREIGN_HAND;
@@ -19,7 +18,6 @@ const selectChimeraMode = () => store.getState().chimeraMode || false;
 const selectCouncilMode = () => store.getState().councilMode || false;
 const selectSelectedDefinitionsCount = () => store.getState().selectedDefinitions?.length || 0;
 const selectCouncilMembersCount = () => store.getState().councilMembers?.length || 0;
-const selectStateSynthesis = () => store.getState().stateSynthesis || DEFAULT_STATE_SYNTHESIS;
 const selectLumiaQuirks = () => store.getState().lumiaQuirks || '';
 
 /**
@@ -208,11 +206,6 @@ function PromptSettings() {
         selectCouncilMembersCount,
         selectCouncilMembersCount
     );
-    const stateSynthesis = useSyncExternalStore(
-        store.subscribe,
-        selectStateSynthesis,
-        selectStateSynthesis
-    );
     const lumiaQuirks = useSyncExternalStore(
         store.subscribe,
         selectLumiaQuirks,
@@ -268,11 +261,6 @@ function PromptSettings() {
 
     const handleCouncilModeChange = useCallback((enabled) => {
         actions.setCouncilMode(enabled);
-        saveToExtension();
-    }, [actions]);
-
-    const handleStateSynthesisChange = useCallback((enabled) => {
-        actions.setStateSynthesisEnabled(enabled);
         saveToExtension();
     }, [actions]);
 
@@ -354,30 +342,23 @@ function PromptSettings() {
                     </CollapsibleContent>
                 </div>
 
-                {/* State Synthesis - Only for non-council mode */}
+                {/* Smart Synthesis Info */}
                 <div className="lumiverse-vp-mode-option lumiverse-vp-mode-option--sub">
-                    <Toggle
-                        id="state-synthesis-toggle"
-                        checked={stateSynthesis.enabled}
-                        onChange={handleStateSynthesisChange}
-                        label="State Synthesis"
-                        hint="Blend multiple personalities into coherent self (non-council only)"
-                        disabled={councilMode}
+                    <div className="lumiverse-vp-smart-info">
+                        <span className="lumiverse-vp-smart-label">Smart Synthesis</span>
+                        <span className="lumiverse-vp-smart-hint">One macro, auto-adapts to mode</span>
+                    </div>
+                    <InfoBox
+                        items={councilMode ? [
+                            <><code>{'{{lumiaStateSynthesis}}'}</code> → Council Sound-Off</>,
+                            'Encourages council members to engage WITH EACH OTHER',
+                            'Members stay distinct; no voice blending',
+                        ] : [
+                            <><code>{'{{lumiaStateSynthesis}}'}</code> → State Synthesis</>,
+                            'Auto-outputs when multiple behaviors, personalities, or chimera defs active',
+                            'In council mode, switches to council soundoff instead',
+                        ]}
                     />
-                    <CollapsibleContent
-                        isOpen={stateSynthesis.enabled && !councilMode}
-                        className="lumiverse-vp-mode-details"
-                        duration={150}
-                    >
-                        <InfoBox
-                            muted={councilMode}
-                            items={[
-                                <><code>{'{{lumiaStateSynthesis}}'}</code> outputs synthesis prompt</>,
-                                'Helps multiple personalities blend into unified self-description',
-                                'Automatically disabled in Council Mode',
-                            ]}
-                        />
-                    </CollapsibleContent>
                 </div>
 
                 {/* Behavioral Quirks - Show when NOT in council mode (council mode shows in CouncilManager) */}

@@ -9148,6 +9148,25 @@ details.lumia-panel[open] .lumia-panel-chevron {
     font-style: italic;
 }
 
+/* Smart Synthesis Info */
+.lumiverse-vp-smart-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 8px;
+}
+
+.lumiverse-vp-smart-label {
+    font-weight: 600;
+    font-size: 0.9em;
+    color: var(--lumiverse-text, var(--SmartThemeBodyColor, #fff));
+}
+
+.lumiverse-vp-smart-hint {
+    font-size: 0.8em;
+    color: var(--lumiverse-text-muted, var(--SmartThemeEmColor, #888));
+}
+
 /* ----------------------------------------
    Collapsible Component - CSS Grid Based
    High-performance alternative to height animations.

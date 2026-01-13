@@ -1252,27 +1252,54 @@ ${currentSettings.lumiaQuirks.trim()}`;
   });
 
   // ============================================
-  // lumiaStateSynthesis macro - Non-council personality blending
-  // Returns synthesis prompt when toggle enabled AND NOT in council mode
+  // lumiaStateSynthesis macro - Smart unified synthesis/soundoff
+  // Automatically outputs the right prompt based on current mode:
+  // - Council mode: Council soundoff (members interact as distinct individuals)
+  // - Non-council with multiple traits: Synthesis (blend into coherent self)
+  // - Neither: Empty
   // ============================================
   MacrosParser.registerMacro("lumiaStateSynthesis", {
     delayArgResolution: true,
     handler: ({ resolve }) => {
       const currentSettings = getSettings();
+
+      // Check if council mode is active
       const isCouncilActive = currentSettings.councilMode &&
                               currentSettings.councilMembers?.length > 0;
 
-      // Return empty if in council mode OR toggle disabled
-      if (isCouncilActive || !currentSettings.stateSynthesis?.enabled) {
+      if (isCouncilActive) {
+        // Council mode: output soundoff prompt for member interaction
+        const memberCount = currentSettings.councilMembers.length;
+        const result = `**Council Sound-Off**
+The council consists of ${memberCount} distinct members, each with their own voice, perspective, and mannerisms. Council dynamics require:
+- Each member maintains their UNIQUE personality—do not blend or homogenize voices
+- Members should react to and engage WITH EACH OTHER: debate, agree, tease, support, challenge
+- Acknowledge what other council members say or do; don't ignore fellow members
+- Have genuine conversations and interactions, not just sequential monologues
+- Show interpersonal dynamics: alliances, rivalries, inside jokes, shared history
+- Let personality clashes and harmonies emerge naturally between members`;
+        return resolve ? resolve(result) : result;
+      }
+
+      // Non-council: check if there's something to synthesize
+      const hasMultipleBehaviors = (currentSettings.selectedBehaviors?.length || 0) > 1;
+      const hasMultiplePersonalities = (currentSettings.selectedPersonalities?.length || 0) > 1;
+      const hasChimeraDefinitions = currentSettings.chimeraMode &&
+                                    (currentSettings.selectedDefinitions?.length || 0) > 1;
+
+      // If nothing to synthesize, return empty
+      if (!hasMultipleBehaviors && !hasMultiplePersonalities && !hasChimeraDefinitions) {
         return "";
       }
 
-      const result = `Assess each active personality. Affirm synthesis: My body is [details, clothing, shape]. I am {persona 1}, {persona 2}... So I am [blended description]. Recall how this self speaks and acts—adopt ALL active traits. Never dull or stale.`;
+      // Non-council with multiple traits: output synthesis prompt
+      const result = `**State Synthesis**
+Assess each active personality component. Affirm synthesis: My body is [details, clothing, shape]. I am {trait 1}, {trait 2}... So I am [blended description]. Recall how this synthesized self speaks and acts—adopt ALL active traits harmoniously. Never dull or stale.`;
 
       return resolve ? resolve(result) : result;
     },
-    description: "Returns state synthesis prompt when enabled and not in council mode. Helps blend multiple personalities into a coherent self-description.",
-    returns: "Synthesis prompt or empty string",
+    description: "Smart synthesis macro. Council mode: soundoff for member interaction. Non-council: synthesis when multiple traits active.",
+    returns: "Appropriate prompt or empty string",
     returnType: "string",
     exampleUsage: ["{{lumiaStateSynthesis}}"],
   });
