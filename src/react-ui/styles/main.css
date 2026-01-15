@@ -7924,6 +7924,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     gap: 8px;
     width: 100%;
     padding: 10px 16px;
+    min-height: 44px; /* Mobile touch target minimum */
     background: rgba(147, 112, 219, 0.1);
     border: 1px dashed rgba(147, 112, 219, 0.3);
     border-radius: 8px;
@@ -7932,6 +7933,8 @@ details.lumia-panel[open] .lumia-panel-chevron {
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(147, 112, 219, 0.3);
 }
 
 .lumiverse-council-add-btn:hover:not(:disabled) {
@@ -8209,12 +8212,16 @@ details.lumia-panel[open] .lumia-panel-chevron {
     justify-content: center;
     width: 28px;
     height: 28px;
+    min-width: 36px;  /* Mobile touch target */
+    min-height: 36px; /* Mobile touch target */
     background: rgba(100, 100, 130, 0.2);
     border: none;
     border-radius: 6px;
     color: var(--lumiverse-text-muted);
     cursor: pointer;
     transition: all 0.2s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(147, 112, 219, 0.3);
 }
 
 .lumiverse-council-btn:hover {

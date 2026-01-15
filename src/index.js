@@ -529,6 +529,9 @@ jQuery(async () => {
 
     eventSource.on(event_types.MESSAGE_EDITED, (mesId) => {
       console.log(`[${MODULE_NAME}] MESSAGE_EDITED event for mesId ${mesId}`);
+      // Clear cached user message to prevent stale data on regenerate
+      setLastUserMessageContent("");
+      setCapturedUserMessageFlag(false);
       // Clear tracked texts to avoid stuck states
       clearProcessedTexts(mesId);
       const messageElement = query(`div[mesid="${mesId}"] .mes_text`);
@@ -542,6 +545,9 @@ jQuery(async () => {
 
     eventSource.on(event_types.MESSAGE_SWIPED, (mesId) => {
       console.log(`[${MODULE_NAME}] MESSAGE_SWIPED event for mesId ${mesId}`);
+      // Clear cached user message to prevent stale data on regenerate
+      setLastUserMessageContent("");
+      setCapturedUserMessageFlag(false);
       // Clear tracked texts and force reprocess for the new swipe
       clearProcessedTexts(mesId);
       const messageElement = query(`div[mesid="${mesId}"] .mes_text`);
@@ -554,6 +560,9 @@ jQuery(async () => {
 
     eventSource.on(event_types.CHAT_CHANGED, () => {
       console.log(`[${MODULE_NAME}] CHAT_CHANGED event - resetting state and scheduling OOC reprocessing`);
+      // Clear cached user message state for fresh start
+      setLastUserMessageContent("");
+      setCapturedUserMessageFlag(false);
       // Reset RAF state for fresh processing on new chat
       resetRAFState();
       // Reset AI message tracking for swipe/regen detection
