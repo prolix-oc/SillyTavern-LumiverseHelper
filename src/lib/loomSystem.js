@@ -279,13 +279,21 @@ export function extractLoomSummary(content) {
 /**
  * Scan chat messages for the most recent loom_sum and save to chat metadata
  * Searches from newest to oldest, saves the first (most recent) found
+ * Yields to the event loop periodically to avoid blocking the main thread
  */
 export async function captureLoomSummary() {
   const context = getContext();
   if (!context || !context.chat || !context.chatMetadata) return;
 
+  const YIELD_INTERVAL = 50; // Yield every 50 messages to prevent blocking
+
   // Search from newest message to oldest
   for (let i = context.chat.length - 1; i >= 0; i--) {
+    // Yield to event loop periodically to prevent blocking
+    if ((context.chat.length - 1 - i) % YIELD_INTERVAL === 0 && i !== context.chat.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
+
     const message = context.chat[i];
     const content = message.mes || message.content || "";
     const summary = extractLoomSummary(content);
@@ -295,7 +303,6 @@ export async function captureLoomSummary() {
       if (context.chatMetadata[LOOM_SUMMARY_KEY] !== summary) {
         context.chatMetadata[LOOM_SUMMARY_KEY] = summary;
         await context.saveMetadata();
-        console.log(`[${MODULE_NAME}] Captured loom summary from message ${i}`);
       }
       return; // Found most recent, stop searching
     }

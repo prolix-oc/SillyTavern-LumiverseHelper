@@ -1145,35 +1145,19 @@ const actions = {
  * @param {Object} extensionSettings - Settings in the exact format from settingsManager.js
  */
 function syncFromExtension(extensionSettings) {
-    if (!extensionSettings) {
-        console.warn('[LumiverseStore] syncFromExtension called with null settings');
-        return;
-    }
-
-    console.log('[LumiverseStore] syncFromExtension - received:', {
-        packsType: typeof extensionSettings.packs,
-        packsKeys: extensionSettings.packs ? Object.keys(extensionSettings.packs) : [],
-        selectedDefinition: extensionSettings.selectedDefinition,
-        selectedBehaviorsCount: extensionSettings.selectedBehaviors?.length || 0,
-    });
+    if (!extensionSettings) return;
 
     // Preserve React-only state
     const currentState = store.getState();
-    const currentUI = currentState.ui;
-    const currentChatCounter = currentState.chatChangeCounter || 0;
 
     // Merge extension settings directly into store
     // This preserves the EXACT structure from the old code
     store.setState({
         ...extensionSettings,
         // Keep React-only UI state
-        ui: currentUI,
+        ui: currentState.ui,
         // Increment chat change counter so components know to reload
-        chatChangeCounter: currentChatCounter + 1,
-    });
-
-    console.log('[LumiverseStore] syncFromExtension - store updated:', {
-        packsKeys: Object.keys(store.getState().packs || {}),
+        chatChangeCounter: (currentState.chatChangeCounter || 0) + 1,
     });
 }
 
@@ -1184,15 +1168,8 @@ function syncFromExtension(extensionSettings) {
  * No transformation - just exclude the React-only UI state.
  */
 function exportForExtension() {
-    const state = store.getState();
-
     // Return everything except the React-only UI state
-    const { ui, ...settingsToExport } = state;
-
-    console.log('[LumiverseStore] exportForExtension:', {
-        packsKeys: Object.keys(settingsToExport.packs || {}),
-    });
-
+    const { ui, ...settingsToExport } = store.getState();
     return settingsToExport;
 }
 
@@ -1200,9 +1177,7 @@ function exportForExtension() {
 function saveToExtension() {
     debouncedSave(() => {
         if (typeof LumiverseBridge !== 'undefined' && LumiverseBridge.saveSettings) {
-            const exportedState = exportForExtension();
-            LumiverseBridge.saveSettings(exportedState);
-            console.log('[LumiverseStore] Settings saved to extension');
+            LumiverseBridge.saveSettings(exportForExtension());
         }
     });
 }
@@ -1210,9 +1185,7 @@ function saveToExtension() {
 // Save to extension immediately (no debounce - for critical settings like OOC style)
 function saveToExtensionImmediate() {
     if (typeof LumiverseBridge !== 'undefined' && LumiverseBridge.saveSettings) {
-        const exportedState = exportForExtension();
-        LumiverseBridge.saveSettings(exportedState);
-        console.log('[LumiverseStore] Settings saved immediately');
+        LumiverseBridge.saveSettings(exportForExtension());
     }
 }
 

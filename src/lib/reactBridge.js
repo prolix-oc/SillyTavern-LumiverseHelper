@@ -78,17 +78,8 @@ export function getCallbacks() {
  * @returns {Object} Settings in the EXACT format from getSettings()
  */
 export function settingsToReactFormat() {
-  const settings = getSettings();
-
-  console.log("[ReactBridge] settingsToReactFormat - passing through exact settings:", {
-    packsType: typeof settings.packs,
-    packsKeys: settings.packs ? Object.keys(settings.packs) : [],
-    selectedDefinition: settings.selectedDefinition,
-    selectedBehaviorsCount: settings.selectedBehaviors?.length || 0,
-  });
-
   // Return the EXACT settings structure - no transformation
-  return settings;
+  return getSettings();
 }
 
 /**
@@ -102,11 +93,6 @@ export function settingsToReactFormat() {
 export function reactFormatToSettings(reactState) {
   const settings = getSettings();
 
-  console.log("[ReactBridge] reactFormatToSettings - applying state:", {
-    packsType: typeof reactState.packs,
-    packsKeys: reactState.packs ? Object.keys(reactState.packs) : [],
-  });
-
   // Merge all properties from reactState into settings
   // This preserves the exact structure without transformation
   Object.assign(settings, reactState);
@@ -118,18 +104,8 @@ export function reactFormatToSettings(reactState) {
  * Notify React UI of settings changes from the extension side
  */
 export function notifyReactOfSettingsChange() {
-  console.log("[ReactBridge] notifyReactOfSettingsChange called");
-  console.log("[ReactBridge] window.LumiverseUI available:", !!window.LumiverseUI);
-
-  if (window.LumiverseUI && window.LumiverseUI.syncSettings) {
-    const reactSettings = settingsToReactFormat();
-    console.log("[ReactBridge] Sending to React:", {
-      packsCount: Object.keys(reactSettings.packs || {}).length,
-      selectedDefinition: reactSettings.selectedDefinition,
-    });
-    window.LumiverseUI.syncSettings(reactSettings);
-  } else {
-    console.warn("[ReactBridge] LumiverseUI.syncSettings not available");
+  if (window.LumiverseUI?.syncSettings) {
+    window.LumiverseUI.syncSettings(settingsToReactFormat());
   }
 }
 
