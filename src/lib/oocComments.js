@@ -427,29 +427,52 @@ function findAndWrapOOCContent(container, searchText, rawOOCContent) {
   }
 
   // Map the match position back to original text (accounting for normalization)
-  // IMPORTANT: Must use the SAME normalization as above (whitespace, ellipsis, quotes)
-  // Otherwise position mapping will be off when characters change length (e.g., … → ...)
-  // Use -1 as sentinel since 0 is a valid position for content at the start
-  let originalMatchStart = -1;
-  let originalMatchEnd = -1;
+  // Build a mapping of normalized position -> original position in ONE pass (O(n))
+  // This replaces the previous O(n²) approach that created substrings for each character
+  // IMPORTANT: Must use the SAME normalization rules (whitespace, ellipsis, quotes)
+  const positionMap = []; // positionMap[normalizedPos] = originalPos
+  let prevWasWhitespace = false;
 
   for (let i = 0; i < accumulatedText.length; i++) {
-    const normalizedUpToHere = accumulatedText.substring(0, i + 1)
-      .replace(/\s+/g, " ")
-      .replace(/…/g, "...")
-      .replace(/[""]/g, '"')
-      .replace(/['']/g, "'");
-    if (normalizedUpToHere.length >= matchStart + 1 && originalMatchStart === -1) {
-      originalMatchStart = i;
-    }
-    if (normalizedUpToHere.length >= potentialEnd) {
-      originalMatchEnd = i + 1;
-      break;
+    const char = accumulatedText[i];
+
+    // Apply same normalization rules as the regex-based normalization above
+    if (/\s/.test(char)) {
+      // Whitespace collapse: only output one space for consecutive whitespace
+      if (!prevWasWhitespace) {
+        positionMap.push(i);
+        prevWasWhitespace = true;
+      }
+      // Skip additional consecutive whitespace (don't add to map)
+    } else if (char === "\u2026") {
+      // Ellipsis (…) expands to 3 characters "..."
+      positionMap.push(i);
+      positionMap.push(i);
+      positionMap.push(i);
+      prevWasWhitespace = false;
+    } else if (char === "\u201C" || char === "\u201D") {
+      // Smart double quotes ("") normalize to regular quote (1:1 mapping)
+      positionMap.push(i);
+      prevWasWhitespace = false;
+    } else if (char === "\u2018" || char === "\u2019") {
+      // Smart single quotes ('') normalize to regular apostrophe (1:1 mapping)
+      positionMap.push(i);
+      prevWasWhitespace = false;
+    } else {
+      // Regular character (1:1 mapping)
+      positionMap.push(i);
+      prevWasWhitespace = false;
     }
   }
-  // Handle edge cases
-  if (originalMatchStart === -1) originalMatchStart = 0;
-  if (originalMatchEnd === -1) originalMatchEnd = accumulatedText.length;
+
+  // Map normalized positions back to original positions
+  // Handle edge cases where positions may be at or beyond the map bounds
+  let originalMatchStart =
+    matchStart < positionMap.length ? positionMap[matchStart] : 0;
+  let originalMatchEnd =
+    potentialEnd <= positionMap.length
+      ? positionMap[potentialEnd - 1] + 1
+      : accumulatedText.length;
 
   // Find which text nodes contain our match
   for (const tn of textNodes) {
@@ -1524,6 +1547,27 @@ export function setupLumiaOOCObserver() {
   const chatElement = document.getElementById("chat");
 
   const observer = new MutationObserver((mutations) => {
+    // Performance optimization: Skip all expensive processing during active generation
+    // to prevent UI stalls on Firefox/Safari. Only handle essential loom_sum hiding.
+    if (isGenerating) {
+      mutations.forEach((mutation) => {
+        if (mutation.type === "characterData") {
+          const mesText = mutation.target.parentElement?.closest(".mes_text");
+          if (mesText) hideLoomSumBlocks(mesText);
+        } else if (mutation.type === "childList") {
+          mutation.addedNodes.forEach((node) => {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              const mesText = node.classList?.contains("mes_text")
+                ? node
+                : node.querySelector?.(".mes_text");
+              if (mesText) hideLoomSumBlocks(mesText);
+            }
+          });
+        }
+      });
+      return; // Skip all OOC processing during streaming
+    }
+
     mutations.forEach((mutation) => {
       mutation.addedNodes.forEach((node) => {
         if (node.nodeType !== Node.ELEMENT_NODE) return;
@@ -1552,10 +1596,6 @@ export function setupLumiaOOCObserver() {
 
         messageElements.forEach((messageElement) => {
           hideLoomSumBlocks(messageElement);
-
-          if (isGenerating) {
-            return;
-          }
 
           const existingBoxes = queryAll("[data-lumia-ooc]", messageElement);
           if (existingBoxes.length > 0) {

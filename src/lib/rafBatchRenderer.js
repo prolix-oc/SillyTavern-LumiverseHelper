@@ -267,8 +267,9 @@ async function flushUpdates() {
 /**
  * Force immediate processing of all pending updates
  * Call this when updates need to be visible immediately (e.g., after streaming ends)
+ * Now async to prevent blocking the main thread on Firefox/Safari
  */
-export function flushPendingUpdates() {
+export async function flushPendingUpdates() {
   // Clear any pending timers
   if (debounceTimer !== null) {
     clearTimeout(debounceTimer);
@@ -280,8 +281,12 @@ export function flushPendingUpdates() {
     rafId = null;
   }
 
-  // Flush synchronously
-  flushUpdates();
+  // Yield to browser before flushing to prevent blocking
+  // This allows the UI to remain responsive while we process updates
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  // Flush with yielding (flushUpdates is already async)
+  await flushUpdates();
 }
 
 // --- BATCH UTILITIES ---
