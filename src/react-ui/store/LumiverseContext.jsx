@@ -713,7 +713,7 @@ const actions = {
             chimeraMode: state.chimeraMode || false,
             selectedDefinitions: [...(state.selectedDefinitions || [])],
             councilMode: state.councilMode || false,
-            councilMembers: JSON.parse(JSON.stringify(state.councilMembers || [])),
+            councilMembers: structuredClone(state.councilMembers || []),
             lumiaQuirks: state.lumiaQuirks || '',
             lumiaQuirksEnabled: state.lumiaQuirksEnabled !== false, // Default true for legacy
         };
@@ -796,7 +796,7 @@ const actions = {
             chimeraMode: state.chimeraMode || false,
             selectedDefinitions: [...(state.selectedDefinitions || [])],
             councilMode: state.councilMode || false,
-            councilMembers: JSON.parse(JSON.stringify(state.councilMembers || [])),
+            councilMembers: structuredClone(state.councilMembers || []),
             lumiaQuirks: state.lumiaQuirks || '',
             lumiaQuirksEnabled: state.lumiaQuirksEnabled !== false,
         };

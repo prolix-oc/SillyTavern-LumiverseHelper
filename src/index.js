@@ -87,10 +87,45 @@ import {
 // Import React UI - this bundles it together and exposes window.LumiverseUI
 import "./react-ui/index.jsx";
 
+// --- CACHED REGEX OBJECTS (Performance optimization) ---
+// Pre-compile regex objects once at module load to avoid recreation on every function call
+
+const CACHED_HTML_TAG_REGEXES = {};
+const CACHED_LOOM_TAG_REGEXES = {};
+
+// Maximum iterations for recursive tag stripping to prevent unbounded loops
+const MAX_RECURSIVE_ITERATIONS = 20;
+
+(function initCachedRegexes() {
+  // HTML tags to strip (excluding div which has special handling)
+  const htmlTags = ["span", "b", "i", "u", "em", "strong", "s", "strike", "sub", "sup", "mark", "small", "big"];
+  for (const tag of htmlTags) {
+    CACHED_HTML_TAG_REGEXES[tag] = {
+      open: new RegExp(`<${tag}(?:\\s[^>]*)?>`, "gi"),
+      close: new RegExp(`</${tag}>`, "gi"),
+    };
+  }
+
+  // Loom-related tags to strip
+  const loomTags = [
+    "loom_sum", "loom_if", "loom_else", "loom_endif",
+    "lumia_ooc", "lumiaooc", "lumio_ooc", "lumioooc",
+    "loom_state", "loom_memory", "loom_context", "loom_inject", "loom_var", "loom_set", "loom_get",
+    "loom_record", "loomrecord", "loom_ledger", "loomledger",
+  ];
+  for (const tag of loomTags) {
+    CACHED_LOOM_TAG_REGEXES[tag] = {
+      paired: new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)</${tag}>`, "gi"),
+      self: new RegExp(`<${tag}(?:\\s[^>]*)?\\/?>`, "gi"),
+    };
+  }
+})();
+
 // --- CONTEXT FILTER FUNCTIONS ---
 
 /**
  * Strip common HTML formatting tags from content, preserving the text inside
+ * Uses cached regex objects to avoid recreation on every call
  */
 function stripHtmlTags(content) {
   if (!content) return content;
@@ -98,15 +133,13 @@ function stripHtmlTags(content) {
   let result = content;
   result = handleDivFiltering(result);
 
-  const tagsToStrip = [
-    "span", "b", "i", "u", "em", "strong", "s", "strike", "sub", "sup", "mark", "small", "big",
-  ];
-
-  for (const tag of tagsToStrip) {
-    const openTagRegex = new RegExp(`<${tag}(?:\\s[^>]*)?>`, "gi");
-    const closeTagRegex = new RegExp(`</${tag}>`, "gi");
-    result = result.replace(openTagRegex, "");
-    result = result.replace(closeTagRegex, "");
+  // Use cached regexes - reset lastIndex before each use for global regexes
+  for (const tag of Object.keys(CACHED_HTML_TAG_REGEXES)) {
+    const regexes = CACHED_HTML_TAG_REGEXES[tag];
+    regexes.open.lastIndex = 0;
+    regexes.close.lastIndex = 0;
+    result = result.replace(regexes.open, "");
+    result = result.replace(regexes.close, "");
   }
 
   return result;
@@ -114,14 +147,17 @@ function stripHtmlTags(content) {
 
 /**
  * Handle div filtering with special logic for codeblock containers
+ * Limited to MAX_RECURSIVE_ITERATIONS to prevent unbounded loops
  */
 function handleDivFiltering(content) {
   if (!content) return content;
 
   let result = content;
   let prevResult;
+  let iterations = 0;
 
   do {
+    if (++iterations > MAX_RECURSIVE_ITERATIONS) break;
     prevResult = result;
     result = result.replace(
       /<div[^>]*style\s*=\s*["'][^"']*display\s*:\s*none[^"']*["'][^>]*>(\s*```[\s\S]*?```\s*)<\/div>/gi,
@@ -147,14 +183,17 @@ function stripFontTags(content) {
 
 /**
  * Remove <details> blocks from content entirely
+ * Limited to MAX_RECURSIVE_ITERATIONS to prevent unbounded loops
  */
 function stripDetailsBlocks(content) {
   if (!content) return content;
 
   let result = content;
   let prevResult;
+  let iterations = 0;
 
   do {
+    if (++iterations > MAX_RECURSIVE_ITERATIONS) break;
     prevResult = result;
     result = result.replace(/<details(?:\s[^>]*)?>([\s\S]*?)<\/details>/gi, "");
   } while (result !== prevResult);
@@ -164,24 +203,20 @@ function stripDetailsBlocks(content) {
 
 /**
  * Remove Loom-related tags from content
+ * Uses cached regex objects to avoid recreation on every call
  */
 function stripLoomTags(content) {
   if (!content) return content;
 
-  const loomTags = [
-    "loom_sum", "loom_if", "loom_else", "loom_endif",
-    "lumia_ooc", "lumiaooc", "lumio_ooc", "lumioooc",
-    "loom_state", "loom_memory", "loom_context", "loom_inject", "loom_var", "loom_set", "loom_get",
-    "loom_record", "loomrecord", "loom_ledger", "loomledger",
-  ];
-
   let result = content;
 
-  for (const tag of loomTags) {
-    const pairedTagRegex = new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)</${tag}>`, "gi");
-    const selfClosingRegex = new RegExp(`<${tag}(?:\\s[^>]*)?\\/?>`, "gi");
-    result = result.replace(pairedTagRegex, "");
-    result = result.replace(selfClosingRegex, "");
+  // Use cached regexes - reset lastIndex before each use for global regexes
+  for (const tag of Object.keys(CACHED_LOOM_TAG_REGEXES)) {
+    const regexes = CACHED_LOOM_TAG_REGEXES[tag];
+    regexes.paired.lastIndex = 0;
+    regexes.self.lastIndex = 0;
+    result = result.replace(regexes.paired, "");
+    result = result.replace(regexes.self, "");
   }
 
   return result;
