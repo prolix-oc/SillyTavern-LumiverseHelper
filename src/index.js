@@ -616,15 +616,17 @@ jQuery(async () => {
     });
 
     eventSource.on(event_types.GENERATION_ENDED, () => {
-      console.log(`[${MODULE_NAME}] GENERATION_ENDED (error case) - resetting state and flushing updates`);
+      console.log(`[${MODULE_NAME}] GENERATION_ENDED (error case) - resetting state`);
+      // setIsGenerating(false) triggers setStreamingState(false) which auto-flushes pending updates
+      // No need for explicit flushPendingUpdates() call - avoid double flush
       setIsGenerating(false);
-      flushPendingUpdates();
     });
 
     eventSource.on(event_types.GENERATION_STOPPED, () => {
-      console.log(`[${MODULE_NAME}] GENERATION_STOPPED (user cancel) - resetting state and flushing updates`);
+      console.log(`[${MODULE_NAME}] GENERATION_STOPPED (user cancel) - resetting state`);
+      // setIsGenerating(false) triggers setStreamingState(false) which auto-flushes pending updates
+      // No need for explicit flushPendingUpdates() call - avoid double flush
       setIsGenerating(false);
-      flushPendingUpdates();
     });
   }
 

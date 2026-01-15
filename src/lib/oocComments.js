@@ -1305,8 +1305,8 @@ function performOOCProcessing(mesId, force = false) {
     }
 
     if (processedCount > 0) {
-      // Force reflow to ensure styles are applied
-      messageElement.offsetHeight;
+      // Styles are applied automatically on next paint via RAF batching
+      // Removed forced reflow (offsetHeight) as it's a synchronous blocking operation
       console.log(
         `[${MODULE_NAME}] Finished processing ${processedCount} OOC comment(s) in message ${mesId}`,
       );
