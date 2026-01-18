@@ -7981,6 +7981,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     border: 1px solid var(--lumiverse-border);
     border-radius: 10px;
     overflow: hidden;
+    overscroll-behavior: contain;
 }
 
 .lumiverse-council-add-header {
@@ -8009,6 +8010,8 @@ details.lumia-panel[open] .lumia-panel-chevron {
 .lumiverse-council-add-list {
     max-height: 200px;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
 }
 
 .lumiverse-council-add-empty {
@@ -8031,6 +8034,10 @@ details.lumia-panel[open] .lumia-panel-chevron {
     cursor: pointer;
     transition: background 0.2s ease;
     text-align: left;
+    /* Button reset - CRITICAL for mobile touch */
+    font: inherit;
+    -webkit-appearance: none;
+    appearance: none;
     /* Mobile touch fixes */
     touch-action: manipulation;
     -webkit-tap-highlight-color: rgba(147, 112, 219, 0.2);

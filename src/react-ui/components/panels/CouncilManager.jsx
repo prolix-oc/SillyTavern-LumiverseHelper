@@ -231,6 +231,8 @@ function CouncilMemberCard({ member, packs, onUpdate, onRemove }) {
  */
 function AddMemberDropdown({ packs, existingMembers, onAdd, onClose }) {
     const [searchTerm, setSearchTerm] = useState('');
+    // Disable autoFocus on mobile to prevent keyboard from auto-opening
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 600;
 
     // Get all Lumia items that aren't already council members
     const availableItems = useMemo(() => {
@@ -295,7 +297,7 @@ function AddMemberDropdown({ packs, existingMembers, onAdd, onClose }) {
                     placeholder="Search Lumias..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    autoFocus
+                    autoFocus={!isMobile}
                 />
                 <button
                     className="lumiverse-council-btn"
@@ -346,6 +348,8 @@ function AddMemberDropdown({ packs, existingMembers, onAdd, onClose }) {
  */
 function QuickAddPackDropdown({ packs, existingMembers, onAddPack, onClose }) {
     const [searchTerm, setSearchTerm] = useState('');
+    // Disable autoFocus on mobile to prevent keyboard from auto-opening
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 600;
 
     // Get packs with available (not-yet-added) Lumias and their counts
     const availablePacks = useMemo(() => {
@@ -406,7 +410,7 @@ function QuickAddPackDropdown({ packs, existingMembers, onAddPack, onClose }) {
                     placeholder="Search packs..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    autoFocus
+                    autoFocus={!isMobile}
                 />
                 <button
                     className="lumiverse-council-btn"
