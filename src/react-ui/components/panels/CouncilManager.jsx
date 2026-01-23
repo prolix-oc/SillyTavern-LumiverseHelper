@@ -88,7 +88,11 @@ function CouncilMemberCard({ member, packs, onUpdate, onRemove }) {
 
     return (
         <div className="lumiverse-council-member">
-            <div className="lumiverse-council-member-header" onClick={() => setIsExpanded(!isExpanded)}>
+            <div className="lumiverse-council-member-header" onPointerUp={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                setIsExpanded(!isExpanded);
+            }}>
                 <div className="lumiverse-council-member-avatar">
                     {memberImage ? (
                         <img src={memberImage} alt={memberName} />
@@ -113,8 +117,9 @@ function CouncilMemberCard({ member, packs, onUpdate, onRemove }) {
                 <div className="lumiverse-council-member-actions">
                     <button
                         className="lumiverse-council-btn"
-                        onClick={(e) => {
+                        onPointerUp={(e) => {
                             e.stopPropagation();
+                            e.preventDefault();
                             setIsEditingRole(true);
                             setIsExpanded(true);
                         }}
@@ -125,8 +130,9 @@ function CouncilMemberCard({ member, packs, onUpdate, onRemove }) {
                     </button>
                     <button
                         className="lumiverse-council-btn lumiverse-council-btn--danger"
-                        onClick={(e) => {
+                        onPointerUp={(e) => {
                             e.stopPropagation();
+                            e.preventDefault();
                             onRemove(member.id);
                         }}
                         title="Remove from council"
@@ -158,14 +164,20 @@ function CouncilMemberCard({ member, packs, onUpdate, onRemove }) {
                                 />
                                 <button
                                     className="lumiverse-council-btn lumiverse-council-btn--primary"
-                                    onClick={handleRoleSave}
+                                    onPointerUp={(e) => {
+                                        e.stopPropagation();
+                                        e.preventDefault();
+                                        handleRoleSave();
+                                    }}
                                     type="button"
                                 >
                                     <Check size={14} strokeWidth={2} />
                                 </button>
                                 <button
                                     className="lumiverse-council-btn"
-                                    onClick={() => {
+                                    onPointerUp={(e) => {
+                                        e.stopPropagation();
+                                        e.preventDefault();
                                         setRoleValue(member.role || '');
                                         setIsEditingRole(false);
                                     }}
@@ -232,6 +244,7 @@ function CouncilMemberCard({ member, packs, onUpdate, onRemove }) {
 function AddMemberItem({ item, onSelect }) {
     const handleClick = (e) => {
         e.stopPropagation();
+        e.preventDefault();
         onSelect(item);
     };
     
@@ -373,6 +386,7 @@ function AddMemberDropdown({ packs, existingMembers, onAdd, onClose }) {
 function AddPackItem({ pack, onSelect }) {
     const handleClick = (e) => {
         e.stopPropagation();
+        e.preventDefault();
         onSelect(pack.packName);
     };
     
