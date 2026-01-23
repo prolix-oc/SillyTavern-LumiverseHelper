@@ -46,12 +46,6 @@ function ModalWrapper({ children, onClose, modalType, size = 'medium', hasCustom
         }
     };
 
-    // Stop propagation to prevent ST from closing the drawer
-    // Use pointer events for unified touch/mouse handling on all platforms
-    const handlePointerEvent = (e) => {
-        e.stopPropagation();
-    };
-
     // Determine modal class based on type
     const modalClass = clsx(
         'lumia-modal',
@@ -69,16 +63,12 @@ function ModalWrapper({ children, onClose, modalType, size = 'medium', hasCustom
         <div
             className="lumia-modal-backdrop"
             onClick={handleBackdropClick}
-            onPointerDown={handlePointerEvent}
-            onPointerUp={handlePointerEvent}
         >
             <div
                 className={modalClass}
                 role="dialog"
                 aria-modal="true"
                 onClick={(e) => e.stopPropagation()}
-                onPointerDown={handlePointerEvent}
-                onPointerUp={handlePointerEvent}
             >
                 {children}
             </div>

@@ -107,10 +107,7 @@ function SelectableLumiaCard({ item, packName, onAdd, animationIndex }) {
             type="button"
             className="lumiverse-council-select-card lumia-card-appear"
             style={{ animationDelay: `${animationDelay}ms` }}
-            onPointerUp={(e) => {
-                e.preventDefault();
-                handleAdd();
-            }}
+            onClick={handleAdd}
         >
             <div className="lumiverse-council-select-card-image">
                 {itemImg && !imageError ? (
@@ -211,20 +208,14 @@ function CouncilMemberCard({ member, packs, onRemove, onUpdateRole }) {
                         />
                         <button
                             className="lumiverse-council-btn-sm lumiverse-council-btn-sm--primary"
-                            onPointerUp={(e) => {
-                                e.preventDefault();
-                                handleRoleSave();
-                            }}
+                            onClick={handleRoleSave}
                             type="button"
                         >
                             <Check size={12} strokeWidth={2} />
                         </button>
                         <button
                             className="lumiverse-council-btn-sm"
-                            onPointerUp={(e) => {
-                                e.preventDefault();
-                                handleRoleCancel();
-                            }}
+                            onClick={handleRoleCancel}
                             type="button"
                         >
                             <X size={12} strokeWidth={2} />
@@ -235,10 +226,7 @@ function CouncilMemberCard({ member, packs, onRemove, onUpdateRole }) {
                         {member.role ? (
                             <span
                                 className="lumiverse-council-member-card-role"
-                                onPointerUp={(e) => {
-                                    e.preventDefault();
-                                    handleStartEdit();
-                                }}
+                                onClick={handleStartEdit}
                                 title="Tap to edit role"
                             >
                                 {member.role}
@@ -246,10 +234,7 @@ function CouncilMemberCard({ member, packs, onRemove, onUpdateRole }) {
                         ) : (
                             <button
                                 className="lumiverse-council-add-role-btn"
-                                onPointerUp={(e) => {
-                                    e.preventDefault();
-                                    handleStartEdit();
-                                }}
+                                onClick={handleStartEdit}
                                 type="button"
                             >
                                 <Edit2 size={10} /> Add role
@@ -264,10 +249,7 @@ function CouncilMemberCard({ member, packs, onRemove, onUpdateRole }) {
             </div>
             <button
                 className="lumiverse-council-btn-sm lumiverse-council-btn-sm--danger"
-                onPointerUp={(e) => {
-                    e.preventDefault();
-                    handleRemove();
-                }}
+                onClick={handleRemove}
                 title="Remove from council"
                 type="button"
             >

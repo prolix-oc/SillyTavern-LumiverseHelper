@@ -304,7 +304,7 @@ function AddMemberDropdown({ packs, existingMembers, onAdd, onClose }) {
     return (
         <div 
             className="lumiverse-council-add-dropdown"
-            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
         >
             <div className="lumiverse-council-add-header">
                 <input
@@ -317,7 +317,7 @@ function AddMemberDropdown({ packs, existingMembers, onAdd, onClose }) {
                 />
                 <button
                     className="lumiverse-council-btn"
-                    onPointerUp={handleClose}
+                    onClick={handleClose}
                     title="Close"
                     type="button"
                 >
@@ -334,7 +334,7 @@ function AddMemberDropdown({ packs, existingMembers, onAdd, onClose }) {
                         <button
                             key={`${item.packName}:${item.itemName}`}
                             className="lumiverse-council-add-item"
-                            onPointerUp={(e) => {
+                            onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
                                 handleItemSelect(item);
@@ -434,7 +434,7 @@ function QuickAddPackDropdown({ packs, existingMembers, onAddPack, onClose }) {
     return (
         <div 
             className="lumiverse-council-add-dropdown lumiverse-council-pack-dropdown"
-            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
         >
             <div className="lumiverse-council-add-header">
                 <input
@@ -447,7 +447,7 @@ function QuickAddPackDropdown({ packs, existingMembers, onAddPack, onClose }) {
                 />
                 <button
                     className="lumiverse-council-btn"
-                    onPointerUp={handleClose}
+                    onClick={handleClose}
                     title="Close"
                     type="button"
                 >
@@ -464,7 +464,7 @@ function QuickAddPackDropdown({ packs, existingMembers, onAddPack, onClose }) {
                         <button
                             key={pack.packName}
                             className="lumiverse-council-add-item lumiverse-council-pack-item"
-                            onPointerUp={(e) => {
+                            onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
                                 handlePackSelect(pack.packName);
@@ -616,9 +616,8 @@ function CouncilManager() {
                     <div className="lumiverse-council-add-buttons">
                         <button
                             className="lumiverse-council-add-btn"
-                            onPointerUp={(e) => {
+                            onClick={() => {
                                 if (!councilMode) return;
-                                e.preventDefault();
                                 setIsAddingMember(true);
                             }}
                             disabled={!councilMode}
@@ -630,9 +629,8 @@ function CouncilManager() {
                         </button>
                         <button
                             className="lumiverse-council-add-btn lumiverse-council-add-btn--secondary"
-                            onPointerUp={(e) => {
+                            onClick={() => {
                                 if (!councilMode) return;
-                                e.preventDefault();
                                 setIsAddingPack(true);
                             }}
                             disabled={!councilMode}
