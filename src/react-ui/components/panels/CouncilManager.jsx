@@ -340,8 +340,8 @@ function AddMemberDropdown({ packs, existingMembers, onAdd, onClose }) {
                     autoFocus={!isMobile}
                 />
                 <button
-                    ref={closeRef}
                     className="lumiverse-council-btn"
+                    onClick={onClose}
                     title="Close"
                     type="button"
                 >
