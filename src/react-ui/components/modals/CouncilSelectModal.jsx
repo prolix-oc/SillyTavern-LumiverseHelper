@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useSyncExternalStore, useCallback } from 'react';
+import React, { useState, useMemo, useSyncExternalStore, useCallback, useEffect, useRef } from 'react';
 import clsx from 'clsx';
 import { Users, Plus, Trash2, Search, X, Edit2, Check, Zap, Heart } from 'lucide-react';
 import {
@@ -17,6 +17,71 @@ const EMPTY_ARRAY = [];
 
 // Stable selector functions
 const selectCouncilMembers = () => store.getState().councilMembers || EMPTY_ARRAY;
+
+/**
+ * Hook to attach a native click/touchend listener that bypasses React's synthetic events.
+ * This is more reliable on Android WebView where React's onClick sometimes fails.
+ * @param {Function} handler - The callback to execute on tap/click
+ * @returns {React.RefObject} - A ref to attach to the element
+ */
+function useTapHandler(handler) {
+    const ref = useRef(null);
+    const handlerRef = useRef(handler);
+    
+    // Keep handler ref up to date
+    useEffect(() => {
+        handlerRef.current = handler;
+    }, [handler]);
+    
+    useEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+        
+        let touchMoved = false;
+        let touchStartTime = 0;
+        
+        const onTouchStart = (e) => {
+            touchMoved = false;
+            touchStartTime = Date.now();
+        };
+        
+        const onTouchMove = () => {
+            touchMoved = true;
+        };
+        
+        const onTouchEnd = (e) => {
+            // Only trigger if it was a quick tap without movement
+            const touchDuration = Date.now() - touchStartTime;
+            if (!touchMoved && touchDuration < 500) {
+                e.preventDefault();
+                e.stopPropagation();
+                handlerRef.current?.();
+            }
+        };
+        
+        const onClick = (e) => {
+            // For mouse/desktop users
+            e.preventDefault();
+            e.stopPropagation();
+            handlerRef.current?.();
+        };
+        
+        // Use passive: false for touchend to allow preventDefault
+        el.addEventListener('touchstart', onTouchStart, { passive: true });
+        el.addEventListener('touchmove', onTouchMove, { passive: true });
+        el.addEventListener('touchend', onTouchEnd, { passive: false });
+        el.addEventListener('click', onClick);
+        
+        return () => {
+            el.removeEventListener('touchstart', onTouchStart);
+            el.removeEventListener('touchmove', onTouchMove);
+            el.removeEventListener('touchend', onTouchEnd);
+            el.removeEventListener('click', onClick);
+        };
+    }, []);
+    
+    return ref;
+}
 
 /**
  * Find a Lumia item in a pack - supports both new and legacy formats
@@ -97,17 +162,19 @@ function SelectableLumiaCard({ item, packName, onAdd, animationIndex }) {
     // Staggered animation delay
     const animationDelay = Math.min(animationIndex * 30, 300);
 
-    const handleClick = (e) => {
-        e.stopPropagation();
+    // Use native touch handler
+    const handleAdd = useCallback(() => {
         onAdd({ packName, itemName });
-    };
+    }, [onAdd, packName, itemName]);
+    
+    const ref = useTapHandler(handleAdd);
 
     return (
         <button
+            ref={ref}
             type="button"
             className="lumiverse-council-select-card lumia-card-appear"
             style={{ animationDelay: `${animationDelay}ms` }}
-            onClick={handleClick}
         >
             <div className="lumiverse-council-select-card-image">
                 {itemImg && !imageError ? (
@@ -151,10 +218,10 @@ function CouncilMemberCard({ member, packs, onRemove, onUpdateRole }) {
     const memberImage = getLumiaImage(packs, member.packName, member.itemName);
     const { objectPosition } = useAdaptiveImagePosition(memberImage);
 
-    const handleRoleSave = () => {
+    const handleRoleSave = useCallback(() => {
         onUpdateRole(member.id, { role: roleValue });
         setIsEditingRole(false);
-    };
+    }, [onUpdateRole, member.id, roleValue]);
 
     const handleRoleKeyDown = (e) => {
         if (e.key === 'Enter') handleRoleSave();
@@ -164,21 +231,24 @@ function CouncilMemberCard({ member, packs, onRemove, onUpdateRole }) {
         }
     };
 
-    const handleRoleCancel = (e) => {
-        e.stopPropagation();
+    const handleRoleCancel = useCallback(() => {
         setRoleValue(member.role || '');
         setIsEditingRole(false);
-    };
+    }, [member.role]);
 
-    const handleStartEdit = (e) => {
-        e.stopPropagation();
+    const handleStartEdit = useCallback(() => {
         setIsEditingRole(true);
-    };
+    }, []);
 
-    const handleRemove = (e) => {
-        e.stopPropagation();
+    const handleRemove = useCallback(() => {
         onRemove(member.id);
-    };
+    }, [onRemove, member.id]);
+
+    // Native touch handlers
+    const saveRef = useTapHandler(handleRoleSave);
+    const cancelRef = useTapHandler(handleRoleCancel);
+    const editRef = useTapHandler(handleStartEdit);
+    const removeRef = useTapHandler(handleRemove);
 
     const behaviorsCount = member.behaviors?.length || 0;
     const personalitiesCount = member.personalities?.length || 0;
@@ -210,18 +280,15 @@ function CouncilMemberCard({ member, packs, onRemove, onUpdateRole }) {
                             autoFocus
                         />
                         <button
+                            ref={saveRef}
                             className="lumiverse-council-btn-sm lumiverse-council-btn-sm--primary"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleRoleSave();
-                            }}
                             type="button"
                         >
                             <Check size={12} strokeWidth={2} />
                         </button>
                         <button
+                            ref={cancelRef}
                             className="lumiverse-council-btn-sm"
-                            onClick={handleRoleCancel}
                             type="button"
                         >
                             <X size={12} strokeWidth={2} />
@@ -231,16 +298,16 @@ function CouncilMemberCard({ member, packs, onRemove, onUpdateRole }) {
                     <div className="lumiverse-council-member-card-meta">
                         {member.role ? (
                             <span
+                                ref={editRef}
                                 className="lumiverse-council-member-card-role"
-                                onClick={handleStartEdit}
                                 title="Tap to edit role"
                             >
                                 {member.role}
                             </span>
                         ) : (
                             <button
+                                ref={editRef}
                                 className="lumiverse-council-add-role-btn"
-                                onClick={handleStartEdit}
                                 type="button"
                             >
                                 <Edit2 size={10} /> Add role
@@ -254,8 +321,8 @@ function CouncilMemberCard({ member, packs, onRemove, onUpdateRole }) {
                 )}
             </div>
             <button
+                ref={removeRef}
                 className="lumiverse-council-btn-sm lumiverse-council-btn-sm--danger"
-                onClick={handleRemove}
                 title="Remove from council"
                 type="button"
             >
