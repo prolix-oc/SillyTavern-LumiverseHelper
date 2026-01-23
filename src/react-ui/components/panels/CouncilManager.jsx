@@ -288,8 +288,18 @@ function AddMemberDropdown({ packs, existingMembers, onAdd, onClose }) {
         return items;
     }, [packs, existingMembers, searchTerm]);
 
+    // Handle item selection with touch support for Android
+    const handleItemSelect = (item) => {
+        onAdd({ packName: item.packName, itemName: item.itemName });
+        onClose();
+    };
+
     return (
-        <div className="lumiverse-council-add-dropdown">
+        <div 
+            className="lumiverse-council-add-dropdown"
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
+        >
             <div className="lumiverse-council-add-header">
                 <input
                     type="text"
@@ -302,6 +312,10 @@ function AddMemberDropdown({ packs, existingMembers, onAdd, onClose }) {
                 <button
                     className="lumiverse-council-btn"
                     onClick={onClose}
+                    onTouchEnd={(e) => {
+                        e.preventDefault();
+                        onClose();
+                    }}
                     title="Close"
                     type="button"
                 >
@@ -318,9 +332,10 @@ function AddMemberDropdown({ packs, existingMembers, onAdd, onClose }) {
                         <button
                             key={`${item.packName}:${item.itemName}`}
                             className="lumiverse-council-add-item"
-                            onClick={() => {
-                                onAdd({ packName: item.packName, itemName: item.itemName });
-                                onClose();
+                            onClick={() => handleItemSelect(item)}
+                            onTouchEnd={(e) => {
+                                e.preventDefault();
+                                handleItemSelect(item);
                             }}
                             type="button"
                         >
@@ -401,8 +416,18 @@ function QuickAddPackDropdown({ packs, existingMembers, onAddPack, onClose }) {
         return packList;
     }, [packs, existingMembers, searchTerm]);
 
+    // Handle pack selection with touch support for Android
+    const handlePackSelect = (packName) => {
+        onAddPack(packName);
+        onClose();
+    };
+
     return (
-        <div className="lumiverse-council-add-dropdown lumiverse-council-pack-dropdown">
+        <div 
+            className="lumiverse-council-add-dropdown lumiverse-council-pack-dropdown"
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
+        >
             <div className="lumiverse-council-add-header">
                 <input
                     type="text"
@@ -415,6 +440,10 @@ function QuickAddPackDropdown({ packs, existingMembers, onAddPack, onClose }) {
                 <button
                     className="lumiverse-council-btn"
                     onClick={onClose}
+                    onTouchEnd={(e) => {
+                        e.preventDefault();
+                        onClose();
+                    }}
                     title="Close"
                     type="button"
                 >
@@ -431,9 +460,10 @@ function QuickAddPackDropdown({ packs, existingMembers, onAddPack, onClose }) {
                         <button
                             key={pack.packName}
                             className="lumiverse-council-add-item lumiverse-council-pack-item"
-                            onClick={() => {
-                                onAddPack(pack.packName);
-                                onClose();
+                            onClick={() => handlePackSelect(pack.packName)}
+                            onTouchEnd={(e) => {
+                                e.preventDefault();
+                                handlePackSelect(pack.packName);
                             }}
                             type="button"
                         >
@@ -583,6 +613,12 @@ function CouncilManager() {
                         <button
                             className="lumiverse-council-add-btn"
                             onClick={() => setIsAddingMember(true)}
+                            onTouchEnd={(e) => {
+                                // Android WebView touch compatibility
+                                if (!councilMode) return;
+                                e.preventDefault();
+                                setIsAddingMember(true);
+                            }}
                             disabled={!councilMode}
                             title={councilMode ? 'Add a council member' : 'Enable Council Mode first'}
                             type="button"
@@ -593,6 +629,12 @@ function CouncilManager() {
                         <button
                             className="lumiverse-council-add-btn lumiverse-council-add-btn--secondary"
                             onClick={() => setIsAddingPack(true)}
+                            onTouchEnd={(e) => {
+                                // Android WebView touch compatibility
+                                if (!councilMode) return;
+                                e.preventDefault();
+                                setIsAddingPack(true);
+                            }}
                             disabled={!councilMode}
                             title={councilMode ? 'Add all Lumias from a pack' : 'Enable Council Mode first'}
                             type="button"

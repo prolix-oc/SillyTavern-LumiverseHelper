@@ -7935,6 +7935,9 @@ details.lumia-panel[open] .lumia-panel-chevron {
     transition: all 0.2s ease;
     touch-action: manipulation;
     -webkit-tap-highlight-color: rgba(147, 112, 219, 0.3);
+    /* Android WebView button reset */
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 .lumiverse-council-add-btn:hover:not(:disabled) {
@@ -7982,6 +7985,9 @@ details.lumia-panel[open] .lumia-panel-chevron {
     border-radius: 10px;
     overflow: hidden;
     overscroll-behavior: contain;
+    /* Android touch compatibility */
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
 }
 
 .lumiverse-council-add-header {
@@ -8231,6 +8237,9 @@ details.lumia-panel[open] .lumia-panel-chevron {
     transition: all 0.2s ease;
     touch-action: manipulation;
     -webkit-tap-highlight-color: rgba(147, 112, 219, 0.3);
+    /* Android WebView button reset */
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 .lumiverse-council-btn:hover {
@@ -8628,6 +8637,10 @@ details.lumia-panel[open] .lumia-panel-chevron {
     color: var(--lumiverse-primary);
     font-weight: 500;
     cursor: pointer;
+    /* Android touch compatibility for interactive span */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(147, 112, 219, 0.2);
+    padding: 4px 0; /* Increase touch target */
 }
 
 .lumiverse-council-member-card-role:hover {
@@ -8638,13 +8651,20 @@ details.lumia-panel[open] .lumia-panel-chevron {
     display: flex;
     align-items: center;
     gap: 4px;
-    padding: 0;
+    padding: 4px 8px; /* Increase padding for touch target */
+    margin: -4px -8px; /* Compensate visually */
     background: none;
     border: none;
     font-size: 10px;
     color: var(--lumiverse-text-dim);
     cursor: pointer;
     transition: color 0.2s ease;
+    /* Android touch compatibility */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(147, 112, 219, 0.2);
+    -webkit-appearance: none;
+    appearance: none;
+    min-height: 32px; /* Mobile touch target */
 }
 
 .lumiverse-council-add-role-btn:hover {
