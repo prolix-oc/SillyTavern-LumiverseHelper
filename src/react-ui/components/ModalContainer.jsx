@@ -47,7 +47,14 @@ function ModalWrapper({ children, onClose, modalType, size = 'medium', hasCustom
     };
 
     // Stop propagation to prevent ST from closing the drawer
+    // Handle both mouse and touch events for cross-platform compatibility
     const handleModalClick = (e) => {
+        e.stopPropagation();
+    };
+
+    // Touch event handler for Android compatibility
+    // Android WebViews sometimes don't properly synthesize click from touch
+    const handleTouchEvent = (e) => {
         e.stopPropagation();
     };
 
@@ -70,12 +77,16 @@ function ModalWrapper({ children, onClose, modalType, size = 'medium', hasCustom
             onClick={handleBackdropClick}
             onMouseDown={handleModalClick}
             onMouseUp={handleModalClick}
+            onTouchStart={handleTouchEvent}
+            onTouchEnd={handleTouchEvent}
         >
             <div
                 className={modalClass}
                 role="dialog"
                 aria-modal="true"
                 onClick={handleModalClick}
+                onTouchStart={handleTouchEvent}
+                onTouchEnd={handleTouchEvent}
             >
                 {children}
             </div>

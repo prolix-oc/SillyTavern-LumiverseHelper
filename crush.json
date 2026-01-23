@@ -1,0 +1,20 @@
+{
+  "$schema": "https://charm.land/crush.json",
+  "providers": {
+    "my-custom-anthropic": {
+      "type": "anthropic-compat",
+      "base_url": "https://llm.prolix.dev/v1",
+      "api_key": "sk-254T2Oy2okzGpWYZPjAD3T7omDXBIIvhHijtJ3toL7WAyTuS",
+      "models": [
+        {
+          "id": "claude-opus-4-5",
+          "name": "Claude Opus 4.5 (Prolix)"
+        },
+	{
+	  "id": "claude-sonnet-4-5",
+	  "name": "Claude Sonnet 4.5 (Prolix)"
+	}
+      ]
+    }
+  }
+}

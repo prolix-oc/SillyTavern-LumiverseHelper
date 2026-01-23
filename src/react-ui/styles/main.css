@@ -8041,6 +8041,8 @@ details.lumia-panel[open] .lumia-panel-chevron {
     /* Mobile touch fixes */
     touch-action: manipulation;
     -webkit-tap-highlight-color: rgba(147, 112, 219, 0.2);
+    /* Ensure minimum touch target for Android accessibility */
+    min-height: 48px;
 }
 
 .lumiverse-council-add-item:hover {
@@ -8670,6 +8672,9 @@ details.lumia-panel[open] .lumia-panel-chevron {
     justify-content: center;
     width: 24px;
     height: 24px;
+    /* Ensure minimum touch target on mobile */
+    min-width: 36px;
+    min-height: 36px;
     background: rgba(100, 100, 130, 0.2);
     border: none;
     border-radius: 6px;
@@ -8677,6 +8682,9 @@ details.lumia-panel[open] .lumia-panel-chevron {
     cursor: pointer;
     transition: all 0.2s ease;
     flex-shrink: 0;
+    /* Android touch compatibility */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(147, 112, 219, 0.3);
 }
 
 .lumiverse-council-btn-sm:hover {
@@ -8752,9 +8760,11 @@ details.lumia-panel[open] .lumia-panel-chevron {
     margin: 0;
     font: inherit;
     text-align: left;
-    /* Mobile touch fixes */
+    /* Mobile touch fixes - Android compatibility */
     touch-action: manipulation;
     -webkit-tap-highlight-color: rgba(147, 112, 219, 0.2);
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 .lumiverse-council-select-card:hover {

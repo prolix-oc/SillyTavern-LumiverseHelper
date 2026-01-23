@@ -305,6 +305,9 @@ function ViewportPanel({
                 style={{
                     transform: isCollapsed ? `translateX(${mainContentWidth}px)` : 'translateX(0)',
                     transition: 'transform 0.2s ease',
+                    // Explicit pointer-events for Android WebView compatibility
+                    // Some Android browsers don't properly inherit through nested pointer-events containers
+                    pointerEvents: 'auto',
                 }}
             >
                 {/* Tab sidebar */}
