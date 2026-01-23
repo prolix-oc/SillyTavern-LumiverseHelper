@@ -10,6 +10,37 @@ const debouncedSave = (fn, delay = 300) => {
 };
 
 /**
+ * Generate a unique ID that works in non-secure contexts (HTTP).
+ * Falls back to a simple random string if crypto.randomUUID is unavailable.
+ */
+function generateId() {
+    // Try native crypto.randomUUID first (requires secure context)
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        try {
+            return crypto.randomUUID();
+        } catch (e) {
+            // Fall through to fallback
+        }
+    }
+    // Fallback: generate a pseudo-random ID
+    // Format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx (UUID v4-like)
+    const hex = '0123456789abcdef';
+    let id = '';
+    for (let i = 0; i < 36; i++) {
+        if (i === 8 || i === 13 || i === 18 || i === 23) {
+            id += '-';
+        } else if (i === 14) {
+            id += '4'; // UUID version 4
+        } else if (i === 19) {
+            id += hex[(Math.random() * 4) | 8]; // Variant bits
+        } else {
+            id += hex[(Math.random() * 16) | 0];
+        }
+    }
+    return id;
+}
+
+/**
  * Simple vanilla JS store (no external dependencies)
  * This avoids issues with multiple React instances
  */
@@ -909,6 +940,7 @@ const actions = {
      */
     addCouncilMember: (member) => {
         const state = store.getState();
+        const currentMembers = state.councilMembers || [];
 
         // Look up the pack using helper that supports both name formats
         const pack = findPackByName(state.packs, member.packName);
@@ -927,21 +959,26 @@ const actions = {
             personalities.push({ packName: member.packName, itemName: member.itemName });
         }
 
+        const newMember = {
+            id: generateId(),
+            packName: member.packName,
+            itemName: member.itemName,
+            behaviors,
+            personalities,
+            dominantBehavior: null,
+            dominantPersonality: null,
+            role: '',
+        };
+
+        // Create a new array reference to ensure React detects the change
+        const newMembers = [...currentMembers, newMember];
+        
         store.setState({
-            councilMembers: [
-                ...state.councilMembers,
-                {
-                    id: crypto.randomUUID(),
-                    packName: member.packName,
-                    itemName: member.itemName,
-                    behaviors,
-                    personalities,
-                    dominantBehavior: null,
-                    dominantPersonality: null,
-                    role: '',
-                },
-            ],
+            councilMembers: newMembers,
         });
+
+        // Return the new member for potential chaining/debugging
+        return newMember;
     },
 
     /**
@@ -1031,8 +1068,9 @@ const actions = {
         if (lumiaItems.length === 0) return 0;
 
         // Build set of existing council members for fast lookup
+        const currentMembers = state.councilMembers || [];
         const existingSet = new Set(
-            state.councilMembers.map(m => `${m.packName}:${m.itemName}`)
+            currentMembers.map(m => `${m.packName}:${m.itemName}`)
         );
 
         // Filter out already-added members
@@ -1060,7 +1098,7 @@ const actions = {
             }
 
             return {
-                id: crypto.randomUUID(),
+                id: generateId(),
                 packName,
                 itemName,
                 behaviors,
@@ -1072,7 +1110,7 @@ const actions = {
         });
 
         store.setState({
-            councilMembers: [...state.councilMembers, ...newMembers],
+            councilMembers: [...currentMembers, ...newMembers],
         });
 
         return newMembers.length;

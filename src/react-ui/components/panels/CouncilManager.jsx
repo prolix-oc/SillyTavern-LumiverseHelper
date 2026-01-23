@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useSyncExternalStore, useCallback } from 'react';
+import React, { useState, useMemo, useSyncExternalStore, useCallback, useRef } from 'react';
 import clsx from 'clsx';
 import { Users, Plus, Trash2, ChevronDown, ChevronUp, Edit2, X, Check, Zap, Heart, Star, Package } from 'lucide-react';
 import { useLumiverseStore, useLumiverseActions, usePacks, saveToExtension } from '../../store/LumiverseContext';
@@ -10,6 +10,36 @@ const store = useLumiverseStore;
 
 // Stable fallback constants for useSyncExternalStore
 const EMPTY_ARRAY = [];
+
+/**
+ * Create mobile-safe tap handlers that work on all browsers including Samsung Internet.
+ * Uses onTouchEnd for touch devices and onClick for mouse, with proper deduplication.
+ * 
+ * @param {Function} handler - The function to call on tap/click
+ * @returns {Object} Props to spread onto the element: { onClick, onTouchEnd }
+ */
+function useMobileTapHandler(handler) {
+    const touchedRef = useRef(false);
+    
+    const handleTouchEnd = useCallback((e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        touchedRef.current = true;
+        handler(e);
+        // Reset after a short delay to allow for subsequent interactions
+        setTimeout(() => { touchedRef.current = false; }, 300);
+    }, [handler]);
+    
+    const handleClick = useCallback((e) => {
+        e.stopPropagation();
+        // Only fire if this wasn't triggered by a touch event
+        if (!touchedRef.current) {
+            handler(e);
+        }
+    }, [handler]);
+    
+    return { onClick: handleClick, onTouchEnd: handleTouchEnd };
+}
 
 // Stable selector functions
 const selectCouncilMode = () => store.getState().councilMode || false;
@@ -239,19 +269,19 @@ function CouncilMemberCard({ member, packs, onUpdate, onRemove }) {
 }
 
 /**
- * Individual item - uses div with onClick like working SelectionModal
+ * Individual item - uses mobile-safe tap handler for Samsung compatibility
  */
 function AddMemberItem({ item, onSelect }) {
-    const handleClick = (e) => {
-        e.stopPropagation();
-        e.preventDefault();
+    const handleTap = useCallback(() => {
         onSelect(item);
-    };
+    }, [item, onSelect]);
+    
+    const tapProps = useMobileTapHandler(handleTap);
     
     return (
         <div
             className="lumiverse-council-add-item"
-            onPointerUp={handleClick}
+            {...tapProps}
             role="button"
             tabIndex={0}
         >
@@ -381,19 +411,19 @@ function AddMemberDropdown({ packs, existingMembers, onAdd, onClose }) {
 }
 
 /**
- * Individual pack item - uses div with onClick like working SelectionModal
+ * Individual pack item - uses mobile-safe tap handler for Samsung compatibility
  */
 function AddPackItem({ pack, onSelect }) {
-    const handleClick = (e) => {
-        e.stopPropagation();
-        e.preventDefault();
+    const handleTap = useCallback(() => {
         onSelect(pack.packName);
-    };
+    }, [pack.packName, onSelect]);
+    
+    const tapProps = useMobileTapHandler(handleTap);
     
     return (
         <div
             className="lumiverse-council-add-item lumiverse-council-pack-item"
-            onPointerUp={handleClick}
+            {...tapProps}
             role="button"
             tabIndex={0}
         >
