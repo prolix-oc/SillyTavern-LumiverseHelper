@@ -106,7 +106,7 @@ function SelectableLumiaCard({ item, packName, onAdd, animationIndex }) {
         <div
             className="lumiverse-council-select-card lumia-card-appear"
             style={{ animationDelay: `${animationDelay}ms` }}
-            onClick={handleClick}
+            onPointerUp={handleClick}
             role="button"
             tabIndex={0}
         >

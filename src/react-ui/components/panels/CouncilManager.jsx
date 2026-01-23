@@ -238,7 +238,7 @@ function AddMemberItem({ item, onSelect }) {
     return (
         <div
             className="lumiverse-council-add-item"
-            onClick={handleClick}
+            onPointerUp={handleClick}
             role="button"
             tabIndex={0}
         >
@@ -379,7 +379,7 @@ function AddPackItem({ pack, onSelect }) {
     return (
         <div
             className="lumiverse-council-add-item lumiverse-council-pack-item"
-            onClick={handleClick}
+            onPointerUp={handleClick}
             role="button"
             tabIndex={0}
         >
