@@ -47,14 +47,8 @@ function ModalWrapper({ children, onClose, modalType, size = 'medium', hasCustom
     };
 
     // Stop propagation to prevent ST from closing the drawer
-    // Handle both mouse and touch events for cross-platform compatibility
-    const handleModalClick = (e) => {
-        e.stopPropagation();
-    };
-
-    // Touch event handler for Android compatibility
-    // Android WebViews sometimes don't properly synthesize click from touch
-    const handleTouchEvent = (e) => {
+    // Use pointer events for unified touch/mouse handling on all platforms
+    const handlePointerEvent = (e) => {
         e.stopPropagation();
     };
 
@@ -75,18 +69,16 @@ function ModalWrapper({ children, onClose, modalType, size = 'medium', hasCustom
         <div
             className="lumia-modal-backdrop"
             onClick={handleBackdropClick}
-            onMouseDown={handleModalClick}
-            onMouseUp={handleModalClick}
-            onTouchStart={handleTouchEvent}
-            onTouchEnd={handleTouchEvent}
+            onPointerDown={handlePointerEvent}
+            onPointerUp={handlePointerEvent}
         >
             <div
                 className={modalClass}
                 role="dialog"
                 aria-modal="true"
-                onClick={handleModalClick}
-                onTouchStart={handleTouchEvent}
-                onTouchEnd={handleTouchEvent}
+                onClick={(e) => e.stopPropagation()}
+                onPointerDown={handlePointerEvent}
+                onPointerUp={handlePointerEvent}
             >
                 {children}
             </div>
