@@ -1,20 +1,14 @@
 {
   "$schema": "https://charm.land/crush.json",
-  "providers": {
-    "my-custom-anthropic": {
-      "type": "anthropic-compat",
-      "base_url": "https://llm.prolix.dev/v1",
-      "api_key": "sk-254T2Oy2okzGpWYZPjAD3T7omDXBIIvhHijtJ3toL7WAyTuS",
-      "models": [
-        {
-          "id": "claude-opus-4-5",
-          "name": "Claude Opus 4.5 (Prolix)"
-        },
-	{
-	  "id": "claude-sonnet-4-5",
-	  "name": "Claude Sonnet 4.5 (Prolix)"
-	}
-      ]
+  "mcp": {
+    "context7": {
+      "type": "http",
+      "url": "https://mcp.context7.com/mcp",
+      "timeout": 120,
+      "disabled": false,
+      "headers": {
+        "CONTEXT7_API_KEY": "ctx7sk-822146a7-0cfd-46d9-a0ce-5c67203708bb"
+      }
     }
   }
 }

@@ -289,16 +289,22 @@ function AddMemberDropdown({ packs, existingMembers, onAdd, onClose }) {
     }, [packs, existingMembers, searchTerm]);
 
     // Handle item selection with touch support for Android
-    const handleItemSelect = (item) => {
+    const handleItemSelect = useCallback((item) => {
         onAdd({ packName: item.packName, itemName: item.itemName });
         onClose();
-    };
+    }, [onAdd, onClose]);
+
+    // Unified pointer handler for close button
+    const handleClose = useCallback((e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onClose();
+    }, [onClose]);
 
     return (
         <div 
             className="lumiverse-council-add-dropdown"
-            onTouchStart={(e) => e.stopPropagation()}
-            onTouchEnd={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
         >
             <div className="lumiverse-council-add-header">
                 <input
@@ -311,11 +317,7 @@ function AddMemberDropdown({ packs, existingMembers, onAdd, onClose }) {
                 />
                 <button
                     className="lumiverse-council-btn"
-                    onClick={onClose}
-                    onTouchEnd={(e) => {
-                        e.preventDefault();
-                        onClose();
-                    }}
+                    onPointerUp={handleClose}
                     title="Close"
                     type="button"
                 >
@@ -332,9 +334,9 @@ function AddMemberDropdown({ packs, existingMembers, onAdd, onClose }) {
                         <button
                             key={`${item.packName}:${item.itemName}`}
                             className="lumiverse-council-add-item"
-                            onClick={() => handleItemSelect(item)}
-                            onTouchEnd={(e) => {
+                            onPointerUp={(e) => {
                                 e.preventDefault();
+                                e.stopPropagation();
                                 handleItemSelect(item);
                             }}
                             type="button"
@@ -417,16 +419,22 @@ function QuickAddPackDropdown({ packs, existingMembers, onAddPack, onClose }) {
     }, [packs, existingMembers, searchTerm]);
 
     // Handle pack selection with touch support for Android
-    const handlePackSelect = (packName) => {
+    const handlePackSelect = useCallback((packName) => {
         onAddPack(packName);
         onClose();
-    };
+    }, [onAddPack, onClose]);
+
+    // Unified pointer handler for close button
+    const handleClose = useCallback((e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onClose();
+    }, [onClose]);
 
     return (
         <div 
             className="lumiverse-council-add-dropdown lumiverse-council-pack-dropdown"
-            onTouchStart={(e) => e.stopPropagation()}
-            onTouchEnd={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
         >
             <div className="lumiverse-council-add-header">
                 <input
@@ -439,11 +447,7 @@ function QuickAddPackDropdown({ packs, existingMembers, onAddPack, onClose }) {
                 />
                 <button
                     className="lumiverse-council-btn"
-                    onClick={onClose}
-                    onTouchEnd={(e) => {
-                        e.preventDefault();
-                        onClose();
-                    }}
+                    onPointerUp={handleClose}
                     title="Close"
                     type="button"
                 >
@@ -460,9 +464,9 @@ function QuickAddPackDropdown({ packs, existingMembers, onAddPack, onClose }) {
                         <button
                             key={pack.packName}
                             className="lumiverse-council-add-item lumiverse-council-pack-item"
-                            onClick={() => handlePackSelect(pack.packName)}
-                            onTouchEnd={(e) => {
+                            onPointerUp={(e) => {
                                 e.preventDefault();
+                                e.stopPropagation();
                                 handlePackSelect(pack.packName);
                             }}
                             type="button"
@@ -612,9 +616,7 @@ function CouncilManager() {
                     <div className="lumiverse-council-add-buttons">
                         <button
                             className="lumiverse-council-add-btn"
-                            onClick={() => setIsAddingMember(true)}
-                            onTouchEnd={(e) => {
-                                // Android WebView touch compatibility
+                            onPointerUp={(e) => {
                                 if (!councilMode) return;
                                 e.preventDefault();
                                 setIsAddingMember(true);
@@ -628,9 +630,7 @@ function CouncilManager() {
                         </button>
                         <button
                             className="lumiverse-council-add-btn lumiverse-council-add-btn--secondary"
-                            onClick={() => setIsAddingPack(true)}
-                            onTouchEnd={(e) => {
-                                // Android WebView touch compatibility
+                            onPointerUp={(e) => {
                                 if (!councilMode) return;
                                 e.preventDefault();
                                 setIsAddingPack(true);
