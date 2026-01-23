@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useSyncExternalStore, useCallback } from 'react';
+import React, { useState, useMemo, useSyncExternalStore, useCallback, useRef } from 'react';
 import clsx from 'clsx';
 import { Users, Plus, Trash2, ChevronDown, ChevronUp, Edit2, X, Check, Zap, Heart, Star, Package } from 'lucide-react';
 import { useLumiverseStore, useLumiverseActions, usePacks, saveToExtension } from '../../store/LumiverseContext';
@@ -14,6 +14,37 @@ const EMPTY_ARRAY = [];
 // Stable selector functions
 const selectCouncilMode = () => store.getState().councilMode || false;
 const selectCouncilMembers = () => store.getState().councilMembers || EMPTY_ARRAY;
+
+/**
+ * Create touch-safe event props for Android WebView compatibility.
+ * Returns props object with both onClick and onTouchEnd handlers.
+ * On Android, click events sometimes don't fire even when :active CSS works,
+ * so we need onTouchEnd as a fallback.
+ * @param {Function} handler - The action to perform
+ * @param {React.MutableRefObject} touchRef - A ref to track touch state
+ */
+function getTouchProps(handler, touchRef) {
+    return {
+        onClick: (e) => {
+            // If this click was triggered by touch, skip (already handled)
+            if (touchRef.current) {
+                touchRef.current = false;
+                return;
+            }
+            e.preventDefault();
+            e.stopPropagation();
+            handler();
+        },
+        onTouchEnd: (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            touchRef.current = true;
+            handler();
+            // Reset the flag after a short delay
+            setTimeout(() => { touchRef.current = false; }, 300);
+        },
+    };
+}
 
 /**
  * Find a Lumia item in a pack - supports both new and legacy formats
@@ -233,6 +264,8 @@ function AddMemberDropdown({ packs, existingMembers, onAdd, onClose }) {
     const [searchTerm, setSearchTerm] = useState('');
     // Disable autoFocus on mobile to prevent keyboard from auto-opening
     const isMobile = typeof window !== 'undefined' && window.innerWidth <= 600;
+    // Touch tracking ref for Android compatibility
+    const touchRef = useRef(false);
 
     // Get all Lumia items that aren't already council members
     const availableItems = useMemo(() => {
@@ -294,17 +327,14 @@ function AddMemberDropdown({ packs, existingMembers, onAdd, onClose }) {
         onClose();
     }, [onAdd, onClose]);
 
-    // Unified pointer handler for close button
-    const handleClose = useCallback((e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        onClose();
-    }, [onClose]);
+    // Close handler with touch support
+    const closeHandlers = getTouchProps(onClose, touchRef);
 
     return (
         <div 
             className="lumiverse-council-add-dropdown"
             onClick={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
         >
             <div className="lumiverse-council-add-header">
                 <input
@@ -317,7 +347,7 @@ function AddMemberDropdown({ packs, existingMembers, onAdd, onClose }) {
                 />
                 <button
                     className="lumiverse-council-btn"
-                    onClick={handleClose}
+                    {...closeHandlers}
                     title="Close"
                     type="button"
                 >
@@ -334,11 +364,7 @@ function AddMemberDropdown({ packs, existingMembers, onAdd, onClose }) {
                         <button
                             key={`${item.packName}:${item.itemName}`}
                             className="lumiverse-council-add-item"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                handleItemSelect(item);
-                            }}
+                            {...getTouchProps(() => handleItemSelect(item), touchRef)}
                             type="button"
                         >
                             <div className="lumiverse-council-add-item-avatar">
@@ -367,6 +393,8 @@ function QuickAddPackDropdown({ packs, existingMembers, onAddPack, onClose }) {
     const [searchTerm, setSearchTerm] = useState('');
     // Disable autoFocus on mobile to prevent keyboard from auto-opening
     const isMobile = typeof window !== 'undefined' && window.innerWidth <= 600;
+    // Touch tracking ref for Android compatibility
+    const touchRef = useRef(false);
 
     // Get packs with available (not-yet-added) Lumias and their counts
     const availablePacks = useMemo(() => {
@@ -424,17 +452,14 @@ function QuickAddPackDropdown({ packs, existingMembers, onAddPack, onClose }) {
         onClose();
     }, [onAddPack, onClose]);
 
-    // Unified pointer handler for close button
-    const handleClose = useCallback((e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        onClose();
-    }, [onClose]);
+    // Close handler with touch support
+    const closeHandlers = getTouchProps(onClose, touchRef);
 
     return (
         <div 
             className="lumiverse-council-add-dropdown lumiverse-council-pack-dropdown"
             onClick={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
         >
             <div className="lumiverse-council-add-header">
                 <input
@@ -447,7 +472,7 @@ function QuickAddPackDropdown({ packs, existingMembers, onAddPack, onClose }) {
                 />
                 <button
                     className="lumiverse-council-btn"
-                    onClick={handleClose}
+                    {...closeHandlers}
                     title="Close"
                     type="button"
                 >
@@ -464,11 +489,7 @@ function QuickAddPackDropdown({ packs, existingMembers, onAddPack, onClose }) {
                         <button
                             key={pack.packName}
                             className="lumiverse-council-add-item lumiverse-council-pack-item"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                handlePackSelect(pack.packName);
-                            }}
+                            {...getTouchProps(() => handlePackSelect(pack.packName), touchRef)}
                             type="button"
                         >
                             <div className="lumiverse-council-add-item-avatar lumiverse-council-pack-icon">
@@ -515,6 +536,8 @@ function CouncilManager() {
     const { allPacks } = usePacks();
     const [isAddingMember, setIsAddingMember] = useState(false);
     const [isAddingPack, setIsAddingPack] = useState(false);
+    // Touch tracking ref for Android compatibility
+    const touchRef = useRef(false);
 
     // Subscribe to council state
     const councilMode = useSyncExternalStore(
@@ -616,10 +639,10 @@ function CouncilManager() {
                     <div className="lumiverse-council-add-buttons">
                         <button
                             className="lumiverse-council-add-btn"
-                            onClick={() => {
+                            {...getTouchProps(() => {
                                 if (!councilMode) return;
                                 setIsAddingMember(true);
-                            }}
+                            }, touchRef)}
                             disabled={!councilMode}
                             title={councilMode ? 'Add a council member' : 'Enable Council Mode first'}
                             type="button"
@@ -629,10 +652,10 @@ function CouncilManager() {
                         </button>
                         <button
                             className="lumiverse-council-add-btn lumiverse-council-add-btn--secondary"
-                            onClick={() => {
+                            {...getTouchProps(() => {
                                 if (!councilMode) return;
                                 setIsAddingPack(true);
-                            }}
+                            }, touchRef)}
                             disabled={!councilMode}
                             title={councilMode ? 'Add all Lumias from a pack' : 'Enable Council Mode first'}
                             type="button"

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useSyncExternalStore, useCallback } from 'react';
+import React, { useState, useMemo, useSyncExternalStore, useCallback, useRef } from 'react';
 import clsx from 'clsx';
 import { Users, Plus, Trash2, Search, X, Edit2, Check, Zap, Heart } from 'lucide-react';
 import {
@@ -17,6 +17,31 @@ const EMPTY_ARRAY = [];
 
 // Stable selector functions
 const selectCouncilMembers = () => store.getState().councilMembers || EMPTY_ARRAY;
+
+/**
+ * Create touch-safe event props for Android WebView compatibility.
+ * Returns props object with both onClick and onTouchEnd handlers.
+ */
+function getTouchProps(handler, touchRef) {
+    return {
+        onClick: (e) => {
+            if (touchRef.current) {
+                touchRef.current = false;
+                return;
+            }
+            e.preventDefault();
+            e.stopPropagation();
+            handler();
+        },
+        onTouchEnd: (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            touchRef.current = true;
+            handler();
+            setTimeout(() => { touchRef.current = false; }, 300);
+        },
+    };
+}
 
 /**
  * Find a Lumia item in a pack - supports both new and legacy formats
@@ -86,7 +111,7 @@ function getLumiaFieldLocal(item, field) {
  * Card for a selectable Lumia (not yet in council)
  * Supports both new and legacy field names
  */
-function SelectableLumiaCard({ item, packName, onAdd, animationIndex }) {
+function SelectableLumiaCard({ item, packName, onAdd, animationIndex, touchRef }) {
     const itemImg = getLumiaFieldLocal(item, 'img');
     const itemName = getLumiaFieldLocal(item, 'name') || 'Unknown';
 
@@ -98,16 +123,16 @@ function SelectableLumiaCard({ item, packName, onAdd, animationIndex }) {
     const animationDelay = Math.min(animationIndex * 30, 300);
 
     // Handler for adding member - supports both click and touch
-    const handleAdd = () => {
+    const handleAdd = useCallback(() => {
         onAdd({ packName, itemName });
-    };
+    }, [onAdd, packName, itemName]);
 
     return (
         <button
             type="button"
             className="lumiverse-council-select-card lumia-card-appear"
             style={{ animationDelay: `${animationDelay}ms` }}
-            onClick={handleAdd}
+            {...getTouchProps(handleAdd, touchRef)}
         >
             <div className="lumiverse-council-select-card-image">
                 {itemImg && !imageError ? (
@@ -143,7 +168,7 @@ function SelectableLumiaCard({ item, packName, onAdd, animationIndex }) {
 /**
  * Card for an existing council member
  */
-function CouncilMemberCard({ member, packs, onRemove, onUpdateRole }) {
+function CouncilMemberCard({ member, packs, onRemove, onUpdateRole, touchRef }) {
     const [isEditingRole, setIsEditingRole] = useState(false);
     const [roleValue, setRoleValue] = useState(member.role || '');
 
@@ -151,10 +176,10 @@ function CouncilMemberCard({ member, packs, onRemove, onUpdateRole }) {
     const memberImage = getLumiaImage(packs, member.packName, member.itemName);
     const { objectPosition } = useAdaptiveImagePosition(memberImage);
 
-    const handleRoleSave = () => {
+    const handleRoleSave = useCallback(() => {
         onUpdateRole(member.id, { role: roleValue });
         setIsEditingRole(false);
-    };
+    }, [onUpdateRole, member.id, roleValue]);
 
     const handleRoleKeyDown = (e) => {
         if (e.key === 'Enter') handleRoleSave();
@@ -164,18 +189,18 @@ function CouncilMemberCard({ member, packs, onRemove, onUpdateRole }) {
         }
     };
 
-    const handleRoleCancel = () => {
+    const handleRoleCancel = useCallback(() => {
         setRoleValue(member.role || '');
         setIsEditingRole(false);
-    };
+    }, [member.role]);
 
-    const handleStartEdit = () => {
+    const handleStartEdit = useCallback(() => {
         setIsEditingRole(true);
-    };
+    }, []);
 
-    const handleRemove = () => {
+    const handleRemove = useCallback(() => {
         onRemove(member.id);
-    };
+    }, [onRemove, member.id]);
 
     const behaviorsCount = member.behaviors?.length || 0;
     const personalitiesCount = member.personalities?.length || 0;
@@ -208,14 +233,14 @@ function CouncilMemberCard({ member, packs, onRemove, onUpdateRole }) {
                         />
                         <button
                             className="lumiverse-council-btn-sm lumiverse-council-btn-sm--primary"
-                            onClick={handleRoleSave}
+                            {...getTouchProps(handleRoleSave, touchRef)}
                             type="button"
                         >
                             <Check size={12} strokeWidth={2} />
                         </button>
                         <button
                             className="lumiverse-council-btn-sm"
-                            onClick={handleRoleCancel}
+                            {...getTouchProps(handleRoleCancel, touchRef)}
                             type="button"
                         >
                             <X size={12} strokeWidth={2} />
@@ -226,7 +251,7 @@ function CouncilMemberCard({ member, packs, onRemove, onUpdateRole }) {
                         {member.role ? (
                             <span
                                 className="lumiverse-council-member-card-role"
-                                onClick={handleStartEdit}
+                                {...getTouchProps(handleStartEdit, touchRef)}
                                 title="Tap to edit role"
                             >
                                 {member.role}
@@ -234,7 +259,7 @@ function CouncilMemberCard({ member, packs, onRemove, onUpdateRole }) {
                         ) : (
                             <button
                                 className="lumiverse-council-add-role-btn"
-                                onClick={handleStartEdit}
+                                {...getTouchProps(handleStartEdit, touchRef)}
                                 type="button"
                             >
                                 <Edit2 size={10} /> Add role
@@ -249,7 +274,7 @@ function CouncilMemberCard({ member, packs, onRemove, onUpdateRole }) {
             </div>
             <button
                 className="lumiverse-council-btn-sm lumiverse-council-btn-sm--danger"
-                onClick={handleRemove}
+                {...getTouchProps(handleRemove, touchRef)}
                 title="Remove from council"
                 type="button"
             >
@@ -305,6 +330,8 @@ function CouncilSelectModal({ onClose }) {
     const actions = useLumiverseActions();
     const { allPacks } = usePacks();
     const [searchTerm, setSearchTerm] = useState('');
+    // Touch tracking ref for Android compatibility
+    const touchRef = useRef(false);
 
     // Subscribe to council state
     const councilMembers = useSyncExternalStore(
@@ -413,6 +440,7 @@ function CouncilSelectModal({ onClose }) {
                                     packs={packsObj}
                                     onRemove={handleRemoveMember}
                                     onUpdateRole={handleUpdateRole}
+                                    touchRef={touchRef}
                                 />
                             ))}
                         </div>
@@ -456,6 +484,7 @@ function CouncilSelectModal({ onClose }) {
                                     packName={packName}
                                     onAdd={handleAddMember}
                                     animationIndex={index}
+                                    touchRef={touchRef}
                                 />
                             ))}
                         </div>
