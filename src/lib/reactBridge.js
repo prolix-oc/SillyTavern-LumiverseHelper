@@ -10,7 +10,15 @@
  * so window.LumiverseUI is available immediately - no dynamic loading needed.
  */
 
-import { getSettings, saveSettings, MODULE_NAME, clearClaudeCache, resetAllSettings } from "./settingsManager.js";
+import {
+  getSettings,
+  saveSettings,
+  MODULE_NAME,
+  clearClaudeCache,
+  resetAllSettings,
+  getPacks,
+  isUsingFileStorage,
+} from "./settingsManager.js";
 import { getEventSource, getEventTypes } from "../stContext.js";
 
 // Track if React UI is loaded
@@ -71,15 +79,25 @@ export function getCallbacks() {
 /**
  * Convert extension settings to React store format
  *
- * IMPORTANT: This is a simple passthrough. We do NOT transform the data.
+ * IMPORTANT: This merges settings with packs from the cache (if using file storage).
  * The old code stores settings.packs as an OBJECT keyed by pack name.
  * React components must handle this format directly to maintain compatibility.
  *
- * @returns {Object} Settings in the EXACT format from getSettings()
+ * @returns {Object} Settings with packs merged in
  */
 export function settingsToReactFormat() {
-  // Return the EXACT settings structure - no transformation
-  return getSettings();
+  const settings = getSettings();
+
+  // If using file storage, get packs from cache
+  // Otherwise, packs are already in settings
+  if (isUsingFileStorage()) {
+    return {
+      ...settings,
+      packs: getPacks(),
+    };
+  }
+
+  return settings;
 }
 
 /**
@@ -161,6 +179,11 @@ export async function initializeReactUI(container) {
       notifySettingsChange: notifyReactOfSettingsChange,
       clearClaudeCache: clearClaudeCache,
       resetAllSettings: resetAllSettings,
+      // Called by packCache when pack data changes
+      onPackCacheChange: () => {
+        console.log("[ReactBridge] Pack cache changed, syncing to React...");
+        notifyReactOfSettingsChange();
+      },
     };
     console.log("[ReactBridge] Bridge API exposed on window.LumiverseBridge");
 

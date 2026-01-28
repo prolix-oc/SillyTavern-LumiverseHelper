@@ -3,7 +3,15 @@
  * Handles world book loading, parsing, and library management
  */
 
-import { getSettings, saveSettings, MODULE_NAME } from "./settingsManager.js";
+import {
+  getSettings,
+  saveSettings,
+  MODULE_NAME,
+  savePack,
+  getPackByName,
+  getPacks,
+  isUsingFileStorage,
+} from "./settingsManager.js";
 
 /**
  * Extract metadata from content (images, authors)
@@ -190,8 +198,8 @@ export function processWorldBook(data) {
  * @returns {Object|null} The item or null if not found
  */
 export function getItemFromLibrary(packName, itemName) {
-  const settings = getSettings();
-  const pack = settings.packs[packName];
+  // Use the new pack accessor that works with both file storage and settings
+  const pack = getPackByName(packName);
   if (!pack) return null;
 
   // New format: separate arrays
@@ -272,14 +280,14 @@ function convertToNewLoomFormat(oldItem) {
  * @param {Object} data - The world book data
  * @param {string} sourceName - Name/identifier for the source
  * @param {boolean} isURL - Whether the source was a URL
+ * @returns {Promise<Object|null>} The imported pack items or null
  */
-export function handleNewBook(data, sourceName, isURL = false) {
-  const settings = getSettings();
+export async function handleNewBook(data, sourceName, isURL = false) {
   const library = processWorldBook(data);
 
   if (library.length === 0) {
     toastr.error("No valid Lumia entries found in this World Book.");
-    return;
+    return null;
   }
 
   // Use the World Book's name if available, otherwise fall back to sourceName (filename/URL)
@@ -287,9 +295,10 @@ export function handleNewBook(data, sourceName, isURL = false) {
   const packKey = data.name || sourceName;
 
   // Check if pack exists
-  if (settings.packs[packKey]) {
+  const existingPack = getPackByName(packKey);
+  if (existingPack) {
     if (!confirm(`Pack "${packKey}" already exists. Overwrite?`)) {
-      return;
+      return null;
     }
   }
 
@@ -305,8 +314,8 @@ export function handleNewBook(data, sourceName, isURL = false) {
     }
   }
 
-  // Store in new pack format
-  settings.packs[packKey] = {
+  // Create pack object in new format
+  const pack = {
     packName: packKey,
     packAuthor: null,
     coverUrl: null,
@@ -319,7 +328,8 @@ export function handleNewBook(data, sourceName, isURL = false) {
     url: isURL ? sourceName : "",
   };
 
-  saveSettings();
+  // Save pack using the new storage system
+  await savePack(pack);
 
   const totalItems = lumiaItems.length + loomItems.length;
   toastr.success(
@@ -349,7 +359,7 @@ export async function fetchWorldBook(url) {
     const name = url.split("/").pop() || url;
 
     // Use importPack which handles both native Lumiverse format and World Book format
-    importPack(data, name, true);
+    await importPack(data, name, true);
   } catch (error) {
     console.error("Lumia Injector Error:", error);
     const statusDiv = document.getElementById("lumia-book-status");
@@ -364,11 +374,9 @@ export async function fetchWorldBook(url) {
  * @param {Object} data - The pack/world book data
  * @param {string} sourceName - Name/identifier for the source
  * @param {boolean} isURL - Whether the source was a URL
- * @returns {Object|null} The imported pack or null on failure
+ * @returns {Promise<Object|null>} The imported pack or null on failure
  */
-export function importPack(data, sourceName, isURL = false) {
-  const settings = getSettings();
-
+export async function importPack(data, sourceName, isURL = false) {
   // Detect format: native Lumiverse format has lumiaItems or loomItems arrays
   if (data.lumiaItems || data.loomItems) {
     // Native Lumiverse format - import directly
@@ -378,13 +386,14 @@ export function importPack(data, sourceName, isURL = false) {
     console.log(`[${MODULE_NAME}] Importing native format pack: ${packKey} (source: ${sourceName})`);
 
     // Check if pack exists
-    if (settings.packs[packKey]) {
+    const existingPack = getPackByName(packKey);
+    if (existingPack) {
       if (!confirm(`Pack "${packKey}" already exists. Overwrite?`)) {
         return null;
       }
     }
 
-    settings.packs[packKey] = {
+    const pack = {
       packName: packKey,
       packAuthor: data.packAuthor || null,
       coverUrl: data.coverUrl || null,
@@ -397,16 +406,17 @@ export function importPack(data, sourceName, isURL = false) {
       url: isURL ? sourceName : "",
     };
 
-    saveSettings();
+    // Save pack using the new storage system
+    await savePack(pack);
 
     const totalItems = (data.lumiaItems?.length || 0) + (data.loomItems?.length || 0);
     toastr.success(
       `Pack "${packKey}" imported! Found ${totalItems} entries.`,
     );
 
-    return settings.packs[packKey];
+    return pack;
   }
 
   // World Book format or raw entries array - use existing handler
-  return handleNewBook(data, sourceName, isURL);
+  return await handleNewBook(data, sourceName, isURL);
 }

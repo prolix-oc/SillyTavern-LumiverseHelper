@@ -1,9 +1,32 @@
 /**
  * Settings Manager Module
  * Handles all settings persistence, migration, and state management for Lumia Injector
+ *
+ * Storage Architecture:
+ * - Extension settings (settings.json): UI preferences, feature toggles, migration flags
+ * - File storage (User Files API): Pack data, selections, pack-related preferences
+ *
+ * The pack cache (packCache.js) handles in-memory caching and lazy loading of packs.
+ * This module bridges between the React UI, extension settings, and the pack cache.
  */
 
 import { getExtensionSettings, getSaveSettingsDebounced } from "../stContext.js";
+import {
+  initPackCache,
+  isCacheInitialized,
+  getCachedIndex,
+  getAllPacksSync,
+  getPackSync,
+  getPack,
+  upsertPack,
+  removePack as removePackFromCache,
+  updateSelections,
+  updatePreferences,
+  flushIndexSave,
+  migratePacksFromSettings,
+  migrateSelectionsFromSettings,
+  subscribeToCacheChanges,
+} from "./packCache.js";
 
 export const MODULE_NAME = "lumia-injector";
 export const SETTINGS_KEY = "lumia_injector_settings";
@@ -511,6 +534,12 @@ export function migrateSettings() {
   return migrated;
 }
 
+/** @type {boolean} Whether file storage has been initialized */
+let fileStorageInitialized = false;
+
+/** @type {boolean} Whether packs have been migrated to file storage */
+let packsMigrated = false;
+
 /**
  * Load settings from SillyTavern storage
  */
@@ -528,13 +557,227 @@ export function loadSettings() {
 }
 
 /**
- * Save settings to SillyTavern storage
+ * Initialize pack file storage.
+ * This should be called after loadSettings() during extension startup.
+ * Migrates packs from extension_settings to file storage on first run.
+ * @returns {Promise<boolean>} True if file storage is available and initialized
+ */
+export async function initPackFileStorage() {
+  if (fileStorageInitialized) {
+    return isCacheInitialized();
+  }
+
+  console.log(`[${MODULE_NAME}] Initializing pack file storage...`);
+
+  // Check if we've already migrated (flag in settings)
+  const alreadyMigrated = settings.packStorageMigrated === true;
+
+  // Initialize the pack cache
+  const cacheReady = await initPackCache();
+
+  if (!cacheReady) {
+    console.warn(`[${MODULE_NAME}] File storage not available, using extension settings`);
+    fileStorageInitialized = true;
+    return false;
+  }
+
+  // If not migrated yet and we have packs in settings, migrate them
+  if (!alreadyMigrated && settings.packs && Object.keys(settings.packs).length > 0) {
+    console.log(`[${MODULE_NAME}] Migrating packs to file storage...`);
+
+    const { migrated, failed } = await migratePacksFromSettings(settings.packs);
+
+    if (migrated > 0) {
+      // Also migrate selections and preferences
+      migrateSelectionsFromSettings(settings);
+
+      // Mark as migrated
+      settings.packStorageMigrated = true;
+
+      // Clear packs from extension settings to reduce size
+      // Keep a backup flag in case we need to recover
+      settings.packsBackedUp = true;
+      delete settings.packs;
+
+      // Save the updated settings
+      saveSettings();
+
+      console.log(`[${MODULE_NAME}] Migration complete: ${migrated} packs moved to file storage`);
+      if (failed > 0) {
+        console.warn(`[${MODULE_NAME}] ${failed} packs failed to migrate`);
+      }
+    }
+
+    packsMigrated = true;
+  } else if (alreadyMigrated) {
+    console.log(`[${MODULE_NAME}] Packs already migrated to file storage`);
+    packsMigrated = true;
+  }
+
+  fileStorageInitialized = true;
+
+  // Subscribe to cache changes to keep React in sync
+  subscribeToCacheChanges(() => {
+    // Notify any listeners that pack data changed
+    // This will be used by the React store to refresh
+    if (typeof window !== 'undefined' && window.LumiverseBridge?.onPackCacheChange) {
+      window.LumiverseBridge.onPackCacheChange();
+    }
+  });
+
+  return true;
+}
+
+/**
+ * Check if file storage is being used for packs.
+ * @returns {boolean}
+ */
+export function isUsingFileStorage() {
+  return fileStorageInitialized && isCacheInitialized();
+}
+
+/**
+ * Save settings to SillyTavern storage.
+ * Note: Pack data is now saved via the pack cache, not here.
  */
 export function saveSettings() {
   const extension_settings = getExtensionSettings();
   const saveSettingsDebounced = getSaveSettingsDebounced();
-  extension_settings[SETTINGS_KEY] = settings;
+
+  // If using file storage, don't include packs in extension settings
+  if (isUsingFileStorage()) {
+    // Create a copy without packs for saving
+    const settingsToSave = { ...settings };
+    delete settingsToSave.packs; // Packs are in file storage
+    extension_settings[SETTINGS_KEY] = settingsToSave;
+  } else {
+    extension_settings[SETTINGS_KEY] = settings;
+  }
+
   saveSettingsDebounced();
+}
+
+/**
+ * Get packs from the appropriate source (cache or settings).
+ * @returns {Object} Packs object keyed by pack name
+ */
+export function getPacks() {
+  if (isUsingFileStorage()) {
+    // Build packs object from cache
+    const packs = {};
+    for (const pack of getAllPacksSync()) {
+      const packName = pack.packName || pack.name;
+      packs[packName] = pack;
+    }
+    return packs;
+  }
+  return settings.packs || {};
+}
+
+/**
+ * Get a single pack by name.
+ * @param {string} packName - The pack name
+ * @returns {Object|null} The pack or null
+ */
+export function getPackByName(packName) {
+  if (isUsingFileStorage()) {
+    return getPackSync(packName);
+  }
+  return settings.packs?.[packName] || null;
+}
+
+/**
+ * Get a single pack by name (async version, may load from file).
+ * @param {string} packName - The pack name
+ * @returns {Promise<Object|null>} The pack or null
+ */
+export async function getPackByNameAsync(packName) {
+  if (isUsingFileStorage()) {
+    return await getPack(packName);
+  }
+  return settings.packs?.[packName] || null;
+}
+
+/**
+ * Save or update a pack.
+ * @param {Object} pack - The pack object
+ * @returns {Promise<void>}
+ */
+export async function savePack(pack) {
+  const packName = pack.packName || pack.name;
+
+  if (isUsingFileStorage()) {
+    await upsertPack(pack);
+  } else {
+    // Fallback to extension settings
+    if (!settings.packs) settings.packs = {};
+    settings.packs[packName] = pack;
+    saveSettings();
+  }
+}
+
+/**
+ * Delete a pack.
+ * @param {string} packName - The pack name to delete
+ * @returns {Promise<void>}
+ */
+export async function deletePack(packName) {
+  if (isUsingFileStorage()) {
+    await removePackFromCache(packName);
+  } else {
+    if (settings.packs?.[packName]) {
+      delete settings.packs[packName];
+      saveSettings();
+    }
+  }
+}
+
+/**
+ * Update selections (write-through to file storage or settings).
+ * @param {Object} newSelections - Partial selections to merge
+ */
+export function saveSelections(newSelections) {
+  if (isUsingFileStorage()) {
+    updateSelections(newSelections);
+  } else {
+    // Merge into settings
+    Object.assign(settings, newSelections);
+    saveSettings();
+  }
+}
+
+/**
+ * Get current selections.
+ * @returns {Object} Selections object
+ */
+export function getSelections() {
+  if (isUsingFileStorage()) {
+    const index = getCachedIndex();
+    return index?.selections || {};
+  }
+  // Extract selections from settings
+  return {
+    selectedDefinition: settings.selectedDefinition,
+    selectedBehaviors: settings.selectedBehaviors || [],
+    selectedPersonalities: settings.selectedPersonalities || [],
+    dominantBehavior: settings.dominantBehavior,
+    dominantPersonality: settings.dominantPersonality,
+    selectedLoomStyle: settings.selectedLoomStyle || [],
+    selectedLoomUtils: settings.selectedLoomUtils || [],
+    selectedLoomRetrofits: settings.selectedLoomRetrofits || [],
+    selectedDefinitions: settings.selectedDefinitions || [],
+    councilMembers: settings.councilMembers || [],
+  };
+}
+
+/**
+ * Flush any pending saves before shutdown.
+ * @returns {Promise<void>}
+ */
+export async function flushPendingSaves() {
+  if (isUsingFileStorage()) {
+    await flushIndexSave();
+  }
 }
 
 /**
