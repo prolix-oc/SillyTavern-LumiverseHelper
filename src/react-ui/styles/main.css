@@ -3737,7 +3737,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
 /* ----------------------------------------
    Lumia Editor Modal
    ---------------------------------------- */
-.lumia-modal-lumia-editor {
+.lumiverse-modal-lumia-editor {
     max-width: 640px;
     width: 90%;
 }
@@ -4129,7 +4129,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
 /* ============================================
    MOBILE RESPONSIVE - Editor Modals
-   Lumia Editor, Loom Editor, Pack Editor
+   Lumia Editor, Loom Editor, Pack Editor, Pack Selector
    
    CRITICAL: The modal hierarchy is:
    .lumiverse-modal-backdrop (fixed, flex center)
@@ -4149,7 +4149,8 @@ details.lumia-panel[open] .lumia-panel-chevron {
        ---------------------------------------- */
     .lumiverse-modal.lumiverse-modal-lumia-editor,
     .lumiverse-modal.lumiverse-modal-loom-editor,
-    .lumiverse-modal.lumiverse-modal-pack-editor {
+    .lumiverse-modal.lumiverse-modal-pack-editor,
+    .lumiverse-modal.lumiverse-modal-pack-selector {
         width: calc(100vw - 24px) !important;
         max-width: calc(100vw - 24px) !important;
         /* Height: use vh as fallback, dvh as enhancement */
@@ -4159,14 +4160,15 @@ details.lumia-panel[open] .lumia-panel-chevron {
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        min-height: 0; /* Critical for nested flex scroll */
+        min-height: 0 !important; /* Critical for nested flex scroll */
     }
 
     /* Dynamic viewport units for modern browsers */
     @supports (height: 100dvh) {
         .lumiverse-modal.lumiverse-modal-lumia-editor,
         .lumiverse-modal.lumiverse-modal-loom-editor,
-        .lumiverse-modal.lumiverse-modal-pack-editor {
+        .lumiverse-modal.lumiverse-modal-pack-editor,
+        .lumiverse-modal.lumiverse-modal-pack-selector {
             height: calc(100dvh - 24px);
             max-height: calc(100dvh - 24px);
         }
@@ -4181,7 +4183,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
         display: flex;
         flex-direction: column;
         flex: 1;
-        min-height: 0; /* Critical: allows flex child to shrink */
+        min-height: 0 !important; /* Critical: allows flex child to shrink */
         height: 100%;
         overflow: hidden;
     }
@@ -4189,8 +4191,8 @@ details.lumia-panel[open] .lumia-panel-chevron {
     /* Scrollable content area - THE KEY ELEMENT */
     .lumiverse-editor-content {
         flex: 1;
-        min-height: 0; /* Critical: enables overflow scrolling */
-        overflow-y: auto;
+        min-height: 0 !important; /* Critical: enables overflow scrolling */
+        overflow-y: auto !important;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
         padding: 12px;
@@ -4387,19 +4389,21 @@ details.lumia-panel[open] .lumia-panel-chevron {
     /* ----------------------------------------
        Pack Editor Modal - Mobile
        ---------------------------------------- */
-    .lumiverse-pack-editor-modal {
+    .lumiverse-pack-editor-modal,
+    .lumiverse-pack-selector-modal {
         display: flex;
         flex-direction: column;
         flex: 1 1 auto;
-        min-height: 0;
+        min-height: 0 !important;
         max-height: 100%;
         overflow: hidden;
     }
 
-    .lumiverse-pack-editor-content {
+    .lumiverse-pack-editor-content,
+    .lumiverse-pack-selector-content {
         flex: 1 1 auto;
-        min-height: 0;
-        overflow-y: auto;
+        min-height: 0 !important;
+        overflow-y: auto !important;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
         padding: 12px;
