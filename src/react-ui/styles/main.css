@@ -10529,10 +10529,10 @@ details.lumia-panel[open] .lumia-panel-chevron {
     color: rgba(239, 68, 68, 0.95);
 }
 
-/* Modal content - scrollable container that doesn't shrink */
+/* Modal content - scrollable container */
 .lumiverse-presets-modal-content {
-    flex: 1 1 0;
-    min-height: 0; /* Required for flex overflow to work */
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
     padding: 16px 20px;

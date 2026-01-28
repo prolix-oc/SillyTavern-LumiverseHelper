@@ -353,10 +353,6 @@ export async function importPreset(presetData, presetName, options = {}) {
         }
 
         if (presetData.preset && isPossiblyTextCompletionData(presetData.preset)) {
-            // Apply mistralai_model fix
-            if (typeof presetData.preset.mistralai_model === "undefined") {
-                presetData.preset.mistralai_model = "";
-            }
             const manager = context.getPresetManager("openai");
             await manager.savePreset(presetData.preset.name || presetName, presetData.preset);
             importedCount++;
