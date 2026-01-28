@@ -18,6 +18,7 @@ const selectChimeraMode = () => store.getState().chimeraMode || false;
 const selectSelectedDefinitions = () => store.getState().selectedDefinitions || EMPTY_ARRAY;
 const selectCouncilMode = () => store.getState().councilMode || false;
 const selectCouncilMembers = () => store.getState().councilMembers || EMPTY_ARRAY;
+const selectActivePresetName = () => store.getState().activePresetName || '';
 
 /* global SillyTavern */
 
@@ -309,7 +310,20 @@ function ProfileBindingsModal({ onClose }) {
         refreshPresets,
     } = usePresetBindings();
 
-    const [selectedPreset, setSelectedPreset] = useState('');
+    // Get currently active preset from store
+    const activePresetName = useSyncExternalStore(
+        store.subscribe,
+        selectActivePresetName,
+        selectActivePresetName
+    );
+
+    // Default to the current binding or active preset
+    const getDefaultPreset = () => {
+        // Prefer existing binding for selected type, then fall back to active preset
+        return currentCharacterBinding || currentChatBinding || activePresetName || '';
+    };
+
+    const [selectedPreset, setSelectedPreset] = useState(getDefaultPreset);
     const [bindingType, setBindingType] = useState('character');
 
     // Refresh presets on mount

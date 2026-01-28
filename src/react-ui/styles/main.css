@@ -12947,7 +12947,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
 }
 
 .lumiverse-profile-bindings-modal {
-    background: var(--lumiverse-panel-bg);
+    background: var(--lumiverse-bg);
     border: 1px solid var(--lumiverse-border);
     border-radius: 14px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
