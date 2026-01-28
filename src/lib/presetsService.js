@@ -581,23 +581,33 @@ export async function downloadAndImportPreset(presetSlug, versionSlug = "latest"
             throw new Error("No preset data in API response");
         }
 
+        // Extract version info from response
+        // API returns: { preset: { latestVersion: { name, version: {major,minor,patch} } }, data: {...} }
+        const versionInfo = response.preset?.latestVersion || null;
+        
         // Build preset name from response metadata
-        const presetName = response.version?.name || 
-                          response.preset?.latestVersion?.name || 
-                          `${presetSlug} ${versionSlug}`;
+        const presetName = versionInfo?.name || `${presetSlug} ${versionSlug}`;
 
         // Import into SillyTavern
         const result = await importPreset(response.data, presetName, importOptions);
 
         // Track the version for update notifications if import succeeded
-        if (result.success && trackVersion && response.version) {
-            trackPresetVersion(presetSlug, response.preset, response.version);
+        console.log(`[${MODULE_NAME}] Import result:`, { 
+            success: result.success, 
+            trackVersion, 
+            hasVersion: !!versionInfo,
+            versionInfo
+        });
+        
+        if (result.success && trackVersion) {
+            // Track with version info from latestVersion, or fallback
+            trackPresetVersion(presetSlug, response.preset, versionInfo || { name: versionSlug, version: null });
         }
 
         return {
             ...result,
             presetInfo: response.preset,
-            versionInfo: response.version,
+            versionInfo,
         };
 
     } catch (error) {
