@@ -10351,7 +10351,9 @@ details.lumia-panel[open] .lumia-panel-chevron {
 .lumiverse-presets-modal {
     width: 90vw;
     max-width: 560px;
+    min-height: 400px;
     max-height: 85vh;
+    max-height: 85dvh; /* Better mobile support */
     display: flex;
     flex-direction: column;
     background: linear-gradient(
@@ -10367,6 +10369,22 @@ details.lumia-panel[open] .lumia-panel-chevron {
         0 0 1px rgba(147, 112, 219, 0.3),
         inset 0 1px 0 rgba(255, 255, 255, 0.05);
     overflow: hidden;
+}
+
+/* Mobile-friendly sizing */
+@media (max-width: 480px) {
+    .lumiverse-presets-modal {
+        width: 95vw;
+        min-height: 50vh;
+        max-height: 90dvh;
+        border-radius: 16px;
+    }
+}
+
+@media (min-height: 700px) {
+    .lumiverse-presets-modal {
+        min-height: 500px;
+    }
 }
 
 /* Modal header */
