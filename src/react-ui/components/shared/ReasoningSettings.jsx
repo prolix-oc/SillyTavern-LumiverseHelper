@@ -98,9 +98,9 @@ export function ReasoningSettingsContent({
                     <div className="lumiverse-presets-reasoning-tags">
                         <Tag size={12} strokeWidth={2} />
                         <span>Tags:</span>
-                        <code>{reasoningSettings.prefix || '<think>'}</code>
+                        <code>{(reasoningSettings.prefix || '<think>').replace(/\n/g, '↵')}</code>
                         <span className="lumiverse-presets-reasoning-tags-sep">/</span>
-                        <code>{reasoningSettings.suffix || '</think>'}</code>
+                        <code>{(reasoningSettings.suffix || '</think>').replace(/\n/g, '↵')}</code>
                     </div>
                 </div>
             )}
