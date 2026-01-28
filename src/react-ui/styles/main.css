@@ -11748,11 +11748,17 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
 .lumiverse-prompt-actions {
     display: flex;
-    gap: 4px;
+    gap: 6px;
+    align-items: center;
 }
 
 .lumiverse-icon-btn {
-    padding: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
     background: transparent;
     border: none;
     color: var(--lumiverse-text-muted);

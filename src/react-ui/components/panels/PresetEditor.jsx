@@ -82,7 +82,7 @@ function SortablePromptItem({ prompt, index, onEdit, onDelete, onToggleEnabled, 
                             onClick={() => onToggleCollapse(prompt.identifier || prompt._uiId)}
                             style={{ marginRight: 4 }}
                         >
-                            {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+                            {isCollapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
                         </button>
                     )}
                     <span className="lumiverse-prompt-name">{displayName}</span>
@@ -106,21 +106,21 @@ function SortablePromptItem({ prompt, index, onEdit, onDelete, onToggleEnabled, 
                     onClick={() => onToggleEnabled(index)}
                     title={prompt.enabled ? "Disable" : "Enable"}
                 >
-                    {prompt.enabled ? <Eye size={16} /> : <EyeOff size={16} />}
+                    {prompt.enabled ? <Eye size={18} /> : <EyeOff size={18} />}
                 </button>
                 <button
                     className="lumiverse-icon-btn"
                     onClick={() => onEdit(index)}
                     title="Edit"
                 >
-                    <Edit2 size={16} />
+                    <Edit2 size={18} />
                 </button>
                 <button
                     className="lumiverse-icon-btn lumiverse-btn-danger"
                     onClick={() => onDelete(index)}
                     title="Delete"
                 >
-                    <Trash2 size={16} />
+                    <Trash2 size={18} />
                 </button>
             </div>
         </div>
