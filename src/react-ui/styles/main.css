@@ -11844,3 +11844,220 @@ details.lumia-panel[open] .lumia-panel-chevron {
     background: var(--lumiverse-bg-elevated);
     color: var(--lumiverse-text);
 }
+
+/* ========================================
+   Preset Editor - Enhanced Button Styles
+   ======================================== */
+
+/* Base .lumiverse-btn inside preset-editor gets default styling */
+.lumiverse-preset-editor .lumiverse-btn {
+    background: rgba(75, 75, 95, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--lumiverse-text);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.lumiverse-preset-editor .lumiverse-btn:hover {
+    background: rgba(95, 95, 115, 0.7);
+    border-color: rgba(147, 112, 219, 0.35);
+    transform: translateY(-1px);
+}
+
+/* Primary button in preset editor */
+.lumiverse-preset-editor .lumiverse-btn.lumiverse-btn-primary {
+    background: linear-gradient(
+        135deg,
+        rgba(147, 112, 219, 0.85) 0%,
+        rgba(123, 95, 196, 0.85) 100%
+    );
+    border: 1px solid rgba(147, 112, 219, 0.4);
+    color: #fff;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.lumiverse-preset-editor .lumiverse-btn.lumiverse-btn-primary:hover {
+    background: linear-gradient(
+        135deg,
+        rgba(167, 132, 239, 0.95) 0%,
+        rgba(143, 115, 216, 0.95) 100%
+    );
+    border-color: rgba(147, 112, 219, 0.6);
+    box-shadow: 0 4px 12px rgba(147, 112, 219, 0.3);
+}
+
+/* Danger button variant */
+.lumiverse-preset-editor .lumiverse-btn-danger,
+.lumiverse-preset-editor .lumiverse-icon-btn.lumiverse-btn-danger {
+    color: rgba(239, 100, 100, 0.9);
+}
+
+.lumiverse-preset-editor .lumiverse-btn-danger:hover,
+.lumiverse-preset-editor .lumiverse-icon-btn.lumiverse-btn-danger:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+}
+
+/* Modal header styling */
+.lumiverse-preset-editor .lumiverse-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: linear-gradient(
+        180deg,
+        rgba(45, 45, 65, 0.9) 0%,
+        rgba(35, 35, 50, 0.8) 100%
+    );
+}
+
+.lumiverse-preset-editor .lumiverse-modal-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--lumiverse-text);
+}
+
+/* Close button */
+.lumiverse-preset-editor .lumiverse-close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: var(--lumiverse-text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.lumiverse-preset-editor .lumiverse-close-btn:hover {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #f87171;
+}
+
+/* Toolbar enhancements */
+.lumiverse-preset-editor .lumiverse-toolbar {
+    background: linear-gradient(
+        180deg,
+        rgba(35, 35, 50, 0.6) 0%,
+        rgba(30, 30, 45, 0.4) 100%
+    );
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 12px 16px;
+}
+
+/* Edit form overlay enhancements */
+.lumiverse-preset-editor .lumiverse-edit-form {
+    background: linear-gradient(
+        180deg,
+        rgba(30, 30, 46, 0.98) 0%,
+        rgba(25, 25, 38, 0.98) 100%
+    );
+    border-radius: 0;
+}
+
+.lumiverse-preset-editor .lumiverse-edit-form h4 {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--lumiverse-text);
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Form inputs enhanced */
+.lumiverse-preset-editor .lumiverse-form-group input,
+.lumiverse-preset-editor .lumiverse-form-group select,
+.lumiverse-preset-editor .lumiverse-form-group textarea {
+    background: rgba(20, 20, 35, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.2s ease;
+}
+
+.lumiverse-preset-editor .lumiverse-form-group input:focus,
+.lumiverse-preset-editor .lumiverse-form-group select:focus,
+.lumiverse-preset-editor .lumiverse-form-group textarea:focus {
+    outline: none;
+    border-color: rgba(147, 112, 219, 0.5);
+    box-shadow: 0 0 0 3px rgba(147, 112, 219, 0.15);
+}
+
+/* Prompt list container */
+.lumiverse-preset-editor .lumiverse-prompt-list {
+    background: rgba(20, 20, 35, 0.4);
+}
+
+/* Prompt items enhanced */
+.lumiverse-preset-editor .lumiverse-prompt-item {
+    background: rgba(45, 45, 65, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.lumiverse-preset-editor .lumiverse-prompt-item:hover {
+    background: rgba(55, 55, 75, 0.6);
+    border-color: rgba(147, 112, 219, 0.25);
+}
+
+/* Dragging state */
+.lumiverse-preset-editor .lumiverse-prompt-item[style*="opacity: 0.5"] {
+    background: rgba(147, 112, 219, 0.15);
+    border-color: rgba(147, 112, 219, 0.4);
+}
+
+/* Icon buttons in prompt actions */
+.lumiverse-preset-editor .lumiverse-prompt-actions .lumiverse-icon-btn {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid transparent;
+}
+
+.lumiverse-preset-editor .lumiverse-prompt-actions .lumiverse-icon-btn:hover {
+    background: rgba(147, 112, 219, 0.2);
+    border-color: rgba(147, 112, 219, 0.3);
+    color: var(--lumiverse-primary-text);
+}
+
+/* Category toggle button */
+.lumiverse-preset-editor .lumiverse-prompt-category .lumiverse-icon-btn {
+    color: var(--lumiverse-primary-text);
+}
+
+/* Empty state */
+.lumiverse-preset-editor .lumiverse-empty-state {
+    color: var(--lumiverse-text-muted);
+    font-style: italic;
+}
+
+/* Drag overlay item */
+.lumiverse-prompt-dragging {
+    display: flex;
+    align-items: flex-start;
+    padding: 10px;
+    background: rgba(147, 112, 219, 0.25);
+    border: 2px solid rgba(147, 112, 219, 0.6);
+    border-radius: var(--lumiverse-radius);
+    gap: 12px;
+    box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(147, 112, 219, 0.3);
+    cursor: grabbing;
+    transform: scale(1.02);
+}
+
+.lumiverse-prompt-dragging .lumiverse-prompt-drag-handle {
+    color: var(--lumiverse-primary-text);
+    cursor: grabbing;
+}
+
+.lumiverse-prompt-dragging .lumiverse-prompt-name {
+    font-weight: 500;
+    color: var(--lumiverse-text);
+}

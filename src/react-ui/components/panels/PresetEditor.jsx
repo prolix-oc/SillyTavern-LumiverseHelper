@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
     DndContext,
     closestCenter,
@@ -143,6 +143,7 @@ export default function PresetEditor({ onClose }) {
     const [editingIndex, setEditingIndex] = useState(null);
     const [editForm, setEditForm] = useState(null);
     const [collapsedCategories, setCollapsedCategories] = useState(new Set());
+    const [activeId, setActiveId] = useState(null);
 
     const toggleCategory = (id) => {
         const newCollapsed = new Set(collapsedCategories);
@@ -174,22 +175,43 @@ export default function PresetEditor({ onClose }) {
     }, [prompts, collapsedCategories]);
 
     const sensors = useSensors(
-        useSensor(PointerSensor),
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8, // Require 8px movement before drag starts
+            },
+        }),
         useSensor(KeyboardSensor, {
             coordinateGetter: sortableKeyboardCoordinates,
         })
     );
 
-    const handleDragEnd = (event) => {
-        const { active, over } = event;
+    const handleDragStart = useCallback((event) => {
+        setActiveId(event.active.id);
+    }, []);
 
-        if (active.id !== over.id) {
+    const handleDragEnd = useCallback((event) => {
+        const { active, over } = event;
+        setActiveId(null);
+
+        if (over && active.id !== over.id) {
             const oldIndex = prompts.findIndex(p => (p.identifier || p._uiId) === active.id);
             const newIndex = prompts.findIndex(p => (p.identifier || p._uiId) === over.id);
             
-            savePrompts(arrayMove(prompts, oldIndex, newIndex));
+            if (oldIndex !== -1 && newIndex !== -1) {
+                savePrompts(arrayMove(prompts, oldIndex, newIndex));
+            }
         }
-    };
+    }, [prompts, savePrompts]);
+
+    const handleDragCancel = useCallback(() => {
+        setActiveId(null);
+    }, []);
+
+    // Get active prompt for drag overlay
+    const activePrompt = useMemo(() => {
+        if (!activeId) return null;
+        return prompts.find(p => (p.identifier || p._uiId) === activeId);
+    }, [activeId, prompts]);
 
     const handleEdit = (index) => {
         // Find the actual prompt in the full list
@@ -373,7 +395,9 @@ export default function PresetEditor({ onClose }) {
                         <DndContext
                             sensors={sensors}
                             collisionDetection={closestCenter}
+                            onDragStart={handleDragStart}
                             onDragEnd={handleDragEnd}
+                            onDragCancel={handleDragCancel}
                         >
                             <SortableContext
                                 items={visiblePrompts.map(p => p.identifier || p._uiId)}
@@ -392,6 +416,29 @@ export default function PresetEditor({ onClose }) {
                                     />
                                 ))}
                             </SortableContext>
+                            <DragOverlay>
+                                {activePrompt ? (
+                                    <div className="lumiverse-prompt-item lumiverse-prompt-dragging">
+                                        <div className="lumiverse-prompt-drag-handle">
+                                            <GripVertical size={16} />
+                                        </div>
+                                        <div className="lumiverse-prompt-content">
+                                            <div className="lumiverse-prompt-header">
+                                                <span className="lumiverse-prompt-name">
+                                                    {activePrompt.name.startsWith(CATEGORY_MARKER) 
+                                                        ? activePrompt.name.substring(1).trim() 
+                                                        : activePrompt.name}
+                                                </span>
+                                                <div className="lumiverse-prompt-badges">
+                                                    <span className={clsx('lumiverse-badge', `lumiverse-badge-${activePrompt.role}`)}>
+                                                        {activePrompt.role}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : null}
+                            </DragOverlay>
                         </DndContext>
                     )}
                 </div>
