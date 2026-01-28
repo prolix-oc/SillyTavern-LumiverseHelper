@@ -34,7 +34,8 @@ import {
     applyReasoningWithBias,
     checkForPresetUpdates,
     getTrackedPresets,
-    formatVersion
+    formatVersion,
+    subscribeToTrackingChanges
 } from '../../../lib/presetsService';
 
 /* global toastr */
@@ -60,6 +61,13 @@ export function ChatPresetsPanel() {
         setReasoningSettings(getReasoningSettings());
         setStartReplyWithState(getStartReplyWith());
         
+        // Subscribe to real-time tracking changes
+        const unsubscribe = subscribeToTrackingChanges((newTrackedPresets) => {
+            setTrackedPresets(newTrackedPresets);
+            // Also refresh update checks when tracking changes
+            checkForPresetUpdates().then(setAvailableUpdates);
+        });
+        
         // Initial update check (delayed to not block UI)
         const initialCheck = setTimeout(() => {
             checkForPresetUpdates().then(setAvailableUpdates);
@@ -71,6 +79,7 @@ export function ChatPresetsPanel() {
         }, UPDATE_CHECK_INTERVAL);
         
         return () => {
+            unsubscribe();
             clearTimeout(initialCheck);
             if (updateCheckRef.current) {
                 clearInterval(updateCheckRef.current);

@@ -10,6 +10,36 @@ import { getSettings, saveSettings } from "./settingsManager.js";
 export const MODULE_NAME = "presets-service";
 const LUCID_API_BASE = "https://lucid.cards";
 
+// --- Event Emitter for Preset Tracking Changes ---
+// Allows UI components to subscribe to real-time tracking updates
+
+const trackingListeners = new Set();
+
+/**
+ * Subscribe to preset tracking changes
+ * @param {Function} listener - Callback invoked when tracked presets change
+ * @returns {Function} Unsubscribe function
+ */
+export function subscribeToTrackingChanges(listener) {
+    trackingListeners.add(listener);
+    return () => trackingListeners.delete(listener);
+}
+
+/**
+ * Notify all listeners of a tracking change
+ * @private
+ */
+function notifyTrackingChange() {
+    const trackedPresets = getTrackedPresets();
+    trackingListeners.forEach(listener => {
+        try {
+            listener(trackedPresets);
+        } catch (err) {
+            console.error(`[${MODULE_NAME}] Tracking listener error:`, err);
+        }
+    });
+}
+
 // --- Connection Settings Preservation ---
 // These keys represent user connection configuration that should NOT be overwritten by presets
 // See: developer_guides/5_safe_preset_importing.md
@@ -158,6 +188,7 @@ export function trackPresetVersion(presetSlug, presetInfo, versionInfo) {
     
     saveSettings();
     console.log(`[${MODULE_NAME}] Tracked preset: ${presetSlug} v${formatVersion(versionInfo?.version)}`);
+    notifyTrackingChange();
 }
 
 /**
@@ -250,6 +281,7 @@ export function untrackPreset(presetSlug) {
     if (settings.trackedPresets && settings.trackedPresets[presetSlug]) {
         delete settings.trackedPresets[presetSlug];
         saveSettings();
+        notifyTrackingChange();
     }
 }
 
@@ -411,11 +443,53 @@ export async function importPreset(presetData, presetName, options = {}) {
             const currentSettings = context.chatCompletionSettings || window.oai_settings || {};
             const safePresetData = hydratePresetWithConnectionSettings(presetData, currentSettings);
             
+            // Debug: verify hydration added required keys
+            console.log(`[${MODULE_NAME}] Hydrated preset has mistralai_model:`, typeof safePresetData.mistralai_model, safePresetData.mistralai_model);
+            
             const manager = context.getPresetManager("openai");
+            
+            // savePreset will store the preset and update openai_settings array
             await manager.savePreset(presetName, safePresetData);
             
+            // After save, get the stored preset and patch if needed
+            // ST's getCompletionPresetByName returns reference to the stored object
+            const storedPreset = manager.getCompletionPresetByName?.(presetName);
+            if (storedPreset) {
+                console.log(`[${MODULE_NAME}] Stored preset has mistralai_model:`, typeof storedPreset.mistralai_model, storedPreset.mistralai_model);
+                // Patch directly on the stored object if missing
+                REQUIRED_KEYS.forEach(key => {
+                    if (typeof storedPreset[key] === 'undefined') {
+                        storedPreset[key] = "";
+                        console.log(`[${MODULE_NAME}] Patched stored preset with ${key}`);
+                    }
+                });
+            } else {
+                console.warn(`[${MODULE_NAME}] Could not find stored preset to verify`);
+            }
+            
             if (activate) {
-                await manager.selectPreset(presetName);
+                // ST's migrateChatCompletionSettings reads from openai_settings during preset change
+                // Ensure required keys exist on the global to prevent crashes
+                REQUIRED_KEYS.forEach(key => {
+                    if (currentSettings && typeof currentSettings[key] === "undefined") {
+                        currentSettings[key] = "";
+                    }
+                });
+                
+                // Allow DOM/state to settle before triggering preset change
+                // savePreset's updateList adds the option, but selection may race with it
+                await new Promise(resolve => setTimeout(resolve, 50));
+                
+                // Use findPreset to get the correct option value (numeric index)
+                const optionValue = manager.findPreset?.(presetName);
+                console.log(`[${MODULE_NAME}] selectPreset - name: "${presetName}", optionValue: "${optionValue}"`);
+                
+                if (optionValue !== undefined && optionValue !== null) {
+                    await manager.selectPreset(optionValue);
+                } else {
+                    // Fallback to name if findPreset not available
+                    await manager.selectPreset(presetName);
+                }
             }
             
             context.saveSettingsDebounced();
