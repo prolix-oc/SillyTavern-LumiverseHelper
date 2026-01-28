@@ -359,17 +359,18 @@ function PackDetailModal() {
         };
     }, [viewingPack, pack, handleClose]);
 
-    // Handle backdrop click
+    // Stop all pointer/mouse/touch events from propagating to ST's drawer handlers
+    const stopAllPropagation = useCallback((e) => {
+        e.stopPropagation();
+    }, []);
+
+    // Handle backdrop click - close only if clicking backdrop itself
     const handleBackdropClick = useCallback((e) => {
+        e.stopPropagation();
         if (e.target === e.currentTarget) {
             handleClose();
         }
     }, [handleClose]);
-
-    // Stop propagation to prevent ST from closing the drawer
-    const handleModalClick = useCallback((e) => {
-        e.stopPropagation();
-    }, []);
 
     // Don't render if no pack is being viewed
     if (!viewingPack || !pack) return null;
@@ -380,12 +381,16 @@ function PackDetailModal() {
         <div
             className="lumia-modal-backdrop"
             onClick={handleBackdropClick}
-            onMouseDown={handleModalClick}
-            onMouseUp={handleModalClick}
+            onMouseDown={stopAllPropagation}
+            onMouseUp={stopAllPropagation}
+            onPointerDown={stopAllPropagation}
+            onPointerUp={stopAllPropagation}
+            onTouchStart={stopAllPropagation}
+            onTouchEnd={stopAllPropagation}
         >
             <div
                 className="lumia-modal lumiverse-pack-detail-modal"
-                onClick={handleModalClick}
+                onClick={stopAllPropagation}
                 role="dialog"
                 aria-modal="true"
             >

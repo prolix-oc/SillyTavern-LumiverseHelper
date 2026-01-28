@@ -10,13 +10,28 @@
  * so window.LumiverseUI is available immediately - no dynamic loading needed.
  */
 
-import { getSettings, saveSettings, MODULE_NAME, clearClaudeCache, resetAllSettings } from "./settingsManager.js";
+import {
+  getSettings,
+  saveSettings,
+  MODULE_NAME,
+  clearClaudeCache,
+  resetAllSettings,
+  getPacks,
+  isUsingFileStorage,
+  saveSelections,
+  setAllPresets,
+  savePack,
+  deletePack,
+} from "./settingsManager.js";
 import { getEventSource, getEventTypes } from "../stContext.js";
 
 // Track if React UI is loaded
 let reactUILoaded = false;
 let cleanupFn = null;
 let viewportCleanupFn = null;
+
+// Flag to prevent re-sync loops when React is saving
+let isSavingFromReact = false;
 
 // Callbacks that React components can trigger
 const extensionCallbacks = {
@@ -71,15 +86,25 @@ export function getCallbacks() {
 /**
  * Convert extension settings to React store format
  *
- * IMPORTANT: This is a simple passthrough. We do NOT transform the data.
+ * IMPORTANT: This merges settings with packs from the cache (if using file storage).
  * The old code stores settings.packs as an OBJECT keyed by pack name.
  * React components must handle this format directly to maintain compatibility.
  *
- * @returns {Object} Settings in the EXACT format from getSettings()
+ * @returns {Object} Settings with packs merged in
  */
 export function settingsToReactFormat() {
-  // Return the EXACT settings structure - no transformation
-  return getSettings();
+  const settings = getSettings();
+
+  // If using file storage, get packs from cache
+  // Otherwise, packs are already in settings
+  if (isUsingFileStorage()) {
+    return {
+      ...settings,
+      packs: getPacks(),
+    };
+  }
+
+  return settings;
 }
 
 /**
@@ -87,17 +112,84 @@ export function settingsToReactFormat() {
  *
  * IMPORTANT: React should be sending data in the EXACT same format as getSettings().
  * We simply merge the incoming state with the current settings.
+ * 
+ * When using file storage, selections, presets, and pack changes are handled specially
+ * to ensure they're persisted to the appropriate files, not extension_settings.
  *
  * @param {Object} reactState - State from React store (same format as getSettings())
  */
 export function reactFormatToSettings(reactState) {
-  const settings = getSettings();
+  // Set flag to prevent re-sync loops
+  isSavingFromReact = true;
+  
+  try {
+    const settings = getSettings();
 
-  // Merge all properties from reactState into settings
-  // This preserves the exact structure without transformation
-  Object.assign(settings, reactState);
+    // If using file storage, handle pack changes
+    if (isUsingFileStorage() && reactState.packs !== undefined) {
+      syncPackChangesToFileStorage(reactState.packs);
+    }
 
-  saveSettings();
+    // If using file storage, handle presets separately
+    if (isUsingFileStorage() && reactState.presets !== undefined) {
+      // Update presets in file storage
+      setAllPresets(reactState.presets);
+    }
+
+    // Merge all properties from reactState into settings
+    // This preserves the exact structure without transformation
+    Object.assign(settings, reactState);
+
+    saveSettings();
+  } finally {
+    // Clear flag after a short delay to allow any pending notifications to be ignored
+    setTimeout(() => {
+      isSavingFromReact = false;
+    }, 100);
+  }
+}
+
+/**
+ * Sync pack changes from React state to file storage.
+ * Detects added/modified/deleted packs and persists appropriately.
+ * 
+ * @param {Object} reactPacks - Packs object from React state
+ */
+async function syncPackChangesToFileStorage(reactPacks) {
+  const currentPacks = getPacks();
+  const reactPackNames = new Set(Object.keys(reactPacks || {}));
+  const currentPackNames = new Set(Object.keys(currentPacks || {}));
+
+  // Find deleted packs (in current but not in react)
+  for (const packName of currentPackNames) {
+    if (!reactPackNames.has(packName)) {
+      console.log(`[${MODULE_NAME}] Deleting pack from file storage: ${packName}`);
+      try {
+        await deletePack(packName);
+      } catch (err) {
+        console.error(`[${MODULE_NAME}] Failed to delete pack ${packName}:`, err);
+      }
+    }
+  }
+
+  // Find added/modified packs
+  for (const [packName, reactPack] of Object.entries(reactPacks || {})) {
+    const currentPack = currentPacks[packName];
+    
+    // Check if pack is new or modified
+    // We do a simple JSON comparison to detect changes
+    const isNew = !currentPack;
+    const isModified = currentPack && JSON.stringify(reactPack) !== JSON.stringify(currentPack);
+    
+    if (isNew || isModified) {
+      console.log(`[${MODULE_NAME}] ${isNew ? 'Saving new' : 'Updating'} pack to file storage: ${packName}`);
+      try {
+        await savePack(reactPack);
+      } catch (err) {
+        console.error(`[${MODULE_NAME}] Failed to save pack ${packName}:`, err);
+      }
+    }
+  }
 }
 
 /**
@@ -161,6 +253,15 @@ export async function initializeReactUI(container) {
       notifySettingsChange: notifyReactOfSettingsChange,
       clearClaudeCache: clearClaudeCache,
       resetAllSettings: resetAllSettings,
+      // Called by packCache when pack data changes
+      onPackCacheChange: () => {
+        // Skip if this change was triggered by React saving
+        if (isSavingFromReact) {
+          return;
+        }
+        console.log("[ReactBridge] Pack cache changed, syncing to React...");
+        notifyReactOfSettingsChange();
+      },
     };
     console.log("[ReactBridge] Bridge API exposed on window.LumiverseBridge");
 

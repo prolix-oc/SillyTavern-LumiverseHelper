@@ -24,6 +24,7 @@ import {
   MODULE_NAME,
   getSettings,
   loadSettings,
+  initPackFileStorage,
   resetRandomLumia,
 } from "./lib/settingsManager.js";
 
@@ -410,8 +411,21 @@ jQuery(async () => {
     console.error(`[${MODULE_NAME}] ST APIs not available - extension may not work correctly`);
   }
 
-  // Load settings
+  // Load settings from extension_settings
   loadSettings();
+
+  // Initialize file storage for packs (migrates on first run)
+  // This runs async but we don't need to await - packs load in background
+  initPackFileStorage().then((usingFileStorage) => {
+    if (usingFileStorage) {
+      console.log(`[${MODULE_NAME}] Pack file storage initialized`);
+      // Refresh UI after packs are loaded from files
+      refreshUIDisplay();
+      notifyReactOfSettingsChange();
+    }
+  }).catch((err) => {
+    console.error(`[${MODULE_NAME}] Failed to initialize pack file storage:`, err);
+  });
 
   // Register macros
   registerAllMacros();

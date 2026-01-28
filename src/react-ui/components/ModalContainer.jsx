@@ -39,8 +39,14 @@ function ModalWrapper({ children, onClose, modalType, size = 'medium', hasCustom
         };
     }, [handleKeyDown]);
 
-    // Close on backdrop click
+    // Stop all pointer/mouse events from propagating to ST's drawer handlers
+    const stopAllPropagation = (e) => {
+        e.stopPropagation();
+    };
+
+    // Close on backdrop click (only if clicking backdrop itself, not modal content)
     const handleBackdropClick = (e) => {
+        e.stopPropagation();
         if (e.target === e.currentTarget) {
             onClose();
         }
@@ -63,6 +69,12 @@ function ModalWrapper({ children, onClose, modalType, size = 'medium', hasCustom
         <div
             className="lumia-modal-backdrop"
             onClick={handleBackdropClick}
+            onMouseDown={stopAllPropagation}
+            onMouseUp={stopAllPropagation}
+            onPointerDown={stopAllPropagation}
+            onPointerUp={stopAllPropagation}
+            onTouchStart={stopAllPropagation}
+            onTouchEnd={stopAllPropagation}
         >
             <div
                 className={modalClass}

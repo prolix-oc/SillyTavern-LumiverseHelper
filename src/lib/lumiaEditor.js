@@ -3,7 +3,16 @@
  * Handles creation, editing, and export of custom Lumia definitions and packs
  */
 
-import { getSettings, saveSettings, MODULE_NAME, bumpLumiaConfigVersion } from "./settingsManager.js";
+import {
+  getSettings,
+  saveSettings,
+  MODULE_NAME,
+  bumpLumiaConfigVersion,
+  savePack,
+  getPackByName,
+  getPacks,
+  saveSelections,
+} from "./settingsManager.js";
 import { escapeHtml } from "./dataProcessor.js";
 import { getLumiaField } from "./lumiaContent.js";
 
@@ -79,8 +88,7 @@ function refreshUI() {
  * @returns {boolean} True if pack is editable
  */
 export function canEditPack(packName) {
-  const settings = getSettings();
-  const pack = settings.packs[packName];
+  const pack = getPackByName(packName);
   if (!pack) return false;
 
   // Pack is editable if:
@@ -94,12 +102,11 @@ export function canEditPack(packName) {
  * @param {string} name - Pack name
  * @param {string} author - Optional author name
  * @param {string} coverUrl - Optional cover image URL
- * @returns {Object} The created pack object
+ * @returns {Promise<Object>} The created pack object
  */
-export function createCustomPack(name, author = "", coverUrl = "") {
-  const settings = getSettings();
-
-  if (settings.packs[name]) {
+export async function createCustomPack(name, author = "", coverUrl = "") {
+  const existingPack = getPackByName(name);
+  if (existingPack) {
     throw new Error(`Pack "${name}" already exists`);
   }
 
@@ -117,8 +124,7 @@ export function createCustomPack(name, author = "", coverUrl = "") {
     url: "", // Empty URL indicates local/custom pack
   };
 
-  settings.packs[name] = pack;
-  saveSettings();
+  await savePack(pack);
 
   return pack;
 }
@@ -127,10 +133,10 @@ export function createCustomPack(name, author = "", coverUrl = "") {
  * Update a custom pack's metadata
  * @param {string} packName - The pack name
  * @param {Object} updates - Fields to update (author, coverUrl)
+ * @returns {Promise<void>}
  */
-export function updatePackMetadata(packName, updates) {
-  const settings = getSettings();
-  const pack = settings.packs[packName];
+export async function updatePackMetadata(packName, updates) {
+  const pack = getPackByName(packName);
 
   if (!pack) {
     throw new Error(`Pack "${packName}" not found`);
@@ -147,7 +153,7 @@ export function updatePackMetadata(packName, updates) {
     pack.coverUrl = updates.coverUrl;
   }
 
-  saveSettings();
+  await savePack(pack);
 }
 
 /**
@@ -155,11 +161,10 @@ export function updatePackMetadata(packName, updates) {
  * @param {string} packName - The pack name
  * @param {Object} lumiaItem - The Lumia item to add/update
  * @param {string} originalName - Original name if editing (for rename detection)
- * @returns {Object} The added/updated item
+ * @returns {Promise<Object>} The added/updated item
  */
-export function addLumiaToPackItems(packName, lumiaItem, originalName = null) {
-  const settings = getSettings();
-  const pack = settings.packs[packName];
+export async function addLumiaToPackItems(packName, lumiaItem, originalName = null) {
+  const pack = getPackByName(packName);
 
   if (!pack) {
     throw new Error(`Pack "${packName}" not found`);
@@ -190,7 +195,7 @@ export function addLumiaToPackItems(packName, lumiaItem, originalName = null) {
     pack.lumiaItems.push(lumiaItem);
   }
 
-  saveSettings();
+  await savePack(pack);
   bumpLumiaConfigVersion(); // Invalidate Claude cache when Lumia definitions change
   return lumiaItem;
 }
@@ -199,10 +204,11 @@ export function addLumiaToPackItems(packName, lumiaItem, originalName = null) {
  * Delete a Lumia from a pack
  * @param {string} packName - The pack name
  * @param {string} itemName - The Lumia name to delete
+ * @returns {Promise<void>}
  */
-export function deleteLumiaFromPack(packName, itemName) {
+export async function deleteLumiaFromPack(packName, itemName) {
   const settings = getSettings();
-  const pack = settings.packs[packName];
+  const pack = getPackByName(packName);
 
   if (!pack) {
     throw new Error(`Pack "${packName}" not found`);
@@ -218,29 +224,49 @@ export function deleteLumiaFromPack(packName, itemName) {
   if (index >= 0) {
     items.splice(index, 1);
 
+    // Save the updated pack
+    await savePack(pack);
+
     // Clean up any selections referencing this item
+    const selectionUpdates = {};
+    let needsSelectionUpdate = false;
+
     if (
       settings.selectedDefinition &&
       settings.selectedDefinition.packName === packName &&
       settings.selectedDefinition.itemName === itemName
     ) {
+      selectionUpdates.selectedDefinition = null;
       settings.selectedDefinition = null;
+      needsSelectionUpdate = true;
     }
 
-    settings.selectedBehaviors = settings.selectedBehaviors.filter(
+    const filteredBehaviors = (settings.selectedBehaviors || []).filter(
       (s) => !(s.packName === packName && s.itemName === itemName)
     );
+    if (filteredBehaviors.length !== (settings.selectedBehaviors || []).length) {
+      selectionUpdates.selectedBehaviors = filteredBehaviors;
+      settings.selectedBehaviors = filteredBehaviors;
+      needsSelectionUpdate = true;
+    }
 
-    settings.selectedPersonalities = settings.selectedPersonalities.filter(
+    const filteredPersonalities = (settings.selectedPersonalities || []).filter(
       (s) => !(s.packName === packName && s.itemName === itemName)
     );
+    if (filteredPersonalities.length !== (settings.selectedPersonalities || []).length) {
+      selectionUpdates.selectedPersonalities = filteredPersonalities;
+      settings.selectedPersonalities = filteredPersonalities;
+      needsSelectionUpdate = true;
+    }
 
     if (
       settings.dominantBehavior &&
       settings.dominantBehavior.packName === packName &&
       settings.dominantBehavior.itemName === itemName
     ) {
+      selectionUpdates.dominantBehavior = null;
       settings.dominantBehavior = null;
+      needsSelectionUpdate = true;
     }
 
     if (
@@ -248,9 +274,15 @@ export function deleteLumiaFromPack(packName, itemName) {
       settings.dominantPersonality.packName === packName &&
       settings.dominantPersonality.itemName === itemName
     ) {
+      selectionUpdates.dominantPersonality = null;
       settings.dominantPersonality = null;
+      needsSelectionUpdate = true;
     }
 
+    // Save selection changes
+    if (needsSelectionUpdate) {
+      saveSelections(selectionUpdates);
+    }
     saveSettings();
     bumpLumiaConfigVersion(); // Invalidate Claude cache when Lumia definitions change
   }
@@ -308,8 +340,7 @@ function serializeLumiaToWorldBookEntry(lumiaItem, entryType, uid) {
  * @returns {Object} World Book JSON object
  */
 export function generateWorldBookJson(packName) {
-  const settings = getSettings();
-  const pack = settings.packs[packName];
+  const pack = getPackByName(packName);
 
   if (!pack) {
     throw new Error(`Pack "${packName}" not found`);
@@ -397,8 +428,8 @@ export function exportPackAsWorldBook(packName) {
  * @returns {Array} Array of custom pack objects
  */
 export function getCustomPacks() {
-  const settings = getSettings();
-  return Object.values(settings.packs).filter(
+  const packs = getPacks();
+  return Object.values(packs).filter(
     (pack) => pack.isCustom || !pack.url
   );
 }
@@ -1096,8 +1127,7 @@ export function showPackEditorModal(packName) {
  * @returns {Object} Native pack JSON object
  */
 export function generateNativePackJson(packName) {
-  const settings = getSettings();
-  const pack = settings.packs[packName];
+  const pack = getPackByName(packName);
 
   if (!pack) {
     throw new Error(`Pack "${packName}" not found`);
