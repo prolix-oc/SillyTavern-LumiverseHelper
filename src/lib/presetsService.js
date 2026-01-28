@@ -266,7 +266,7 @@ function isPossiblyReasoningData(data) {
 
 /**
  * Import a preset into SillyTavern
- * Automatically detects preset type and applies fixes (e.g., mistralai_model)
+ * Automatically detects preset type
  * 
  * @param {Object} presetData - The preset JSON data
  * @param {string} presetName - Name to save the preset as
@@ -305,13 +305,8 @@ export async function importPreset(presetData, presetName, options = {}) {
             return { success: true, type: "context", message: "Imported Context Preset" };
         }
 
-        // 3. Chat/API Completion preset (CRITICAL FIX: ensure mistralai_model exists)
+        // 3. Chat/API Completion preset
         if (isPossiblyTextCompletionData(presetData)) {
-            // FIX: Mistral key is often missing in presets but required by ST core
-            if (typeof presetData.mistralai_model === "undefined") {
-                presetData.mistralai_model = "";
-            }
-
             const manager = context.getPresetManager("openai");
             await manager.savePreset(presetName, presetData);
             if (activate) {
