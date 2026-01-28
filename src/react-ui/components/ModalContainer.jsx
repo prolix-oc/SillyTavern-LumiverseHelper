@@ -40,10 +40,15 @@ function ModalWrapper({ children, onClose, modalType, size = 'medium', hasCustom
         };
     }, [handleKeyDown]);
 
-    // Stop all pointer/mouse events from propagating to ST's drawer handlers
+    // Stop propagation - but NOT for pointer events when in editor mode
+    // This allows dnd-kit to receive pointer up events properly
     const stopAllPropagation = (e) => {
         e.stopPropagation();
     };
+
+    // For editor modals, we only stop propagation on mousedown (for ST drawer)
+    // but allow pointerup to propagate so dnd-kit can end drags properly
+    const isEditorModal = modalType === 'editor';
 
     // Close on backdrop click (only if clicking backdrop itself, not modal content)
     const handleBackdropClick = (e) => {
@@ -72,8 +77,8 @@ function ModalWrapper({ children, onClose, modalType, size = 'medium', hasCustom
             onClick={handleBackdropClick}
             onMouseDown={stopAllPropagation}
             onMouseUp={stopAllPropagation}
-            onPointerDown={stopAllPropagation}
-            onPointerUp={stopAllPropagation}
+            onPointerDown={isEditorModal ? undefined : stopAllPropagation}
+            onPointerUp={isEditorModal ? undefined : stopAllPropagation}
             onTouchStart={stopAllPropagation}
             onTouchEnd={stopAllPropagation}
         >

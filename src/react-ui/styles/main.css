@@ -11675,6 +11675,10 @@ details.lumia-panel[open] .lumia-panel-chevron {
     cursor: grab;
     color: var(--lumiverse-text-muted);
     padding-top: 2px;
+    /* Required for dnd-kit to handle pointer events properly */
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .lumiverse-prompt-drag-handle:active {
