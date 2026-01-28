@@ -516,7 +516,15 @@ function ChatPresetsModal({ onClose, availableUpdates = [], onUpdateComplete }) 
                                     <button
                                         className="lumiverse-presets-startreply-btn"
                                         onClick={() => handleStartReplyWithChange('<think>\n')}
-                                        title="Set to <think> tag"
+                                        title="Set to <think> tag with newline"
+                                        type="button"
+                                    >
+                                        &lt;think&gt;↵
+                                    </button>
+                                    <button
+                                        className="lumiverse-presets-startreply-btn lumiverse-presets-startreply-btn--claude"
+                                        onClick={() => handleStartReplyWithChange('<think>')}
+                                        title="Set to <think> tag (Claude, no newline)"
                                         type="button"
                                     >
                                         &lt;think&gt;

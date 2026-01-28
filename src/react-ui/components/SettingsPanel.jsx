@@ -982,6 +982,11 @@ function SettingsPanel() {
                 </div>
             </Panel>
 
+            {/* Chat Presets - Download from Lucid.cards */}
+            <Panel title="Chat Presets" icon={<Download size={16} strokeWidth={1.5} />}>
+                <ChatPresetsPanel />
+            </Panel>
+
             {/* Lumia Configuration Section */}
             <Panel
                 title="Lumia Configuration"
@@ -1418,14 +1423,6 @@ function SettingsPanel() {
                     </div>
                 </Panel>
             )}
-
-            {/* Chat Presets - Download from Lucid.cards */}
-            <CollapsiblePanel
-                title="Chat Presets"
-                icon={<Download size={16} strokeWidth={1.5} />}
-            >
-                <ChatPresetsPanel />
-            </CollapsiblePanel>
 
             {/* Danger Zone - Reset Settings */}
             <CollapsiblePanel
