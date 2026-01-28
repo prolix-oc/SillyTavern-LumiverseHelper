@@ -183,7 +183,7 @@ async function deleteFile(filename) {
  * }
  */
 
-const INDEX_SCHEMA_VERSION = 2;
+const INDEX_SCHEMA_VERSION = 3;
 
 /**
  * Create a default index structure.
@@ -215,6 +215,7 @@ function createDefaultIndex() {
             activePresetName: null,
         },
         presets: {}, // User-saved Lumia selection presets
+        toggleStateRegistry: {}, // Registry of saved prompt toggle states
     };
 }
 
@@ -480,4 +481,119 @@ export function generatePackId(packName) {
     // For simplicity, use the pack name as the ID (normalized)
     // This maintains backwards compatibility with existing selection format
     return packName;
+}
+
+// ============================================================================
+// TOGGLE STATE FILE OPERATIONS
+// ============================================================================
+
+// Toggle state file prefix
+const TOGGLE_STATE_PREFIX = `${FILE_PREFIX}togglestate_`;
+
+/**
+ * Generate the file key for a toggle state.
+ * @param {string} stateName - The toggle state name
+ * @returns {string} File key (e.g., "lumiverse_togglestate_a1b2c3d4.json")
+ */
+export function getToggleStateFileKey(stateName) {
+    return `${TOGGLE_STATE_PREFIX}${hashString(stateName)}.json`;
+}
+
+/**
+ * Toggle state file schema:
+ * {
+ *   name: string,                    // User-provided name for this state
+ *   createdAt: number,               // Timestamp when created
+ *   updatedAt: number,               // Timestamp when last updated
+ *   sourcePreset: string | null,     // The preset this was captured from (optional)
+ *   toggles: {                       // Map of prompt identifier -> enabled state
+ *     [identifier: string]: boolean
+ *   }
+ * }
+ */
+
+/**
+ * Save a toggle state to file storage.
+ * @param {string} stateName - User-provided name for the state
+ * @param {Object} toggles - Map of prompt identifier -> enabled boolean
+ * @param {string} [sourcePreset] - Optional: the preset this was captured from
+ * @returns {Promise<{fileKey: string}>} The file key of the saved state
+ */
+export async function saveToggleState(stateName, toggles, sourcePreset = null) {
+    const fileKey = getToggleStateFileKey(stateName);
+    const now = Date.now();
+    
+    // Check if file already exists to preserve createdAt
+    let createdAt = now;
+    try {
+        const existing = await loadFile(fileKey);
+        if (existing?.createdAt) {
+            createdAt = existing.createdAt;
+        }
+    } catch {
+        // File doesn't exist, use current time
+    }
+    
+    const data = {
+        name: stateName,
+        createdAt,
+        updatedAt: now,
+        sourcePreset,
+        toggles,
+    };
+    
+    await uploadFile(fileKey, data);
+    console.log(`[${MODULE_NAME}] Saved toggle state "${stateName}" to ${fileKey}`);
+    
+    return { fileKey };
+}
+
+/**
+ * Load a toggle state from file storage.
+ * @param {string} stateName - The toggle state name to load
+ * @returns {Promise<Object|null>} The toggle state data or null if not found
+ */
+export async function loadToggleState(stateName) {
+    const fileKey = getToggleStateFileKey(stateName);
+    return await loadFile(fileKey);
+}
+
+/**
+ * Delete a toggle state from file storage.
+ * @param {string} stateName - The toggle state name to delete
+ * @returns {Promise<boolean>} True if deleted successfully
+ */
+export async function deleteToggleState(stateName) {
+    const fileKey = getToggleStateFileKey(stateName);
+    const result = await deleteFile(fileKey);
+    if (result) {
+        console.log(`[${MODULE_NAME}] Deleted toggle state "${stateName}"`);
+    }
+    return result;
+}
+
+/**
+ * List all saved toggle state names.
+ * This requires loading the toggle state index from the main index file.
+ * @param {Object} index - The main index object (should contain toggleStateRegistry)
+ * @returns {string[]} Array of toggle state names
+ */
+export function getToggleStateNamesFromIndex(index) {
+    if (!index?.toggleStateRegistry) return [];
+    return Object.keys(index.toggleStateRegistry);
+}
+
+/**
+ * Create a toggle state registry entry for the index.
+ * @param {string} stateName - The state name
+ * @param {string} [sourcePreset] - Optional source preset name
+ * @returns {Object} Registry entry
+ */
+export function createToggleStateRegistryEntry(stateName, sourcePreset = null) {
+    return {
+        name: stateName,
+        fileKey: getToggleStateFileKey(stateName),
+        sourcePreset,
+        createdAt: Date.now(),
+    };
 }

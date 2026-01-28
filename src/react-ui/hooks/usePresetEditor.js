@@ -11,6 +11,7 @@ export function usePresetEditor() {
     const [currentPreset, setCurrentPreset] = useState(null);
     const [prompts, setPrompts] = useState([]);
     const [availablePresets, setAvailablePresets] = useState([]);
+    const [toggleStateNames, setToggleStateNames] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
@@ -21,6 +22,10 @@ export function usePresetEditor() {
             // Load available presets list
             const presetsList = chatPresetService.getAvailablePresets();
             setAvailablePresets(presetsList);
+
+            // Load toggle state names
+            const stateNames = chatPresetService.getToggleStateNames();
+            setToggleStateNames(stateNames);
 
             const preset = chatPresetService.getCurrentPreset();
             console.log('[usePresetEditor] Loaded preset:', preset);
@@ -133,6 +138,50 @@ export function usePresetEditor() {
         return structure;
     }, [prompts]);
 
+    // Save current toggle states with a name
+    const saveToggleState = useCallback(async (stateName) => {
+        if (!stateName || prompts.length === 0) return false;
+        try {
+            await chatPresetService.saveToggleState(stateName, prompts);
+            // Refresh the list
+            setToggleStateNames(chatPresetService.getToggleStateNames());
+            return true;
+        } catch (err) {
+            setError(`Failed to save toggle state: ${err.message}`);
+            return false;
+        }
+    }, [prompts]);
+
+    // Apply a saved toggle state to current prompts
+    const applyToggleState = useCallback(async (stateName) => {
+        if (!stateName || prompts.length === 0) return null;
+        try {
+            const result = await chatPresetService.applyToggleState(stateName, prompts);
+            if (result.prompts) {
+                // Update prompts with applied toggle states
+                setPrompts(result.prompts);
+                // Persist to ST
+                await chatPresetService.updatePrompts(result.prompts);
+            }
+            return result;
+        } catch (err) {
+            setError(`Failed to apply toggle state: ${err.message}`);
+            return null;
+        }
+    }, [prompts]);
+
+    // Delete a saved toggle state
+    const deleteToggleState = useCallback(async (stateName) => {
+        try {
+            await chatPresetService.deleteToggleState(stateName);
+            setToggleStateNames(chatPresetService.getToggleStateNames());
+            return true;
+        } catch (err) {
+            setError(`Failed to delete toggle state: ${err.message}`);
+            return false;
+        }
+    }, []);
+
     // Initial load
     useEffect(() => {
         loadCurrentPreset();
@@ -142,12 +191,16 @@ export function usePresetEditor() {
         currentPreset,
         prompts,
         availablePresets,
+        toggleStateNames,
         structuredPrompts,
         isLoading,
         error,
         refresh: loadCurrentPreset,
         selectPreset,
         exportPreset,
-        savePrompts
+        savePrompts,
+        saveToggleState,
+        applyToggleState,
+        deleteToggleState,
     };
 }

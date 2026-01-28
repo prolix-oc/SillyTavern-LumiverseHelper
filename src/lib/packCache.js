@@ -28,6 +28,10 @@ import {
     createPackRegistryEntry,
     generatePackId,
     isFileStorageAvailable,
+    saveToggleState,
+    loadToggleState,
+    deleteToggleState,
+    createToggleStateRegistryEntry,
 } from "./fileStorage.js";
 import { MODULE_NAME } from "./settingsManager.js";
 
@@ -521,6 +525,79 @@ export function updatePresets(newPresets) {
     if (!cachedIndex) return;
     
     cachedIndex.presets = newPresets;
+    
+    debouncedIndexSave();
+    notifyListeners();
+}
+
+// ============================================================================
+// TOGGLE STATES (Prompt Enable/Disable Snapshots)
+// ============================================================================
+
+/**
+ * Get all toggle state names from the registry.
+ * @returns {string[]} Array of toggle state names
+ */
+export function getToggleStateNames() {
+    if (!cachedIndex?.toggleStateRegistry) return [];
+    return Object.keys(cachedIndex.toggleStateRegistry);
+}
+
+/**
+ * Get the toggle state registry.
+ * @returns {Object} Registry object with state metadata
+ */
+export function getToggleStateRegistry() {
+    return cachedIndex?.toggleStateRegistry || {};
+}
+
+/**
+ * Save a new toggle state (prompts enabled/disabled snapshot).
+ * @param {string} stateName - User-provided name for the state
+ * @param {Object} toggles - Map of prompt identifier -> enabled boolean
+ * @param {string} [sourcePreset] - Optional: the ST preset this was captured from
+ * @returns {Promise<void>}
+ */
+export async function upsertToggleState(stateName, toggles, sourcePreset = null) {
+    if (!cachedIndex) return;
+    
+    // Ensure registry exists
+    if (!cachedIndex.toggleStateRegistry) {
+        cachedIndex.toggleStateRegistry = {};
+    }
+    
+    // Save to file storage
+    await saveToggleState(stateName, toggles, sourcePreset);
+    
+    // Update registry
+    cachedIndex.toggleStateRegistry[stateName] = createToggleStateRegistryEntry(stateName, sourcePreset);
+    
+    debouncedIndexSave();
+    notifyListeners();
+}
+
+/**
+ * Load a toggle state's data from file storage.
+ * @param {string} stateName - The state name to load
+ * @returns {Promise<Object|null>} The toggle state data or null
+ */
+export async function getToggleState(stateName) {
+    return await loadToggleState(stateName);
+}
+
+/**
+ * Delete a toggle state.
+ * @param {string} stateName - The state name to delete
+ * @returns {Promise<void>}
+ */
+export async function removeToggleState(stateName) {
+    if (!cachedIndex?.toggleStateRegistry) return;
+    
+    // Delete from file storage
+    await deleteToggleState(stateName);
+    
+    // Remove from registry
+    delete cachedIndex.toggleStateRegistry[stateName];
     
     debouncedIndexSave();
     notifyListeners();

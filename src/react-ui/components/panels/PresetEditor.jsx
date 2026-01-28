@@ -29,7 +29,9 @@ import {
     MoreVertical,
     Eye,
     EyeOff,
-    Check
+    Check,
+    Bookmark,
+    BookmarkCheck,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { usePresetEditor } from '../../hooks/usePresetEditor';
@@ -133,9 +135,13 @@ export default function PresetEditor({ onClose }) {
         currentPreset,
         prompts,
         availablePresets,
+        toggleStateNames,
         savePrompts,
         selectPreset,
         exportPreset,
+        saveToggleState,
+        applyToggleState,
+        deleteToggleState,
         isLoading,
         error
     } = usePresetEditor();
@@ -144,6 +150,11 @@ export default function PresetEditor({ onClose }) {
     const [editForm, setEditForm] = useState(null);
     const [collapsedCategories, setCollapsedCategories] = useState(new Set());
     const [activeId, setActiveId] = useState(null);
+    
+    // Toggle state UI
+    const [showToggleStateMenu, setShowToggleStateMenu] = useState(false);
+    const [newToggleStateName, setNewToggleStateName] = useState('');
+    const [toggleStateMessage, setToggleStateMessage] = useState(null);
 
     const toggleCategory = (id) => {
         const newCollapsed = new Set(collapsedCategories);
@@ -281,6 +292,41 @@ export default function PresetEditor({ onClose }) {
         savePrompts([...prompts, newPrompt]);
     };
 
+    // Toggle State handlers
+    const handleSaveToggleState = async () => {
+        if (!newToggleStateName.trim()) {
+            setToggleStateMessage({ type: 'error', text: 'Please enter a name' });
+            return;
+        }
+        const success = await saveToggleState(newToggleStateName.trim());
+        if (success) {
+            setToggleStateMessage({ type: 'success', text: `Saved "${newToggleStateName.trim()}"` });
+            setNewToggleStateName('');
+            setTimeout(() => setToggleStateMessage(null), 2000);
+        }
+    };
+
+    const handleApplyToggleState = async (stateName) => {
+        const result = await applyToggleState(stateName);
+        if (result) {
+            setToggleStateMessage({ 
+                type: 'success', 
+                text: `Applied "${stateName}": ${result.matched} matched, ${result.unmatched} unchanged` 
+            });
+            setTimeout(() => setToggleStateMessage(null), 3000);
+        }
+        setShowToggleStateMenu(false);
+    };
+
+    const handleDeleteToggleState = async (stateName, e) => {
+        e.stopPropagation();
+        if (confirm(`Delete toggle state "${stateName}"?`)) {
+            await deleteToggleState(stateName);
+            setToggleStateMessage({ type: 'success', text: `Deleted "${stateName}"` });
+            setTimeout(() => setToggleStateMessage(null), 2000);
+        }
+    };
+
     if (isLoading && !currentPreset) {
         return <div className="lumiverse-loading">Loading...</div>;
     }
@@ -315,7 +361,79 @@ export default function PresetEditor({ onClose }) {
                     <button className="lumiverse-btn" onClick={() => handleAddPrompt(true)}>
                         <Plus size={16} /> Add Category
                     </button>
+                    
+                    {/* Toggle States Section */}
+                    <div className="lumiverse-toggle-states" style={{ position: 'relative' }}>
+                        <button 
+                            className={clsx('lumiverse-btn', toggleStateNames.length > 0 && 'lumiverse-btn-accent')}
+                            onClick={() => setShowToggleStateMenu(!showToggleStateMenu)}
+                            title="Toggle States - Save/Load prompt enabled states"
+                        >
+                            {toggleStateNames.length > 0 ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
+                            States {toggleStateNames.length > 0 && `(${toggleStateNames.length})`}
+                        </button>
+                        
+                        {showToggleStateMenu && (
+                            <div className="lumiverse-toggle-state-menu">
+                                <div className="lumiverse-toggle-state-save">
+                                    <input
+                                        type="text"
+                                        placeholder="Name for current state..."
+                                        value={newToggleStateName}
+                                        onChange={(e) => setNewToggleStateName(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleSaveToggleState()}
+                                    />
+                                    <button 
+                                        className="lumiverse-btn lumiverse-btn-primary"
+                                        onClick={handleSaveToggleState}
+                                        disabled={!newToggleStateName.trim()}
+                                    >
+                                        <Save size={14} />
+                                    </button>
+                                </div>
+                                
+                                {toggleStateNames.length > 0 && (
+                                    <>
+                                        <div className="lumiverse-toggle-state-divider">Saved States</div>
+                                        <div className="lumiverse-toggle-state-list">
+                                            {toggleStateNames.map(name => (
+                                                <div 
+                                                    key={name} 
+                                                    className="lumiverse-toggle-state-item"
+                                                    onClick={() => handleApplyToggleState(name)}
+                                                >
+                                                    <span>{name}</span>
+                                                    <button 
+                                                        className="lumiverse-icon-btn lumiverse-btn-danger"
+                                                        onClick={(e) => handleDeleteToggleState(name, e)}
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
+                                
+                                {toggleStateNames.length === 0 && (
+                                    <div className="lumiverse-toggle-state-empty">
+                                        No saved states yet. Enter a name above to save current toggle configuration.
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                    
                     <div style={{ flex: 1 }}></div>
+                    
+                    {/* Toggle State Message */}
+                    {toggleStateMessage && (
+                        <div className={clsx('lumiverse-toggle-message', `lumiverse-toggle-message-${toggleStateMessage.type}`)}>
+                            {toggleStateMessage.text}
+                        </div>
+                    )}
+                    
                     <button className="lumiverse-btn" onClick={exportPreset} title="Export as JSON">
                         <Save size={16} /> Export
                     </button>

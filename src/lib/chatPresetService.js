@@ -1,5 +1,12 @@
 
 import { getContext } from "../stContext.js";
+import {
+    getToggleStateNames,
+    getToggleStateRegistry,
+    upsertToggleState,
+    getToggleState,
+    removeToggleState,
+} from "./packCache.js";
 
 const API_ID = 'openai';
 
@@ -198,6 +205,98 @@ export class ChatPresetService {
         settings.prompts = newPrompts;
 
         return await this.savePreset(name, settings);
+    }
+
+    // =========================================================================
+    // TOGGLE STATE OPERATIONS
+    // =========================================================================
+
+    /**
+     * Get all saved toggle state names
+     * @returns {string[]}
+     */
+    getToggleStateNames() {
+        return getToggleStateNames();
+    }
+
+    /**
+     * Get the toggle state registry with metadata
+     * @returns {Object}
+     */
+    getToggleStateRegistry() {
+        return getToggleStateRegistry();
+    }
+
+    /**
+     * Capture current prompts' enabled states and save as a toggle state
+     * @param {string} stateName - User-provided name for the state
+     * @param {Array} prompts - Current prompts array
+     * @returns {Promise<void>}
+     */
+    async saveToggleState(stateName, prompts) {
+        const current = this.getCurrentPreset();
+        const sourcePreset = current?.name || null;
+
+        // Build toggle map: identifier -> enabled
+        const toggles = {};
+        for (const prompt of prompts) {
+            const key = prompt.identifier || prompt.name;
+            if (key) {
+                toggles[key] = prompt.enabled !== false;
+            }
+        }
+
+        await upsertToggleState(stateName, toggles, sourcePreset);
+        console.log(`[ChatPresetService] Saved toggle state "${stateName}" with ${Object.keys(toggles).length} prompts`);
+    }
+
+    /**
+     * Load a toggle state by name
+     * @param {string} stateName 
+     * @returns {Promise<Object|null>} Toggle state data
+     */
+    async loadToggleState(stateName) {
+        return await getToggleState(stateName);
+    }
+
+    /**
+     * Apply a saved toggle state to the given prompts array
+     * Returns a new array with enabled states updated for matching prompts
+     * @param {string} stateName - The toggle state name to apply
+     * @param {Array} prompts - Current prompts array
+     * @returns {Promise<{prompts: Array, matched: number, unmatched: number}>}
+     */
+    async applyToggleState(stateName, prompts) {
+        const state = await getToggleState(stateName);
+        if (!state?.toggles) {
+            return { prompts, matched: 0, unmatched: 0 };
+        }
+
+        let matched = 0;
+        let unmatched = 0;
+
+        const newPrompts = prompts.map(prompt => {
+            const key = prompt.identifier || prompt.name;
+            if (key && key in state.toggles) {
+                matched++;
+                return { ...prompt, enabled: state.toggles[key] };
+            }
+            unmatched++;
+            return prompt;
+        });
+
+        console.log(`[ChatPresetService] Applied toggle state "${stateName}": ${matched} matched, ${unmatched} unmatched`);
+        return { prompts: newPrompts, matched, unmatched };
+    }
+
+    /**
+     * Delete a saved toggle state
+     * @param {string} stateName 
+     * @returns {Promise<void>}
+     */
+    async deleteToggleState(stateName) {
+        await removeToggleState(stateName);
+        console.log(`[ChatPresetService] Deleted toggle state "${stateName}"`);
     }
 }
 

@@ -12065,3 +12065,165 @@ details.lumia-panel[open] .lumia-panel-chevron {
     font-weight: 500;
     color: var(--lumiverse-text);
 }
+
+/* ========================================
+   Toggle State Menu Styles
+   ======================================== */
+
+/* Accent button (when states exist) */
+.lumiverse-preset-editor .lumiverse-btn.lumiverse-btn-accent {
+    background: rgba(147, 112, 219, 0.25);
+    border-color: rgba(147, 112, 219, 0.4);
+    color: var(--lumiverse-primary-text);
+}
+
+.lumiverse-preset-editor .lumiverse-btn.lumiverse-btn-accent:hover {
+    background: rgba(147, 112, 219, 0.35);
+    border-color: rgba(147, 112, 219, 0.6);
+}
+
+/* Toggle states container */
+.lumiverse-toggle-states {
+    position: relative;
+}
+
+/* Toggle state dropdown menu */
+.lumiverse-toggle-state-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 100;
+    min-width: 280px;
+    background: linear-gradient(
+        180deg,
+        rgba(35, 35, 52, 0.98) 0%,
+        rgba(28, 28, 42, 0.98) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--lumiverse-radius);
+    box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(147, 112, 219, 0.1);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    overflow: hidden;
+}
+
+/* Save section */
+.lumiverse-toggle-state-save {
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.lumiverse-toggle-state-save input {
+    flex: 1;
+    padding: 8px 12px;
+    background: rgba(20, 20, 35, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--lumiverse-radius-sm);
+    color: var(--lumiverse-text);
+    font-size: 13px;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.lumiverse-toggle-state-save input:focus {
+    border-color: rgba(147, 112, 219, 0.5);
+    box-shadow: 0 0 0 2px rgba(147, 112, 219, 0.15);
+}
+
+.lumiverse-toggle-state-save input::placeholder {
+    color: var(--lumiverse-text-muted);
+}
+
+.lumiverse-toggle-state-save .lumiverse-btn {
+    padding: 8px 12px;
+    min-width: auto;
+}
+
+/* Divider */
+.lumiverse-toggle-state-divider {
+    padding: 8px 12px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--lumiverse-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* State list */
+.lumiverse-toggle-state-list {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* Individual state item */
+.lumiverse-toggle-state-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.lumiverse-toggle-state-item:hover {
+    background: rgba(147, 112, 219, 0.15);
+}
+
+.lumiverse-toggle-state-item span {
+    flex: 1;
+    font-size: 13px;
+    color: var(--lumiverse-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lumiverse-toggle-state-item .lumiverse-icon-btn {
+    opacity: 0.5;
+    padding: 4px;
+}
+
+.lumiverse-toggle-state-item:hover .lumiverse-icon-btn {
+    opacity: 1;
+}
+
+/* Empty state */
+.lumiverse-toggle-state-empty {
+    padding: 16px 12px;
+    font-size: 12px;
+    color: var(--lumiverse-text-muted);
+    text-align: center;
+    font-style: italic;
+    line-height: 1.5;
+}
+
+/* Toggle message (success/error feedback) */
+.lumiverse-toggle-message {
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: var(--lumiverse-radius-sm);
+    animation: fadeIn 0.2s ease;
+}
+
+.lumiverse-toggle-message-success {
+    background: rgba(34, 197, 94, 0.2);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.lumiverse-toggle-message-error {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
