@@ -4,7 +4,6 @@ import clsx from 'clsx';
 import { 
     Download, 
     RefreshCw, 
-    Check, 
     X, 
     ChevronDown, 
     ChevronRight,
@@ -12,36 +11,27 @@ import {
     Loader2,
     AlertCircle,
     Package,
-    Sparkles,
     Zap,
     FileJson,
     Cloud,
-    Tag,
     Clock,
     Settings2,
-    ExternalLink,
-    Bell,
-    ArrowUpCircle,
-    Gauge
+    ArrowUpCircle
 } from 'lucide-react';
 import { 
     fetchAvailablePresets, 
     downloadAndImportPreset,
-    configureReasoning,
-    setStartReplyWith,
-    getReasoningSettings,
-    getStartReplyWith,
     REASONING_PRESETS,
-    applyReasoningWithBias,
     checkForPresetUpdates,
     getTrackedPresets,
     formatVersion,
     subscribeToTrackingChanges,
-    getAPIReasoningSettings,
-    setIncludeReasoning,
-    setReasoningEffort,
+    getReasoningSettings,
+    getStartReplyWith,
     REASONING_EFFORT_LEVELS
 } from '../../../lib/presetsService';
+import { useChatPresetSettings } from '../../hooks/useChatPresetSettings';
+import { ReasoningSettingsContent } from '../shared/ReasoningSettings';
 
 /* global toastr */
 
@@ -254,23 +244,28 @@ function ChatPresetsModal({ onClose, availableUpdates = [], onUpdateComplete }) 
     const [expandedPreset, setExpandedPreset] = useState(null);
     const [downloadingVersion, setDownloadingVersion] = useState(null);
 
-    // Reasoning/CoT state
-    const [reasoningSettings, setReasoningSettings] = useState(null);
-    const [startReplyWith, setStartReplyWithState] = useState('');
-    
-    // API Reasoning state (show_thoughts / reasoning_effort)
-    const [apiReasoning, setApiReasoning] = useState({ enabled: false, effort: 'auto' });
+    // Use shared hook for reasoning settings (synced with sidebar)
+    const {
+        reasoningSettings,
+        startReplyWith,
+        apiReasoning,
+        handleApplyReasoningPreset: applyPreset,
+        handleStartReplyWithChange,
+        handleReasoningToggle,
+        handleAPIReasoningToggle,
+        handleReasoningEffortChange,
+        REASONING_EFFORT_LEVELS: effortLevels
+    } = useChatPresetSettings();
 
     // Refs for avoiding layout thrashing
     const modalRef = useRef(null);
     const scrollContainerRef = useRef(null);
 
-    // Load initial reasoning settings
-    useEffect(() => {
-        setReasoningSettings(getReasoningSettings());
-        setStartReplyWithState(getStartReplyWith());
-        setApiReasoning(getAPIReasoningSettings());
-    }, []);
+    // Wrap applyPreset to show toast
+    const handleApplyReasoningPreset = useCallback((presetKey, withBias = false) => {
+        applyPreset(presetKey, withBias);
+        toastr?.success(`Applied ${presetKey} reasoning settings`, 'Reasoning Updated');
+    }, [applyPreset]);
 
     // Handle escape key and body scroll lock
     useEffect(() => {
@@ -322,46 +317,6 @@ function ChatPresetsModal({ onClose, availableUpdates = [], onUpdateComplete }) 
             setDownloadingVersion(null);
         }
     }, [onUpdateComplete]);
-
-    // Apply a reasoning preset with optional bias
-    const handleApplyReasoningPreset = useCallback((presetKey, withBias = false) => {
-        const preset = REASONING_PRESETS[presetKey];
-        if (!preset) return;
-
-        if (withBias) {
-            applyReasoningWithBias(presetKey);
-        } else {
-            configureReasoning(preset);
-        }
-
-        setReasoningSettings(getReasoningSettings());
-        setStartReplyWithState(getStartReplyWith());
-        toastr?.success(`Applied ${presetKey} reasoning settings`, 'Reasoning Updated');
-    }, []);
-
-    // Handle Start Reply With change
-    const handleStartReplyWithChange = useCallback((text) => {
-        setStartReplyWithState(text);
-        setStartReplyWith(text);
-    }, []);
-
-    // Toggle individual reasoning setting
-    const handleReasoningToggle = useCallback((key, value) => {
-        configureReasoning({ [key]: value });
-        setReasoningSettings(getReasoningSettings());
-    }, []);
-
-    // Handle API reasoning toggle (Include Reasoning checkbox)
-    const handleAPIReasoningToggle = useCallback((enabled) => {
-        setIncludeReasoning(enabled);
-        setApiReasoning(getAPIReasoningSettings());
-    }, []);
-
-    // Handle reasoning effort change
-    const handleReasoningEffortChange = useCallback((effort) => {
-        setReasoningEffort(effort);
-        setApiReasoning(getAPIReasoningSettings());
-    }, []);
 
     // Handle backdrop click
     const handleBackdropClick = useCallback((e) => {
@@ -507,156 +462,17 @@ function ChatPresetsModal({ onClose, availableUpdates = [], onUpdateComplete }) 
                             </div>
                         </div>
 
-                        <div className="lumiverse-presets-reasoning">
-                            {/* Quick presets */}
-                            <div className="lumiverse-presets-reasoning-quick">
-                                <span className="lumiverse-presets-reasoning-label">
-                                    <Sparkles size={12} strokeWidth={2} />
-                                    Quick Presets
-                                </span>
-                                <div className="lumiverse-presets-reasoning-btns">
-                                    <button
-                                        className="lumiverse-presets-reasoning-btn lumiverse-presets-reasoning-btn--deepseek"
-                                        onClick={() => handleApplyReasoningPreset('deepseek', false)}
-                                        title="Apply DeepSeek <think> tags"
-                                        type="button"
-                                    >
-                                        <span className="lumiverse-presets-reasoning-btn-label">DeepSeek</span>
-                                        <code>&lt;think&gt;</code>
-                                    </button>
-                                    <button
-                                        className="lumiverse-presets-reasoning-btn lumiverse-presets-reasoning-btn--claude"
-                                        onClick={() => handleApplyReasoningPreset('claude_extended', false)}
-                                        title="Apply Claude <thinking> tags"
-                                        type="button"
-                                    >
-                                        <span className="lumiverse-presets-reasoning-btn-label">Claude</span>
-                                        <code>&lt;thinking&gt;</code>
-                                    </button>
-                                    <button
-                                        className="lumiverse-presets-reasoning-btn lumiverse-presets-reasoning-btn--o1"
-                                        onClick={() => handleApplyReasoningPreset('openai_o1', false)}
-                                        title="Apply o1 <reasoning> tags"
-                                        type="button"
-                                    >
-                                        <span className="lumiverse-presets-reasoning-btn-label">o1</span>
-                                        <code>&lt;reasoning&gt;</code>
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Current settings display */}
-                            {reasoningSettings && (
-                                <div className="lumiverse-presets-reasoning-current">
-                                    <div className="lumiverse-presets-reasoning-row">
-                                        <label className="lumiverse-presets-reasoning-checkbox">
-                                            <input
-                                                type="checkbox"
-                                                checked={reasoningSettings.auto_parse || false}
-                                                onChange={(e) => handleReasoningToggle('autoParse', e.target.checked)}
-                                            />
-                                            <span className="lumiverse-presets-reasoning-checkmark"></span>
-                                            <span>Auto-parse thoughts</span>
-                                        </label>
-                                    </div>
-                                    <div className="lumiverse-presets-reasoning-tags">
-                                        <Tag size={12} strokeWidth={2} />
-                                        <span>Tags:</span>
-                                        <code>{reasoningSettings.prefix || '<think>'}</code>
-                                        <span className="lumiverse-presets-reasoning-tags-sep">/</span>
-                                        <code>{reasoningSettings.suffix || '</think>'}</code>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* API Reasoning Settings (Include Reasoning & Effort) */}
-                            <div className="lumiverse-presets-api-reasoning">
-                                <span className="lumiverse-presets-reasoning-label">
-                                    <Gauge size={12} strokeWidth={2} />
-                                    API Reasoning (for supported models)
-                                </span>
-                                <div className="lumiverse-presets-api-reasoning-controls">
-                                    <label className="lumiverse-presets-reasoning-checkbox">
-                                        <input
-                                            type="checkbox"
-                                            checked={apiReasoning.enabled}
-                                            onChange={(e) => handleAPIReasoningToggle(e.target.checked)}
-                                        />
-                                        <span className="lumiverse-presets-reasoning-checkmark"></span>
-                                        <span>Include Reasoning</span>
-                                    </label>
-                                    <div className="lumiverse-presets-api-reasoning-effort">
-                                        <span className="lumiverse-presets-api-reasoning-effort-label">Effort:</span>
-                                        <select
-                                            className="lumiverse-presets-api-reasoning-select"
-                                            value={apiReasoning.effort}
-                                            onChange={(e) => handleReasoningEffortChange(e.target.value)}
-                                            disabled={!apiReasoning.enabled}
-                                        >
-                                            {REASONING_EFFORT_LEVELS.map((level) => (
-                                                <option key={level} value={level}>
-                                                    {level.charAt(0).toUpperCase() + level.slice(1)}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-                                <p className="lumiverse-presets-api-reasoning-hint">
-                                    For o1/o3, Grok 3, DeepSeek R1, and other reasoning models
-                                </p>
-                            </div>
-
-                            {/* Start Reply With */}
-                            <div className="lumiverse-presets-startreply">
-                                <label className="lumiverse-presets-startreply-label">
-                                    <Zap size={12} strokeWidth={2} />
-                                    <span>Start Reply With (Prompt Bias)</span>
-                                </label>
-                                <div className="lumiverse-presets-startreply-input-wrap">
-                                    <textarea
-                                        className="lumiverse-presets-startreply-input"
-                                        value={startReplyWith}
-                                        onChange={(e) => handleStartReplyWithChange(e.target.value)}
-                                        placeholder="Force AI to start response with..."
-                                        rows={2}
-                                    />
-                                </div>
-                                <div className="lumiverse-presets-startreply-quick">
-                                    <button
-                                        className="lumiverse-presets-startreply-btn"
-                                        onClick={() => handleStartReplyWithChange('<think>\n')}
-                                        title="Set to <think> tag with newline"
-                                        type="button"
-                                    >
-                                        &lt;think&gt;↵
-                                    </button>
-                                    <button
-                                        className="lumiverse-presets-startreply-btn lumiverse-presets-startreply-btn--claude"
-                                        onClick={() => handleStartReplyWithChange('<think>')}
-                                        title="Set to <think> tag (Claude, no newline)"
-                                        type="button"
-                                    >
-                                        &lt;think&gt;
-                                    </button>
-                                    <button
-                                        className="lumiverse-presets-startreply-btn lumiverse-presets-startreply-btn--claude"
-                                        onClick={() => handleStartReplyWithChange('<thinking>')}
-                                        title="Set to <thinking> tag (Claude, no newline)"
-                                        type="button"
-                                    >
-                                        &lt;thinking&gt;
-                                    </button>
-                                    <button
-                                        className="lumiverse-presets-startreply-btn lumiverse-presets-startreply-btn--clear"
-                                        onClick={() => handleStartReplyWithChange('')}
-                                        title="Clear"
-                                        type="button"
-                                    >
-                                        <X size={12} strokeWidth={2} />
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                        <ReasoningSettingsContent
+                            reasoningSettings={reasoningSettings}
+                            startReplyWith={startReplyWith}
+                            apiReasoning={apiReasoning}
+                            onApplyReasoningPreset={handleApplyReasoningPreset}
+                            onStartReplyWithChange={handleStartReplyWithChange}
+                            onReasoningToggle={handleReasoningToggle}
+                            onAPIReasoningToggle={handleAPIReasoningToggle}
+                            onReasoningEffortChange={handleReasoningEffortChange}
+                            effortLevels={effortLevels}
+                        />
                     </div>
                 </div>
 

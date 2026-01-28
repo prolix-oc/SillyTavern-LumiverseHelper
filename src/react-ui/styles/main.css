@@ -11473,3 +11473,65 @@ details.lumia-panel[open] .lumia-panel-chevron {
     border-color: rgba(217, 119, 87, 0.35);
     color: rgba(217, 119, 87, 0.95);
 }
+
+/* Disabled state when API Reasoning is enabled */
+.lumiverse-presets-startreply.is-disabled {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.lumiverse-presets-startreply.is-disabled .lumiverse-presets-startreply-input {
+    background: rgba(28, 24, 38, 0.4);
+    cursor: not-allowed;
+}
+
+.lumiverse-presets-startreply.is-disabled .lumiverse-presets-startreply-btn {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.lumiverse-presets-startreply-disabled-hint {
+    font-size: 9px;
+    font-weight: 400;
+    color: rgba(250, 204, 21, 0.6);
+    font-style: italic;
+    text-transform: none;
+    letter-spacing: 0;
+    margin-left: auto;
+}
+
+/* Compact mode for sidebar usage */
+.lumiverse-presets-reasoning--compact {
+    padding: 0;
+    margin: 0;
+}
+
+.lumiverse-presets-reasoning--compact .lumiverse-presets-reasoning-quick {
+    padding: 10px;
+    margin-bottom: 8px;
+}
+
+.lumiverse-presets-reasoning--compact .lumiverse-presets-reasoning-btns {
+    gap: 6px;
+}
+
+.lumiverse-presets-reasoning--compact .lumiverse-presets-reasoning-btn {
+    padding: 6px 10px;
+    font-size: 10px;
+}
+
+.lumiverse-presets-reasoning--compact .lumiverse-presets-reasoning-current {
+    padding: 8px 10px;
+}
+
+.lumiverse-presets-reasoning--compact .lumiverse-presets-api-reasoning {
+    padding: 10px;
+}
+
+.lumiverse-presets-reasoning--compact .lumiverse-presets-startreply {
+    padding: 10px;
+}
+
+.lumiverse-presets-reasoning--compact .lumiverse-presets-startreply-input {
+    min-height: 40px;
+}

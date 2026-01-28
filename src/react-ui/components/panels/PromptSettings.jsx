@@ -1,8 +1,10 @@
 import React, { useState, useCallback, useSyncExternalStore } from 'react';
 import { CollapsibleContent } from '../Collapsible';
 import clsx from 'clsx';
-import { Hand, Filter, ChevronDown, Info, Layers, Users, Edit2, Check, X } from 'lucide-react';
+import { Hand, Filter, ChevronDown, Info, Layers, Users, Edit2, Check, X, Brain } from 'lucide-react';
 import { useLumiverseStore, useLumiverseActions, saveToExtension } from '../../store/LumiverseContext';
+import { useChatPresetSettings } from '../../hooks/useChatPresetSettings';
+import { ReasoningSettingsContent } from '../shared/ReasoningSettings';
 
 // Get the store for direct access (old code uses root-level settings)
 const store = useLumiverseStore;
@@ -222,6 +224,19 @@ function PromptSettings() {
     const [quirksValue, setQuirksValue] = useState(lumiaQuirks);
     const [isEditingQuirks, setIsEditingQuirks] = useState(false);
 
+    // Shared reasoning settings (synced with modal)
+    const {
+        reasoningSettings,
+        startReplyWith,
+        apiReasoning,
+        handleApplyReasoningPreset,
+        handleStartReplyWithChange,
+        handleReasoningToggle,
+        handleAPIReasoningToggle,
+        handleReasoningEffortChange,
+        REASONING_EFFORT_LEVELS
+    } = useChatPresetSettings();
+
     const sovereignEnabled = sovereignHand.enabled ?? false;
     const htmlTagsEnabled = contextFilters.htmlTags?.enabled ?? false;
     const htmlKeepDepth = contextFilters.htmlTags?.keepDepth ?? 3;
@@ -421,6 +436,30 @@ function PromptSettings() {
                             </div>
                         )}
                 </div>
+            </CollapsibleSection>
+
+            {/* Reasoning / Chain of Thought Section */}
+            <CollapsibleSection
+                Icon={Brain}
+                title="Reasoning / CoT"
+                status={reasoningSettings?.auto_parse || apiReasoning.enabled}
+                defaultOpen={false}
+            >
+                <p className="lumiverse-vp-settings-desc">
+                    Configure reasoning/chain-of-thought settings for AI models. Changes sync with the Chat Presets modal.
+                </p>
+                <ReasoningSettingsContent
+                    reasoningSettings={reasoningSettings}
+                    startReplyWith={startReplyWith}
+                    apiReasoning={apiReasoning}
+                    onApplyReasoningPreset={handleApplyReasoningPreset}
+                    onStartReplyWithChange={handleStartReplyWithChange}
+                    onReasoningToggle={handleReasoningToggle}
+                    onAPIReasoningToggle={handleAPIReasoningToggle}
+                    onReasoningEffortChange={handleReasoningEffortChange}
+                    effortLevels={REASONING_EFFORT_LEVELS}
+                    compact={true}
+                />
             </CollapsibleSection>
 
             {/* Sovereign Hand Section */}

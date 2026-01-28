@@ -40,6 +40,40 @@ function notifyTrackingChange() {
     });
 }
 
+// --- Event Emitter for Reasoning Settings Changes ---
+// Allows multiple UI components to stay in sync with reasoning state
+
+const reasoningListeners = new Set();
+
+/**
+ * Subscribe to reasoning settings changes
+ * @param {Function} listener - Callback invoked when reasoning settings change
+ * @returns {Function} Unsubscribe function
+ */
+export function subscribeToReasoningChanges(listener) {
+    reasoningListeners.add(listener);
+    return () => reasoningListeners.delete(listener);
+}
+
+/**
+ * Notify all listeners of a reasoning settings change
+ * @private
+ */
+function notifyReasoningChange() {
+    const settings = {
+        reasoning: getReasoningSettings(),
+        startReplyWith: getStartReplyWith(),
+        apiReasoning: getAPIReasoningSettings(),
+    };
+    reasoningListeners.forEach(listener => {
+        try {
+            listener(settings);
+        } catch (err) {
+            console.error(`[${MODULE_NAME}] Reasoning listener error:`, err);
+        }
+    });
+}
+
 // --- Connection Settings Preservation ---
 // These keys represent user connection configuration that should NOT be overwritten by presets
 // See: developer_guides/5_safe_preset_importing.md
@@ -651,6 +685,7 @@ export function configureReasoning(config) {
 
     context.saveSettingsDebounced();
     console.log(`[${MODULE_NAME}] Reasoning settings updated`);
+    notifyReasoningChange();
 }
 
 /**
@@ -709,6 +744,7 @@ export function setStartReplyWith(text, options = {}) {
 
     context.saveSettingsDebounced();
     console.log(`[${MODULE_NAME}] Start Reply With set to: "${text.substring(0, 50)}..."`);
+    notifyReasoningChange();
 }
 
 /**
@@ -780,6 +816,7 @@ export function setIncludeReasoning(enabled) {
 
     context.saveSettingsDebounced();
     console.log(`[${MODULE_NAME}] Include Reasoning set to: ${enabled}`);
+    notifyReasoningChange();
 }
 
 /**
@@ -810,6 +847,7 @@ export function setReasoningEffort(level) {
 
     context.saveSettingsDebounced();
     console.log(`[${MODULE_NAME}] Reasoning Effort set to: ${level}`);
+    notifyReasoningChange();
 }
 
 // --- Preset Templates ---
