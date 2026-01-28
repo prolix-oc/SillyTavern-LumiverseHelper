@@ -10,13 +10,18 @@ const CATEGORY_MARKER = '\u2501'; // ━
 export function usePresetEditor() {
     const [currentPreset, setCurrentPreset] = useState(null);
     const [prompts, setPrompts] = useState([]);
+    const [availablePresets, setAvailablePresets] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    // Load the currently active preset
+    // Load the currently active preset and list of available presets
     const loadCurrentPreset = useCallback(async () => {
         setIsLoading(true);
         try {
+            // Load available presets list
+            const presetsList = chatPresetService.getAvailablePresets();
+            setAvailablePresets(presetsList);
+
             const preset = chatPresetService.getCurrentPreset();
             console.log('[usePresetEditor] Loaded preset:', preset);
             if (preset) {
@@ -39,6 +44,39 @@ export function usePresetEditor() {
             setIsLoading(false);
         }
     }, []);
+
+    // Switch to a different preset
+    const selectPreset = useCallback(async (name) => {
+        setIsLoading(true);
+        try {
+            const success = await chatPresetService.selectPreset(name);
+            if (success) {
+                // Short delay to allow ST to update state if needed, though selectPreset is async
+                await loadCurrentPreset();
+            } else {
+                setError(`Failed to select preset: ${name}`);
+            }
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [loadCurrentPreset]);
+
+    // Export current preset
+    const exportPreset = useCallback(() => {
+        if (!currentPreset) return;
+        const json = chatPresetService.exportPreset(currentPreset.name);
+        if (json) {
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${currentPreset.name}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    }, [currentPreset]);
 
     // Save changes to the prompt list
     const savePrompts = useCallback(async (newPrompts) => {
@@ -101,10 +139,13 @@ export function usePresetEditor() {
     return {
         currentPreset,
         prompts,
+        availablePresets,
         structuredPrompts,
         isLoading,
         error,
         refresh: loadCurrentPreset,
+        selectPreset,
+        exportPreset,
         savePrompts
     };
 }

@@ -11819,3 +11819,28 @@ details.lumia-panel[open] .lumia-panel-chevron {
     justify-content: flex-end;
     margin-top: auto;
 }
+
+/* Select Dropdown */
+.lumiverse-select {
+    padding: 8px 12px;
+    background: var(--lumiverse-bg-elevated);
+    border: 1px solid var(--lumiverse-border);
+    border-radius: var(--lumiverse-radius);
+    color: var(--lumiverse-text);
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    outline: none;
+    transition: all var(--lumiverse-transition);
+}
+
+.lumiverse-select:hover,
+.lumiverse-select:focus {
+    border-color: var(--lumiverse-primary);
+    background: var(--lumiverse-bg-hover);
+}
+
+.lumiverse-select option {
+    background: var(--lumiverse-bg-elevated);
+    color: var(--lumiverse-text);
+}

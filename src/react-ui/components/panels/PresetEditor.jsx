@@ -132,7 +132,10 @@ export default function PresetEditor({ onClose }) {
     const {
         currentPreset,
         prompts,
+        availablePresets,
         savePrompts,
+        selectPreset,
+        exportPreset,
         isLoading,
         error
     } = usePresetEditor();
@@ -263,7 +266,19 @@ export default function PresetEditor({ onClose }) {
     return (
         <div className="lumiverse-preset-editor">
             <div className="lumiverse-modal-header">
-                <h3>Preset Editor: {currentPreset?.name}</h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
+                    <h3>Preset Editor:</h3>
+                    <select 
+                        value={currentPreset?.name || ''} 
+                        onChange={(e) => selectPreset(e.target.value)}
+                        className="lumiverse-select"
+                        style={{ maxWidth: '250px' }}
+                    >
+                        {availablePresets.map(name => (
+                            <option key={name} value={name}>{name}</option>
+                        ))}
+                    </select>
+                </div>
                 <button className="lumiverse-close-btn" onClick={onClose}>
                     <X size={20} />
                 </button>
@@ -277,6 +292,10 @@ export default function PresetEditor({ onClose }) {
                     </button>
                     <button className="lumiverse-btn" onClick={() => handleAddPrompt(true)}>
                         <Plus size={16} /> Add Category
+                    </button>
+                    <div style={{ flex: 1 }}></div>
+                    <button className="lumiverse-btn" onClick={exportPreset} title="Export as JSON">
+                        <Save size={16} /> Export
                     </button>
                 </div>
 
@@ -310,6 +329,26 @@ export default function PresetEditor({ onClose }) {
                                 onChange={e => setEditForm({...editForm, content: e.target.value})}
                                 rows={10}
                             />
+                        </div>
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <div className="lumiverse-form-group" style={{ flex: 1 }}>
+                                <label>Injection Position</label>
+                                <select
+                                    value={editForm.injection_position || 0}
+                                    onChange={e => setEditForm({...editForm, injection_position: parseInt(e.target.value)})}
+                                >
+                                    <option value={0}>Relative (0)</option>
+                                    <option value={1}>Absolute (1)</option>
+                                </select>
+                            </div>
+                            <div className="lumiverse-form-group" style={{ flex: 1 }}>
+                                <label>Injection Depth</label>
+                                <input
+                                    type="number"
+                                    value={editForm.injection_depth || 4}
+                                    onChange={e => setEditForm({...editForm, injection_depth: parseInt(e.target.value)})}
+                                />
+                            </div>
                         </div>
                         <div className="lumiverse-form-actions">
                             <button className="lumiverse-btn lumiverse-btn-primary" onClick={handleSaveEdit}>

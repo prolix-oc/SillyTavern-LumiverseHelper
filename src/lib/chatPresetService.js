@@ -38,8 +38,23 @@ export class ChatPresetService {
         const presetName = manager.getSelectedPresetName();
         console.log('[ChatPresetService] Active preset name:', presetName);
         
-        // Get the full settings object (includes parameters and prompts)
-        const settings = manager.getPresetSettings(presetName);
+        let settings = null;
+
+        // Workaround for SillyTavern issue where getPresetSettings('openai') fails
+        // We prefer getPresetList().settings for OpenAI as it returns the live object
+        if (API_ID === 'openai') {
+            const list = manager.getPresetList();
+            if (list && list.settings) {
+                console.log('[ChatPresetService] Using getPresetList().settings for OpenAI');
+                settings = list.settings;
+            }
+        }
+
+        // Fallback or for other APIs
+        if (!settings) {
+            settings = manager.getPresetSettings(presetName);
+        }
+        
         console.log('[ChatPresetService] Raw settings found:', !!settings, settings ? Object.keys(settings) : 'null');
         
         if (!settings) return null;
@@ -77,12 +92,17 @@ export class ChatPresetService {
         const manager = this.getManager();
         if (!manager) return [];
         
-        // SillyTavern's manager.presets is usually an object where keys are names
-        // or a list depending on version, but typically available via getPresetNames() or keys
-        // The manager usually has a `presets` property.
-        if (manager.presets) {
-             return Object.keys(manager.presets).sort();
+        if (typeof manager.getAllPresets === 'function') {
+            return manager.getAllPresets();
         }
+
+        // Fallback using getPresetList if getAllPresets fails/missing
+        const list = manager.getPresetList();
+        if (list && list.preset_names) {
+            if (Array.isArray(list.preset_names)) return list.preset_names;
+            return Object.keys(list.preset_names);
+        }
+
         return [];
     }
 
@@ -93,8 +113,37 @@ export class ChatPresetService {
     async selectPreset(name) {
         const manager = this.getManager();
         if (!manager) return false;
-        await manager.selectPreset(name);
-        return true;
+        
+        // Use findPreset to get value, then selectPreset
+        const value = manager.findPreset(name);
+        if (value) {
+            manager.selectPreset(value);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Export preset as JSON string
+     * @param {string} name (Optional) name to export, defaults to current
+     * @returns {string|null} JSON string
+     */
+    exportPreset(name) {
+        const current = this.getCurrentPreset();
+        if (!current || !current.settings) return null;
+        
+        // If name matches current, return current settings
+        if (!name || name === current.name) {
+            return JSON.stringify(current.settings, null, 4);
+        }
+
+        // Otherwise fetch specific preset
+        const manager = this.getManager();
+        const settings = manager.getCompletionPresetByName(name);
+        if (settings) {
+             return JSON.stringify(settings, null, 4);
+        }
+        return null;
     }
 
     /**
