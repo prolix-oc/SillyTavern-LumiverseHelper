@@ -10128,6 +10128,111 @@ details.lumia-panel[open] .lumia-panel-chevron {
    ======================================== */
 
 /* ============================================
+   UPDATE NOTIFICATION BANNERS
+   ============================================ */
+
+.lumiverse-presets-updates {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.lumiverse-presets-update-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(22, 163, 74, 0.08));
+    border: 1px solid rgba(34, 197, 94, 0.25);
+    border-radius: 10px;
+    animation: lumiverse-update-pulse 2s ease-in-out infinite;
+}
+
+@keyframes lumiverse-update-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.1); }
+    50% { box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.05); }
+}
+
+.lumiverse-presets-update-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: rgba(34, 197, 94, 0.15);
+    border-radius: 7px;
+    color: rgba(34, 197, 94, 0.9);
+    flex-shrink: 0;
+}
+
+.lumiverse-presets-update-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.lumiverse-presets-update-title {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--lumiverse-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lumiverse-presets-update-version {
+    font-size: 10px;
+    color: rgba(34, 197, 94, 0.85);
+    font-family: var(--lumiverse-font-mono);
+}
+
+.lumiverse-presets-update-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.lumiverse-presets-update-btn {
+    padding: 5px 12px;
+    background: rgba(34, 197, 94, 0.2);
+    border: 1px solid rgba(34, 197, 94, 0.35);
+    border-radius: 6px;
+    color: rgba(34, 197, 94, 0.95);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.lumiverse-presets-update-btn:hover {
+    background: rgba(34, 197, 94, 0.3);
+    border-color: rgba(34, 197, 94, 0.5);
+}
+
+.lumiverse-presets-update-dismiss {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: var(--lumiverse-text-dim);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.lumiverse-presets-update-dismiss:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--lumiverse-text-muted);
+}
+
+/* ============================================
    TRIGGER BUTTON (in Settings Panel)
    ============================================ */
 
@@ -10178,6 +10283,31 @@ details.lumia-panel[open] .lumia-panel-chevron {
     border-radius: 10px;
     color: rgba(147, 112, 219, 0.9);
     flex-shrink: 0;
+    position: relative;
+}
+
+.lumiverse-presets-trigger-icon.has-updates {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(22, 163, 74, 0.15));
+    border-color: rgba(34, 197, 94, 0.3);
+    color: rgba(34, 197, 94, 0.9);
+}
+
+.lumiverse-presets-trigger-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    background: rgba(34, 197, 94, 0.95);
+    border-radius: 8px;
+    font-size: 9px;
+    font-weight: 700;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .lumiverse-presets-trigger-text {
@@ -10316,6 +10446,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
 /* Modal content */
 .lumiverse-presets-modal-content {
     flex: 1;
+    min-height: 0; /* Required for flex overflow to work */
     overflow-y: auto;
     padding: 16px 20px;
     display: flex;
@@ -10556,22 +10687,6 @@ details.lumia-panel[open] .lumia-panel-chevron {
     flex-direction: column;
     gap: 6px;
     padding: 10px;
-    max-height: 280px;
-    overflow-y: auto;
-}
-
-.lumiverse-presets-list::-webkit-scrollbar {
-    width: 4px;
-}
-
-.lumiverse-presets-list::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.1);
-    border-radius: 2px;
-}
-
-.lumiverse-presets-list::-webkit-scrollbar-thumb {
-    background: rgba(147, 112, 219, 0.25);
-    border-radius: 2px;
 }
 
 /* Preset card */
@@ -10605,6 +10720,15 @@ details.lumia-panel[open] .lumia-panel-chevron {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
 }
 
+.lumiverse-preset-card.has-update {
+    border-color: rgba(34, 197, 94, 0.3);
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.05), rgba(45, 38, 60, 0.6));
+}
+
+.lumiverse-preset-card.has-update:hover {
+    border-color: rgba(34, 197, 94, 0.45);
+}
+
 /* Card header */
 .lumiverse-preset-card-header {
     display: flex;
@@ -10636,6 +10760,12 @@ details.lumia-panel[open] .lumia-panel-chevron {
     flex-shrink: 0;
 }
 
+.lumiverse-preset-card-icon.has-update {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(22, 163, 74, 0.15));
+    border-color: rgba(34, 197, 94, 0.3);
+    color: rgba(34, 197, 94, 0.9);
+}
+
 .lumiverse-preset-card-info {
     flex: 1;
     min-width: 0;
@@ -10645,12 +10775,27 @@ details.lumia-panel[open] .lumia-panel-chevron {
 }
 
 .lumiverse-preset-card-name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     font-size: 12px;
     font-weight: 600;
     color: var(--lumiverse-text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.lumiverse-preset-card-update-badge {
+    padding: 2px 5px;
+    background: rgba(34, 197, 94, 0.2);
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 600;
+    color: rgba(34, 197, 94, 0.95);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
 }
 
 .lumiverse-preset-card-meta {

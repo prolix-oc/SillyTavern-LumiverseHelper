@@ -19,7 +19,9 @@ import {
     Tag,
     Clock,
     Settings2,
-    ExternalLink
+    ExternalLink,
+    Bell,
+    ArrowUpCircle
 } from 'lucide-react';
 import { 
     fetchAvailablePresets, 
@@ -29,24 +31,49 @@ import {
     getReasoningSettings,
     getStartReplyWith,
     REASONING_PRESETS,
-    applyReasoningWithBias
+    applyReasoningWithBias,
+    checkForPresetUpdates,
+    getTrackedPresets,
+    formatVersion
 } from '../../../lib/presetsService';
 
 /* global toastr */
 
+// Check for updates every 30 minutes
+const UPDATE_CHECK_INTERVAL = 30 * 60 * 1000;
+
 /**
  * Chat Presets Panel - Trigger component that opens the modal
- * Displays current status and a button to open the full browser
+ * Displays current status, update notifications, and a button to open the full browser
  */
 export function ChatPresetsPanel() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [reasoningSettings, setReasoningSettings] = useState(null);
     const [startReplyWith, setStartReplyWithState] = useState('');
+    const [availableUpdates, setAvailableUpdates] = useState([]);
+    const updateCheckRef = useRef(null);
 
-    // Load initial settings
+    // Load initial settings and check for updates
     useEffect(() => {
         setReasoningSettings(getReasoningSettings());
         setStartReplyWithState(getStartReplyWith());
+        
+        // Initial update check (delayed to not block UI)
+        const initialCheck = setTimeout(() => {
+            checkForPresetUpdates().then(setAvailableUpdates);
+        }, 5000);
+        
+        // Periodic update checks
+        updateCheckRef.current = setInterval(() => {
+            checkForPresetUpdates().then(setAvailableUpdates);
+        }, UPDATE_CHECK_INTERVAL);
+        
+        return () => {
+            clearTimeout(initialCheck);
+            if (updateCheckRef.current) {
+                clearInterval(updateCheckRef.current);
+            }
+        };
     }, []);
 
     const handleOpenModal = useCallback(() => {
@@ -58,6 +85,13 @@ export function ChatPresetsPanel() {
         // Refresh settings in case they were changed in modal
         setReasoningSettings(getReasoningSettings());
         setStartReplyWithState(getStartReplyWith());
+        // Re-check for updates after modal closes (in case user updated a preset)
+        checkForPresetUpdates().then(setAvailableUpdates);
+    }, []);
+
+    // Dismiss a specific update notification
+    const handleDismissUpdate = useCallback((slug) => {
+        setAvailableUpdates(prev => prev.filter(u => u.slug !== slug));
     }, []);
 
     // Get current status text
@@ -75,6 +109,45 @@ export function ChatPresetsPanel() {
 
     return (
         <>
+            {/* Update notification banners */}
+            {availableUpdates.length > 0 && (
+                <div className="lumiverse-presets-updates">
+                    {availableUpdates.map((update) => (
+                        <div key={update.slug} className="lumiverse-presets-update-banner">
+                            <div className="lumiverse-presets-update-icon">
+                                <ArrowUpCircle size={14} strokeWidth={2} />
+                            </div>
+                            <div className="lumiverse-presets-update-text">
+                                <span className="lumiverse-presets-update-title">
+                                    Update available for "{update.name}"
+                                </span>
+                                <span className="lumiverse-presets-update-version">
+                                    {formatVersion(update.currentVersion)} → {update.latestVersionName}
+                                </span>
+                            </div>
+                            <div className="lumiverse-presets-update-actions">
+                                <button
+                                    className="lumiverse-presets-update-btn"
+                                    onClick={handleOpenModal}
+                                    title="Open presets to update"
+                                    type="button"
+                                >
+                                    Update
+                                </button>
+                                <button
+                                    className="lumiverse-presets-update-dismiss"
+                                    onClick={() => handleDismissUpdate(update.slug)}
+                                    title="Dismiss"
+                                    type="button"
+                                >
+                                    <X size={12} strokeWidth={2} />
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
             <div className="lumiverse-presets-trigger">
                 <button
                     className="lumiverse-presets-trigger-btn"
@@ -82,8 +155,16 @@ export function ChatPresetsPanel() {
                     type="button"
                 >
                     <div className="lumiverse-presets-trigger-left">
-                        <div className="lumiverse-presets-trigger-icon">
+                        <div className={clsx(
+                            'lumiverse-presets-trigger-icon',
+                            availableUpdates.length > 0 && 'has-updates'
+                        )}>
                             <Cloud size={18} strokeWidth={1.5} />
+                            {availableUpdates.length > 0 && (
+                                <span className="lumiverse-presets-trigger-badge">
+                                    {availableUpdates.length}
+                                </span>
+                            )}
                         </div>
                         <div className="lumiverse-presets-trigger-text">
                             <span className="lumiverse-presets-trigger-title">Chat Presets & Reasoning</span>
@@ -95,7 +176,11 @@ export function ChatPresetsPanel() {
             </div>
 
             {isModalOpen && (
-                <ChatPresetsModal onClose={handleCloseModal} />
+                <ChatPresetsModal 
+                    onClose={handleCloseModal} 
+                    availableUpdates={availableUpdates}
+                    onUpdateComplete={() => checkForPresetUpdates().then(setAvailableUpdates)}
+                />
             )}
         </>
     );
@@ -105,7 +190,7 @@ export function ChatPresetsPanel() {
  * Chat Presets Modal - Full-featured preset browser and reasoning settings
  * Uses createPortal for proper layering and event handling
  */
-function ChatPresetsModal({ onClose }) {
+function ChatPresetsModal({ onClose, availableUpdates = [], onUpdateComplete }) {
     // Preset browser state
     const [presets, setPresets] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -166,6 +251,8 @@ function ChatPresetsModal({ onClose }) {
             const result = await downloadAndImportPreset(presetSlug, versionSlug, { activate: true });
             if (result.success) {
                 toastr?.success(`Imported: ${versionName || versionSlug}`, 'Preset Added');
+                // Notify parent to refresh update list (new version is now tracked)
+                onUpdateComplete?.();
             } else {
                 toastr?.error(result.message, 'Import Failed');
             }
@@ -174,7 +261,7 @@ function ChatPresetsModal({ onClose }) {
         } finally {
             setDownloadingVersion(null);
         }
-    }, []);
+    }, [onUpdateComplete]);
 
     // Apply a reasoning preset with optional bias
     const handleApplyReasoningPreset = useCallback((presetKey, withBias = false) => {
@@ -318,19 +405,23 @@ function ChatPresetsModal({ onClose }) {
                         {/* Preset list */}
                         {presets && presets.length > 0 && (
                             <div className="lumiverse-presets-list">
-                                {presets.map((preset, index) => (
-                                    <PresetCard
-                                        key={preset.slug}
-                                        preset={preset}
-                                        isExpanded={expandedPreset === preset.slug}
-                                        onToggle={() => setExpandedPreset(
-                                            expandedPreset === preset.slug ? null : preset.slug
-                                        )}
-                                        onDownload={handleDownload}
-                                        downloadingVersion={downloadingVersion}
-                                        animationIndex={index}
-                                    />
-                                ))}
+                                {presets.map((preset, index) => {
+                                    const updateInfo = availableUpdates.find(u => u.slug === preset.slug);
+                                    return (
+                                        <PresetCard
+                                            key={preset.slug}
+                                            preset={preset}
+                                            isExpanded={expandedPreset === preset.slug}
+                                            onToggle={() => setExpandedPreset(
+                                                expandedPreset === preset.slug ? null : preset.slug
+                                            )}
+                                            onDownload={handleDownload}
+                                            downloadingVersion={downloadingVersion}
+                                            animationIndex={index}
+                                            updateAvailable={updateInfo}
+                                        />
+                                    );
+                                })}
                             </div>
                         )}
                     </div>
@@ -471,7 +562,7 @@ function ChatPresetsModal({ onClose }) {
 /**
  * Individual preset card with expandable version list
  */
-function PresetCard({ preset, isExpanded, onToggle, onDownload, downloadingVersion, animationIndex }) {
+function PresetCard({ preset, isExpanded, onToggle, onDownload, downloadingVersion, animationIndex, updateAvailable }) {
     // Combine standard and prolix versions
     const allVersions = useMemo(() => {
         const versions = [];
@@ -500,7 +591,8 @@ function PresetCard({ preset, isExpanded, onToggle, onDownload, downloadingVersi
         <div 
             className={clsx(
                 'lumiverse-preset-card',
-                isExpanded && 'is-expanded'
+                isExpanded && 'is-expanded',
+                updateAvailable && 'has-update'
             )}
             style={animationStyle}
         >
@@ -509,14 +601,35 @@ function PresetCard({ preset, isExpanded, onToggle, onDownload, downloadingVersi
                 onClick={onToggle}
                 type="button"
             >
-                <div className="lumiverse-preset-card-icon">
-                    <FileJson size={16} strokeWidth={1.5} />
+                <div className={clsx(
+                    'lumiverse-preset-card-icon',
+                    updateAvailable && 'has-update'
+                )}>
+                    {updateAvailable ? (
+                        <ArrowUpCircle size={16} strokeWidth={1.5} />
+                    ) : (
+                        <FileJson size={16} strokeWidth={1.5} />
+                    )}
                 </div>
                 <div className="lumiverse-preset-card-info">
-                    <span className="lumiverse-preset-card-name">{preset.name}</span>
+                    <span className="lumiverse-preset-card-name">
+                        {preset.name}
+                        {updateAvailable && (
+                            <span className="lumiverse-preset-card-update-badge">Update</span>
+                        )}
+                    </span>
                     <span className="lumiverse-preset-card-meta">
-                        <Clock size={10} strokeWidth={2} />
-                        {preset.totalVersions} version{preset.totalVersions !== 1 ? 's' : ''}
+                        {updateAvailable ? (
+                            <>
+                                <ArrowUpCircle size={10} strokeWidth={2} />
+                                {formatVersion(updateAvailable.currentVersion)} → {updateAvailable.latestVersionName}
+                            </>
+                        ) : (
+                            <>
+                                <Clock size={10} strokeWidth={2} />
+                                {preset.totalVersions} version{preset.totalVersions !== 1 ? 's' : ''}
+                            </>
+                        )}
                     </span>
                 </div>
                 <div className="lumiverse-preset-card-actions">

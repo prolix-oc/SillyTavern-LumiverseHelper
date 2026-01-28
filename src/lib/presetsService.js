@@ -5,9 +5,154 @@
  */
 
 import { getContext } from "../stContext.js";
+import { getSettings, saveSettings } from "./settingsManager.js";
 
 export const MODULE_NAME = "presets-service";
 const LUCID_API_BASE = "https://lucid.cards";
+
+// --- Version Tracking ---
+
+/**
+ * Compare two semantic versions
+ * @param {Object} v1 - Version object { major, minor, patch }
+ * @param {Object} v2 - Version object { major, minor, patch }
+ * @returns {number} -1 if v1 < v2, 0 if equal, 1 if v1 > v2
+ */
+function compareVersions(v1, v2) {
+    if (!v1 || !v2) return 0;
+    
+    if (v1.major !== v2.major) return v1.major < v2.major ? -1 : 1;
+    if (v1.minor !== v2.minor) return v1.minor < v2.minor ? -1 : 1;
+    if (v1.patch !== v2.patch) return v1.patch < v2.patch ? -1 : 1;
+    return 0;
+}
+
+/**
+ * Format a version object as a string
+ * @param {Object} version - Version object { major, minor, patch }
+ * @returns {string} Formatted version string
+ */
+export function formatVersion(version) {
+    if (!version) return "unknown";
+    return `${version.major}.${version.minor}.${version.patch}`;
+}
+
+/**
+ * Track an imported preset version in settings
+ * @param {string} presetSlug - Preset slug identifier
+ * @param {Object} presetInfo - Preset metadata from API
+ * @param {Object} versionInfo - Version metadata { name, version: { major, minor, patch } }
+ */
+export function trackPresetVersion(presetSlug, presetInfo, versionInfo) {
+    const settings = getSettings();
+    
+    if (!settings.trackedPresets) {
+        settings.trackedPresets = {};
+    }
+    
+    settings.trackedPresets[presetSlug] = {
+        name: presetInfo?.name || presetSlug,
+        version: versionInfo?.version || null,
+        versionName: versionInfo?.name || "unknown",
+        importedAt: Date.now(),
+    };
+    
+    saveSettings();
+    console.log(`[${MODULE_NAME}] Tracked preset: ${presetSlug} v${formatVersion(versionInfo?.version)}`);
+}
+
+/**
+ * Get all tracked presets
+ * @returns {Object} Map of preset slugs to tracked version info
+ */
+export function getTrackedPresets() {
+    const settings = getSettings();
+    return settings.trackedPresets || {};
+}
+
+/**
+ * Fetch latest version info for a single preset
+ * @param {string} presetSlug - Preset slug
+ * @returns {Promise<Object|null>} Latest version info or null
+ */
+async function fetchLatestVersionInfo(presetSlug) {
+    try {
+        const response = await fetch(
+            `${LUCID_API_BASE}/api/download/chat-presets/${presetSlug}/latest`
+        );
+        if (!response.ok) {
+            return null;
+        }
+        const data = await response.json();
+        if (!data.success) {
+            return null;
+        }
+        return data.version || null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Check for preset updates by comparing tracked versions with latest available
+ * Uses individual /latest endpoint for each tracked preset for efficiency
+ * @returns {Promise<Array<{slug: string, name: string, currentVersion: Object, latestVersion: Object, latestVersionName: string}>>}
+ */
+export async function checkForPresetUpdates() {
+    const tracked = getTrackedPresets();
+    const trackedSlugs = Object.keys(tracked);
+    
+    if (trackedSlugs.length === 0) {
+        return [];
+    }
+    
+    const updates = [];
+    
+    // Check each tracked preset in parallel
+    const checks = trackedSlugs.map(async (slug) => {
+        const trackedInfo = tracked[slug];
+        const latestInfo = await fetchLatestVersionInfo(slug);
+        
+        if (!latestInfo?.version) {
+            return null;
+        }
+        
+        const latestVersion = latestInfo.version;
+        const currentVersion = trackedInfo.version;
+        
+        // Compare versions
+        if (compareVersions(currentVersion, latestVersion) < 0) {
+            return {
+                slug,
+                name: trackedInfo.name,
+                currentVersion,
+                latestVersion,
+                latestVersionName: latestInfo.name || formatVersion(latestVersion),
+            };
+        }
+        return null;
+    });
+    
+    try {
+        const results = await Promise.all(checks);
+        return results.filter(Boolean);
+    } catch (error) {
+        console.error(`[${MODULE_NAME}] Failed to check for updates:`, error);
+        return [];
+    }
+}
+
+/**
+ * Remove a preset from tracking
+ * @param {string} presetSlug - Preset slug to stop tracking
+ */
+export function untrackPreset(presetSlug) {
+    const settings = getSettings();
+    if (settings.trackedPresets && settings.trackedPresets[presetSlug]) {
+        delete settings.trackedPresets[presetSlug];
+        saveSettings();
+    }
+}
 
 /**
  * Fetch all available presets from Lucid.cards
@@ -242,12 +387,17 @@ export async function importPreset(presetData, presetName, options = {}) {
 
 /**
  * Download and import a preset from Lucid.cards in one step
+ * Automatically tracks the imported version for update notifications
  * @param {string} presetSlug - Preset slug
  * @param {string} versionSlug - Version slug (default: "latest")
  * @param {Object} options - Import options
+ * @param {boolean} options.activate - Whether to activate the preset after import
+ * @param {boolean} options.trackVersion - Whether to track for update notifications (default: true)
  * @returns {Promise<{success: boolean, type: string, message: string, presetInfo?: Object}>}
  */
 export async function downloadAndImportPreset(presetSlug, versionSlug = "latest", options = {}) {
+    const { trackVersion = true, ...importOptions } = options;
+    
     try {
         // Download from API
         const response = await downloadPreset(presetSlug, versionSlug);
@@ -257,15 +407,22 @@ export async function downloadAndImportPreset(presetSlug, versionSlug = "latest"
         }
 
         // Build preset name from response metadata
-        const presetName = response.preset?.latestVersion?.name || 
+        const presetName = response.version?.name || 
+                          response.preset?.latestVersion?.name || 
                           `${presetSlug} ${versionSlug}`;
 
         // Import into SillyTavern
-        const result = await importPreset(response.data, presetName, options);
+        const result = await importPreset(response.data, presetName, importOptions);
+
+        // Track the version for update notifications if import succeeded
+        if (result.success && trackVersion && response.version) {
+            trackPresetVersion(presetSlug, response.preset, response.version);
+        }
 
         return {
             ...result,
             presetInfo: response.preset,
+            versionInfo: response.version,
         };
 
     } catch (error) {

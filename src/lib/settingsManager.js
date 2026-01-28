@@ -92,6 +92,8 @@ const DEFAULT_SETTINGS = {
   lumiaConfigVersion: 1,
   lastLumiaChangeTimestamp: null,
   disableAnthropicCache: false,
+  // Tracked presets from Lucid.cards (for update notifications)
+  trackedPresets: {}, // { [presetSlug]: { name, version: {major, minor, patch}, importedAt, versionName } }
   // Lumia button position (percentage from edges)
   lumiaButtonPosition: {
     useDefault: true, // When true, use default positioning (top-right, animates with panel)
