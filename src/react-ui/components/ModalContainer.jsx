@@ -55,20 +55,20 @@ function ModalWrapper({ children, onClose, modalType, size = 'medium', hasCustom
 
     // Determine modal class based on type
     const modalClass = clsx(
-        'lumia-modal',
-        modalType === 'selection' && 'lumia-modal-selection',
-        modalType === 'settings' && 'lumia-modal-settings',
-        modalType === 'editor' && 'lumia-modal-editor',
-        modalType === 'pack-editor' && 'lumia-modal-pack-editor',
-        modalType === 'pack-selector' && 'lumia-modal-pack-selector',
-        modalType === 'lumia-editor' && 'lumia-modal-lumia-editor',
-        modalType === 'loom-editor' && 'lumia-modal-loom-editor',
-        modalType === 'type-selector' && 'lumia-modal-type-selector'
+        'lumiverse-modal',
+        modalType === 'selection' && 'lumiverse-modal-selection',
+        modalType === 'settings' && 'lumiverse-modal-settings',
+        modalType === 'editor' && 'lumiverse-modal-editor',
+        modalType === 'pack-editor' && 'lumiverse-modal-pack-editor',
+        modalType === 'pack-selector' && 'lumiverse-modal-pack-selector',
+        modalType === 'lumia-editor' && 'lumiverse-modal-lumia-editor',
+        modalType === 'loom-editor' && 'lumiverse-modal-loom-editor',
+        modalType === 'type-selector' && 'lumiverse-modal-type-selector'
     );
 
     return (
         <div
-            className="lumia-modal-backdrop"
+            className="lumiverse-modal-backdrop"
             onClick={handleBackdropClick}
             onMouseDown={stopAllPropagation}
             onMouseUp={stopAllPropagation}

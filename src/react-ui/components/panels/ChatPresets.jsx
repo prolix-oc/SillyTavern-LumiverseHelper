@@ -212,7 +212,7 @@ export function ChatPresetsPanel() {
             )}
 
             {/* Configure Button */}
-            <div style={{ display: 'flex', gap: '8px', flexDirection: 'column' }}>
+            <div className="lumia-chat-presets-actions" style={{ display: 'flex', gap: '8px', flexDirection: 'column' }}>
                 <button
                     className="lumia-btn lumia-btn-primary lumia-btn-full"
                     onClick={handleOpenModal}
@@ -348,14 +348,14 @@ function ChatPresetsModal({ onClose, availableUpdates = [], onUpdateComplete }) 
 
     return createPortal(
         <div
-            className="lumia-modal-backdrop"
+            className="lumiverse-modal-backdrop"
             onClick={handleBackdropClick}
             onMouseDown={handleModalClick}
             onMouseUp={handleModalClick}
         >
             <div
                 ref={modalRef}
-                className="lumia-modal lumiverse-presets-modal"
+                className="lumiverse-modal lumiverse-presets-modal"
                 onClick={handleModalClick}
                 role="dialog"
                 aria-modal="true"
