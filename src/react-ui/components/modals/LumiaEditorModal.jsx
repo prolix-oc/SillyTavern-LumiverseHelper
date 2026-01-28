@@ -1,8 +1,17 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { usePacks, useLumiverseActions, saveToExtension } from '../../store/LumiverseContext';
-import { useAdaptiveImagePosition } from '../../hooks/useAdaptiveImagePosition';
-import clsx from 'clsx';
 import { User, Smile, Wrench, Trash2 } from 'lucide-react';
+import {
+    EditorLayout,
+    EditorContent,
+    EditorFooter,
+    EditorSection,
+    FormField,
+    TextInput,
+    TextArea,
+    Select,
+    ImageInput
+} from '../shared/FormComponents';
 
 /**
  * Lumia Item Structure (new v2 format):
@@ -53,69 +62,6 @@ function getLumiaField(item, field) {
         }
     }
     return null;
-}
-
-/**
- * Form field component
- */
-function FormField({ label, required, hint, children, error }) {
-    return (
-        <div className={clsx('lumiverse-editor-field', error && 'lumiverse-editor-field--error')}>
-            <label className="lumiverse-editor-label">
-                {label}
-                {required && <span className="lumiverse-required">*</span>}
-            </label>
-            {children}
-            {hint && <span className="lumiverse-editor-hint">{hint}</span>}
-            {error && <span className="lumiverse-editor-error">{error}</span>}
-        </div>
-    );
-}
-
-/**
- * Section with icon header
- */
-function EditorSection({ Icon, title, children }) {
-    return (
-        <div className="lumiverse-editor-section">
-            <div className="lumiverse-editor-section-header">
-                <Icon size={16} strokeWidth={1.5} />
-                <span>{title}</span>
-            </div>
-            <div className="lumiverse-editor-section-content">
-                {children}
-            </div>
-        </div>
-    );
-}
-
-/**
- * Avatar preview component
- */
-function AvatarPreview({ url }) {
-    const [error, setError] = useState(false);
-    const [loaded, setLoaded] = useState(false);
-    const { objectPosition } = useAdaptiveImagePosition(url);
-
-    useEffect(() => {
-        setError(false);
-        setLoaded(false);
-    }, [url]);
-
-    if (!url || error) return null;
-
-    return (
-        <div className={clsx('lumiverse-editor-avatar-preview', loaded && 'loaded')}>
-            <img
-                src={url}
-                alt="Avatar preview"
-                style={{ objectPosition }}
-                onLoad={() => setLoaded(true)}
-                onError={() => setError(true)}
-            />
-            {!loaded && <div className="lumiverse-editor-avatar-spinner" />}
-        </div>
-    );
 }
 
 /**
@@ -189,7 +135,7 @@ function LumiaEditorModal({ packName, editingItem = null, onClose, onSaved }) {
             lumiaDefinition: physicality.trim() || null,
             lumiaPersonality: personality.trim() || null,
             lumiaBehavior: behavior.trim() || null,
-            genderIdentity: gender,
+            genderIdentity: Number(gender),
             version: 1,
         };
 
@@ -292,75 +238,54 @@ function LumiaEditorModal({ packName, editingItem = null, onClose, onSaved }) {
     }
 
     return (
-        <div className="lumiverse-editor-modal" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, height: '100%', overflow: 'hidden' }}>
-            <div className="lumiverse-editor-content" style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
+        <EditorLayout>
+            <EditorContent>
                 {/* Basic Info Section */}
                 <EditorSection Icon={User} title="Basic Info">
-                    <FormField label="Lumia Name" required error={errors.name}>
-                        <input
-                            type="text"
-                            className="lumiverse-input"
+                    <FormField label="Lumia Name" required error={errors.name} hint="Will be referenced as 'Lumia' in World Books">
+                        <TextInput
                             value={name}
-                            onChange={(e) => {
-                                setName(e.target.value);
+                            onChange={(val) => {
+                                setName(val);
                                 if (errors.name) setErrors(prev => ({ ...prev, name: null }));
                             }}
                             placeholder="e.g., Aria, Luna, Sage"
                             autoFocus
                         />
-                        <span className="lumiverse-editor-hint">
-                            Will be referenced as "Lumia ({name || 'Name'})" in World Books
-                        </span>
                     </FormField>
 
-                    <div className="lumiverse-editor-row">
-                        <FormField label="Avatar URL">
-                            <input
-                                type="text"
-                                className="lumiverse-input"
-                                value={avatarUrl}
-                                onChange={(e) => setAvatarUrl(e.target.value)}
-                                placeholder="https://..."
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                         <FormField label="Gender Identity" hint="For pronouns macro">
+                            <Select
+                                value={gender}
+                                onChange={(val) => setGender(val)}
+                                options={GENDER_OPTIONS}
                             />
                         </FormField>
                         <FormField label="Author">
-                            <input
-                                type="text"
-                                className="lumiverse-input"
+                            <TextInput
                                 value={author}
-                                onChange={(e) => setAuthor(e.target.value)}
+                                onChange={(val) => setAuthor(val)}
                                 placeholder="Your name"
                             />
                         </FormField>
                     </div>
 
-                    <div className="lumiverse-editor-row" style={{ display: 'block', marginTop: '12px' }}>
-                        <FormField label="Gender Identity" hint="Used for pronoun macros like {{lumiaPn subject}}">
-                            <select
-                                className="lumiverse-input lumiverse-select"
-                                value={gender}
-                                onChange={(e) => setGender(Number(e.target.value))}
-                                style={{ width: '100%', display: 'block' }}
-                            >
-                                {GENDER_OPTIONS.map(opt => (
-                                    <option key={opt.value} value={opt.value}>
-                                        {opt.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </FormField>
-                    </div>
-
-                    <AvatarPreview url={avatarUrl} />
+                    <FormField label="Avatar URL">
+                        <ImageInput
+                            value={avatarUrl}
+                            onChange={(val) => setAvatarUrl(val)}
+                            placeholder="https://..."
+                        />
+                    </FormField>
                 </EditorSection>
 
                 {/* Physicality Section */}
                 <EditorSection Icon={User} title="Lumia Physicality">
                     <FormField label="Physical Definition" hint="Injected via {{lumiaDef}} macro">
-                        <textarea
-                            className="lumiverse-textarea"
+                        <TextArea
                             value={physicality}
-                            onChange={(e) => setPhysicality(e.target.value)}
+                            onChange={(val) => setPhysicality(val)}
                             placeholder="Describe Lumia's physical appearance, form, and presence..."
                             rows={5}
                         />
@@ -370,10 +295,9 @@ function LumiaEditorModal({ packName, editingItem = null, onClose, onSaved }) {
                 {/* Personality Section */}
                 <EditorSection Icon={Smile} title="Lumia Personality">
                     <FormField label="Personality Traits" hint="Injected via {{lumiaPersonality}} macro">
-                        <textarea
-                            className="lumiverse-textarea"
+                        <TextArea
                             value={personality}
-                            onChange={(e) => setPersonality(e.target.value)}
+                            onChange={(val) => setPersonality(val)}
                             placeholder="Describe Lumia's personality, disposition, and inner nature..."
                             rows={5}
                         />
@@ -383,34 +307,36 @@ function LumiaEditorModal({ packName, editingItem = null, onClose, onSaved }) {
                 {/* Behavior Section */}
                 <EditorSection Icon={Wrench} title="Lumia Behavior Traits">
                     <FormField label="Behavioral Patterns" hint="Injected via {{lumiaBehavior}} macro">
-                        <textarea
-                            className="lumiverse-textarea"
+                        <TextArea
                             value={behavior}
-                            onChange={(e) => setBehavior(e.target.value)}
+                            onChange={(val) => setBehavior(val)}
                             placeholder="Describe Lumia's behavioral patterns, habits, and tendencies..."
                             rows={5}
                         />
                     </FormField>
                 </EditorSection>
-            </div>
+            </EditorContent>
 
             {/* Footer */}
-            <div className="lumiverse-editor-footer">
+            <EditorFooter>
                 {isEditing && (
                     <button
                         className="lumiverse-btn lumiverse-btn--danger"
                         onClick={handleDelete}
                         type="button"
+                        style={{ marginRight: 'auto' }}
                     >
-                        <Trash2 size={14} />
+                        <Trash2 size={14} style={{ marginRight: '6px' }} />
                         Delete
                     </button>
                 )}
-                <div className="lumiverse-editor-footer-spacer" />
+                {!isEditing && <div style={{ marginRight: 'auto' }} />}
+                
                 <button
                     className="lumiverse-btn lumiverse-btn--secondary"
                     onClick={onClose}
                     type="button"
+                    style={{ marginRight: '8px' }}
                 >
                     Cancel
                 </button>
@@ -421,8 +347,8 @@ function LumiaEditorModal({ packName, editingItem = null, onClose, onSaved }) {
                 >
                     {isEditing ? 'Save Changes' : 'Create Lumia'}
                 </button>
-            </div>
-        </div>
+            </EditorFooter>
+        </EditorLayout>
     );
 }
 

@@ -3,6 +3,12 @@ import { usePacks, useLumiverseActions, saveToExtension } from '../../store/Lumi
 import { useAdaptiveImagePosition } from '../../hooks/useAdaptiveImagePosition';
 import clsx from 'clsx';
 import { Folder, FolderPlus, Check, ChevronRight, ChevronDown, Plus, Edit2, User, ScrollText } from 'lucide-react';
+import {
+    EditorLayout,
+    EditorContent,
+    EditorFooter,
+    TextInput
+} from '../shared/FormComponents';
 
 /**
  * Get pack name with fallback for different formats (v2: packName, v1: name)
@@ -229,8 +235,8 @@ function PackSelectorModal({ onSelect, onClose }) {
     };
 
     return (
-        <div className="lumiverse-pack-selector-modal">
-            <div className="lumiverse-pack-selector-content">
+        <EditorLayout className="lumiverse-pack-selector-modal">
+            <EditorContent className="lumiverse-pack-selector-content">
                 {/* Existing Packs Section */}
                 <div className="lumiverse-pack-selector-section">
                     <h4 className="lumiverse-pack-selector-heading">Select a Pack</h4>
@@ -358,36 +364,27 @@ function PackSelectorModal({ onSelect, onClose }) {
                             </h4>
 
                             <div className="lumiverse-pack-selector-field">
-                                <input
-                                    type="text"
-                                    className="lumiverse-input"
+                                <TextInput
                                     placeholder="Pack name (required)"
                                     value={newPackName}
-                                    onChange={(e) => {
-                                        setNewPackName(e.target.value);
-                                        setError('');
-                                    }}
+                                    onChange={setNewPackName}
                                     autoFocus
                                 />
                             </div>
 
                             <div className="lumiverse-pack-selector-field">
-                                <input
-                                    type="text"
-                                    className="lumiverse-input"
+                                <TextInput
                                     placeholder="Author name (optional)"
                                     value={newPackAuthor}
-                                    onChange={(e) => setNewPackAuthor(e.target.value)}
+                                    onChange={setNewPackAuthor}
                                 />
                             </div>
 
                             <div className="lumiverse-pack-selector-field">
-                                <input
-                                    type="text"
-                                    className="lumiverse-input"
+                                <TextInput
                                     placeholder="Cover image URL (optional)"
                                     value={newPackCover}
-                                    onChange={(e) => setNewPackCover(e.target.value)}
+                                    onChange={setNewPackCover}
                                 />
                             </div>
 
@@ -421,19 +418,20 @@ function PackSelectorModal({ onSelect, onClose }) {
                         </div>
                     )}
                 </div>
-            </div>
+            </EditorContent>
 
             {/* Footer */}
-            <div className="lumiverse-pack-selector-footer">
+            <EditorFooter className="lumiverse-pack-selector-footer">
                 <button
                     className="lumiverse-btn lumiverse-btn--secondary"
                     onClick={onClose}
                     type="button"
+                    style={{ marginLeft: 'auto' }}
                 >
                     Cancel
                 </button>
-            </div>
-        </div>
+            </EditorFooter>
+        </EditorLayout>
     );
 }
 

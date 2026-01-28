@@ -1,79 +1,15 @@
 import React, { useState, useCallback } from 'react';
 import { usePacks, useLumiverseActions, saveToExtension } from '../../store/LumiverseContext';
-import { useAdaptiveImagePosition } from '../../hooks/useAdaptiveImagePosition';
-import clsx from 'clsx';
-import { Package, User, Image, Trash2, Download, Edit2 } from 'lucide-react';
-
-/**
- * Form input with label
- */
-function FormField({ label, required, children, error, hint }) {
-    return (
-        <div className={clsx('lumiverse-form-field', error && 'lumiverse-form-field--error')}>
-            <label className="lumiverse-form-label">
-                {label}
-                {required && <span className="lumiverse-required">*</span>}
-            </label>
-            {children}
-            {hint && <span className="lumiverse-form-hint">{hint}</span>}
-            {error && <span className="lumiverse-form-error">{error}</span>}
-        </div>
-    );
-}
-
-/**
- * Text input component
- */
-function TextInput({ value, onChange, placeholder, maxLength }) {
-    return (
-        <input
-            type="text"
-            className="lumiverse-input"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder}
-            maxLength={maxLength}
-        />
-    );
-}
-
-/**
- * Image URL input with preview
- */
-function ImageInput({ value, onChange, placeholder }) {
-    const [previewError, setPreviewError] = useState(false);
-    const { objectPosition } = useAdaptiveImagePosition(value);
-
-    const handleChange = (newValue) => {
-        setPreviewError(false);
-        onChange(newValue);
-    };
-
-    return (
-        <div className="lumiverse-image-input">
-            <input
-                type="text"
-                className="lumiverse-input"
-                value={value}
-                onChange={(e) => handleChange(e.target.value)}
-                placeholder={placeholder || 'Enter image URL...'}
-            />
-            {value && !previewError && (
-                <div className="lumiverse-image-preview">
-                    <img
-                        src={value}
-                        alt="Preview"
-                        style={{ objectPosition }}
-                        onError={() => setPreviewError(true)}
-                    />
-                </div>
-            )}
-            {previewError && (
-                <span className="lumiverse-image-error">Failed to load image</span>
-            )}
-        </div>
-    );
-}
+import { Package, Trash2, Download, Edit2 } from 'lucide-react';
+import {
+    EditorLayout,
+    EditorContent,
+    EditorFooter,
+    EditorSection,
+    FormField,
+    TextInput,
+    ImageInput
+} from '../shared/FormComponents';
 
 /**
  * Generate a unique ID for internal tracking
@@ -222,18 +158,17 @@ function getLoomCount(pack) {
  *
  * For editing pack-level settings: name, author, cover image.
  * Individual Lumia items are managed via PackSelectorModal → LumiaEditorModal.
- *
- * Supports both v2 and v1 pack structures:
- * v2: { packName, packAuthor, lumiaItems[], loomItems[], ... }
- * v1: { name, author, items[], ... }
  */
-function PackEditorModal({ packId, onClose }) {
+function PackEditorModal({ packId, packName, onClose }) {
     const { customPacks } = usePacks();
     const actions = useLumiverseActions();
 
+    // Resolve the identifier (support both packId and packName props)
+    const identifier = packId || packName;
+
     // Find existing pack if editing - support both name and packName
-    const existingPack = packId
-        ? customPacks.find((p) => p.id === packId || p.name === packId || p.packName === packId)
+    const existingPack = identifier
+        ? customPacks.find((p) => p.id === identifier || p.name === identifier || p.packName === identifier)
         : null;
 
     // Local state for the pack being edited (normalize to v2 schema for editing)
@@ -333,7 +268,6 @@ function PackEditorModal({ packId, onClose }) {
         const packName = getPackName(pack);
         // Save current pack state first
         if (packName.trim()) {
-            // Ensure both packName and name are synced for compatibility
             const packToSave = {
                 ...pack,
                 name: packName, // Sync legacy field
@@ -356,15 +290,10 @@ function PackEditorModal({ packId, onClose }) {
     const loomCount = getLoomCount(pack);
 
     return (
-        <div className="lumiverse-pack-editor-modal">
-            <div className="lumiverse-pack-editor-content">
+        <EditorLayout>
+            <EditorContent>
                 {/* Pack Details Section */}
-                <div className="lumiverse-pack-metadata">
-                    <div className="lumiverse-pack-editor-title">
-                        <Package size={20} strokeWidth={1.5} />
-                        <h3>{existingPack ? 'Edit Pack' : 'New Pack'}</h3>
-                    </div>
-
+                <EditorSection Icon={Package} title={existingPack ? 'Edit Pack' : 'New Pack'}>
                     <FormField label="Pack Name" required error={errors.packName}>
                         <TextInput
                             value={getPackName(pack)}
@@ -374,6 +303,7 @@ function PackEditorModal({ packId, onClose }) {
                                 if (errors.packName) setErrors(prev => ({ ...prev, packName: null }));
                             }}
                             placeholder="My Custom Pack"
+                            autoFocus
                         />
                     </FormField>
 
@@ -392,34 +322,43 @@ function PackEditorModal({ packId, onClose }) {
                         <ImageInput
                             value={pack.coverUrl || ''}
                             onChange={(val) => updatePack('coverUrl', val)}
+                            placeholder="https://..."
                         />
                     </FormField>
-                </div>
+                </EditorSection>
 
                 {/* Pack Contents Section */}
-                <div className="lumiverse-pack-lumias-info">
-                    <div className="lumiverse-pack-lumias-header">
-                        <span className="lumiverse-pack-lumias-count">
+                <EditorSection Icon={Edit2} title="Pack Contents">
+                    <div style={{
+                        padding: '12px',
+                        background: 'rgba(147, 112, 219, 0.05)',
+                        border: '1px solid var(--lumiverse-border)',
+                        borderRadius: '8px',
+                        marginBottom: '12px',
+                        textAlign: 'center'
+                    }}>
+                        <div style={{ fontSize: '13px', color: 'var(--lumiverse-text)', marginBottom: '8px' }}>
                             {lumiaCount} Lumia{lumiaCount !== 1 ? 's' : ''}{loomCount > 0 ? `, ${loomCount} Loom item${loomCount !== 1 ? 's' : ''}` : ''} in this pack
-                        </span>
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'var(--lumiverse-text-muted)' }}>
+                            Use the Pack Selector to add, edit, or remove individual items.
+                        </div>
                     </div>
-                    <p className="lumiverse-pack-lumias-hint">
-                        Use the Pack Selector to add, edit, or remove individual items.
-                    </p>
+                    
                     <button
                         className="lumiverse-btn lumiverse-btn--secondary lumiverse-btn--full"
                         onClick={handleManageLumias}
                         type="button"
                     >
                         <Edit2 size={14} strokeWidth={1.5} />
-                        Manage Lumias
+                        Manage Lumias & Looms
                     </button>
-                </div>
-            </div>
+                </EditorSection>
+            </EditorContent>
 
             {/* Footer Actions */}
-            <div className="lumiverse-pack-editor-footer">
-                <div className="lumiverse-pack-editor-footer-left">
+            <EditorFooter>
+                <div style={{ display: 'flex', gap: '8px', marginRight: 'auto' }}>
                     {existingPack && (
                         <button
                             className="lumiverse-btn lumiverse-btn--danger"
@@ -427,7 +366,7 @@ function PackEditorModal({ packId, onClose }) {
                             type="button"
                         >
                             <Trash2 size={14} />
-                            Delete Pack
+                            Delete
                         </button>
                     )}
                     <button
@@ -440,7 +379,8 @@ function PackEditorModal({ packId, onClose }) {
                         Export
                     </button>
                 </div>
-                <div className="lumiverse-pack-editor-actions">
+                
+                <div style={{ display: 'flex', gap: '8px' }}>
                     <button
                         className="lumiverse-btn lumiverse-btn--secondary"
                         onClick={onClose}
@@ -456,8 +396,8 @@ function PackEditorModal({ packId, onClose }) {
                         {existingPack ? 'Save Changes' : 'Create Pack'}
                     </button>
                 </div>
-            </div>
-        </div>
+            </EditorFooter>
+        </EditorLayout>
     );
 }
 
