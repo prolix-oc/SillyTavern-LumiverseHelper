@@ -6985,7 +6985,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
 .lumia-modal-selection-content {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    flex: 1;
     min-height: 0; /* Allow flex children to shrink properly */
     overflow: hidden; /* Let child scroll container handle overflow */
 }
