@@ -1795,6 +1795,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     padding: 16px 20px;
     background: var(--lumiverse-bg-elevated);
     border-bottom: 1px solid var(--lumiverse-border);
+    flex-shrink: 0;
 }
 
 .lumiverse-modal-title {
@@ -1824,6 +1825,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    min-height: 0;
 }
 
 /* ----------------------------------------
