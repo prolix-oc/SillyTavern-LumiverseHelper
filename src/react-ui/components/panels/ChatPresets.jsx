@@ -21,7 +21,8 @@ import {
     Settings2,
     ExternalLink,
     Bell,
-    ArrowUpCircle
+    ArrowUpCircle,
+    Gauge
 } from 'lucide-react';
 import { 
     fetchAvailablePresets, 
@@ -35,7 +36,11 @@ import {
     checkForPresetUpdates,
     getTrackedPresets,
     formatVersion,
-    subscribeToTrackingChanges
+    subscribeToTrackingChanges,
+    getAPIReasoningSettings,
+    setIncludeReasoning,
+    setReasoningEffort,
+    REASONING_EFFORT_LEVELS
 } from '../../../lib/presetsService';
 
 /* global toastr */
@@ -252,6 +257,9 @@ function ChatPresetsModal({ onClose, availableUpdates = [], onUpdateComplete }) 
     // Reasoning/CoT state
     const [reasoningSettings, setReasoningSettings] = useState(null);
     const [startReplyWith, setStartReplyWithState] = useState('');
+    
+    // API Reasoning state (show_thoughts / reasoning_effort)
+    const [apiReasoning, setApiReasoning] = useState({ enabled: false, effort: 'auto' });
 
     // Refs for avoiding layout thrashing
     const modalRef = useRef(null);
@@ -261,6 +269,7 @@ function ChatPresetsModal({ onClose, availableUpdates = [], onUpdateComplete }) 
     useEffect(() => {
         setReasoningSettings(getReasoningSettings());
         setStartReplyWithState(getStartReplyWith());
+        setApiReasoning(getAPIReasoningSettings());
     }, []);
 
     // Handle escape key and body scroll lock
@@ -340,6 +349,18 @@ function ChatPresetsModal({ onClose, availableUpdates = [], onUpdateComplete }) 
     const handleReasoningToggle = useCallback((key, value) => {
         configureReasoning({ [key]: value });
         setReasoningSettings(getReasoningSettings());
+    }, []);
+
+    // Handle API reasoning toggle (Include Reasoning checkbox)
+    const handleAPIReasoningToggle = useCallback((enabled) => {
+        setIncludeReasoning(enabled);
+        setApiReasoning(getAPIReasoningSettings());
+    }, []);
+
+    // Handle reasoning effort change
+    const handleReasoningEffortChange = useCallback((effort) => {
+        setReasoningEffort(effort);
+        setApiReasoning(getAPIReasoningSettings());
     }, []);
 
     // Handle backdrop click
@@ -547,6 +568,43 @@ function ChatPresetsModal({ onClose, availableUpdates = [], onUpdateComplete }) 
                                     </div>
                                 </div>
                             )}
+
+                            {/* API Reasoning Settings (Include Reasoning & Effort) */}
+                            <div className="lumiverse-presets-api-reasoning">
+                                <span className="lumiverse-presets-reasoning-label">
+                                    <Gauge size={12} strokeWidth={2} />
+                                    API Reasoning (for supported models)
+                                </span>
+                                <div className="lumiverse-presets-api-reasoning-controls">
+                                    <label className="lumiverse-presets-reasoning-checkbox">
+                                        <input
+                                            type="checkbox"
+                                            checked={apiReasoning.enabled}
+                                            onChange={(e) => handleAPIReasoningToggle(e.target.checked)}
+                                        />
+                                        <span className="lumiverse-presets-reasoning-checkmark"></span>
+                                        <span>Include Reasoning</span>
+                                    </label>
+                                    <div className="lumiverse-presets-api-reasoning-effort">
+                                        <span className="lumiverse-presets-api-reasoning-effort-label">Effort:</span>
+                                        <select
+                                            className="lumiverse-presets-api-reasoning-select"
+                                            value={apiReasoning.effort}
+                                            onChange={(e) => handleReasoningEffortChange(e.target.value)}
+                                            disabled={!apiReasoning.enabled}
+                                        >
+                                            {REASONING_EFFORT_LEVELS.map((level) => (
+                                                <option key={level} value={level}>
+                                                    {level.charAt(0).toUpperCase() + level.slice(1)}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                                <p className="lumiverse-presets-api-reasoning-hint">
+                                    For o1/o3, Grok 3, DeepSeek R1, and other reasoning models
+                                </p>
+                            </div>
 
                             {/* Start Reply With */}
                             <div className="lumiverse-presets-startreply">

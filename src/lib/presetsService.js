@@ -727,6 +727,91 @@ export function clearStartReplyWith() {
     setStartReplyWith("", { showInUI: false });
 }
 
+// --- API Reasoning Settings (Chat Completion) ---
+
+/**
+ * Valid reasoning effort levels
+ */
+export const REASONING_EFFORT_LEVELS = ['auto', 'low', 'medium', 'high', 'min', 'max'];
+
+/**
+ * Get the current API reasoning settings (show_thoughts and reasoning_effort)
+ * These control the API request, not the display formatting
+ * @returns {{ enabled: boolean, effort: string }}
+ */
+export function getAPIReasoningSettings() {
+    const context = getContext();
+    if (!context?.chatCompletionSettings) {
+        return { enabled: false, effort: 'auto' };
+    }
+    return {
+        enabled: !!context.chatCompletionSettings.show_thoughts,
+        effort: context.chatCompletionSettings.reasoning_effort || 'auto',
+    };
+}
+
+/**
+ * Set whether to include reasoning in API requests
+ * @param {boolean} enabled - Whether to request reasoning from supported APIs
+ */
+export function setIncludeReasoning(enabled) {
+    const context = getContext();
+    if (!context?.chatCompletionSettings) {
+        console.warn(`[${MODULE_NAME}] Chat completion settings not available`);
+        return;
+    }
+
+    // Update global state
+    context.chatCompletionSettings.show_thoughts = !!enabled;
+
+    // Update UI element
+    const $ = window.jQuery;
+    if ($) {
+        $('#openai_show_thoughts').prop('checked', !!enabled);
+    }
+
+    // If disabling, reset effort to 'auto' to prevent conflicting params
+    if (!enabled) {
+        context.chatCompletionSettings.reasoning_effort = 'auto';
+        if ($) {
+            $('#openai_reasoning_effort').val('auto');
+        }
+    }
+
+    context.saveSettingsDebounced();
+    console.log(`[${MODULE_NAME}] Include Reasoning set to: ${enabled}`);
+}
+
+/**
+ * Set the reasoning effort level for supported APIs
+ * @param {string} level - One of: 'auto', 'low', 'medium', 'high', 'min', 'max'
+ */
+export function setReasoningEffort(level) {
+    const context = getContext();
+    if (!context?.chatCompletionSettings) {
+        console.warn(`[${MODULE_NAME}] Chat completion settings not available`);
+        return;
+    }
+
+    // Validate level
+    if (!REASONING_EFFORT_LEVELS.includes(level)) {
+        console.warn(`[${MODULE_NAME}] Invalid reasoning effort: ${level}`);
+        return;
+    }
+
+    // Update global state
+    context.chatCompletionSettings.reasoning_effort = level;
+
+    // Update UI element
+    const $ = window.jQuery;
+    if ($) {
+        $('#openai_reasoning_effort').val(level);
+    }
+
+    context.saveSettingsDebounced();
+    console.log(`[${MODULE_NAME}] Reasoning Effort set to: ${level}`);
+}
+
 // --- Preset Templates ---
 
 /**
