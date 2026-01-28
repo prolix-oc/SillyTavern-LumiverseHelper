@@ -64,6 +64,7 @@ function notifyReasoningChange() {
         reasoning: getReasoningSettings(),
         startReplyWith: getStartReplyWith(),
         apiReasoning: getAPIReasoningSettings(),
+        postProcessing: getPostProcessingValue(),
     };
     reasoningListeners.forEach(listener => {
         try {
@@ -72,6 +73,16 @@ function notifyReasoningChange() {
             console.error(`[${MODULE_NAME}] Reasoning listener error:`, err);
         }
     });
+}
+
+/**
+ * Get the current prompt post-processing strategy (internal helper)
+ * Used by notifyReasoningChange before the exported function is defined
+ * @private
+ */
+function getPostProcessingValue() {
+    const context = getContext();
+    return context?.chatCompletionSettings?.custom_prompt_post_processing || '';
 }
 
 // --- Connection Settings Preservation ---
@@ -847,6 +858,63 @@ export function setReasoningEffort(level) {
 
     context.saveSettingsDebounced();
     console.log(`[${MODULE_NAME}] Reasoning Effort set to: ${level}`);
+    notifyReasoningChange();
+}
+
+// --- Prompt Post-Processing ---
+
+/**
+ * Valid post-processing strategies
+ */
+export const POST_PROCESSING_OPTIONS = [
+    { value: '', label: 'None (Default)' },
+    { value: 'merge', label: 'Merge (Recommended for Claude/OpenAI)' },
+    { value: 'merge_tools', label: 'Merge (preserve tool calls)' },
+    { value: 'semi', label: 'Semi-alternation' },
+    { value: 'semi_tools', label: 'Semi-alternation (with tools)' },
+    { value: 'strict', label: 'Strict alternation' },
+    { value: 'strict_tools', label: 'Strict alternation (with tools)' },
+    { value: 'single', label: 'Single (last user message only)' },
+];
+
+/**
+ * Get the current prompt post-processing strategy
+ * @returns {string} Current post-processing value
+ */
+export function getPostProcessing() {
+    const context = getContext();
+    return context?.chatCompletionSettings?.custom_prompt_post_processing || '';
+}
+
+/**
+ * Set the prompt post-processing strategy
+ * @param {string} strategy - One of: '', 'merge', 'merge_tools', 'semi', 'semi_tools', 'strict', 'strict_tools', 'single'
+ */
+export function setPostProcessing(strategy) {
+    const context = getContext();
+    if (!context?.chatCompletionSettings) {
+        console.warn(`[${MODULE_NAME}] Chat completion settings not available`);
+        return;
+    }
+
+    // Validate strategy
+    const validValues = POST_PROCESSING_OPTIONS.map(opt => opt.value);
+    if (!validValues.includes(strategy)) {
+        console.warn(`[${MODULE_NAME}] Invalid post-processing strategy: ${strategy}`);
+        return;
+    }
+
+    // Update global state
+    context.chatCompletionSettings.custom_prompt_post_processing = strategy;
+
+    // Update UI element
+    const $ = window.jQuery;
+    if ($) {
+        $('#custom_prompt_post_processing').val(strategy);
+    }
+
+    context.saveSettingsDebounced();
+    console.log(`[${MODULE_NAME}] Post-processing set to: ${strategy || '(none)'}`);
     notifyReasoningChange();
 }
 

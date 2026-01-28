@@ -249,12 +249,15 @@ function ChatPresetsModal({ onClose, availableUpdates = [], onUpdateComplete }) 
         reasoningSettings,
         startReplyWith,
         apiReasoning,
+        postProcessing,
         handleApplyReasoningPreset: applyPreset,
         handleStartReplyWithChange,
         handleReasoningToggle,
         handleAPIReasoningToggle,
         handleReasoningEffortChange,
-        REASONING_EFFORT_LEVELS: effortLevels
+        handlePostProcessingChange,
+        REASONING_EFFORT_LEVELS: effortLevels,
+        POST_PROCESSING_OPTIONS
     } = useChatPresetSettings();
 
     // Refs for avoiding layout thrashing
@@ -466,12 +469,15 @@ function ChatPresetsModal({ onClose, availableUpdates = [], onUpdateComplete }) 
                             reasoningSettings={reasoningSettings}
                             startReplyWith={startReplyWith}
                             apiReasoning={apiReasoning}
+                            postProcessing={postProcessing}
                             onApplyReasoningPreset={handleApplyReasoningPreset}
                             onStartReplyWithChange={handleStartReplyWithChange}
                             onReasoningToggle={handleReasoningToggle}
                             onAPIReasoningToggle={handleAPIReasoningToggle}
                             onReasoningEffortChange={handleReasoningEffortChange}
+                            onPostProcessingChange={handlePostProcessingChange}
                             effortLevels={effortLevels}
+                            postProcessingOptions={POST_PROCESSING_OPTIONS}
                         />
                     </div>
                 </div>

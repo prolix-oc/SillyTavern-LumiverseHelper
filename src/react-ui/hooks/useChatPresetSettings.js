@@ -14,7 +14,10 @@ import {
     setIncludeReasoning,
     setReasoningEffort,
     REASONING_EFFORT_LEVELS,
-    subscribeToReasoningChanges
+    subscribeToReasoningChanges,
+    getPostProcessing,
+    setPostProcessing,
+    POST_PROCESSING_OPTIONS
 } from '../../lib/presetsService';
 
 /**
@@ -29,6 +32,9 @@ export function useChatPresetSettings() {
     // API Reasoning state (show_thoughts / reasoning_effort)
     const [apiReasoning, setApiReasoning] = useState({ enabled: false, effort: 'auto' });
     
+    // Post-processing state
+    const [postProcessing, setPostProcessingState] = useState('');
+    
     // Sync reference to prevent stale closures
     const stateRef = useRef({ startReplyWith: '' });
     stateRef.current.startReplyWith = startReplyWith;
@@ -38,12 +44,14 @@ export function useChatPresetSettings() {
         setReasoningSettings(getReasoningSettings());
         setStartReplyWithState(getStartReplyWith());
         setApiReasoning(getAPIReasoningSettings());
+        setPostProcessingState(getPostProcessing());
         
         // Subscribe to reasoning changes from other UI components
         const unsubscribe = subscribeToReasoningChanges((settings) => {
             setReasoningSettings(settings.reasoning);
             setStartReplyWithState(settings.startReplyWith);
             setApiReasoning(settings.apiReasoning);
+            setPostProcessingState(settings.postProcessing);
         });
         
         return unsubscribe;
@@ -54,6 +62,7 @@ export function useChatPresetSettings() {
         setReasoningSettings(getReasoningSettings());
         setStartReplyWithState(getStartReplyWith());
         setApiReasoning(getAPIReasoningSettings());
+        setPostProcessingState(getPostProcessing());
     }, []);
 
     // Apply a reasoning preset with optional bias
@@ -101,11 +110,18 @@ export function useChatPresetSettings() {
         setApiReasoning(getAPIReasoningSettings());
     }, []);
 
+    // Handle post-processing change
+    const handlePostProcessingChange = useCallback((strategy) => {
+        setPostProcessingState(strategy);
+        setPostProcessing(strategy);
+    }, []);
+
     return {
         // State
         reasoningSettings,
         startReplyWith,
         apiReasoning,
+        postProcessing,
         
         // Handlers
         handleApplyReasoningPreset,
@@ -113,10 +129,12 @@ export function useChatPresetSettings() {
         handleReasoningToggle,
         handleAPIReasoningToggle,
         handleReasoningEffortChange,
+        handlePostProcessingChange,
         refreshState,
         
         // Constants
-        REASONING_EFFORT_LEVELS
+        REASONING_EFFORT_LEVELS,
+        POST_PROCESSING_OPTIONS
     };
 }
 

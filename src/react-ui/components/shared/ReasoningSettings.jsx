@@ -10,7 +10,8 @@ import {
     Zap, 
     X, 
     Tag,
-    Gauge 
+    Gauge,
+    Layers
 } from 'lucide-react';
 
 /**
@@ -21,12 +22,24 @@ export function ReasoningSettingsContent({
     reasoningSettings,
     startReplyWith,
     apiReasoning,
+    postProcessing = '',
     onApplyReasoningPreset,
     onStartReplyWithChange,
     onReasoningToggle,
     onAPIReasoningToggle,
     onReasoningEffortChange,
+    onPostProcessingChange,
     effortLevels = ['auto', 'low', 'medium', 'high', 'min', 'max'],
+    postProcessingOptions = [
+        { value: '', label: 'None (Default)' },
+        { value: 'merge', label: 'Merge (Recommended for Claude/OpenAI)' },
+        { value: 'merge_tools', label: 'Merge (preserve tool calls)' },
+        { value: 'semi', label: 'Semi-alternation' },
+        { value: 'semi_tools', label: 'Semi-alternation (with tools)' },
+        { value: 'strict', label: 'Strict alternation' },
+        { value: 'strict_tools', label: 'Strict alternation (with tools)' },
+        { value: 'single', label: 'Single (last user message only)' },
+    ],
     compact = false
 }) {
     return (
@@ -194,6 +207,30 @@ export function ReasoningSettingsContent({
                     </button>
                 </div>
             </div>
+
+            {/* Prompt Post-Processing */}
+            {onPostProcessingChange && (
+                <div className="lumiverse-presets-postprocessing">
+                    <label className="lumiverse-presets-postprocessing-label">
+                        <Layers size={12} strokeWidth={2} />
+                        <span>Prompt Post-Processing</span>
+                    </label>
+                    <select
+                        className="lumiverse-presets-postprocessing-select"
+                        value={postProcessing}
+                        onChange={(e) => onPostProcessingChange(e.target.value)}
+                    >
+                        {postProcessingOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                            </option>
+                        ))}
+                    </select>
+                    <p className="lumiverse-presets-postprocessing-hint">
+                        Controls how messages are combined before sending to the API
+                    </p>
+                </div>
+            )}
         </div>
     );
 }

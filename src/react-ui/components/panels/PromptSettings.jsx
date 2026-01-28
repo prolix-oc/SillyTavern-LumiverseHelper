@@ -229,12 +229,15 @@ function PromptSettings() {
         reasoningSettings,
         startReplyWith,
         apiReasoning,
+        postProcessing,
         handleApplyReasoningPreset,
         handleStartReplyWithChange,
         handleReasoningToggle,
         handleAPIReasoningToggle,
         handleReasoningEffortChange,
-        REASONING_EFFORT_LEVELS
+        handlePostProcessingChange,
+        REASONING_EFFORT_LEVELS,
+        POST_PROCESSING_OPTIONS
     } = useChatPresetSettings();
 
     const sovereignEnabled = sovereignHand.enabled ?? false;
@@ -452,12 +455,15 @@ function PromptSettings() {
                     reasoningSettings={reasoningSettings}
                     startReplyWith={startReplyWith}
                     apiReasoning={apiReasoning}
+                    postProcessing={postProcessing}
                     onApplyReasoningPreset={handleApplyReasoningPreset}
                     onStartReplyWithChange={handleStartReplyWithChange}
                     onReasoningToggle={handleReasoningToggle}
                     onAPIReasoningToggle={handleAPIReasoningToggle}
                     onReasoningEffortChange={handleReasoningEffortChange}
+                    onPostProcessingChange={handlePostProcessingChange}
                     effortLevels={REASONING_EFFORT_LEVELS}
+                    postProcessingOptions={POST_PROCESSING_OPTIONS}
                     compact={true}
                 />
             </CollapsibleSection>
