@@ -823,6 +823,21 @@ export function getSelections() {
   };
 }
 
+/**
+ * Update preferences (write-through to file storage or settings).
+ * @param {Object} newPreferences - Partial preferences to merge
+ */
+export function savePreferences(newPreferences) {
+  // Always update in-memory settings so getSettings() returns current values
+  Object.assign(settings, newPreferences);
+  
+  if (isUsingFileStorage()) {
+    updatePreferences(newPreferences);
+  } else {
+    saveSettings();
+  }
+}
+
 // ============================================================================
 // PRESET OPERATIONS
 // ============================================================================

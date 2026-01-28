@@ -58,9 +58,12 @@ function ModalWrapper({ children, onClose, modalType, size = 'medium', hasCustom
         }
     };
 
-    // Determine modal class based on type
+    // Determine modal class based on type and size
     const modalClass = clsx(
         'lumiverse-modal',
+        size === 'small' && 'lumiverse-modal--small',
+        size === 'medium' && 'lumiverse-modal--medium',
+        size === 'large' && 'lumiverse-modal--large',
         modalType === 'selection' && 'lumiverse-modal-selection',
         modalType === 'settings' && 'lumiverse-modal-settings',
         modalType === 'editor' && 'lumiverse-modal-editor',

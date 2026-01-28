@@ -1748,6 +1748,22 @@ details.lumia-panel[open] .lumia-panel-chevron {
     max-width: 90vw;
 }
 
+/* Mobile responsiveness for modals */
+@media (max-width: 600px) {
+    .lumiverse-modal--small,
+    .lumiverse-modal--medium,
+    .lumiverse-modal--large {
+        width: 100%;
+        max-width: calc(100vw - 24px);
+        max-height: 90vh;
+        margin: 12px;
+    }
+
+    .lumiverse-modal-backdrop {
+        padding: 12px;
+    }
+}
+
 .lumiverse-modal-header {
     display: flex;
     align-items: center;
