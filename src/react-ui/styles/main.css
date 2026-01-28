@@ -4088,6 +4088,266 @@ details.lumia-panel[open] .lumia-panel-chevron {
     resize: vertical;
 }
 
+/* ============================================
+   MOBILE RESPONSIVE - Editor Modals
+   Lumia Editor, Loom Editor, Pack Editor
+   ============================================ */
+
+@media (max-width: 600px) {
+    /* Modal container size overrides for editor modals */
+    .lumia-modal-lumia-editor,
+    .lumia-modal-loom-editor {
+        width: 94vw;
+        max-width: 94vw;
+        max-height: 90vh;
+        max-height: 90dvh;
+    }
+
+    /* ----------------------------------------
+       Lumia Editor Modal - Mobile
+       ---------------------------------------- */
+    .lumiverse-editor-modal {
+        max-height: none;
+        height: 100%;
+    }
+
+    .lumiverse-editor-content {
+        padding: 12px;
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .lumiverse-editor-section {
+        margin-bottom: 16px;
+    }
+
+    .lumiverse-editor-section-header {
+        padding: 10px 12px;
+        font-size: 12px;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+
+    .lumiverse-editor-section-content {
+        padding: 12px;
+    }
+
+    .lumiverse-editor-field {
+        margin-bottom: 12px;
+    }
+
+    .lumiverse-editor-label {
+        font-size: 11px;
+        margin-bottom: 5px;
+    }
+
+    /* Stack two-column rows vertically on mobile */
+    .lumiverse-editor-row {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .lumiverse-editor-row .lumiverse-editor-field {
+        margin-bottom: 0;
+    }
+
+    /* Smaller avatar preview on mobile */
+    .lumiverse-editor-avatar-preview {
+        width: 64px;
+        height: 64px;
+    }
+
+    /* Adjust textareas for mobile */
+    .lumiverse-editor-modal .lumiverse-textarea {
+        min-height: 100px;
+        font-size: 14px;
+    }
+
+    /* Sticky footer for editor modals */
+    .lumiverse-editor-footer {
+        padding: 10px 12px;
+        gap: 6px;
+        position: sticky;
+        bottom: 0;
+        flex-wrap: wrap;
+    }
+
+    .lumiverse-editor-footer .lumiverse-btn {
+        padding: 8px 12px;
+        font-size: 12px;
+        min-height: 36px;
+    }
+
+    /* Make delete button full width on mobile, stacked above other buttons */
+    .lumiverse-editor-footer .lumiverse-btn--danger {
+        order: 3;
+        flex: 0 0 100%;
+        margin-top: 6px;
+    }
+
+    .lumiverse-editor-footer-spacer {
+        display: none;
+    }
+
+    /* Cancel and Save buttons side by side */
+    .lumiverse-editor-footer .lumiverse-btn--secondary:not(.lumiverse-btn--danger),
+    .lumiverse-editor-footer .lumiverse-btn--primary {
+        flex: 1;
+    }
+
+    /* ----------------------------------------
+       Loom Editor Modal - Mobile
+       ---------------------------------------- */
+    .lumiverse-loom-editor {
+        max-height: none;
+        height: 100%;
+    }
+
+    .lumiverse-loom-editor-content {
+        padding: 12px;
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Category buttons - wrap and compact on mobile */
+    .lumiverse-loom-category-options {
+        gap: 6px;
+    }
+
+    .lumiverse-loom-category-btn {
+        padding: 6px 10px;
+        font-size: 11px;
+        border-radius: 16px;
+    }
+
+    .lumiverse-loom-category-btn svg {
+        width: 12px;
+        height: 12px;
+    }
+
+    /* Adjust content textarea for mobile */
+    .lumiverse-loom-content-field .lumiverse-textarea,
+    .lumiverse-loom-editor .lumiverse-textarea {
+        min-height: 140px;
+        font-size: 14px;
+    }
+
+    /* ----------------------------------------
+       Pack Editor Modal - Mobile
+       ---------------------------------------- */
+    .lumiverse-pack-editor-modal {
+        height: 100%;
+    }
+
+    .lumiverse-pack-editor-content {
+        padding: 12px;
+        gap: 16px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .lumiverse-pack-editor-title {
+        margin-bottom: 14px;
+        gap: 8px;
+    }
+
+    .lumiverse-pack-editor-title h3 {
+        font-size: 16px;
+    }
+
+    .lumiverse-pack-editor-title svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    /* Pack lumias info section */
+    .lumiverse-pack-lumias-info {
+        padding: 12px;
+    }
+
+    .lumiverse-pack-lumias-count {
+        font-size: 13px;
+    }
+
+    .lumiverse-pack-lumias-hint {
+        font-size: 12px;
+        margin-bottom: 10px;
+    }
+
+    /* Pack editor footer - stack buttons on mobile */
+    .lumiverse-pack-editor-footer {
+        padding: 10px 12px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .lumiverse-pack-editor-footer-left {
+        flex: 0 0 100%;
+        order: 2;
+        justify-content: center;
+    }
+
+    .lumiverse-pack-editor-actions {
+        flex: 0 0 100%;
+        order: 1;
+    }
+
+    .lumiverse-pack-editor-footer .lumiverse-btn {
+        flex: 1;
+        justify-content: center;
+        min-height: 36px;
+        font-size: 12px;
+    }
+
+    /* ----------------------------------------
+       Common Input Styles - Mobile
+       ---------------------------------------- */
+    .lumiverse-input,
+    .lumiverse-select {
+        font-size: 14px;
+        padding: 10px 12px;
+        min-height: 40px;
+    }
+
+    .lumiverse-textarea {
+        font-size: 14px;
+        padding: 10px 12px;
+    }
+
+    /* Image input adjustments */
+    .lumiverse-image-input .lumiverse-image-preview {
+        margin-top: 8px;
+    }
+
+    .lumiverse-image-input .lumiverse-image-preview img {
+        max-height: 100px;
+    }
+
+    /* Form field adjustments */
+    .lumiverse-form-field {
+        margin-bottom: 12px;
+    }
+
+    .lumiverse-form-label {
+        font-size: 11px;
+        margin-bottom: 5px;
+    }
+
+    .lumiverse-form-hint,
+    .lumiverse-editor-hint {
+        font-size: 10px;
+    }
+
+    /* Stack lumia row fields vertically */
+    .lumiverse-lumia-row {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+}
+
 /* ----------------------------------------
    Viewport Panel (Dockable Sidebar)
    ---------------------------------------- */
