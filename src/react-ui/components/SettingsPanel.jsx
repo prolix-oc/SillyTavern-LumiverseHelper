@@ -4,6 +4,7 @@ import { useAdaptiveImagePosition } from '../hooks/useAdaptiveImagePosition';
 import { exportPack } from './modals/PackEditorModal';
 import { CollapsibleContent } from './Collapsible';
 import { ChatPresetsPanel } from './panels/ChatPresets';
+import { PresetBindingsPanel } from './panels/PresetBindings';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
 import { Eye, Sparkles, Wrench, Layers, Trash2, Users, Bookmark, Plus, ChevronDown, Check, X, AlertTriangle, Download } from 'lucide-react';
@@ -985,6 +986,11 @@ function SettingsPanel() {
             {/* Chat Presets - Download from Lucid.cards */}
             <Panel title="Chat Presets" icon={<Download size={16} strokeWidth={1.5} />}>
                 <ChatPresetsPanel />
+            </Panel>
+
+            {/* Preset Bindings - Auto-switch presets per character/chat */}
+            <Panel title="Preset Bindings" icon={Icons.layers}>
+                <PresetBindingsPanel />
             </Panel>
 
             {/* Lumia Configuration Section */}

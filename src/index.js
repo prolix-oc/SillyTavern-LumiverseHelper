@@ -85,6 +85,8 @@ import {
   notifyReactOfSettingsChange,
 } from "./lib/reactBridge.js";
 
+import { initPresetBindingService } from "./lib/presetBindingService.js";
+
 // Import React UI - this bundles it together and exposes window.LumiverseUI
 import "./react-ui/index.jsx";
 
@@ -432,6 +434,9 @@ jQuery(async () => {
 
   // Initialize RAF batch renderer for optimized OOC rendering
   initializeRAFBatchRenderer();
+
+  // Initialize preset binding service for auto-switching
+  initPresetBindingService();
 
   // Set up UI refresh callback for modals
   setRefreshUICallback(refreshUIDisplay);

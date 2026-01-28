@@ -1,8 +1,10 @@
-import React, { useMemo, forwardRef, useSyncExternalStore } from 'react';
+import React, { useMemo, forwardRef, useSyncExternalStore, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useSelections, useLoomSelections, usePacks, useLumiverseStore } from '../../store/LumiverseContext';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
-import { User, FileText, Zap, Heart, Sparkles, Star, X, Layers, Users, ArrowRight, Package } from 'lucide-react';
+import { User, FileText, Zap, Heart, Sparkles, Star, X, Layers, Users, ArrowRight, Package, Link2, Link2Off, MessageSquare } from 'lucide-react';
+import { usePresetBindings } from '../../hooks/usePresetBindings';
 
 // Get store for direct state access
 const store = useLumiverseStore;
@@ -289,6 +291,258 @@ function LoomSection() {
     );
 }
 
+/* global toastr */
+
+/**
+ * Profile Bindings Modal - streamlined binding interface from Profile tab
+ */
+function ProfileBindingsModal({ onClose }) {
+    const {
+        contextInfo,
+        availablePresets,
+        currentCharacterBinding,
+        currentChatBinding,
+        bindCurrentCharacter,
+        bindCurrentChat,
+        removeCharacterBinding,
+        removeChatBinding,
+        refreshPresets,
+    } = usePresetBindings();
+
+    const [selectedPreset, setSelectedPreset] = useState('');
+    const [bindingType, setBindingType] = useState('character');
+
+    // Refresh presets on mount
+    React.useEffect(() => {
+        refreshPresets();
+    }, [refreshPresets]);
+
+    // Handle escape key
+    React.useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') onClose();
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [onClose]);
+
+    const handleBind = useCallback(() => {
+        if (!selectedPreset) {
+            toastr?.warning('Select a preset first');
+            return;
+        }
+
+        let success = false;
+        if (bindingType === 'character') {
+            success = bindCurrentCharacter(selectedPreset);
+            if (success) {
+                toastr?.success(`Bound "${contextInfo.characterName}" to "${selectedPreset}"`);
+            }
+        } else {
+            success = bindCurrentChat(selectedPreset);
+            if (success) {
+                toastr?.success(`Bound current chat to "${selectedPreset}"`);
+            }
+        }
+
+        if (!success) {
+            toastr?.error('No active context to bind');
+        } else {
+            setSelectedPreset('');
+        }
+    }, [selectedPreset, bindingType, bindCurrentCharacter, bindCurrentChat, contextInfo.characterName]);
+
+    const handleRemoveCharacterBinding = useCallback(() => {
+        if (contextInfo.characterAvatar) {
+            removeCharacterBinding(contextInfo.characterAvatar);
+            toastr?.info('Character binding removed');
+        }
+    }, [contextInfo.characterAvatar, removeCharacterBinding]);
+
+    const handleRemoveChatBinding = useCallback(() => {
+        if (contextInfo.chatId) {
+            removeChatBinding(contextInfo.chatId);
+            toastr?.info('Chat binding removed');
+        }
+    }, [contextInfo.chatId, removeChatBinding]);
+
+    const handleBackdropClick = useCallback((e) => {
+        if (e.target === e.currentTarget) onClose();
+    }, [onClose]);
+
+    const hasContext = contextInfo.characterAvatar || contextInfo.chatId;
+
+    return createPortal(
+        <div
+            className="lumiverse-modal-backdrop lumiverse-profile-bindings-backdrop"
+            onClick={handleBackdropClick}
+        >
+            <div
+                className="lumiverse-profile-bindings-modal"
+                onClick={(e) => e.stopPropagation()}
+                role="dialog"
+                aria-modal="true"
+            >
+                {/* Header */}
+                <div className="lumiverse-profile-bindings-header">
+                    <div className="lumiverse-profile-bindings-header-icon">
+                        <Link2 size={18} strokeWidth={2} />
+                    </div>
+                    <div className="lumiverse-profile-bindings-header-text">
+                        <span className="lumiverse-profile-bindings-title">Preset Binding</span>
+                        <span className="lumiverse-profile-bindings-subtitle">
+                            {contextInfo.characterName || 'No character'}
+                        </span>
+                    </div>
+                    <button
+                        className="lumiverse-profile-bindings-close"
+                        onClick={onClose}
+                        type="button"
+                    >
+                        <X size={16} strokeWidth={2} />
+                    </button>
+                </div>
+
+                {/* Content */}
+                {hasContext ? (
+                    <div className="lumiverse-profile-bindings-content">
+                        {/* Current bindings status */}
+                        <div className="lumiverse-profile-bindings-status">
+                            <div className={clsx(
+                                'lumiverse-profile-bindings-status-row',
+                                currentCharacterBinding && 'is-bound'
+                            )}>
+                                <User size={14} strokeWidth={1.5} />
+                                <span className="lumiverse-profile-bindings-status-label">Character:</span>
+                                <span className="lumiverse-profile-bindings-status-value">
+                                    {currentCharacterBinding || 'Not bound'}
+                                </span>
+                                {currentCharacterBinding && (
+                                    <button
+                                        className="lumiverse-profile-bindings-status-remove"
+                                        onClick={handleRemoveCharacterBinding}
+                                        title="Remove binding"
+                                        type="button"
+                                    >
+                                        <X size={12} strokeWidth={2} />
+                                    </button>
+                                )}
+                            </div>
+                            <div className={clsx(
+                                'lumiverse-profile-bindings-status-row',
+                                currentChatBinding && 'is-bound'
+                            )}>
+                                <MessageSquare size={14} strokeWidth={1.5} />
+                                <span className="lumiverse-profile-bindings-status-label">Chat:</span>
+                                <span className="lumiverse-profile-bindings-status-value">
+                                    {currentChatBinding || 'Not bound'}
+                                </span>
+                                {currentChatBinding && (
+                                    <button
+                                        className="lumiverse-profile-bindings-status-remove"
+                                        onClick={handleRemoveChatBinding}
+                                        title="Remove binding"
+                                        type="button"
+                                    >
+                                        <X size={12} strokeWidth={2} />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Create new binding */}
+                        <div className="lumiverse-profile-bindings-create">
+                            <div className="lumiverse-profile-bindings-type-toggle">
+                                <button
+                                    className={clsx(
+                                        'lumiverse-profile-bindings-type-btn',
+                                        bindingType === 'character' && 'is-active'
+                                    )}
+                                    onClick={() => setBindingType('character')}
+                                    disabled={!contextInfo.characterAvatar}
+                                    type="button"
+                                >
+                                    <User size={12} strokeWidth={2} />
+                                    Character
+                                </button>
+                                <button
+                                    className={clsx(
+                                        'lumiverse-profile-bindings-type-btn',
+                                        bindingType === 'chat' && 'is-active'
+                                    )}
+                                    onClick={() => setBindingType('chat')}
+                                    disabled={!contextInfo.chatId}
+                                    type="button"
+                                >
+                                    <MessageSquare size={12} strokeWidth={2} />
+                                    Chat
+                                </button>
+                            </div>
+                            <div className="lumiverse-profile-bindings-select-row">
+                                <select
+                                    className="lumiverse-profile-bindings-select"
+                                    value={selectedPreset}
+                                    onChange={(e) => setSelectedPreset(e.target.value)}
+                                >
+                                    <option value="">Select preset...</option>
+                                    {availablePresets.map((preset) => (
+                                        <option key={preset} value={preset}>
+                                            {preset}
+                                        </option>
+                                    ))}
+                                </select>
+                                <button
+                                    className="lumiverse-profile-bindings-bind-btn"
+                                    onClick={handleBind}
+                                    disabled={!selectedPreset}
+                                    type="button"
+                                >
+                                    <Link2 size={14} strokeWidth={2} />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="lumiverse-profile-bindings-empty">
+                        <User size={24} strokeWidth={1.5} />
+                        <span>Select a character first</span>
+                    </div>
+                )}
+            </div>
+        </div>,
+        document.body
+    );
+}
+
+/**
+ * Quick Bind Button - shows current binding status and opens modal
+ */
+function QuickBindButton({ onClick, currentBinding, currentCharacterBinding, currentChatBinding }) {
+    const hasBound = !!currentBinding.presetName;
+    const boundType = currentBinding.bindingType;
+    const boundPreset = currentBinding.presetName;
+
+    return (
+        <button
+            className={clsx(
+                'lumiverse-profile-bind-btn',
+                hasBound && 'lumiverse-profile-bind-btn--active'
+            )}
+            onClick={onClick}
+            title={hasBound 
+                ? `Bound to: ${boundPreset} (${boundType})` 
+                : 'Bind preset to character or chat'}
+            type="button"
+        >
+            {hasBound ? (
+                <Link2 size={16} strokeWidth={2} />
+            ) : (
+                <Link2Off size={16} strokeWidth={1.5} />
+            )}
+        </button>
+    );
+}
+
 /**
  * Character Lumia Profile component
  * Shows all Lumia traits assigned to the current character
@@ -299,6 +553,14 @@ function CharacterProfile({ onTabChange }) {
     const character = useCurrentCharacter();
     const selections = useSelections();
     const { allPacks } = usePacks();
+    const [isBindingModalOpen, setIsBindingModalOpen] = useState(false);
+    
+    // Preset binding state
+    const {
+        currentBinding,
+        currentCharacterBinding,
+        currentChatBinding,
+    } = usePresetBindings();
 
     // Subscribe to Chimera mode state
     const chimeraMode = useSyncExternalStore(
@@ -347,6 +609,15 @@ function CharacterProfile({ onTabChange }) {
         }
     };
 
+    // Handle opening the bindings modal
+    const handleOpenBindings = useCallback(() => {
+        setIsBindingModalOpen(true);
+    }, []);
+
+    const handleCloseBindings = useCallback(() => {
+        setIsBindingModalOpen(false);
+    }, []);
+
     return (
         <div className="lumiverse-character-profile">
             {/* Character Header */}
@@ -377,7 +648,18 @@ function CharacterProfile({ onTabChange }) {
                         </span>
                     </div>
                 </div>
+                <QuickBindButton
+                    onClick={handleOpenBindings}
+                    currentBinding={currentBinding}
+                    currentCharacterBinding={currentCharacterBinding}
+                    currentChatBinding={currentChatBinding}
+                />
             </div>
+
+            {/* Binding Modal */}
+            {isBindingModalOpen && (
+                <ProfileBindingsModal onClose={handleCloseBindings} />
+            )}
 
             {/* Council Mode Banner - replaces trait sections when active */}
             {isCouncilActive ? (
