@@ -123,10 +123,13 @@ async function loadFile(filename) {
  */
 async function deleteFile(filename) {
     try {
+        // The delete endpoint expects a path relative to user root that resolves to user/files/
+        // e.g., "user/files/lumiverse_pack_xxx.json" not just "lumiverse_pack_xxx.json"
+        const filePath = `user/files/${filename}`;
         const response = await fetch('/api/files/delete', {
             method: 'POST',
             headers: getRequestHeaders(),
-            body: JSON.stringify({ path: filename }),
+            body: JSON.stringify({ path: filePath }),
         });
         return response.ok;
     } catch (err) {
