@@ -20,6 +20,8 @@ import {
   isUsingFileStorage,
   saveSelections,
   setAllPresets,
+  savePack,
+  deletePack,
 } from "./settingsManager.js";
 import { getEventSource, getEventTypes } from "../stContext.js";
 
@@ -111,8 +113,8 @@ export function settingsToReactFormat() {
  * IMPORTANT: React should be sending data in the EXACT same format as getSettings().
  * We simply merge the incoming state with the current settings.
  * 
- * When using file storage, selections and presets are handled specially to ensure
- * they're persisted to the index file, not extension_settings.
+ * When using file storage, selections, presets, and pack changes are handled specially
+ * to ensure they're persisted to the appropriate files, not extension_settings.
  *
  * @param {Object} reactState - State from React store (same format as getSettings())
  */
@@ -122,6 +124,11 @@ export function reactFormatToSettings(reactState) {
   
   try {
     const settings = getSettings();
+
+    // If using file storage, handle pack changes
+    if (isUsingFileStorage() && reactState.packs !== undefined) {
+      syncPackChangesToFileStorage(reactState.packs);
+    }
 
     // If using file storage, handle presets separately
     if (isUsingFileStorage() && reactState.presets !== undefined) {
@@ -139,6 +146,49 @@ export function reactFormatToSettings(reactState) {
     setTimeout(() => {
       isSavingFromReact = false;
     }, 100);
+  }
+}
+
+/**
+ * Sync pack changes from React state to file storage.
+ * Detects added/modified/deleted packs and persists appropriately.
+ * 
+ * @param {Object} reactPacks - Packs object from React state
+ */
+async function syncPackChangesToFileStorage(reactPacks) {
+  const currentPacks = getPacks();
+  const reactPackNames = new Set(Object.keys(reactPacks || {}));
+  const currentPackNames = new Set(Object.keys(currentPacks || {}));
+
+  // Find deleted packs (in current but not in react)
+  for (const packName of currentPackNames) {
+    if (!reactPackNames.has(packName)) {
+      console.log(`[${MODULE_NAME}] Deleting pack from file storage: ${packName}`);
+      try {
+        await deletePack(packName);
+      } catch (err) {
+        console.error(`[${MODULE_NAME}] Failed to delete pack ${packName}:`, err);
+      }
+    }
+  }
+
+  // Find added/modified packs
+  for (const [packName, reactPack] of Object.entries(reactPacks || {})) {
+    const currentPack = currentPacks[packName];
+    
+    // Check if pack is new or modified
+    // We do a simple JSON comparison to detect changes
+    const isNew = !currentPack;
+    const isModified = currentPack && JSON.stringify(reactPack) !== JSON.stringify(currentPack);
+    
+    if (isNew || isModified) {
+      console.log(`[${MODULE_NAME}] ${isNew ? 'Saving new' : 'Updating'} pack to file storage: ${packName}`);
+      try {
+        await savePack(reactPack);
+      } catch (err) {
+        console.error(`[${MODULE_NAME}] Failed to save pack ${packName}:`, err);
+      }
+    }
   }
 }
 
