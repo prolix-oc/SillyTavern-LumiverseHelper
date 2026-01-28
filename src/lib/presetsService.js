@@ -10,6 +10,105 @@ import { getSettings, saveSettings } from "./settingsManager.js";
 export const MODULE_NAME = "presets-service";
 const LUCID_API_BASE = "https://lucid.cards";
 
+// --- Connection Settings Preservation ---
+// These keys represent user connection configuration that should NOT be overwritten by presets
+// See: developer_guides/5_safe_preset_importing.md
+
+const CONNECTION_KEYS = [
+    // Global Source
+    'chat_completion_source',
+    
+    // Model Selections
+    'openai_model',
+    'claude_model',
+    'openrouter_model',
+    'mistralai_model',
+    'ai21_model',
+    'cohere_model',
+    'perplexity_model',
+    'groq_model',
+    'chutes_model',
+    'siliconflow_model',
+    'electronhub_model',
+    'nanogpt_model',
+    'deepseek_model',
+    'aimlapi_model',
+    'xai_model',
+    'pollinations_model',
+    'moonshot_model',
+    'fireworks_model',
+    'cometapi_model',
+    'google_model',
+    'vertexai_model',
+    'zai_model',
+    'azure_openai_model',
+    'custom_model',
+
+    // Custom Endpoint Config
+    'custom_url',
+    'custom_include_body',
+    'custom_exclude_body',
+    'custom_include_headers',
+    'custom_prompt_post_processing',
+
+    // OpenRouter Specifics
+    'openrouter_use_fallback',
+    'openrouter_group_models',
+    'openrouter_sort_models',
+    'openrouter_providers',
+    'openrouter_allow_fallbacks',
+    'openrouter_middleout',
+
+    // Azure Specifics
+    'azure_base_url',
+    'azure_deployment_name',
+    'azure_api_version',
+
+    // Vertex AI Specifics
+    'vertexai_auth_mode',
+    'vertexai_region',
+    'vertexai_express_project_id',
+
+    // ZAI Specifics
+    'zai_endpoint',
+
+    // Proxy & Auth
+    'reverse_proxy',
+    'proxy_password',
+    'bypass_status_check',
+    'show_external_models'
+];
+
+// Keys that MUST exist to prevent ST core crashes
+const REQUIRED_KEYS = ['mistralai_model'];
+
+/**
+ * Hydrates preset data with user's current connection settings to prevent overwrites.
+ * This ensures the preset changes settings to what they already are for connection-related keys.
+ * @param {Object} importData - The raw preset JSON data
+ * @param {Object} currentSettings - The active oai_settings object
+ * @returns {Object} Safe preset data ready for import
+ */
+function hydratePresetWithConnectionSettings(importData, currentSettings) {
+    const safeData = { ...importData };
+
+    // Backfill missing connection keys with current user settings
+    CONNECTION_KEYS.forEach(key => {
+        if (typeof safeData[key] === 'undefined') {
+            safeData[key] = currentSettings[key];
+        }
+    });
+
+    // Ensure required keys exist (fallback to empty string if currentSettings is also missing them)
+    REQUIRED_KEYS.forEach(key => {
+        if (typeof safeData[key] === 'undefined' || safeData[key] === null) {
+            safeData[key] = currentSettings[key] || "";
+        }
+    });
+
+    return safeData;
+}
+
 // --- Version Tracking ---
 
 /**
@@ -307,21 +406,14 @@ export async function importPreset(presetData, presetName, options = {}) {
 
         // 3. Chat/API Completion preset
         if (isPossiblyTextCompletionData(presetData)) {
-            // Ensure mistralai_model exists (required by ST core)
-            if (typeof presetData.mistralai_model === "undefined") {
-                presetData.mistralai_model = "";
-            }
+            // Hydrate preset with user's current connection settings to prevent overwrites
+            const currentSettings = context.oai_settings || window.oai_settings || {};
+            const safePresetData = hydratePresetWithConnectionSettings(presetData, currentSettings);
             
             const manager = context.getPresetManager("openai");
-            await manager.savePreset(presetName, presetData);
+            await manager.savePreset(presetName, safePresetData);
             
             if (activate) {
-                // ST's migrateChatCompletionSettings accesses global oai_settings during preset change
-                // Ensure the property exists to prevent crashes
-                const oai = window.oai_settings;
-                if (oai && typeof oai.mistralai_model === "undefined") {
-                    oai.mistralai_model = "";
-                }
                 await manager.selectPreset(presetName);
             }
             
@@ -366,12 +458,11 @@ export async function importPreset(presetData, presetName, options = {}) {
         }
 
         if (presetData.preset && isPossiblyTextCompletionData(presetData.preset)) {
-            // Ensure mistralai_model exists (required by ST core)
-            if (typeof presetData.preset.mistralai_model === "undefined") {
-                presetData.preset.mistralai_model = "";
-            }
+            // Hydrate preset with user's current connection settings to prevent overwrites
+            const currentSettings = context.oai_settings || window.oai_settings || {};
+            const safePresetData = hydratePresetWithConnectionSettings(presetData.preset, currentSettings);
             const manager = context.getPresetManager("openai");
-            await manager.savePreset(presetData.preset.name || presetName, presetData.preset);
+            await manager.savePreset(safePresetData.name || presetName, safePresetData);
             importedCount++;
             importedTypes.push("openai");
         }
