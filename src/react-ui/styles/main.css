@@ -1731,6 +1731,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    min-height: 0; /* Critical: allows flex children to shrink below content size */
 }
 
 .lumiverse-modal--small {
@@ -1750,7 +1751,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
 .lumiverse-modal-lumia-editor,
 .lumiverse-modal-loom-editor,
 .lumiverse-modal-pack-editor {
-    overflow: visible; /* Allow child to handle overflow */
+    min-height: 0; /* Ensure scrolling works in nested flex */
 }
 
 /* Mobile responsiveness for modals */
@@ -3744,12 +3745,14 @@ details.lumia-panel[open] .lumia-panel-chevron {
 .lumiverse-editor-modal {
     display: flex;
     flex-direction: column;
-    max-height: 80vh;
+    flex: 1;
     min-height: 0; /* Critical for flex overflow */
+    height: 100%; /* Fill parent modal */
+    overflow: hidden; /* Let child .lumiverse-editor-content scroll */
 }
 
 .lumiverse-editor-content {
-    flex: 1 1 auto;
+    flex: 1;
     min-height: 0; /* Critical for flex overflow */
     overflow-y: auto;
     overflow-x: hidden;
@@ -4149,14 +4152,24 @@ details.lumia-panel[open] .lumia-panel-chevron {
     .lumiverse-modal.lumiverse-modal-pack-editor {
         width: calc(100vw - 24px) !important;
         max-width: calc(100vw - 24px) !important;
-        height: calc(100dvh - 24px);
-        height: calc(100vh - 24px); /* Fallback */
-        max-height: calc(100dvh - 24px);
-        max-height: calc(100vh - 24px); /* Fallback */
+        /* Height: use vh as fallback, dvh as enhancement */
+        height: calc(100vh - 24px);
+        max-height: calc(100vh - 24px);
         margin: 0;
         display: flex;
         flex-direction: column;
-        overflow: hidden; /* Contain the flex children */
+        overflow: hidden;
+        min-height: 0; /* Critical for nested flex scroll */
+    }
+
+    /* Dynamic viewport units for modern browsers */
+    @supports (height: 100dvh) {
+        .lumiverse-modal.lumiverse-modal-lumia-editor,
+        .lumiverse-modal.lumiverse-modal-loom-editor,
+        .lumiverse-modal.lumiverse-modal-pack-editor {
+            height: calc(100dvh - 24px);
+            max-height: calc(100dvh - 24px);
+        }
     }
 
     /* ----------------------------------------
@@ -4167,21 +4180,21 @@ details.lumia-panel[open] .lumia-panel-chevron {
     .lumiverse-editor-modal {
         display: flex;
         flex-direction: column;
-        flex: 1 1 auto;
-        min-height: 0; /* Critical: allows flex child to shrink below content size */
-        max-height: 100%; /* Fill parent but don't exceed */
-        overflow: hidden; /* Contain the scrollable area */
+        flex: 1;
+        min-height: 0; /* Critical: allows flex child to shrink */
+        height: 100%;
+        overflow: hidden;
     }
 
-    /* Scrollable content area */
+    /* Scrollable content area - THE KEY ELEMENT */
     .lumiverse-editor-content {
-        flex: 1 1 auto;
-        min-height: 0; /* Critical: allows this to shrink and enable scrolling */
+        flex: 1;
+        min-height: 0; /* Critical: enables overflow scrolling */
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
         padding: 12px;
-        overscroll-behavior: contain; /* Prevent scroll chaining */
+        overscroll-behavior: contain;
     }
 
     /* Section styling */
