@@ -10443,11 +10443,12 @@ details.lumia-panel[open] .lumia-panel-chevron {
     color: rgba(239, 68, 68, 0.95);
 }
 
-/* Modal content */
+/* Modal content - scrollable container that doesn't shrink */
 .lumiverse-presets-modal-content {
-    flex: 1;
+    flex: 1 1 0;
     min-height: 0; /* Required for flex overflow to work */
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 16px 20px;
     display: flex;
     flex-direction: column;
@@ -10514,6 +10515,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     border: 1px solid rgba(128, 128, 128, 0.1);
     border-radius: 14px;
     overflow: hidden;
+    flex-shrink: 0; /* Prevent sections from shrinking when content expands */
 }
 
 .lumiverse-presets-section-header {
@@ -10689,7 +10691,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     padding: 10px;
 }
 
-/* Preset card */
+/* Preset card - unified clickable container */
 .lumiverse-preset-card {
     background: rgba(45, 38, 60, 0.6);
     border: 1px solid rgba(128, 128, 128, 0.1);
@@ -10698,6 +10700,13 @@ details.lumia-panel[open] .lumia-panel-chevron {
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
     animation: lumiverse-preset-card-appear 0.25s ease-out backwards;
     animation-delay: var(--card-delay, 0ms);
+    cursor: pointer;
+    outline: none;
+}
+
+.lumiverse-preset-card:focus-visible {
+    border-color: rgba(147, 112, 219, 0.5);
+    box-shadow: 0 0 0 2px rgba(147, 112, 219, 0.2);
 }
 
 @keyframes lumiverse-preset-card-appear {
@@ -10729,21 +10738,19 @@ details.lumia-panel[open] .lumia-panel-chevron {
     border-color: rgba(34, 197, 94, 0.45);
 }
 
-/* Card header */
+/* Card header - no longer a button, just a container */
 .lumiverse-preset-card-header {
     display: flex;
     align-items: center;
     gap: 10px;
     width: 100%;
     padding: 10px 12px;
-    border: none;
     background: transparent;
-    cursor: pointer;
     text-align: left;
     transition: background 0.15s ease;
 }
 
-.lumiverse-preset-card-header:hover {
+.lumiverse-preset-card:hover .lumiverse-preset-card-header {
     background: rgba(255, 255, 255, 0.02);
 }
 
@@ -10876,6 +10883,35 @@ details.lumia-panel[open] .lumia-panel-chevron {
 .lumiverse-preset-card-versions.is-expanded .lumiverse-preset-card-versions-inner {
     padding: 8px 10px 10px;
     border-top-color: rgba(100, 149, 237, 0.1);
+}
+
+/* Show more versions button */
+.lumiverse-preset-versions-showmore {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 8px 10px;
+    margin-top: 2px;
+    border: 1px dashed rgba(147, 112, 219, 0.2);
+    border-radius: 6px;
+    background: rgba(147, 112, 219, 0.05);
+    color: var(--lumiverse-text-muted);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.lumiverse-preset-versions-showmore:hover {
+    background: rgba(147, 112, 219, 0.12);
+    border-color: rgba(147, 112, 219, 0.35);
+    color: rgba(147, 112, 219, 0.95);
+}
+
+.lumiverse-preset-versions-showmore svg {
+    opacity: 0.7;
 }
 
 /* Version items */
@@ -11267,4 +11303,16 @@ details.lumia-panel[open] .lumia-panel-chevron {
     background: rgba(239, 68, 68, 0.15);
     border-color: rgba(239, 68, 68, 0.3);
     color: rgba(239, 68, 68, 0.95);
+}
+
+/* Claude variant for Start Reply With (no newline) */
+.lumiverse-presets-startreply-btn--claude {
+    border-color: rgba(217, 119, 87, 0.15);
+    background: rgba(217, 119, 87, 0.08);
+}
+
+.lumiverse-presets-startreply-btn--claude:hover {
+    background: rgba(217, 119, 87, 0.18);
+    border-color: rgba(217, 119, 87, 0.35);
+    color: rgba(217, 119, 87, 0.95);
 }

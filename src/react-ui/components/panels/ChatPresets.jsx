@@ -522,9 +522,9 @@ function ChatPresetsModal({ onClose, availableUpdates = [], onUpdateComplete }) 
                                         &lt;think&gt;
                                     </button>
                                     <button
-                                        className="lumiverse-presets-startreply-btn"
-                                        onClick={() => handleStartReplyWithChange('<thinking>\n')}
-                                        title="Set to <thinking> tag"
+                                        className="lumiverse-presets-startreply-btn lumiverse-presets-startreply-btn--claude"
+                                        onClick={() => handleStartReplyWithChange('<thinking>')}
+                                        title="Set to <thinking> tag (Claude, no newline)"
                                         type="button"
                                     >
                                         &lt;thinking&gt;
@@ -560,10 +560,17 @@ function ChatPresetsModal({ onClose, availableUpdates = [], onUpdateComplete }) 
 }
 
 /**
- * Individual preset card with expandable version list
+ * Maximum versions shown before pagination kicks in
+ */
+const MAX_VISIBLE_VERSIONS = 3;
+
+/**
+ * Individual preset card - unified clickable container with paginated version list
  */
 function PresetCard({ preset, isExpanded, onToggle, onDownload, downloadingVersion, animationIndex, updateAvailable }) {
-    // Combine standard and prolix versions
+    const [showAllVersions, setShowAllVersions] = useState(false);
+    
+    // Combine standard and prolix versions, sorted by latest first
     const allVersions = useMemo(() => {
         const versions = [];
         
@@ -579,13 +586,51 @@ function PresetCard({ preset, isExpanded, onToggle, onDownload, downloadingVersi
             });
         }
         
-        return versions;
+        // Sort: latest first, then by name descending (semantic version order)
+        return versions.sort((a, b) => {
+            if (a.isLatest && !b.isLatest) return -1;
+            if (!a.isLatest && b.isLatest) return 1;
+            return b.name.localeCompare(a.name, undefined, { numeric: true });
+        });
     }, [preset.versions]);
+    
+    // Paginated versions for accessibility
+    const visibleVersions = useMemo(() => {
+        if (showAllVersions || allVersions.length <= MAX_VISIBLE_VERSIONS) {
+            return allVersions;
+        }
+        return allVersions.slice(0, MAX_VISIBLE_VERSIONS);
+    }, [allVersions, showAllVersions]);
+    
+    const hiddenCount = allVersions.length - MAX_VISIBLE_VERSIONS;
+    const hasMore = hiddenCount > 0 && !showAllVersions;
 
     // Staggered animation delay via CSS custom property
     const animationStyle = {
         '--card-delay': `${Math.min(animationIndex * 40, 250)}ms`
     };
+    
+    // Reset pagination when collapsing
+    useEffect(() => {
+        if (!isExpanded) {
+            setShowAllVersions(false);
+        }
+    }, [isExpanded]);
+    
+    // Handle card click - toggle expansion
+    const handleCardClick = useCallback((e) => {
+        // Don't toggle if clicking on interactive elements
+        if (e.target.closest('button')) return;
+        onToggle();
+    }, [onToggle]);
+    
+    // Handle keyboard navigation
+    const handleKeyDown = useCallback((e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onToggle();
+        }
+    }, [onToggle]);
 
     return (
         <div 
@@ -595,12 +640,14 @@ function PresetCard({ preset, isExpanded, onToggle, onDownload, downloadingVersi
                 updateAvailable && 'has-update'
             )}
             style={animationStyle}
+            onClick={handleCardClick}
+            onKeyDown={handleKeyDown}
+            role="button"
+            tabIndex={0}
+            aria-expanded={isExpanded}
+            aria-label={`${preset.name} preset${updateAvailable ? ' - update available' : ''}`}
         >
-            <button
-                className="lumiverse-preset-card-header"
-                onClick={onToggle}
-                type="button"
-            >
+            <div className="lumiverse-preset-card-header">
                 <div className={clsx(
                     'lumiverse-preset-card-icon',
                     updateAvailable && 'has-update'
@@ -656,15 +703,19 @@ function PresetCard({ preset, isExpanded, onToggle, onDownload, downloadingVersi
                         className="lumiverse-preset-card-chevron"
                     />
                 </div>
-            </button>
+            </div>
 
-            {/* Expanded version list - no AnimatePresence to avoid layout thrashing */}
-            <div className={clsx(
-                'lumiverse-preset-card-versions',
-                isExpanded && 'is-expanded'
-            )}>
+            {/* Expanded version list - CSS grid collapse for smooth animation */}
+            <div 
+                className={clsx(
+                    'lumiverse-preset-card-versions',
+                    isExpanded && 'is-expanded'
+                )}
+                role="region"
+                aria-label={`${preset.name} versions`}
+            >
                 <div className="lumiverse-preset-card-versions-inner">
-                    {allVersions.map((version) => {
+                    {visibleVersions.map((version) => {
                         const versionKey = `${preset.slug}-${version.slug}`;
                         const isDownloading = downloadingVersion === versionKey;
 
@@ -696,9 +747,13 @@ function PresetCard({ preset, isExpanded, onToggle, onDownload, downloadingVersi
                                 </div>
                                 <button
                                     className="lumiverse-preset-version-download"
-                                    onClick={() => onDownload(preset.slug, version.slug, version.name)}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onDownload(preset.slug, version.slug, version.name);
+                                    }}
                                     disabled={isDownloading}
                                     type="button"
+                                    aria-label={`Download ${version.name}`}
                                 >
                                     {isDownloading ? (
                                         <Loader2 size={12} strokeWidth={2} className="lumiverse-spin" />
@@ -712,6 +767,21 @@ function PresetCard({ preset, isExpanded, onToggle, onDownload, downloadingVersi
                             </div>
                         );
                     })}
+                    
+                    {/* Show more button for pagination */}
+                    {hasMore && (
+                        <button
+                            className="lumiverse-preset-versions-showmore"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowAllVersions(true);
+                            }}
+                            type="button"
+                        >
+                            <ChevronDown size={12} strokeWidth={2} />
+                            <span>Show {hiddenCount} more version{hiddenCount !== 1 ? 's' : ''}</span>
+                        </button>
+                    )}
                 </div>
             </div>
         </div>
