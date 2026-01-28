@@ -183,18 +183,18 @@ function getSTContext() {
  */
 function syncSettings(settings) {
     if (settings) {
+        const packCount = settings.packs ? Object.keys(settings.packs).length : 0;
         console.log('[LumiverseUI] syncSettings called with:', {
-            packsCount: settings.packs?.length || 0,
+            packsCount: packCount,
             customPacksCount: settings.customPacks?.length || 0,
-            firstPackItems: settings.packs?.[0]?.items?.length || 0,
         });
         useLumiverseStore.syncFromExtension(settings);
         // Verify the sync worked
         const newState = useLumiverseStore.getState();
+        const newPackCount = newState.packs ? Object.keys(newState.packs).length : 0;
         console.log('[LumiverseUI] After sync, store has:', {
-            packsCount: newState.packs?.length || 0,
+            packsCount: newPackCount,
             customPacksCount: newState.customPacks?.length || 0,
-            firstPackItems: newState.packs?.[0]?.items?.length || 0,
         });
     } else {
         console.warn('[LumiverseUI] syncSettings called with null/undefined settings');
