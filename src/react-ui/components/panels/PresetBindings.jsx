@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import clsx from 'clsx';
 import {
@@ -15,6 +15,13 @@ import {
     AlertTriangle
 } from 'lucide-react';
 import { usePresetBindings } from '../../hooks/usePresetBindings';
+import { useLumiverseStore } from '../../store/LumiverseContext';
+
+// Get store for direct state access
+const store = useLumiverseStore;
+
+// Stable selector for active preset name
+const selectActivePresetName = () => store.getState().activePresetName || '';
 
 /* global toastr */
 
@@ -138,7 +145,19 @@ function PresetBindingsModal({ onClose }) {
         refreshPresets,
     } = usePresetBindings();
 
-    const [selectedPreset, setSelectedPreset] = useState('');
+    // Get currently active preset from store
+    const activePresetName = useSyncExternalStore(
+        store.subscribe,
+        selectActivePresetName,
+        selectActivePresetName
+    );
+
+    // Default to the current binding or active preset
+    const getDefaultPreset = () => {
+        return currentCharacterBinding || currentChatBinding || activePresetName || '';
+    };
+
+    const [selectedPreset, setSelectedPreset] = useState(getDefaultPreset);
     const [bindingType, setBindingType] = useState('character');
 
     // Refresh presets on mount
