@@ -282,9 +282,13 @@ export function handleNewBook(data, sourceName, isURL = false) {
     return;
   }
 
+  // Use the World Book's name if available, otherwise fall back to sourceName (filename/URL)
+  // This ensures the storage key matches what the UI uses for selections
+  const packKey = data.name || sourceName;
+
   // Check if pack exists
-  if (settings.packs[sourceName]) {
-    if (!confirm(`Pack "${sourceName}" already exists. Overwrite?`)) {
+  if (settings.packs[packKey]) {
+    if (!confirm(`Pack "${packKey}" already exists. Overwrite?`)) {
       return;
     }
   }
@@ -302,8 +306,8 @@ export function handleNewBook(data, sourceName, isURL = false) {
   }
 
   // Store in new pack format
-  settings.packs[sourceName] = {
-    packName: sourceName,
+  settings.packs[packKey] = {
+    packName: packKey,
     packAuthor: null,
     coverUrl: null,
     version: 1,
@@ -319,7 +323,7 @@ export function handleNewBook(data, sourceName, isURL = false) {
 
   const totalItems = lumiaItems.length + loomItems.length;
   toastr.success(
-    `Lumia Book "${sourceName}" loaded! Found ${totalItems} entries (${lumiaItems.length} Lumia, ${loomItems.length} Loom).`,
+    `Lumia Book "${packKey}" loaded! Found ${totalItems} entries (${lumiaItems.length} Lumia, ${loomItems.length} Loom).`,
   );
 
   return { lumiaItems, loomItems };
@@ -344,7 +348,8 @@ export async function fetchWorldBook(url) {
     // Use filename from URL or just URL as name
     const name = url.split("/").pop() || url;
 
-    handleNewBook(data, name, true);
+    // Use importPack which handles both native Lumiverse format and World Book format
+    importPack(data, name, true);
   } catch (error) {
     console.error("Lumia Injector Error:", error);
     const statusDiv = document.getElementById("lumia-book-status");
@@ -367,17 +372,20 @@ export function importPack(data, sourceName, isURL = false) {
   // Detect format: native Lumiverse format has lumiaItems or loomItems arrays
   if (data.lumiaItems || data.loomItems) {
     // Native Lumiverse format - import directly
-    console.log(`[${MODULE_NAME}] Importing native format pack: ${sourceName}`);
+    // Use packName from data if available, otherwise fall back to sourceName (filename/URL)
+    // This ensures the storage key matches what the UI uses for selections
+    const packKey = data.packName || sourceName;
+    console.log(`[${MODULE_NAME}] Importing native format pack: ${packKey} (source: ${sourceName})`);
 
     // Check if pack exists
-    if (settings.packs[sourceName]) {
-      if (!confirm(`Pack "${sourceName}" already exists. Overwrite?`)) {
+    if (settings.packs[packKey]) {
+      if (!confirm(`Pack "${packKey}" already exists. Overwrite?`)) {
         return null;
       }
     }
 
-    settings.packs[sourceName] = {
-      packName: data.packName || sourceName,
+    settings.packs[packKey] = {
+      packName: packKey,
       packAuthor: data.packAuthor || null,
       coverUrl: data.coverUrl || null,
       version: data.version || 1,
@@ -393,10 +401,10 @@ export function importPack(data, sourceName, isURL = false) {
 
     const totalItems = (data.lumiaItems?.length || 0) + (data.loomItems?.length || 0);
     toastr.success(
-      `Pack "${sourceName}" imported! Found ${totalItems} entries.`,
+      `Pack "${packKey}" imported! Found ${totalItems} entries.`,
     );
 
-    return settings.packs[sourceName];
+    return settings.packs[packKey];
   }
 
   // World Book format or raw entries array - use existing handler
