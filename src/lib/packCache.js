@@ -83,11 +83,19 @@ export async function initPackCache() {
 
     try {
         // Load the index
-        cachedIndex = await loadIndex();
+        const { index, isNew } = await loadIndex();
+        cachedIndex = index;
         console.log(`[${MODULE_NAME}] Index loaded:`, {
             packCount: Object.keys(cachedIndex.packRegistry).length,
             hasSelections: !!cachedIndex.selections?.selectedDefinition,
+            isNew,
         });
+
+        // If this is a fresh index, save it to create the file
+        if (isNew) {
+            console.log(`[${MODULE_NAME}] Creating initial index file...`);
+            await saveIndex(cachedIndex);
+        }
 
         // Determine which packs to load immediately (those with active selections)
         const activePackIds = getActivePackIds(cachedIndex.selections);
@@ -581,7 +589,8 @@ export async function migratePacksFromSettings(legacyPacks) {
 
     // Initialize index if needed
     if (!cachedIndex) {
-        cachedIndex = await loadIndex();
+        const { index } = await loadIndex();
+        cachedIndex = index;
     }
 
     for (const [key, pack] of packEntries) {

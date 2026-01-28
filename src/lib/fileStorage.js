@@ -231,15 +231,15 @@ export async function saveIndex(indexData) {
 
 /**
  * Load the index file.
- * @returns {Promise<Object>} The index data (creates default if not exists)
+ * @returns {Promise<{index: Object, isNew: boolean}>} The index data and whether it was newly created
  */
 export async function loadIndex() {
     const data = await loadFile(INDEX_FILENAME);
     if (data) {
         // TODO: Add migration logic here if version < INDEX_SCHEMA_VERSION
-        return data;
+        return { index: data, isNew: false };
     }
-    return createDefaultIndex();
+    return { index: createDefaultIndex(), isNew: true };
 }
 
 // ============================================================================
