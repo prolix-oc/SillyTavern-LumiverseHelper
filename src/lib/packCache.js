@@ -83,17 +83,19 @@ export async function initPackCache() {
 
     try {
         // Load the index
-        const { index, isNew } = await loadIndex();
+        const { index, isNew, migrated } = await loadIndex();
         cachedIndex = index;
         console.log(`[${MODULE_NAME}] Index loaded:`, {
             packCount: Object.keys(cachedIndex.packRegistry).length,
             hasSelections: !!cachedIndex.selections?.selectedDefinition,
+            presetCount: Object.keys(cachedIndex.presets || {}).length,
             isNew,
+            migrated,
         });
 
-        // If this is a fresh index, save it to create the file
-        if (isNew) {
-            console.log(`[${MODULE_NAME}] Creating initial index file...`);
+        // If this is a fresh index or was migrated, save it to create/update the file
+        if (isNew || migrated) {
+            console.log(`[${MODULE_NAME}] ${isNew ? 'Creating initial' : 'Saving migrated'} index file...`);
             await saveIndex(cachedIndex);
         }
 
@@ -443,6 +445,71 @@ export function updatePreferences(newPreferences) {
     notifyListeners();
 }
 
+// ============================================================================
+// PRESETS
+// ============================================================================
+
+/**
+ * Get all presets from the cache.
+ * @returns {Object} Presets object keyed by name
+ */
+export function getPresets() {
+    return cachedIndex?.presets || {};
+}
+
+/**
+ * Get a single preset by name.
+ * @param {string} presetName - The preset name
+ * @returns {Object|null} The preset or null
+ */
+export function getPreset(presetName) {
+    return cachedIndex?.presets?.[presetName] || null;
+}
+
+/**
+ * Save or update a preset in the cache and trigger debounced save.
+ * @param {string} presetName - The preset name
+ * @param {Object} presetData - The preset data
+ */
+export function upsertPreset(presetName, presetData) {
+    if (!cachedIndex) return;
+    
+    if (!cachedIndex.presets) {
+        cachedIndex.presets = {};
+    }
+    
+    cachedIndex.presets[presetName] = presetData;
+    
+    debouncedIndexSave();
+    notifyListeners();
+}
+
+/**
+ * Delete a preset from the cache and trigger debounced save.
+ * @param {string} presetName - The preset name to delete
+ */
+export function deletePreset(presetName) {
+    if (!cachedIndex?.presets) return;
+    
+    delete cachedIndex.presets[presetName];
+    
+    debouncedIndexSave();
+    notifyListeners();
+}
+
+/**
+ * Update all presets at once (for bulk operations).
+ * @param {Object} newPresets - Complete presets object to replace existing
+ */
+export function updatePresets(newPresets) {
+    if (!cachedIndex) return;
+    
+    cachedIndex.presets = newPresets;
+    
+    debouncedIndexSave();
+    notifyListeners();
+}
+
 /**
  * Clean up selections when a pack is removed.
  * @param {string} packId - The pack ID being removed
@@ -704,6 +771,15 @@ export function migrateSelectionsFromSettings(legacySettings) {
         if (legacySettings[field] !== undefined) {
             cachedIndex.preferences[field] = legacySettings[field];
         }
+    }
+    
+    // Migrate presets
+    if (legacySettings.presets && typeof legacySettings.presets === 'object') {
+        if (!cachedIndex.presets) {
+            cachedIndex.presets = {};
+        }
+        Object.assign(cachedIndex.presets, legacySettings.presets);
+        console.log(`[${MODULE_NAME}] Migrated ${Object.keys(legacySettings.presets).length} presets`);
     }
 }
 

@@ -180,7 +180,7 @@ async function deleteFile(filename) {
  * }
  */
 
-const INDEX_SCHEMA_VERSION = 1;
+const INDEX_SCHEMA_VERSION = 2;
 
 /**
  * Create a default index structure.
@@ -211,6 +211,7 @@ function createDefaultIndex() {
             lumiaOOCStyle: 'social',
             activePresetName: null,
         },
+        presets: {}, // User-saved Lumia selection presets
     };
 }
 
@@ -230,16 +231,37 @@ export async function saveIndex(indexData) {
 }
 
 /**
+ * Migrate index to current schema version.
+ * @param {Object} index - The loaded index
+ * @returns {Object} Migrated index
+ */
+function migrateIndex(index) {
+    let migrated = false;
+    
+    // v1 -> v2: Add presets field
+    if (!index.version || index.version < 2) {
+        if (!index.presets) {
+            index.presets = {};
+        }
+        index.version = 2;
+        migrated = true;
+        console.log(`[${MODULE_NAME}] Migrated index to v2 (added presets)`);
+    }
+    
+    return { index, migrated };
+}
+
+/**
  * Load the index file.
- * @returns {Promise<{index: Object, isNew: boolean}>} The index data and whether it was newly created
+ * @returns {Promise<{index: Object, isNew: boolean, migrated: boolean}>} The index data, whether it was newly created, and whether it was migrated
  */
 export async function loadIndex() {
     const data = await loadFile(INDEX_FILENAME);
     if (data) {
-        // TODO: Add migration logic here if version < INDEX_SCHEMA_VERSION
-        return { index: data, isNew: false };
+        const { index, migrated } = migrateIndex(data);
+        return { index, isNew: false, migrated };
     }
-    return { index: createDefaultIndex(), isNew: true };
+    return { index: createDefaultIndex(), isNew: true, migrated: false };
 }
 
 // ============================================================================

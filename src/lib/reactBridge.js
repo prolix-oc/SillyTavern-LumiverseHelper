@@ -18,6 +18,8 @@ import {
   resetAllSettings,
   getPacks,
   isUsingFileStorage,
+  saveSelections,
+  setAllPresets,
 } from "./settingsManager.js";
 import { getEventSource, getEventTypes } from "../stContext.js";
 
@@ -105,11 +107,20 @@ export function settingsToReactFormat() {
  *
  * IMPORTANT: React should be sending data in the EXACT same format as getSettings().
  * We simply merge the incoming state with the current settings.
+ * 
+ * When using file storage, selections and presets are handled specially to ensure
+ * they're persisted to the index file, not extension_settings.
  *
  * @param {Object} reactState - State from React store (same format as getSettings())
  */
 export function reactFormatToSettings(reactState) {
   const settings = getSettings();
+
+  // If using file storage, handle presets separately
+  if (isUsingFileStorage() && reactState.presets !== undefined) {
+    // Update presets in file storage
+    setAllPresets(reactState.presets);
+  }
 
   // Merge all properties from reactState into settings
   // This preserves the exact structure without transformation

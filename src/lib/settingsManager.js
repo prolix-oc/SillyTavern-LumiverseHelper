@@ -22,6 +22,10 @@ import {
   removePack as removePackFromCache,
   updateSelections,
   updatePreferences,
+  getPresets as getCachedPresets,
+  upsertPreset,
+  deletePreset as deletePresetFromCache,
+  updatePresets,
   flushIndexSave,
   migratePacksFromSettings,
   migrateSelectionsFromSettings,
@@ -612,9 +616,32 @@ export async function initPackFileStorage() {
   } else if (alreadyMigrated) {
     console.log(`[${MODULE_NAME}] Packs already migrated to file storage`);
     packsMigrated = true;
+    
+    // One-time cleanup: remove duplicated selections/preferences from extension_settings
+    // This handles users who migrated before we added this cleanup
+    if (!settings.selectionsCleanedUp) {
+      console.log(`[${MODULE_NAME}] Cleaning up duplicated selections from extension_settings...`);
+      settings.selectionsCleanedUp = true;
+      saveSettings(); // This now excludes selections/preferences
+    }
   }
 
   fileStorageInitialized = true;
+
+  // Merge selections, preferences, and presets from cache into in-memory settings
+  // This ensures getSettings() returns the correct values
+  const index = getCachedIndex();
+  if (index) {
+    if (index.selections) {
+      Object.assign(settings, index.selections);
+    }
+    if (index.preferences) {
+      Object.assign(settings, index.preferences);
+    }
+    if (index.presets) {
+      settings.presets = index.presets;
+    }
+  }
 
   // Subscribe to cache changes to keep React in sync
   subscribeToCacheChanges(() => {
@@ -638,17 +665,42 @@ export function isUsingFileStorage() {
 
 /**
  * Save settings to SillyTavern storage.
- * Note: Pack data is now saved via the pack cache, not here.
+ * Note: Pack data and selections are now saved via the pack cache, not here.
  */
 export function saveSettings() {
   const extension_settings = getExtensionSettings();
   const saveSettingsDebounced = getSaveSettingsDebounced();
 
-  // If using file storage, don't include packs in extension settings
+  // If using file storage, exclude packs AND selections/preferences (they're in file storage)
   if (isUsingFileStorage()) {
-    // Create a copy without packs for saving
+    // Create a copy without pack-related data for saving
     const settingsToSave = { ...settings };
     delete settingsToSave.packs; // Packs are in file storage
+    
+    // Remove selections - these are now in index.selections
+    delete settingsToSave.selectedDefinition;
+    delete settingsToSave.selectedBehaviors;
+    delete settingsToSave.selectedPersonalities;
+    delete settingsToSave.dominantBehavior;
+    delete settingsToSave.dominantPersonality;
+    delete settingsToSave.selectedLoomStyle;
+    delete settingsToSave.selectedLoomUtils;
+    delete settingsToSave.selectedLoomRetrofits;
+    delete settingsToSave.selectedDefinitions;
+    delete settingsToSave.councilMembers;
+    
+    // Remove preferences that are in index.preferences
+    delete settingsToSave.chimeraMode;
+    delete settingsToSave.councilMode;
+    delete settingsToSave.lumiaQuirks;
+    delete settingsToSave.lumiaQuirksEnabled;
+    delete settingsToSave.lumiaOOCInterval;
+    delete settingsToSave.lumiaOOCStyle;
+    delete settingsToSave.activePresetName;
+    
+    // Remove presets - these are now in index.presets
+    delete settingsToSave.presets;
+    
     extension_settings[SETTINGS_KEY] = settingsToSave;
   } else {
     extension_settings[SETTINGS_KEY] = settings;
@@ -737,11 +789,12 @@ export async function deletePack(packName) {
  * @param {Object} newSelections - Partial selections to merge
  */
 export function saveSelections(newSelections) {
+  // Always update in-memory settings so getSettings() returns current values
+  Object.assign(settings, newSelections);
+  
   if (isUsingFileStorage()) {
     updateSelections(newSelections);
   } else {
-    // Merge into settings
-    Object.assign(settings, newSelections);
     saveSettings();
   }
 }
@@ -768,6 +821,71 @@ export function getSelections() {
     selectedDefinitions: settings.selectedDefinitions || [],
     councilMembers: settings.councilMembers || [],
   };
+}
+
+// ============================================================================
+// PRESET OPERATIONS
+// ============================================================================
+
+/**
+ * Get all presets.
+ * @returns {Object} Presets object keyed by name
+ */
+export function getPresets() {
+  if (isUsingFileStorage()) {
+    return getCachedPresets();
+  }
+  return settings.presets || {};
+}
+
+/**
+ * Save or update a preset.
+ * @param {string} presetName - The preset name
+ * @param {Object} presetData - The preset data
+ */
+export function savePreset(presetName, presetData) {
+  // Update in-memory settings
+  if (!settings.presets) {
+    settings.presets = {};
+  }
+  settings.presets[presetName] = presetData;
+  
+  if (isUsingFileStorage()) {
+    upsertPreset(presetName, presetData);
+  } else {
+    saveSettings();
+  }
+}
+
+/**
+ * Delete a preset.
+ * @param {string} presetName - The preset name to delete
+ */
+export function deletePreset(presetName) {
+  // Update in-memory settings
+  if (settings.presets) {
+    delete settings.presets[presetName];
+  }
+  
+  if (isUsingFileStorage()) {
+    deletePresetFromCache(presetName);
+  } else {
+    saveSettings();
+  }
+}
+
+/**
+ * Replace all presets (for bulk operations).
+ * @param {Object} newPresets - Complete presets object
+ */
+export function setAllPresets(newPresets) {
+  settings.presets = newPresets;
+  
+  if (isUsingFileStorage()) {
+    updatePresets(newPresets);
+  } else {
+    saveSettings();
+  }
 }
 
 /**
