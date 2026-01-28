@@ -1712,16 +1712,14 @@ details.lumia-panel[open] .lumia-panel-chevron {
    ---------------------------------------- */
 .lumiverse-modal-backdrop {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0;
     background: rgba(0, 0, 0, 0.7);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 10000;
-    padding: 20px;
+    padding: 16px;
+    box-sizing: border-box;
 }
 
 .lumiverse-modal {
@@ -1751,26 +1749,22 @@ details.lumia-panel[open] .lumia-panel-chevron {
 /* Mobile responsiveness for modals */
 @media (max-width: 600px) {
     .lumiverse-modal-backdrop {
-        padding: 12px;
-        /* Ensure proper centering on mobile */
-        align-items: center;
-        justify-content: center;
+        padding: 16px;
     }
 
     .lumiverse-modal {
-        /* Use width with max-width instead of margin for proper centering */
-        width: calc(100vw - 24px);
-        max-width: calc(100vw - 24px);
-        max-height: calc(100vh - 24px);
-        max-height: calc(100dvh - 24px); /* Use dvh for mobile viewport */
-        margin: 0; /* Remove margin - backdrop padding handles spacing */
+        width: 94vw;
+        max-width: 94vw;
+        max-height: 90vh;
+        max-height: 90dvh;
+        margin: auto;
     }
 
     .lumiverse-modal--small,
     .lumiverse-modal--medium,
     .lumiverse-modal--large {
-        width: calc(100vw - 24px);
-        max-width: calc(100vw - 24px);
+        width: 94vw;
+        max-width: 94vw;
     }
 }
 
