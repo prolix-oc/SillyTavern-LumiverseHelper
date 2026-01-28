@@ -407,7 +407,8 @@ export async function importPreset(presetData, presetName, options = {}) {
         // 3. Chat/API Completion preset
         if (isPossiblyTextCompletionData(presetData)) {
             // Hydrate preset with user's current connection settings to prevent overwrites
-            const currentSettings = context.oai_settings || window.oai_settings || {};
+            // ST exposes oai_settings as chatCompletionSettings in context
+            const currentSettings = context.chatCompletionSettings || window.oai_settings || {};
             const safePresetData = hydratePresetWithConnectionSettings(presetData, currentSettings);
             
             const manager = context.getPresetManager("openai");
@@ -459,7 +460,8 @@ export async function importPreset(presetData, presetName, options = {}) {
 
         if (presetData.preset && isPossiblyTextCompletionData(presetData.preset)) {
             // Hydrate preset with user's current connection settings to prevent overwrites
-            const currentSettings = context.oai_settings || window.oai_settings || {};
+            // ST exposes oai_settings as chatCompletionSettings in context
+            const currentSettings = context.chatCompletionSettings || window.oai_settings || {};
             const safePresetData = hydratePresetWithConnectionSettings(presetData.preset, currentSettings);
             const manager = context.getPresetManager("openai");
             await manager.savePreset(safePresetData.name || presetName, safePresetData);
