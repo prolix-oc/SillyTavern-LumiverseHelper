@@ -4,6 +4,8 @@ import SettingsPanel from './components/SettingsPanel';
 import ModalContainer from './components/ModalContainer';
 import PackDetailModal from './components/modals/PackDetailModal';
 import LoomPackDetailModal from './components/modals/LoomPackDetailModal';
+import UpdateBanner from './components/UpdateBanner';
+import { useUpdateChecker } from './hooks/useUpdateChecker';
 
 /* global SillyTavern */
 
@@ -16,8 +18,14 @@ function App() {
     const actions = useLumiverseActions();
     const ui = useUI();
 
+    // Initialize update checking (runs once at app mount)
+    useUpdateChecker();
+
     return (
         <div className="lumiverse-app">
+            {/* Update notification banner */}
+            <UpdateBanner variant="full" />
+
             <SettingsPanel />
 
             {/* Modal portal - modals render here */}

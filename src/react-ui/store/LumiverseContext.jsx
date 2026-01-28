@@ -152,6 +152,13 @@ const initialState = {
         viewingPack: null,      // Pack name currently being viewed in detail modal
         viewingLoomPack: null,  // Pack name currently being viewed in loom detail modal
     },
+
+    // Update notifications (React-only, not saved to extension)
+    updates: {
+        extensionUpdate: null,  // { hasUpdate: boolean, currentVersion: string, latestVersion: string }
+        presetUpdates: [],      // Array of { slug, name, currentVersion, latestVersion, latestVersionName }
+        lastChecked: null,      // Timestamp of last check
+    },
 };
 
 // Create the store instance
@@ -1172,6 +1179,38 @@ const actions = {
             ui: { ...store.getState().ui, viewingLoomPack: null },
         });
     },
+
+    // Update notification actions
+    setExtensionUpdate: (updateInfo) => {
+        const state = store.getState();
+        store.setState({
+            updates: { 
+                ...state.updates, 
+                extensionUpdate: updateInfo,
+                lastChecked: Date.now(),
+            },
+        });
+    },
+
+    setPresetUpdates: (presetUpdates) => {
+        const state = store.getState();
+        store.setState({
+            updates: { 
+                ...state.updates, 
+                presetUpdates: presetUpdates || [],
+            },
+        });
+    },
+
+    clearUpdates: () => {
+        store.setState({
+            updates: {
+                extensionUpdate: null,
+                presetUpdates: [],
+                lastChecked: null,
+            },
+        });
+    },
 };
 
 /**
@@ -1333,6 +1372,10 @@ const selectLoomRetrofits = () => store.getState().selectedLoomRetrofits || EMPT
 // Stable selector for usePacks hook
 const selectPacks = () => store.getState().packs;
 
+// Stable selector for useUpdates hook
+const DEFAULT_UPDATES = { extensionUpdate: null, presetUpdates: [], lastChecked: null };
+const selectUpdates = () => store.getState().updates || DEFAULT_UPDATES;
+
 /**
  * Hook to access just the settings
  */
@@ -1469,6 +1512,27 @@ export function usePacks() {
  */
 export function useUI() {
     return useLumiverse(selectUI);
+}
+
+/**
+ * Hook to access update notification state
+ * Returns: { extensionUpdate, presetUpdates, hasAnyUpdate }
+ */
+export function useUpdates() {
+    const updates = useSyncExternalStore(
+        store.subscribe,
+        selectUpdates,
+        selectUpdates
+    );
+
+    return useMemo(() => ({
+        extensionUpdate: updates.extensionUpdate,
+        presetUpdates: updates.presetUpdates || [],
+        lastChecked: updates.lastChecked,
+        hasExtensionUpdate: updates.extensionUpdate?.hasUpdate || false,
+        hasPresetUpdates: (updates.presetUpdates?.length || 0) > 0,
+        hasAnyUpdate: (updates.extensionUpdate?.hasUpdate) || (updates.presetUpdates?.length > 0),
+    }), [updates]);
 }
 
 // Export the store object for external access

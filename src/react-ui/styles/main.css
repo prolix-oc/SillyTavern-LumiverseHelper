@@ -12233,3 +12233,185 @@ details.lumia-panel[open] .lumia-panel-chevron {
     from { opacity: 0; transform: translateY(-4px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+
+/* ----------------------------------------
+   Update Notification System
+   ---------------------------------------- */
+
+/* Update Banner - warm amber/orange with purple accents */
+.lumiverse-update-banner {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.2) 50%, rgba(147, 112, 219, 0.1) 100%);
+    border: 1px solid rgba(251, 191, 36, 0.4);
+    border-radius: var(--lumiverse-radius);
+    padding: 12px 16px;
+    margin-bottom: 12px;
+    animation: updateBannerSlideIn 0.3s ease-out;
+}
+
+.lumiverse-update-banner.has-extension-update {
+    border-color: rgba(251, 191, 36, 0.6);
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.15);
+}
+
+@keyframes updateBannerSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.lumiverse-update-banner-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.lumiverse-update-banner-icon {
+    color: #fbbf24;
+    flex-shrink: 0;
+    margin-top: 2px;
+    animation: updatePulse 2s ease-in-out infinite;
+}
+
+@keyframes updatePulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+.lumiverse-update-banner-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.lumiverse-update-banner-main {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #fcd34d;
+    font-weight: 500;
+}
+
+.lumiverse-update-banner-main strong {
+    color: #fef08a;
+}
+
+.lumiverse-update-banner-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #a78bfa;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.lumiverse-update-banner-link:hover {
+    color: #c4b5fd;
+    text-decoration: underline;
+}
+
+.lumiverse-update-banner-presets {
+    font-size: 12px;
+    color: var(--lumiverse-text-muted);
+    margin-top: 4px;
+}
+
+.lumiverse-update-banner-dismiss {
+    padding: 4px;
+    background: transparent;
+    border: none;
+    color: var(--lumiverse-text-muted);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.lumiverse-update-banner-dismiss:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--lumiverse-text);
+}
+
+/* Update Dot - small pulsing indicator on toggle button */
+.lumiverse-update-dot {
+    width: 8px;
+    height: 8px;
+    background: #fbbf24;
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
+    animation: updateDotPulse 1.5s ease-in-out infinite;
+    margin-left: 4px;
+}
+
+@keyframes updateDotPulse {
+    0%, 100% {
+        box-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 0 12px rgba(251, 191, 36, 0.9);
+        transform: scale(1.1);
+    }
+}
+
+/* Toggle button with updates - blended purple/amber gradient */
+.lumiverse-panel-toggle--has-updates {
+    background: linear-gradient(135deg, rgba(147, 112, 219, 0.85) 0%, rgba(180, 140, 200, 0.9) 50%, rgba(251, 191, 36, 0.75) 100%);
+    border-color: rgba(251, 191, 36, 0.4);
+    box-shadow: 0 4px 12px rgba(147, 112, 219, 0.3), 0 0 15px rgba(251, 191, 36, 0.25);
+}
+
+.lumiverse-panel-toggle--has-updates:hover {
+    box-shadow: 0 4px 16px rgba(147, 112, 219, 0.5), 0 0 25px rgba(251, 191, 36, 0.4);
+    border-color: rgba(251, 191, 36, 0.6);
+}
+
+/* Accordion Badge - "New!" indicator next to title */
+.lumiverse-accordion-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    margin-left: 8px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #1f2937;
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(251, 191, 36, 0.4);
+    animation: badgeBounce 0.5s ease-out;
+}
+
+@keyframes badgeBounce {
+    0% { transform: scale(0); opacity: 0; }
+    60% { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* Update indicator for ViewportPanel header area */
+.lumiverse-vp-main .lumiverse-update-banner {
+    margin: 0 0 8px 0;
+    border-radius: var(--lumiverse-radius-sm);
+}
+
+/* Compact version for tight spaces */
+.lumiverse-update-banner--compact {
+    padding: 8px 12px;
+}
+
+.lumiverse-update-banner--compact .lumiverse-update-banner-main {
+    font-size: 12px;
+}
+
+.lumiverse-update-banner--compact .lumiverse-update-banner-icon {
+    display: none;
+}

@@ -1,7 +1,9 @@
 import React, { useState, useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 import clsx from 'clsx';
 import { User, Package, MessageSquare, Sliders, FileText, ChevronRight, X, Sparkles, Bookmark, Users } from 'lucide-react';
-import { useLumiverseStore } from '../store/LumiverseContext';
+import { useLumiverseStore, useUpdates } from '../store/LumiverseContext';
+import { UpdateDot } from './UpdateBanner';
+import UpdateBanner from './UpdateBanner';
 
 // Get store for direct access
 const store = useLumiverseStore;
@@ -42,12 +44,13 @@ function useIsMobile(breakpoint = MOBILE_BREAKPOINT) {
 /**
  * Toggle button - now part of the sliding container
  */
-function ToggleButton({ isVisible, onClick }) {
+function ToggleButton({ isVisible, onClick, hasUpdates }) {
     return (
         <button
             className={clsx(
                 'lumiverse-panel-toggle',
-                isVisible && 'lumiverse-panel-toggle--active'
+                isVisible && 'lumiverse-panel-toggle--active',
+                hasUpdates && 'lumiverse-panel-toggle--has-updates'
             )}
             onClick={onClick}
             title={isVisible ? 'Hide Lumiverse Panel' : 'Show Lumiverse Panel'}
@@ -57,6 +60,7 @@ function ToggleButton({ isVisible, onClick }) {
                 <Sparkles size={18} strokeWidth={2} />
             </span>
             <span className="lumiverse-panel-toggle-label">Lumia</span>
+            <UpdateDot />
         </button>
     );
 }
@@ -195,6 +199,7 @@ function ViewportPanel({
     const [activeTab, setActiveTab] = useState(defaultTab);
     const [isCollapsed, setIsCollapsed] = useState(false);
     const isMobile = useIsMobile();
+    const { hasAnyUpdate } = useUpdates();
 
     // Subscribe to button position settings
     const buttonPosition = useSyncExternalStore(
@@ -278,7 +283,7 @@ function ViewportPanel({
                 )}
                 style={getButtonPositionStyle()}
             >
-                <ToggleButton isVisible={isVisible} onClick={onToggle} />
+                <ToggleButton isVisible={isVisible} onClick={onToggle} hasUpdates={hasAnyUpdate} />
             </div>
 
             {/* Panel wrapper - slides via transform */}
@@ -343,6 +348,8 @@ function ViewportPanel({
                         Icon={activeTabConfig?.Icon || User}
                         onClose={onClose}
                     />
+                    {/* Update banner at top of sidebar */}
+                    <UpdateBanner variant="full" />
                     <div className="lumiverse-vp-content">
                         {/* All tabs stay mounted - CSS handles visibility */}
                         {PANEL_TABS.map(tab => (

@@ -63,17 +63,29 @@ export function ChatPresetsPanel() {
         const unsubscribe = subscribeToTrackingChanges((newTrackedPresets) => {
             setTrackedPresets(newTrackedPresets);
             // Also refresh update checks when tracking changes
-            checkForPresetUpdates().then(setAvailableUpdates);
+            checkForPresetUpdates().then((updates) => {
+                setAvailableUpdates(updates);
+                // Sync to global store for update banners
+                actions.setPresetUpdates(updates);
+            });
         });
         
         // Initial update check (delayed to not block UI)
         const initialCheck = setTimeout(() => {
-            checkForPresetUpdates().then(setAvailableUpdates);
+            checkForPresetUpdates().then((updates) => {
+                setAvailableUpdates(updates);
+                // Sync to global store for update banners
+                actions.setPresetUpdates(updates);
+            });
         }, 5000);
         
         // Periodic update checks
         updateCheckRef.current = setInterval(() => {
-            checkForPresetUpdates().then(setAvailableUpdates);
+            checkForPresetUpdates().then((updates) => {
+                setAvailableUpdates(updates);
+                // Sync to global store for update banners
+                actions.setPresetUpdates(updates);
+            });
         }, UPDATE_CHECK_INTERVAL);
         
         return () => {
@@ -83,7 +95,7 @@ export function ChatPresetsPanel() {
                 clearInterval(updateCheckRef.current);
             }
         };
-    }, []);
+    }, [actions]);
 
     const handleOpenModal = useCallback(() => {
         setIsModalOpen(true);
@@ -95,8 +107,11 @@ export function ChatPresetsPanel() {
         setTrackedPresets(getTrackedPresets());
         setReasoningSettings(getReasoningSettings());
         setStartReplyWithState(getStartReplyWith());
-        checkForPresetUpdates().then(setAvailableUpdates);
-    }, []);
+        checkForPresetUpdates().then((updates) => {
+            setAvailableUpdates(updates);
+            actions.setPresetUpdates(updates);
+        });
+    }, [actions]);
 
     // Derive tracked preset list with update status
     const presetList = useMemo(() => {
