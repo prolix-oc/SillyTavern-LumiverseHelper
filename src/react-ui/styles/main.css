@@ -10425,9 +10425,10 @@ details.lumia-panel[open] .lumia-panel-chevron {
 .lumiverse-presets-modal {
     width: 90vw;
     max-width: 560px;
-    min-height: 400px;
     max-height: 85vh;
-    max-height: 85dvh; /* Better mobile support */
+    max-height: 85dvh;
+    height: auto;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     background: linear-gradient(
@@ -10449,15 +10450,8 @@ details.lumia-panel[open] .lumia-panel-chevron {
 @media (max-width: 480px) {
     .lumiverse-presets-modal {
         width: 95vw;
-        min-height: 50vh;
         max-height: 90dvh;
         border-radius: 16px;
-    }
-}
-
-@media (min-height: 700px) {
-    .lumiverse-presets-modal {
-        min-height: 500px;
     }
 }
 
