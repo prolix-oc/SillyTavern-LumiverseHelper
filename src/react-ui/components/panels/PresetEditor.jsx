@@ -324,29 +324,37 @@ export default function PresetEditor({ onClose }) {
 
                 {/* Draggable List */}
                 <div className="lumiverse-prompt-list">
-                    <DndContext
-                        sensors={sensors}
-                        collisionDetection={closestCenter}
-                        onDragEnd={handleDragEnd}
-                    >
-                        <SortableContext
-                            items={visiblePrompts.map(p => p.identifier || p._uiId)}
-                            strategy={verticalListSortingStrategy}
+                    {visiblePrompts.length === 0 ? (
+                        <div className="lumiverse-empty-state" style={{ padding: '20px', textAlign: 'center', color: 'var(--lumiverse-text-muted)' }}>
+                            {prompts.length === 0 
+                                ? "No prompts found in this preset. Click 'Add Prompt' to start." 
+                                : "All prompts hidden. Expand categories to view."}
+                        </div>
+                    ) : (
+                        <DndContext
+                            sensors={sensors}
+                            collisionDetection={closestCenter}
+                            onDragEnd={handleDragEnd}
                         >
-                            {visiblePrompts.map((prompt) => (
-                                <SortablePromptItem
-                                    key={prompt.identifier || prompt._uiId}
-                                    prompt={prompt}
-                                    index={0} // Not used for actions anymore
-                                    onEdit={() => handleEditPrompt(prompt)}
-                                    onDelete={() => handleDeletePrompt(prompt)}
-                                    onToggleEnabled={() => handleToggleEnabledPrompt(prompt)}
-                                    onToggleCollapse={toggleCategory}
-                                    isCollapsed={collapsedCategories.has(prompt.identifier || prompt._uiId)}
-                                />
-                            ))}
-                        </SortableContext>
-                    </DndContext>
+                            <SortableContext
+                                items={visiblePrompts.map(p => p.identifier || p._uiId)}
+                                strategy={verticalListSortingStrategy}
+                            >
+                                {visiblePrompts.map((prompt) => (
+                                    <SortablePromptItem
+                                        key={prompt.identifier || prompt._uiId}
+                                        prompt={prompt}
+                                        index={0}
+                                        onEdit={() => handleEditPrompt(prompt)}
+                                        onDelete={() => handleDeletePrompt(prompt)}
+                                        onToggleEnabled={() => handleToggleEnabledPrompt(prompt)}
+                                        onToggleCollapse={toggleCategory}
+                                        isCollapsed={collapsedCategories.has(prompt.identifier || prompt._uiId)}
+                                    />
+                                ))}
+                            </SortableContext>
+                        </DndContext>
+                    )}
                 </div>
             </div>
         </div>

@@ -29,21 +29,44 @@ export class ChatPresetService {
      */
     getCurrentPreset() {
         const manager = this.getManager();
-        if (!manager) return null;
+        if (!manager) {
+            console.warn('[ChatPresetService] Manager not found for API_ID:', API_ID);
+            return null;
+        }
 
         // Get the name of the currently active preset
         const presetName = manager.getSelectedPresetName();
+        console.log('[ChatPresetService] Active preset name:', presetName);
         
         // Get the full settings object (includes parameters and prompts)
         const settings = manager.getPresetSettings(presetName);
+        console.log('[ChatPresetService] Raw settings found:', !!settings, settings ? Object.keys(settings) : 'null');
         
         if (!settings) return null;
 
+        // Ensure prompts array exists
+        if (!Array.isArray(settings.prompts)) {
+            console.warn('[ChatPresetService] Prompts array missing or invalid in settings, defaulting to empty');
+            settings.prompts = [];
+        }
+
         // Return a deep copy to ensure we don't mutate state accidentally
-        return {
-            name: presetName,
-            settings: structuredClone(settings)
-        };
+        try {
+            return {
+                name: presetName,
+                settings: structuredClone(settings)
+            };
+        } catch (e) {
+            console.error('[ChatPresetService] structuredClone failed:', e);
+            // Fallback: shallow copy + manual copy of prompts
+            return {
+                name: presetName,
+                settings: {
+                    ...settings,
+                    prompts: settings.prompts.map(p => ({ ...p }))
+                }
+            };
+        }
     }
 
     /**

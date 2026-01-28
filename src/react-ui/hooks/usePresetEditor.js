@@ -18,10 +18,14 @@ export function usePresetEditor() {
         setIsLoading(true);
         try {
             const preset = chatPresetService.getCurrentPreset();
+            console.log('[usePresetEditor] Loaded preset:', preset);
             if (preset) {
                 setCurrentPreset(preset);
                 // Ensure every prompt has a unique UI ID for drag and drop
-                const loadedPrompts = (preset.settings.prompts || []).map(p => ({
+                const rawPrompts = preset.settings.prompts || [];
+                console.log('[usePresetEditor] Raw prompts length:', rawPrompts.length);
+                
+                const loadedPrompts = rawPrompts.map(p => ({
                     ...p,
                     _uiId: p.identifier && p.identifier !== 'main' ? p.identifier : crypto.randomUUID()
                 }));
