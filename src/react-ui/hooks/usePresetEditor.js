@@ -79,19 +79,21 @@ export function usePresetEditor() {
     }, [currentPreset]);
 
     // Save changes to the prompt list
+    // Update UI immediately, then persist to ST in background
     const savePrompts = useCallback(async (newPrompts) => {
         if (!currentPreset) return;
-        setIsLoading(true);
+        
+        // Update UI state immediately for responsive feedback
+        setPrompts(newPrompts);
+        
+        // Persist to ST in background (don't block UI)
         try {
             await chatPresetService.updatePrompts(newPrompts);
-            setPrompts(newPrompts);
-            // Reload to ensure sync
-            loadCurrentPreset();
         } catch (err) {
             setError("Failed to save prompts");
-            console.error(err);
-        } finally {
-            setIsLoading(false);
+            console.error('[usePresetEditor] Failed to persist prompts:', err);
+            // Optionally reload to restore from ST on error
+            loadCurrentPreset();
         }
     }, [currentPreset, loadCurrentPreset]);
 
