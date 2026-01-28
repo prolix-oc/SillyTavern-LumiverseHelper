@@ -385,18 +385,34 @@ export async function upsertPack(pack) {
 
 /**
  * Remove a pack from the cache and delete its file.
- * @param {string} packId - The pack ID
+ * @param {string} packId - The pack ID (pack name)
  * @returns {Promise<void>}
  */
 export async function removePack(packId) {
     const registryEntry = cachedIndex?.packRegistry?.[packId];
+    const cachedPack = packCache.get(packId);
+
+    // Determine the file key - prefer registry, fall back to computing from pack name
+    let fileKey = registryEntry?.fileKey;
+    if (!fileKey) {
+        // Compute file key from pack ID (which is the pack name)
+        // This handles cases where pack was in cache but not yet in registry
+        fileKey = getPackFileKey(packId);
+        console.log(`[${MODULE_NAME}] No registry entry for pack "${packId}", computed fileKey: ${fileKey}`);
+    }
 
     // Remove from cache
     packCache.delete(packId);
 
-    // Delete file if exists
-    if (registryEntry?.fileKey) {
-        await deletePack(registryEntry.fileKey);
+    // Delete file - always attempt if we have a fileKey
+    if (fileKey) {
+        console.log(`[${MODULE_NAME}] Deleting pack file: ${fileKey}`);
+        const deleted = await deletePack(fileKey);
+        if (deleted) {
+            console.log(`[${MODULE_NAME}] Successfully deleted pack file: ${fileKey}`);
+        } else {
+            console.warn(`[${MODULE_NAME}] Failed to delete pack file: ${fileKey}`);
+        }
     }
 
     // Remove from registry
