@@ -1750,17 +1750,27 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
 /* Mobile responsiveness for modals */
 @media (max-width: 600px) {
+    .lumiverse-modal-backdrop {
+        padding: 12px;
+        /* Ensure proper centering on mobile */
+        align-items: center;
+        justify-content: center;
+    }
+
+    .lumiverse-modal {
+        /* Use width with max-width instead of margin for proper centering */
+        width: calc(100vw - 24px);
+        max-width: calc(100vw - 24px);
+        max-height: calc(100vh - 24px);
+        max-height: calc(100dvh - 24px); /* Use dvh for mobile viewport */
+        margin: 0; /* Remove margin - backdrop padding handles spacing */
+    }
+
     .lumiverse-modal--small,
     .lumiverse-modal--medium,
     .lumiverse-modal--large {
-        width: 100%;
+        width: calc(100vw - 24px);
         max-width: calc(100vw - 24px);
-        max-height: 90vh;
-        margin: 12px;
-    }
-
-    .lumiverse-modal-backdrop {
-        padding: 12px;
     }
 }
 
