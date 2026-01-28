@@ -3749,7 +3749,6 @@ details.lumia-panel[open] .lumia-panel-chevron {
     flex-direction: column;
     flex: 1;
     min-height: 0; /* Critical for flex overflow */
-    height: 100%; /* Fill parent modal */
     overflow: hidden; /* Let child .lumiverse-editor-content scroll */
 }
 
