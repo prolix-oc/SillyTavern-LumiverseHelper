@@ -43,11 +43,12 @@ import {
 const UPDATE_CHECK_INTERVAL = 30 * 60 * 1000;
 
 /**
- * Chat Presets Panel - Trigger component that opens the modal
- * Displays current status, update notifications, and a button to open the full browser
+ * Chat Presets Panel - Shows imported presets, update status, and reasoning config
+ * Displays tracked presets from Lucid.cards with version info and update indicators
  */
 export function ChatPresetsPanel() {
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [trackedPresets, setTrackedPresets] = useState({});
     const [reasoningSettings, setReasoningSettings] = useState(null);
     const [startReplyWith, setStartReplyWithState] = useState('');
     const [availableUpdates, setAvailableUpdates] = useState([]);
@@ -55,6 +56,7 @@ export function ChatPresetsPanel() {
 
     // Load initial settings and check for updates
     useEffect(() => {
+        setTrackedPresets(getTrackedPresets());
         setReasoningSettings(getReasoningSettings());
         setStartReplyWithState(getStartReplyWith());
         
@@ -82,104 +84,144 @@ export function ChatPresetsPanel() {
 
     const handleCloseModal = useCallback(() => {
         setIsModalOpen(false);
-        // Refresh settings in case they were changed in modal
+        // Refresh all state in case changes were made in modal
+        setTrackedPresets(getTrackedPresets());
         setReasoningSettings(getReasoningSettings());
         setStartReplyWithState(getStartReplyWith());
-        // Re-check for updates after modal closes (in case user updated a preset)
         checkForPresetUpdates().then(setAvailableUpdates);
     }, []);
 
-    // Dismiss a specific update notification
-    const handleDismissUpdate = useCallback((slug) => {
-        setAvailableUpdates(prev => prev.filter(u => u.slug !== slug));
-    }, []);
+    // Derive tracked preset list with update status
+    const presetList = useMemo(() => {
+        return Object.entries(trackedPresets).map(([slug, info]) => {
+            const updateInfo = availableUpdates.find(u => u.slug === slug);
+            return {
+                slug,
+                name: info.name,
+                version: info.version,
+                versionName: info.versionName,
+                hasUpdate: !!updateInfo,
+                latestVersionName: updateInfo?.latestVersionName,
+            };
+        });
+    }, [trackedPresets, availableUpdates]);
 
-    // Get current status text
-    const statusText = useMemo(() => {
-        const parts = [];
-        if (reasoningSettings?.auto_parse) {
-            parts.push(`CoT: ${reasoningSettings.prefix || '<think>'}`);
-        }
-        if (startReplyWith) {
-            const preview = startReplyWith.slice(0, 15).replace(/\n/g, '↵');
-            parts.push(`Bias: "${preview}${startReplyWith.length > 15 ? '…' : ''}"`);
-        }
-        return parts.length > 0 ? parts.join(' • ') : 'Click to configure presets & reasoning';
-    }, [reasoningSettings, startReplyWith]);
+    // Reasoning status for quick display
+    const reasoningStatus = useMemo(() => {
+        if (!reasoningSettings?.auto_parse) return null;
+        return reasoningSettings.prefix || '<think>';
+    }, [reasoningSettings]);
+
+    // Start reply with preview
+    const biasPreview = useMemo(() => {
+        if (!startReplyWith) return null;
+        const preview = startReplyWith.slice(0, 20).replace(/\n/g, '↵');
+        return preview + (startReplyWith.length > 20 ? '…' : '');
+    }, [startReplyWith]);
+
+    const updateCount = availableUpdates.length;
 
     return (
         <>
-            {/* Update notification banners */}
-            {availableUpdates.length > 0 && (
-                <div className="lumiverse-presets-updates">
-                    {availableUpdates.map((update) => (
-                        <div key={update.slug} className="lumiverse-presets-update-banner">
-                            <div className="lumiverse-presets-update-icon">
-                                <ArrowUpCircle size={14} strokeWidth={2} />
+            {/* Imported Presets List */}
+            {presetList.length > 0 ? (
+                <div className="lumiverse-presets-inventory">
+                    <div className="lumiverse-presets-inventory-header">
+                        <span className="lumiverse-presets-inventory-label">
+                            <Package size={12} strokeWidth={2} />
+                            Imported Presets
+                        </span>
+                        {updateCount > 0 && (
+                            <span className="lumiverse-presets-inventory-updates">
+                                <ArrowUpCircle size={11} strokeWidth={2} />
+                                {updateCount} update{updateCount !== 1 ? 's' : ''}
+                            </span>
+                        )}
+                    </div>
+                    <div className="lumiverse-presets-inventory-list">
+                        {presetList.map((preset) => (
+                            <div 
+                                key={preset.slug}
+                                className={clsx(
+                                    'lumiverse-presets-inventory-item',
+                                    preset.hasUpdate && 'has-update'
+                                )}
+                            >
+                                <div className="lumiverse-presets-inventory-item-icon">
+                                    {preset.hasUpdate ? (
+                                        <ArrowUpCircle size={14} strokeWidth={1.5} />
+                                    ) : (
+                                        <FileJson size={14} strokeWidth={1.5} />
+                                    )}
+                                </div>
+                                <div className="lumiverse-presets-inventory-item-info">
+                                    <span className="lumiverse-presets-inventory-item-name">
+                                        {preset.name}
+                                    </span>
+                                    <span className="lumiverse-presets-inventory-item-version">
+                                        {preset.hasUpdate ? (
+                                            <>
+                                                {formatVersion(preset.version)} → {preset.latestVersionName}
+                                            </>
+                                        ) : (
+                                            <>v{formatVersion(preset.version)}</>
+                                        )}
+                                    </span>
+                                </div>
+                                {preset.hasUpdate && (
+                                    <span className="lumiverse-presets-inventory-item-badge">
+                                        Update
+                                    </span>
+                                )}
                             </div>
-                            <div className="lumiverse-presets-update-text">
-                                <span className="lumiverse-presets-update-title">
-                                    Update available for "{update.name}"
-                                </span>
-                                <span className="lumiverse-presets-update-version">
-                                    {formatVersion(update.currentVersion)} → {update.latestVersionName}
-                                </span>
-                            </div>
-                            <div className="lumiverse-presets-update-actions">
-                                <button
-                                    className="lumiverse-presets-update-btn"
-                                    onClick={handleOpenModal}
-                                    title="Open presets to update"
-                                    type="button"
-                                >
-                                    Update
-                                </button>
-                                <button
-                                    className="lumiverse-presets-update-dismiss"
-                                    onClick={() => handleDismissUpdate(update.slug)}
-                                    title="Dismiss"
-                                    type="button"
-                                >
-                                    <X size={12} strokeWidth={2} />
-                                </button>
-                            </div>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
+                </div>
+            ) : (
+                <div className="lumiverse-presets-empty-state">
+                    <Cloud size={20} strokeWidth={1.5} />
+                    <span>No presets imported yet</span>
                 </div>
             )}
 
-            <div className="lumiverse-presets-trigger">
-                <button
-                    className="lumiverse-presets-trigger-btn"
-                    onClick={handleOpenModal}
-                    type="button"
-                >
-                    <div className="lumiverse-presets-trigger-left">
-                        <div className={clsx(
-                            'lumiverse-presets-trigger-icon',
-                            availableUpdates.length > 0 && 'has-updates'
-                        )}>
-                            <Cloud size={18} strokeWidth={1.5} />
-                            {availableUpdates.length > 0 && (
-                                <span className="lumiverse-presets-trigger-badge">
-                                    {availableUpdates.length}
-                                </span>
-                            )}
+            {/* Reasoning Quick Status */}
+            {(reasoningStatus || biasPreview) && (
+                <div className="lumiverse-presets-reasoning-status">
+                    {reasoningStatus && (
+                        <div className="lumiverse-presets-reasoning-status-item">
+                            <Brain size={12} strokeWidth={2} />
+                            <span>CoT:</span>
+                            <code>{reasoningStatus}</code>
                         </div>
-                        <div className="lumiverse-presets-trigger-text">
-                            <span className="lumiverse-presets-trigger-title">Chat Presets & Reasoning</span>
-                            <span className="lumiverse-presets-trigger-status">{statusText}</span>
+                    )}
+                    {biasPreview && (
+                        <div className="lumiverse-presets-reasoning-status-item">
+                            <Zap size={12} strokeWidth={2} />
+                            <span>Bias:</span>
+                            <code>{biasPreview}</code>
                         </div>
-                    </div>
-                    <ExternalLink size={14} strokeWidth={2} className="lumiverse-presets-trigger-arrow" />
-                </button>
-            </div>
+                    )}
+                </div>
+            )}
+
+            {/* Configure Button */}
+            <button
+                className="lumia-btn lumia-btn-primary lumia-btn-full"
+                onClick={handleOpenModal}
+                type="button"
+            >
+                <Settings2 size={14} strokeWidth={2} />
+                {updateCount > 0 ? `Configure (${updateCount} update${updateCount !== 1 ? 's' : ''})` : 'Download & Configure'}
+            </button>
 
             {isModalOpen && (
                 <ChatPresetsModal 
                     onClose={handleCloseModal} 
                     availableUpdates={availableUpdates}
-                    onUpdateComplete={() => checkForPresetUpdates().then(setAvailableUpdates)}
+                    onUpdateComplete={() => {
+                        setTrackedPresets(getTrackedPresets());
+                        checkForPresetUpdates().then(setAvailableUpdates);
+                    }}
                 />
             )}
         </>
