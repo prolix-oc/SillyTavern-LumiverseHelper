@@ -686,13 +686,33 @@ export function configureReasoning(config) {
         return;
     }
 
-    // Apply configuration
-    if (config.autoParse !== undefined) power_user.reasoning.auto_parse = config.autoParse;
-    if (config.prefix !== undefined) power_user.reasoning.prefix = config.prefix;
-    if (config.suffix !== undefined) power_user.reasoning.suffix = config.suffix;
-    if (config.showHidden !== undefined) power_user.reasoning.show_hidden = config.showHidden;
-    if (config.autoExpand !== undefined) power_user.reasoning.auto_expand = config.autoExpand;
-    if (config.addToPrompts !== undefined) power_user.reasoning.add_to_prompts = config.addToPrompts;
+    const $ = window.jQuery;
+
+    // Apply configuration to global state AND update UI elements
+    if (config.autoParse !== undefined) {
+        power_user.reasoning.auto_parse = config.autoParse;
+        if ($) $('#reasoning_auto_parse').prop('checked', config.autoParse);
+    }
+    if (config.prefix !== undefined) {
+        power_user.reasoning.prefix = config.prefix;
+        if ($) $('#reasoning_prefix').val(config.prefix);
+    }
+    if (config.suffix !== undefined) {
+        power_user.reasoning.suffix = config.suffix;
+        if ($) $('#reasoning_suffix').val(config.suffix);
+    }
+    if (config.showHidden !== undefined) {
+        power_user.reasoning.show_hidden = config.showHidden;
+        if ($) $('#reasoning_show_hidden').prop('checked', config.showHidden);
+    }
+    if (config.autoExpand !== undefined) {
+        power_user.reasoning.auto_expand = config.autoExpand;
+        if ($) $('#reasoning_auto_expand').prop('checked', config.autoExpand);
+    }
+    if (config.addToPrompts !== undefined) {
+        power_user.reasoning.add_to_prompts = config.addToPrompts;
+        if ($) $('#reasoning_add_to_prompts').prop('checked', config.addToPrompts);
+    }
 
     context.saveSettingsDebounced();
     console.log(`[${MODULE_NAME}] Reasoning settings updated`);
@@ -926,24 +946,24 @@ export function setPostProcessing(strategy) {
 export const REASONING_PRESETS = {
     deepseek: {
         autoParse: true,
-        prefix: "<think>",
-        suffix: "</think>",
+        prefix: "<think>\n",
+        suffix: "\n</think>",
         showHidden: true,
         autoExpand: false,
         addToPrompts: false,
     },
     openai_o1: {
         autoParse: true,
-        prefix: "<reasoning>",
-        suffix: "</reasoning>",
+        prefix: "<reasoning>\n",
+        suffix: "\n</reasoning>",
         showHidden: true,
         autoExpand: false,
         addToPrompts: false,
     },
     claude_extended: {
         autoParse: true,
-        prefix: "<thinking>",
-        suffix: "</thinking>",
+        prefix: "<thinking>\n",
+        suffix: "\n</thinking>",
         showHidden: true,
         autoExpand: false,
         addToPrompts: false,
