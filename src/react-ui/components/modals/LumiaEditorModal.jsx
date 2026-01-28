@@ -292,8 +292,8 @@ function LumiaEditorModal({ packName, editingItem = null, onClose, onSaved }) {
     }
 
     return (
-        <div className="lumiverse-editor-modal">
-            <div className="lumiverse-editor-content">
+        <div className="lumiverse-editor-modal" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, height: '100%', overflow: 'hidden' }}>
+            <div className="lumiverse-editor-content" style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
                 {/* Basic Info Section */}
                 <EditorSection Icon={User} title="Basic Info">
                     <FormField label="Lumia Name" required error={errors.name}>
@@ -334,12 +334,13 @@ function LumiaEditorModal({ packName, editingItem = null, onClose, onSaved }) {
                         </FormField>
                     </div>
 
-                    <div className="lumiverse-editor-row">
+                    <div className="lumiverse-editor-row" style={{ display: 'block', marginTop: '12px' }}>
                         <FormField label="Gender Identity" hint="Used for pronoun macros like {{lumiaPn subject}}">
                             <select
                                 className="lumiverse-input lumiverse-select"
                                 value={gender}
                                 onChange={(e) => setGender(Number(e.target.value))}
+                                style={{ width: '100%', display: 'block' }}
                             >
                                 {GENDER_OPTIONS.map(opt => (
                                     <option key={opt.value} value={opt.value}>
