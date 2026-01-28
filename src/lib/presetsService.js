@@ -307,7 +307,7 @@ export async function importPreset(presetData, presetName, options = {}) {
 
         // 3. Chat/API Completion preset
         if (isPossiblyTextCompletionData(presetData)) {
-            // Ensure mistralai_model exists (required by ST core migration)
+            // Ensure mistralai_model exists (required by ST core)
             if (typeof presetData.mistralai_model === "undefined") {
                 presetData.mistralai_model = "";
             }
@@ -316,10 +316,11 @@ export async function importPreset(presetData, presetName, options = {}) {
             await manager.savePreset(presetName, presetData);
             
             if (activate) {
-                // Ensure global oai_settings has mistralai_model before selection
-                // ST's migrateChatCompletionSettings accesses this during preset change
-                if (typeof window.oai_settings?.mistralai_model === "undefined" && window.oai_settings) {
-                    window.oai_settings.mistralai_model = "";
+                // ST's migrateChatCompletionSettings accesses global oai_settings during preset change
+                // Ensure the property exists to prevent crashes
+                const oai = window.oai_settings;
+                if (oai && typeof oai.mistralai_model === "undefined") {
+                    oai.mistralai_model = "";
                 }
                 await manager.selectPreset(presetName);
             }
