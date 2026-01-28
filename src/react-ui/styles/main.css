@@ -10123,452 +10123,869 @@ details.lumia-panel[open] .lumia-panel-chevron {
 /* ========================================
    CHAT PRESETS PANEL
    Download presets from Lucid.cards + Reasoning/CoT settings
+   Refined visual design matching Lumia selection modal aesthetic
    ======================================== */
 
-.lumiverse-chatpresets {
+.lumiverse-presets {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
 }
 
-/* Section container */
-.lumiverse-chatpresets-section {
-    background: var(--lumiverse-bg-elevated);
-    border: 1px solid var(--lumiverse-border);
-    border-radius: var(--lumiverse-radius);
+/* ============================================
+   PRESET BROWSER SECTION
+   ============================================ */
+
+.lumiverse-presets-browser {
+    background: linear-gradient(
+        165deg,
+        rgba(28, 24, 38, 0.95),
+        rgba(38, 32, 52, 0.9),
+        rgba(32, 28, 45, 0.95)
+    );
+    border: 1px solid rgba(147, 112, 219, 0.12);
+    border-radius: 16px;
     overflow: hidden;
+    box-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
-/* Section header */
-.lumiverse-chatpresets-section-header {
+/* Header */
+.lumiverse-presets-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 12px;
-    background: var(--lumiverse-bg-dark);
-    border: none;
-    width: 100%;
-    cursor: default;
+    padding: 14px 16px;
+    background: linear-gradient(
+        180deg,
+        rgba(147, 112, 219, 0.08) 0%,
+        transparent 100%
+    );
+    border-bottom: 1px solid rgba(147, 112, 219, 0.1);
 }
 
-.lumiverse-chatpresets-section-header--clickable {
-    cursor: pointer;
-    transition: background var(--lumiverse-transition-fast);
-}
-
-.lumiverse-chatpresets-section-header--clickable:hover {
-    background: var(--lumiverse-bg-hover);
-}
-
-.lumiverse-chatpresets-section-title {
+.lumiverse-presets-header-left {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--lumiverse-text);
+    gap: 12px;
 }
 
-.lumiverse-chatpresets-section-title svg {
-    color: var(--lumiverse-primary-text);
-}
-
-.lumiverse-chatpresets-refresh {
+.lumiverse-presets-header-icon {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
-    border: none;
-    border-radius: var(--lumiverse-radius-sm);
-    background: var(--lumiverse-secondary);
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, rgba(147, 112, 219, 0.2), rgba(100, 149, 237, 0.15));
+    border: 1px solid rgba(147, 112, 219, 0.25);
+    border-radius: 10px;
+    color: rgba(147, 112, 219, 0.9);
+    box-shadow: 0 2px 8px rgba(147, 112, 219, 0.15);
+}
+
+.lumiverse-presets-header-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.lumiverse-presets-header-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--lumiverse-text);
+    letter-spacing: -0.01em;
+}
+
+.lumiverse-presets-header-subtitle {
+    font-size: 11px;
     color: var(--lumiverse-text-muted);
+}
+
+.lumiverse-presets-refresh {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid rgba(147, 112, 219, 0.2);
+    border-radius: 8px;
+    background: rgba(147, 112, 219, 0.08);
+    color: rgba(147, 112, 219, 0.8);
     cursor: pointer;
-    transition: all var(--lumiverse-transition-fast);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.lumiverse-chatpresets-refresh:hover:not(:disabled) {
-    background: var(--lumiverse-primary-light);
-    color: var(--lumiverse-primary-text);
+.lumiverse-presets-refresh:hover:not(:disabled) {
+    background: rgba(147, 112, 219, 0.18);
+    border-color: rgba(147, 112, 219, 0.35);
+    color: rgba(147, 112, 219, 1);
+    transform: scale(1.05);
 }
 
-.lumiverse-chatpresets-refresh:disabled {
+.lumiverse-presets-refresh:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
 
-/* Chevron animation */
-.lumiverse-chatpresets-chevron {
-    transition: transform var(--lumiverse-transition-fast);
-    color: var(--lumiverse-text-muted);
+.lumiverse-presets-refresh.is-loading svg {
+    animation: lumiverse-spin 0.8s linear infinite;
 }
 
-.lumiverse-chatpresets-chevron--expanded {
-    transform: rotate(180deg);
-}
-
-/* Empty/Loading/Error states */
-.lumiverse-chatpresets-empty,
-.lumiverse-chatpresets-loading,
-.lumiverse-chatpresets-error {
+/* Empty state */
+.lumiverse-presets-empty {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 24px 16px;
+    gap: 12px;
+    padding: 40px 20px;
+}
+
+.lumiverse-presets-empty-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, rgba(147, 112, 219, 0.1), rgba(100, 149, 237, 0.08));
+    border: 1px dashed rgba(147, 112, 219, 0.25);
+    border-radius: 16px;
+    color: rgba(147, 112, 219, 0.5);
+}
+
+.lumiverse-presets-empty-text {
+    font-size: 13px;
     color: var(--lumiverse-text-muted);
+    text-align: center;
+}
+
+.lumiverse-presets-empty-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: linear-gradient(135deg, rgba(147, 112, 219, 0.2), rgba(100, 149, 237, 0.15));
+    border: 1px solid rgba(147, 112, 219, 0.3);
+    border-radius: 10px;
+    color: rgba(147, 112, 219, 0.95);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lumiverse-presets-empty-btn:hover {
+    background: linear-gradient(135deg, rgba(147, 112, 219, 0.3), rgba(100, 149, 237, 0.25));
+    border-color: rgba(147, 112, 219, 0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(147, 112, 219, 0.2);
+}
+
+/* Loading state */
+.lumiverse-presets-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 40px 20px;
+    color: var(--lumiverse-text-muted);
+    font-size: 13px;
+}
+
+.lumiverse-presets-loading-spinner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: rgba(147, 112, 219, 0.1);
+    border-radius: 50%;
+    color: rgba(147, 112, 219, 0.8);
+}
+
+.lumiverse-presets-loading-spinner svg {
+    animation: lumiverse-spin 0.8s linear infinite;
+}
+
+/* Error state */
+.lumiverse-presets-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 32px 20px;
+    color: rgba(239, 68, 68, 0.9);
     font-size: 13px;
     text-align: center;
 }
 
-.lumiverse-chatpresets-empty svg,
-.lumiverse-chatpresets-loading svg {
-    color: var(--lumiverse-text-dim);
-}
-
-.lumiverse-chatpresets-error {
-    color: var(--lumiverse-danger);
-}
-
-.lumiverse-chatpresets-error button {
+.lumiverse-presets-error button {
     margin-top: 4px;
-    padding: 4px 12px;
-    border: none;
-    border-radius: var(--lumiverse-radius-sm);
-    background: var(--lumiverse-danger);
-    color: white;
+    padding: 8px 16px;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    border-radius: 8px;
+    background: rgba(239, 68, 68, 0.15);
+    color: rgba(239, 68, 68, 0.95);
     font-size: 12px;
+    font-weight: 500;
     cursor: pointer;
-    transition: opacity var(--lumiverse-transition-fast);
+    transition: all 0.2s ease;
 }
 
-.lumiverse-chatpresets-error button:hover {
-    opacity: 0.9;
+.lumiverse-presets-error button:hover {
+    background: rgba(239, 68, 68, 0.25);
+    border-color: rgba(239, 68, 68, 0.6);
 }
 
 /* Preset list */
-.lumiverse-chatpresets-list {
+.lumiverse-presets-list {
     display: flex;
     flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    max-height: 340px;
+    overflow-y: auto;
 }
 
-/* Individual preset item */
-.lumiverse-chatpresets-item {
-    border-bottom: 1px solid var(--lumiverse-border);
+.lumiverse-presets-list::-webkit-scrollbar {
+    width: 6px;
 }
 
-.lumiverse-chatpresets-item:last-child {
-    border-bottom: none;
+.lumiverse-presets-list::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
 }
 
-.lumiverse-chatpresets-item--expanded {
-    background: var(--lumiverse-bg-dark);
+.lumiverse-presets-list::-webkit-scrollbar-thumb {
+    background: rgba(147, 112, 219, 0.3);
+    border-radius: 3px;
 }
 
-.lumiverse-chatpresets-item-header {
+.lumiverse-presets-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(147, 112, 219, 0.5);
+}
+
+/* ============================================
+   PRESET CARDS
+   ============================================ */
+
+.lumiverse-preset-card {
+    background: linear-gradient(
+        165deg,
+        rgba(38, 32, 52, 0.8),
+        rgba(45, 38, 62, 0.7),
+        rgba(40, 34, 55, 0.8)
+    );
+    border: 1px solid rgba(128, 128, 128, 0.12);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lumiverse-preset-card:hover {
+    border-color: rgba(147, 112, 219, 0.25);
+    box-shadow: 
+        0 4px 16px rgba(0, 0, 0, 0.2),
+        0 0 0 1px rgba(147, 112, 219, 0.1);
+    transform: translateY(-2px);
+}
+
+.lumiverse-preset-card.is-expanded {
+    border-color: rgba(100, 149, 237, 0.35);
+    box-shadow: 
+        0 6px 24px rgba(0, 0, 0, 0.25),
+        0 0 0 1px rgba(100, 149, 237, 0.15),
+        inset 0 0 20px rgba(100, 149, 237, 0.03);
+}
+
+/* Card header */
+.lumiverse-preset-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 12px 14px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.2s ease;
+}
+
+.lumiverse-preset-card-header:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.lumiverse-preset-card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, rgba(100, 149, 237, 0.15), rgba(147, 112, 219, 0.1));
+    border: 1px solid rgba(100, 149, 237, 0.2);
+    border-radius: 9px;
+    color: rgba(100, 149, 237, 0.85);
+    flex-shrink: 0;
+    transition: all 0.25s ease;
+}
+
+.lumiverse-preset-card:hover .lumiverse-preset-card-icon {
+    background: linear-gradient(135deg, rgba(100, 149, 237, 0.22), rgba(147, 112, 219, 0.15));
+    border-color: rgba(100, 149, 237, 0.35);
+    color: rgba(100, 149, 237, 1);
+}
+
+.lumiverse-preset-card-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.lumiverse-preset-card-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--lumiverse-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: -0.01em;
+}
+
+.lumiverse-preset-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--lumiverse-text-dim);
+}
+
+.lumiverse-preset-card-meta svg {
+    opacity: 0.6;
+}
+
+.lumiverse-preset-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.lumiverse-preset-card-download {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid rgba(100, 149, 237, 0.25);
+    border-radius: 8px;
+    background: rgba(100, 149, 237, 0.12);
+    color: rgba(100, 149, 237, 0.85);
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lumiverse-preset-card-download:hover:not(:disabled) {
+    background: rgba(100, 149, 237, 0.25);
+    border-color: rgba(100, 149, 237, 0.45);
+    color: rgba(100, 149, 237, 1);
+    transform: scale(1.08);
+    box-shadow: 0 2px 10px rgba(100, 149, 237, 0.25);
+}
+
+.lumiverse-preset-card-download:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.lumiverse-preset-card-chevron {
+    color: var(--lumiverse-text-dim);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lumiverse-preset-card.is-expanded .lumiverse-preset-card-chevron {
+    transform: rotate(90deg);
+    color: rgba(100, 149, 237, 0.8);
+}
+
+/* Version list */
+.lumiverse-preset-card-versions {
+    overflow: hidden;
+}
+
+.lumiverse-preset-card-versions-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 12px 12px;
+    background: rgba(0, 0, 0, 0.15);
+    border-top: 1px solid rgba(100, 149, 237, 0.1);
+}
+
+/* Version items */
+.lumiverse-preset-version {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: rgba(38, 32, 52, 0.6);
+    border: 1px solid rgba(128, 128, 128, 0.1);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.lumiverse-preset-version:hover {
+    background: rgba(45, 38, 60, 0.8);
+    border-color: rgba(147, 112, 219, 0.2);
+}
+
+.lumiverse-preset-version.is-latest {
+    background: linear-gradient(135deg, rgba(100, 149, 237, 0.08), rgba(147, 112, 219, 0.05));
+    border-color: rgba(100, 149, 237, 0.2);
+}
+
+.lumiverse-preset-version.is-prolix {
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.08), rgba(234, 88, 12, 0.05));
+    border-color: rgba(249, 115, 22, 0.2);
+}
+
+.lumiverse-preset-version-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+}
+
+.lumiverse-preset-version-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--lumiverse-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lumiverse-preset-version-badges {
+    display: flex;
+    gap: 5px;
+    flex-shrink: 0;
+}
+
+.lumiverse-preset-version-badge {
+    padding: 3px 7px;
+    border-radius: 5px;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.lumiverse-preset-version-badge.is-latest {
+    background: linear-gradient(135deg, rgba(100, 149, 237, 0.25), rgba(147, 112, 219, 0.2));
+    color: rgba(100, 149, 237, 0.95);
+}
+
+.lumiverse-preset-version-badge.is-prolix {
+    background: rgba(249, 115, 22, 0.18);
+    color: rgba(249, 115, 22, 0.95);
+}
+
+.lumiverse-preset-version-download {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 10px;
+    border: 1px solid rgba(147, 112, 219, 0.2);
+    border-radius: 6px;
+    background: rgba(147, 112, 219, 0.1);
+    color: rgba(147, 112, 219, 0.85);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.lumiverse-preset-version-download:hover:not(:disabled) {
+    background: rgba(147, 112, 219, 0.2);
+    border-color: rgba(147, 112, 219, 0.4);
+    color: rgba(147, 112, 219, 1);
+}
+
+.lumiverse-preset-version-download:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ============================================
+   REASONING / COT SECTION
+   ============================================ */
+
+.lumiverse-presets-reasoning-section {
+    background: linear-gradient(
+        165deg,
+        rgba(28, 24, 38, 0.95),
+        rgba(38, 32, 52, 0.9),
+        rgba(32, 28, 45, 0.95)
+    );
+    border: 1px solid rgba(147, 112, 219, 0.12);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.lumiverse-presets-reasoning-trigger {
     display: flex;
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    padding: 10px 12px;
+    padding: 14px 16px;
     border: none;
     background: transparent;
     cursor: pointer;
-    transition: background var(--lumiverse-transition-fast);
+    transition: background 0.2s ease;
 }
 
-.lumiverse-chatpresets-item-header:hover {
-    background: var(--lumiverse-bg-hover);
+.lumiverse-presets-reasoning-trigger:hover {
+    background: rgba(255, 255, 255, 0.02);
 }
 
-.lumiverse-chatpresets-item-info {
+.lumiverse-presets-reasoning-trigger-left {
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
+    align-items: center;
+    gap: 12px;
 }
 
-.lumiverse-chatpresets-item-name {
+.lumiverse-presets-reasoning-trigger-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(147, 112, 219, 0.1));
+    border: 1px solid rgba(236, 72, 153, 0.2);
+    border-radius: 8px;
+    color: rgba(236, 72, 153, 0.85);
+}
+
+.lumiverse-presets-reasoning-trigger span {
     font-size: 13px;
     font-weight: 500;
     color: var(--lumiverse-text);
 }
 
-.lumiverse-chatpresets-item-meta {
-    font-size: 11px;
-    color: var(--lumiverse-text-muted);
-}
-
-.lumiverse-chatpresets-item-actions {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.lumiverse-chatpresets-item-quick {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border: none;
-    border-radius: var(--lumiverse-radius-sm);
-    background: var(--lumiverse-primary-light);
-    color: var(--lumiverse-primary-text);
-    cursor: pointer;
-    transition: all var(--lumiverse-transition-fast);
-}
-
-.lumiverse-chatpresets-item-quick:hover:not(:disabled) {
-    background: var(--lumiverse-primary);
-    color: white;
-}
-
-.lumiverse-chatpresets-item-quick:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.lumiverse-chatpresets-item-chevron {
-    transition: transform var(--lumiverse-transition-fast);
+.lumiverse-presets-reasoning-chevron {
     color: var(--lumiverse-text-dim);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.lumiverse-chatpresets-item-chevron--expanded {
-    transform: rotate(90deg);
+.lumiverse-presets-reasoning-trigger.is-expanded .lumiverse-presets-reasoning-chevron {
+    transform: rotate(180deg);
+    color: rgba(236, 72, 153, 0.8);
 }
 
-/* Version list (expanded) */
-.lumiverse-chatpresets-item-versions {
+.lumiverse-presets-reasoning-content {
     overflow: hidden;
 }
 
-.lumiverse-chatpresets-version {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 12px 8px 24px;
-    border-top: 1px solid var(--lumiverse-border);
-    background: var(--lumiverse-bg-darker);
-}
-
-.lumiverse-chatpresets-version--latest {
-    background: rgba(147, 112, 219, 0.05);
-}
-
-.lumiverse-chatpresets-version--prolix {
-    background: rgba(249, 115, 22, 0.05);
-}
-
-.lumiverse-chatpresets-version-info {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.lumiverse-chatpresets-version-name {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    color: var(--lumiverse-text-muted);
-}
-
-.lumiverse-chatpresets-version-badge {
-    padding: 2px 6px;
-    border-radius: 4px;
-    background: var(--lumiverse-primary-light);
-    color: var(--lumiverse-primary-text);
-    font-size: 10px;
-    font-weight: 500;
-    text-transform: uppercase;
-}
-
-.lumiverse-chatpresets-version-badge--prolix {
-    background: rgba(249, 115, 22, 0.15);
-    color: #f97316;
-}
-
-.lumiverse-chatpresets-version-download {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    border: none;
-    border-radius: var(--lumiverse-radius-sm);
-    background: var(--lumiverse-secondary);
-    color: var(--lumiverse-text-muted);
-    cursor: pointer;
-    transition: all var(--lumiverse-transition-fast);
-}
-
-.lumiverse-chatpresets-version-download:hover:not(:disabled) {
-    background: var(--lumiverse-primary-light);
-    color: var(--lumiverse-primary-text);
-}
-
-.lumiverse-chatpresets-version-download:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-/* Reasoning/CoT section */
-.lumiverse-chatpresets-reasoning {
-    padding: 12px;
-    overflow: hidden;
-}
-
-.lumiverse-chatpresets-reasoning-presets {
+.lumiverse-presets-reasoning-inner {
+    padding: 16px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    margin-bottom: 12px;
+    gap: 16px;
+    background: rgba(0, 0, 0, 0.12);
+    border-top: 1px solid rgba(147, 112, 219, 0.08);
 }
 
-.lumiverse-chatpresets-reasoning-label {
-    font-size: 11px;
-    color: var(--lumiverse-text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.lumiverse-chatpresets-reasoning-buttons {
+/* Quick presets */
+.lumiverse-presets-reasoning-quick {
     display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.lumiverse-presets-reasoning-label {
+    display: flex;
+    align-items: center;
     gap: 6px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--lumiverse-text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+}
+
+.lumiverse-presets-reasoning-label svg {
+    color: rgba(147, 112, 219, 0.7);
+}
+
+.lumiverse-presets-reasoning-btns {
+    display: flex;
+    gap: 8px;
     flex-wrap: wrap;
 }
 
-.lumiverse-chatpresets-reasoning-buttons button {
-    padding: 6px 12px;
-    border: 1px solid var(--lumiverse-border);
-    border-radius: var(--lumiverse-radius-sm);
-    background: var(--lumiverse-secondary);
-    color: var(--lumiverse-text);
-    font-size: 12px;
-    cursor: pointer;
-    transition: all var(--lumiverse-transition-fast);
-}
-
-.lumiverse-chatpresets-reasoning-buttons button:hover {
-    background: var(--lumiverse-primary-light);
-    border-color: var(--lumiverse-primary-muted);
-    color: var(--lumiverse-primary-text);
-}
-
-.lumiverse-chatpresets-reasoning-current {
+.lumiverse-presets-reasoning-btn {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 10px;
-    margin-bottom: 12px;
-    background: var(--lumiverse-bg-dark);
-    border-radius: var(--lumiverse-radius-sm);
+    align-items: center;
+    gap: 4px;
+    padding: 10px 16px;
+    border: 1px solid rgba(128, 128, 128, 0.15);
+    border-radius: 10px;
+    background: rgba(38, 32, 52, 0.7);
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    flex: 1;
+    min-width: 90px;
 }
 
-.lumiverse-chatpresets-reasoning-row {
+.lumiverse-presets-reasoning-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.lumiverse-presets-reasoning-btn-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--lumiverse-text);
+}
+
+.lumiverse-presets-reasoning-btn code {
+    font-size: 9px;
+    font-family: var(--lumiverse-font-mono);
+    color: var(--lumiverse-text-dim);
+    opacity: 0.8;
+}
+
+/* DeepSeek variant */
+.lumiverse-presets-reasoning-btn--deepseek {
+    border-color: rgba(52, 152, 219, 0.25);
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(41, 128, 185, 0.08));
+}
+
+.lumiverse-presets-reasoning-btn--deepseek:hover {
+    border-color: rgba(52, 152, 219, 0.45);
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.18), rgba(41, 128, 185, 0.12));
+}
+
+.lumiverse-presets-reasoning-btn--deepseek .lumiverse-presets-reasoning-btn-label {
+    color: rgba(52, 152, 219, 0.95);
+}
+
+/* Claude variant */
+.lumiverse-presets-reasoning-btn--claude {
+    border-color: rgba(217, 119, 87, 0.25);
+    background: linear-gradient(135deg, rgba(217, 119, 87, 0.1), rgba(193, 95, 63, 0.08));
+}
+
+.lumiverse-presets-reasoning-btn--claude:hover {
+    border-color: rgba(217, 119, 87, 0.45);
+    background: linear-gradient(135deg, rgba(217, 119, 87, 0.18), rgba(193, 95, 63, 0.12));
+}
+
+.lumiverse-presets-reasoning-btn--claude .lumiverse-presets-reasoning-btn-label {
+    color: rgba(217, 119, 87, 0.95);
+}
+
+/* o1 variant */
+.lumiverse-presets-reasoning-btn--o1 {
+    border-color: rgba(16, 163, 127, 0.25);
+    background: linear-gradient(135deg, rgba(16, 163, 127, 0.1), rgba(13, 138, 107, 0.08));
+}
+
+.lumiverse-presets-reasoning-btn--o1:hover {
+    border-color: rgba(16, 163, 127, 0.45);
+    background: linear-gradient(135deg, rgba(16, 163, 127, 0.18), rgba(13, 138, 107, 0.12));
+}
+
+.lumiverse-presets-reasoning-btn--o1 .lumiverse-presets-reasoning-btn-label {
+    color: rgba(16, 163, 127, 0.95);
+}
+
+/* Current settings */
+.lumiverse-presets-reasoning-current {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    background: rgba(38, 32, 52, 0.5);
+    border: 1px solid rgba(128, 128, 128, 0.1);
+    border-radius: 10px;
+}
+
+.lumiverse-presets-reasoning-row {
     display: flex;
     align-items: center;
-    gap: 8px;
 }
 
-.lumiverse-chatpresets-reasoning-row label {
+.lumiverse-presets-reasoning-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--lumiverse-text);
+}
+
+.lumiverse-presets-reasoning-checkbox input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.lumiverse-presets-reasoning-checkmark {
+    width: 16px;
+    height: 16px;
+    background: rgba(28, 24, 38, 0.8);
+    border: 1px solid rgba(147, 112, 219, 0.3);
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.lumiverse-presets-reasoning-checkbox input:checked ~ .lumiverse-presets-reasoning-checkmark {
+    background: linear-gradient(135deg, rgba(147, 112, 219, 0.8), rgba(100, 149, 237, 0.7));
+    border-color: rgba(147, 112, 219, 0.6);
+}
+
+.lumiverse-presets-reasoning-checkmark::after {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 2px;
+    width: 4px;
+    height: 8px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.lumiverse-presets-reasoning-checkbox input:checked ~ .lumiverse-presets-reasoning-checkmark::after {
+    opacity: 1;
+}
+
+.lumiverse-presets-reasoning-tags {
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 12px;
-    color: var(--lumiverse-text);
-    cursor: pointer;
-}
-
-.lumiverse-chatpresets-reasoning-row input[type="checkbox"] {
-    accent-color: var(--lumiverse-primary);
-}
-
-.lumiverse-chatpresets-reasoning-tags {
     font-size: 11px;
     color: var(--lumiverse-text-muted);
 }
 
-.lumiverse-chatpresets-reasoning-tags code {
-    padding: 2px 5px;
-    background: var(--lumiverse-bg-darker);
-    border-radius: 3px;
+.lumiverse-presets-reasoning-tags svg {
+    color: var(--lumiverse-text-dim);
+}
+
+.lumiverse-presets-reasoning-tags code {
+    padding: 3px 6px;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 4px;
     font-family: var(--lumiverse-font-mono);
     font-size: 10px;
-    color: var(--lumiverse-primary-text);
+    color: rgba(147, 112, 219, 0.9);
+}
+
+.lumiverse-presets-reasoning-tags-sep {
+    opacity: 0.4;
 }
 
 /* Start Reply With */
-.lumiverse-chatpresets-startreply {
+.lumiverse-presets-startreply {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
 }
 
-.lumiverse-chatpresets-startreply-label {
+.lumiverse-presets-startreply-label {
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 11px;
-    color: var(--lumiverse-text-muted);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--lumiverse-text-dim);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.8px;
 }
 
-.lumiverse-chatpresets-startreply-label svg {
-    color: var(--lumiverse-primary-text);
+.lumiverse-presets-startreply-label svg {
+    color: rgba(250, 204, 21, 0.7);
 }
 
-.lumiverse-chatpresets-startreply-input {
+.lumiverse-presets-startreply-input-wrap {
+    position: relative;
+}
+
+.lumiverse-presets-startreply-input {
     width: 100%;
-    padding: 8px 10px;
-    border: 1px solid var(--lumiverse-border);
-    border-radius: var(--lumiverse-radius-sm);
-    background: var(--lumiverse-bg-dark);
+    padding: 10px 12px;
+    border: 1px solid rgba(128, 128, 128, 0.15);
+    border-radius: 10px;
+    background: rgba(28, 24, 38, 0.8);
     color: var(--lumiverse-text);
     font-family: var(--lumiverse-font-mono);
     font-size: 12px;
     resize: vertical;
-    min-height: 48px;
-    transition: border-color var(--lumiverse-transition-fast);
+    min-height: 56px;
+    transition: all 0.2s ease;
 }
 
-.lumiverse-chatpresets-startreply-input:focus {
+.lumiverse-presets-startreply-input:focus {
     outline: none;
-    border-color: var(--lumiverse-primary-muted);
+    border-color: rgba(250, 204, 21, 0.35);
+    box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.08);
 }
 
-.lumiverse-chatpresets-startreply-input::placeholder {
+.lumiverse-presets-startreply-input::placeholder {
     color: var(--lumiverse-text-dim);
 }
 
-.lumiverse-chatpresets-startreply-quick {
+.lumiverse-presets-startreply-quick {
     display: flex;
     gap: 6px;
     flex-wrap: wrap;
 }
 
-.lumiverse-chatpresets-startreply-quick button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 4px 10px;
-    border: 1px solid var(--lumiverse-border);
-    border-radius: var(--lumiverse-radius-sm);
-    background: var(--lumiverse-secondary);
+.lumiverse-presets-startreply-btn {
+    padding: 6px 12px;
+    border: 1px solid rgba(128, 128, 128, 0.15);
+    border-radius: 6px;
+    background: rgba(38, 32, 52, 0.6);
     color: var(--lumiverse-text-muted);
     font-family: var(--lumiverse-font-mono);
     font-size: 11px;
     cursor: pointer;
-    transition: all var(--lumiverse-transition-fast);
+    transition: all 0.2s ease;
 }
 
-.lumiverse-chatpresets-startreply-quick button:hover {
-    background: var(--lumiverse-primary-light);
-    border-color: var(--lumiverse-primary-muted);
-    color: var(--lumiverse-primary-text);
+.lumiverse-presets-startreply-btn:hover {
+    background: rgba(147, 112, 219, 0.15);
+    border-color: rgba(147, 112, 219, 0.3);
+    color: rgba(147, 112, 219, 0.95);
+}
+
+.lumiverse-presets-startreply-btn--clear {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+    color: var(--lumiverse-text-dim);
+}
+
+.lumiverse-presets-startreply-btn--clear:hover {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: rgba(239, 68, 68, 0.95);
 }
 
 /* Spin animation for loading */

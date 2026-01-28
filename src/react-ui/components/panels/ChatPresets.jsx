@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
 import { 
@@ -15,7 +15,11 @@ import {
     Package,
     Sparkles,
     Zap,
-    ExternalLink
+    ExternalLink,
+    FileJson,
+    Cloud,
+    Tag,
+    Clock
 } from 'lucide-react';
 import { 
     fetchAvailablePresets, 
@@ -34,6 +38,9 @@ import {
  * Chat Presets Panel
  * Downloads and manages Chat Completion presets from Lucid.cards
  * Also provides Reasoning/CoT and Start Reply With settings
+ * 
+ * Design: Matches Lumia selection modal aesthetic with glass-morphism cards,
+ * smooth animations, and refined visual hierarchy
  */
 export function ChatPresetsPanel() {
     // Preset browser state
@@ -116,45 +123,69 @@ export function ChatPresetsPanel() {
     }, [reasoningSettings]);
 
     return (
-        <div className="lumiverse-chatpresets">
+        <div className="lumiverse-presets">
             {/* Preset Browser Section */}
-            <div className="lumiverse-chatpresets-section">
-                <div className="lumiverse-chatpresets-section-header">
-                    <div className="lumiverse-chatpresets-section-title">
-                        <Download size={16} strokeWidth={1.5} />
-                        <span>Download Presets</span>
+            <div className="lumiverse-presets-browser">
+                <div className="lumiverse-presets-header">
+                    <div className="lumiverse-presets-header-left">
+                        <div className="lumiverse-presets-header-icon">
+                            <Cloud size={18} strokeWidth={1.5} />
+                        </div>
+                        <div className="lumiverse-presets-header-text">
+                            <span className="lumiverse-presets-header-title">Lucid.cards Presets</span>
+                            <span className="lumiverse-presets-header-subtitle">
+                                {presets ? `${presets.length} presets available` : 'Click refresh to browse'}
+                            </span>
+                        </div>
                     </div>
                     <button
-                        className="lumiverse-chatpresets-refresh"
+                        className={clsx(
+                            'lumiverse-presets-refresh',
+                            isLoading && 'is-loading'
+                        )}
                         onClick={loadPresets}
                         disabled={isLoading}
                         title="Refresh preset list"
                         type="button"
                     >
-                        <RefreshCw size={14} strokeWidth={1.5} className={clsx(isLoading && 'lumiverse-spin')} />
+                        <RefreshCw size={14} strokeWidth={2} />
                     </button>
                 </div>
 
                 {/* Initial state - prompt to load */}
                 {!presets && !isLoading && !error && (
-                    <div className="lumiverse-chatpresets-empty">
-                        <Package size={24} strokeWidth={1} />
-                        <span>Click refresh to browse Lucid.cards presets</span>
+                    <div className="lumiverse-presets-empty">
+                        <div className="lumiverse-presets-empty-icon">
+                            <Package size={32} strokeWidth={1} />
+                        </div>
+                        <span className="lumiverse-presets-empty-text">
+                            Browse curated Chat Completion presets
+                        </span>
+                        <button 
+                            className="lumiverse-presets-empty-btn"
+                            onClick={loadPresets}
+                            type="button"
+                        >
+                            <RefreshCw size={14} strokeWidth={2} />
+                            Load Presets
+                        </button>
                     </div>
                 )}
 
                 {/* Loading state */}
                 {isLoading && (
-                    <div className="lumiverse-chatpresets-loading">
-                        <Loader2 size={20} strokeWidth={1.5} className="lumiverse-spin" />
-                        <span>Loading presets...</span>
+                    <div className="lumiverse-presets-loading">
+                        <div className="lumiverse-presets-loading-spinner">
+                            <Loader2 size={24} strokeWidth={1.5} />
+                        </div>
+                        <span>Fetching presets from Lucid.cards...</span>
                     </div>
                 )}
 
                 {/* Error state */}
                 {error && (
-                    <div className="lumiverse-chatpresets-error">
-                        <AlertCircle size={16} strokeWidth={1.5} />
+                    <div className="lumiverse-presets-error">
+                        <AlertCircle size={18} strokeWidth={1.5} />
                         <span>{error}</span>
                         <button onClick={loadPresets} type="button">Retry</button>
                     </div>
@@ -162,9 +193,9 @@ export function ChatPresetsPanel() {
 
                 {/* Preset list */}
                 {presets && presets.length > 0 && (
-                    <div className="lumiverse-chatpresets-list">
-                        {presets.map((preset) => (
-                            <PresetItem
+                    <div className="lumiverse-presets-list">
+                        {presets.map((preset, index) => (
+                            <PresetCard
                                 key={preset.slug}
                                 preset={preset}
                                 isExpanded={expandedPreset === preset.slug}
@@ -173,6 +204,7 @@ export function ChatPresetsPanel() {
                                 )}
                                 onDownload={handleDownload}
                                 downloadingVersion={downloadingVersion}
+                                animationIndex={index}
                             />
                         ))}
                     </div>
@@ -180,23 +212,25 @@ export function ChatPresetsPanel() {
             </div>
 
             {/* Reasoning / CoT Section */}
-            <div className="lumiverse-chatpresets-section">
+            <div className="lumiverse-presets-reasoning-section">
                 <button
-                    className="lumiverse-chatpresets-section-header lumiverse-chatpresets-section-header--clickable"
+                    className={clsx(
+                        'lumiverse-presets-reasoning-trigger',
+                        reasoningExpanded && 'is-expanded'
+                    )}
                     onClick={() => setReasoningExpanded(!reasoningExpanded)}
                     type="button"
                 >
-                    <div className="lumiverse-chatpresets-section-title">
-                        <Brain size={16} strokeWidth={1.5} />
+                    <div className="lumiverse-presets-reasoning-trigger-left">
+                        <div className="lumiverse-presets-reasoning-trigger-icon">
+                            <Brain size={16} strokeWidth={1.5} />
+                        </div>
                         <span>Reasoning / Chain of Thought</span>
                     </div>
                     <ChevronDown 
                         size={14} 
-                        strokeWidth={1.5} 
-                        className={clsx(
-                            'lumiverse-chatpresets-chevron',
-                            reasoningExpanded && 'lumiverse-chatpresets-chevron--expanded'
-                        )}
+                        strokeWidth={2} 
+                        className="lumiverse-presets-reasoning-chevron"
                     />
                 </button>
 
@@ -206,93 +240,112 @@ export function ChatPresetsPanel() {
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: 'auto', opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="lumiverse-chatpresets-reasoning"
+                            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+                            className="lumiverse-presets-reasoning-content"
                         >
-                            {/* Quick presets */}
-                            <div className="lumiverse-chatpresets-reasoning-presets">
-                                <span className="lumiverse-chatpresets-reasoning-label">Quick Presets:</span>
-                                <div className="lumiverse-chatpresets-reasoning-buttons">
-                                    <button
-                                        onClick={() => handleApplyReasoningPreset('deepseek', false)}
-                                        title="Apply DeepSeek <think> tags"
-                                        type="button"
-                                    >
-                                        DeepSeek
-                                    </button>
-                                    <button
-                                        onClick={() => handleApplyReasoningPreset('claude_extended', false)}
-                                        title="Apply Claude <thinking> tags"
-                                        type="button"
-                                    >
-                                        Claude
-                                    </button>
-                                    <button
-                                        onClick={() => handleApplyReasoningPreset('openai_o1', false)}
-                                        title="Apply o1 <reasoning> tags"
-                                        type="button"
-                                    >
-                                        o1
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Current settings display */}
-                            {reasoningSettings && (
-                                <div className="lumiverse-chatpresets-reasoning-current">
-                                    <div className="lumiverse-chatpresets-reasoning-row">
-                                        <label>
-                                            <input
-                                                type="checkbox"
-                                                checked={reasoningSettings.auto_parse || false}
-                                                onChange={(e) => handleReasoningToggle('autoParse', e.target.checked)}
-                                            />
-                                            <span>Auto-parse thoughts</span>
-                                        </label>
-                                    </div>
-                                    <div className="lumiverse-chatpresets-reasoning-row">
-                                        <span className="lumiverse-chatpresets-reasoning-tags">
-                                            Tags: <code>{reasoningSettings.prefix || '<think>'}</code> / <code>{reasoningSettings.suffix || '</think>'}</code>
-                                        </span>
+                            <div className="lumiverse-presets-reasoning-inner">
+                                {/* Quick presets */}
+                                <div className="lumiverse-presets-reasoning-quick">
+                                    <span className="lumiverse-presets-reasoning-label">
+                                        <Sparkles size={12} strokeWidth={2} />
+                                        Quick Presets
+                                    </span>
+                                    <div className="lumiverse-presets-reasoning-btns">
+                                        <button
+                                            className="lumiverse-presets-reasoning-btn lumiverse-presets-reasoning-btn--deepseek"
+                                            onClick={() => handleApplyReasoningPreset('deepseek', false)}
+                                            title="Apply DeepSeek <think> tags"
+                                            type="button"
+                                        >
+                                            <span className="lumiverse-presets-reasoning-btn-label">DeepSeek</span>
+                                            <code>&lt;think&gt;</code>
+                                        </button>
+                                        <button
+                                            className="lumiverse-presets-reasoning-btn lumiverse-presets-reasoning-btn--claude"
+                                            onClick={() => handleApplyReasoningPreset('claude_extended', false)}
+                                            title="Apply Claude <thinking> tags"
+                                            type="button"
+                                        >
+                                            <span className="lumiverse-presets-reasoning-btn-label">Claude</span>
+                                            <code>&lt;thinking&gt;</code>
+                                        </button>
+                                        <button
+                                            className="lumiverse-presets-reasoning-btn lumiverse-presets-reasoning-btn--o1"
+                                            onClick={() => handleApplyReasoningPreset('openai_o1', false)}
+                                            title="Apply o1 <reasoning> tags"
+                                            type="button"
+                                        >
+                                            <span className="lumiverse-presets-reasoning-btn-label">o1</span>
+                                            <code>&lt;reasoning&gt;</code>
+                                        </button>
                                     </div>
                                 </div>
-                            )}
 
-                            {/* Start Reply With */}
-                            <div className="lumiverse-chatpresets-startreply">
-                                <label className="lumiverse-chatpresets-startreply-label">
-                                    <Zap size={14} strokeWidth={1.5} />
-                                    <span>Start Reply With:</span>
-                                </label>
-                                <textarea
-                                    className="lumiverse-chatpresets-startreply-input"
-                                    value={startReplyWith}
-                                    onChange={(e) => handleStartReplyWithChange(e.target.value)}
-                                    placeholder="Force AI to start response with..."
-                                    rows={2}
-                                />
-                                <div className="lumiverse-chatpresets-startreply-quick">
-                                    <button
-                                        onClick={() => handleStartReplyWithChange('<think>\n')}
-                                        title="Set to <think> tag"
-                                        type="button"
-                                    >
-                                        &lt;think&gt;
-                                    </button>
-                                    <button
-                                        onClick={() => handleStartReplyWithChange('<thinking>\n')}
-                                        title="Set to <thinking> tag"
-                                        type="button"
-                                    >
-                                        &lt;thinking&gt;
-                                    </button>
-                                    <button
-                                        onClick={() => handleStartReplyWithChange('')}
-                                        title="Clear"
-                                        type="button"
-                                    >
-                                        <X size={12} />
-                                    </button>
+                                {/* Current settings display */}
+                                {reasoningSettings && (
+                                    <div className="lumiverse-presets-reasoning-current">
+                                        <div className="lumiverse-presets-reasoning-row">
+                                            <label className="lumiverse-presets-reasoning-checkbox">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={reasoningSettings.auto_parse || false}
+                                                    onChange={(e) => handleReasoningToggle('autoParse', e.target.checked)}
+                                                />
+                                                <span className="lumiverse-presets-reasoning-checkmark"></span>
+                                                <span>Auto-parse thoughts</span>
+                                            </label>
+                                        </div>
+                                        <div className="lumiverse-presets-reasoning-tags">
+                                            <Tag size={12} strokeWidth={2} />
+                                            <span>Tags:</span>
+                                            <code>{reasoningSettings.prefix || '<think>'}</code>
+                                            <span className="lumiverse-presets-reasoning-tags-sep">/</span>
+                                            <code>{reasoningSettings.suffix || '</think>'}</code>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Start Reply With */}
+                                <div className="lumiverse-presets-startreply">
+                                    <label className="lumiverse-presets-startreply-label">
+                                        <Zap size={12} strokeWidth={2} />
+                                        <span>Start Reply With (Prompt Bias)</span>
+                                    </label>
+                                    <div className="lumiverse-presets-startreply-input-wrap">
+                                        <textarea
+                                            className="lumiverse-presets-startreply-input"
+                                            value={startReplyWith}
+                                            onChange={(e) => handleStartReplyWithChange(e.target.value)}
+                                            placeholder="Force AI to start response with..."
+                                            rows={2}
+                                        />
+                                    </div>
+                                    <div className="lumiverse-presets-startreply-quick">
+                                        <button
+                                            className="lumiverse-presets-startreply-btn"
+                                            onClick={() => handleStartReplyWithChange('<think>\n')}
+                                            title="Set to <think> tag"
+                                            type="button"
+                                        >
+                                            &lt;think&gt;
+                                        </button>
+                                        <button
+                                            className="lumiverse-presets-startreply-btn"
+                                            onClick={() => handleStartReplyWithChange('<thinking>\n')}
+                                            title="Set to <thinking> tag"
+                                            type="button"
+                                        >
+                                            &lt;thinking&gt;
+                                        </button>
+                                        <button
+                                            className="lumiverse-presets-startreply-btn lumiverse-presets-startreply-btn--clear"
+                                            onClick={() => handleStartReplyWithChange('')}
+                                            title="Clear"
+                                            type="button"
+                                        >
+                                            <X size={12} strokeWidth={2} />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </motion.div>
@@ -304,9 +357,10 @@ export function ChatPresetsPanel() {
 }
 
 /**
- * Individual preset item with expandable version list
+ * Individual preset card with expandable version list
+ * Styled like Lumia selection cards with glass-morphism effect
  */
-function PresetItem({ preset, isExpanded, onToggle, onDownload, downloadingVersion }) {
+function PresetCard({ preset, isExpanded, onToggle, onDownload, downloadingVersion, animationIndex }) {
     // Combine standard and prolix versions
     const allVersions = useMemo(() => {
         const versions = [];
@@ -326,26 +380,42 @@ function PresetItem({ preset, isExpanded, onToggle, onDownload, downloadingVersi
         return versions;
     }, [preset.versions]);
 
+    // Staggered animation delay
+    const animationDelay = Math.min(animationIndex * 40, 250);
+
     return (
-        <div className={clsx(
-            'lumiverse-chatpresets-item',
-            isExpanded && 'lumiverse-chatpresets-item--expanded'
-        )}>
+        <motion.div 
+            className={clsx(
+                'lumiverse-preset-card',
+                isExpanded && 'is-expanded'
+            )}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ 
+                duration: 0.3, 
+                delay: animationDelay / 1000,
+                ease: [0.4, 0, 0.2, 1] 
+            }}
+        >
             <button
-                className="lumiverse-chatpresets-item-header"
+                className="lumiverse-preset-card-header"
                 onClick={onToggle}
                 type="button"
             >
-                <div className="lumiverse-chatpresets-item-info">
-                    <span className="lumiverse-chatpresets-item-name">{preset.name}</span>
-                    <span className="lumiverse-chatpresets-item-meta">
+                <div className="lumiverse-preset-card-icon">
+                    <FileJson size={18} strokeWidth={1.5} />
+                </div>
+                <div className="lumiverse-preset-card-info">
+                    <span className="lumiverse-preset-card-name">{preset.name}</span>
+                    <span className="lumiverse-preset-card-meta">
+                        <Clock size={10} strokeWidth={2} />
                         {preset.totalVersions} version{preset.totalVersions !== 1 ? 's' : ''}
                     </span>
                 </div>
-                <div className="lumiverse-chatpresets-item-actions">
+                <div className="lumiverse-preset-card-actions">
                     {/* Quick download latest */}
                     <button
-                        className="lumiverse-chatpresets-item-quick"
+                        className="lumiverse-preset-card-download"
                         onClick={(e) => {
                             e.stopPropagation();
                             onDownload(preset.slug, 'latest', preset.latestVersion?.name);
@@ -355,18 +425,15 @@ function PresetItem({ preset, isExpanded, onToggle, onDownload, downloadingVersi
                         type="button"
                     >
                         {downloadingVersion === `${preset.slug}-latest` ? (
-                            <Loader2 size={14} className="lumiverse-spin" />
+                            <Loader2 size={14} strokeWidth={2} className="lumiverse-spin" />
                         ) : (
-                            <Download size={14} strokeWidth={1.5} />
+                            <Download size={14} strokeWidth={2} />
                         )}
                     </button>
                     <ChevronRight 
                         size={14} 
-                        strokeWidth={1.5}
-                        className={clsx(
-                            'lumiverse-chatpresets-item-chevron',
-                            isExpanded && 'lumiverse-chatpresets-item-chevron--expanded'
-                        )}
+                        strokeWidth={2}
+                        className="lumiverse-preset-card-chevron"
                     />
                 </div>
             </button>
@@ -377,54 +444,63 @@ function PresetItem({ preset, isExpanded, onToggle, onDownload, downloadingVersi
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.15 }}
-                        className="lumiverse-chatpresets-item-versions"
+                        transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                        className="lumiverse-preset-card-versions"
                     >
-                        {allVersions.map((version) => {
-                            const versionKey = `${preset.slug}-${version.slug}`;
-                            const isDownloading = downloadingVersion === versionKey;
+                        <div className="lumiverse-preset-card-versions-inner">
+                            {allVersions.map((version) => {
+                                const versionKey = `${preset.slug}-${version.slug}`;
+                                const isDownloading = downloadingVersion === versionKey;
 
-                            return (
-                                <div 
-                                    key={version.slug}
-                                    className={clsx(
-                                        'lumiverse-chatpresets-version',
-                                        version.isProlix && 'lumiverse-chatpresets-version--prolix',
-                                        version.isLatest && 'lumiverse-chatpresets-version--latest'
-                                    )}
-                                >
-                                    <div className="lumiverse-chatpresets-version-info">
-                                        <span className="lumiverse-chatpresets-version-name">
-                                            {version.name}
-                                            {version.isLatest && (
-                                                <span className="lumiverse-chatpresets-version-badge">Latest</span>
-                                            )}
-                                            {version.isProlix && (
-                                                <span className="lumiverse-chatpresets-version-badge lumiverse-chatpresets-version-badge--prolix">
-                                                    Prolix
-                                                </span>
-                                            )}
-                                        </span>
-                                    </div>
-                                    <button
-                                        className="lumiverse-chatpresets-version-download"
-                                        onClick={() => onDownload(preset.slug, version.slug, version.name)}
-                                        disabled={isDownloading}
-                                        type="button"
-                                    >
-                                        {isDownloading ? (
-                                            <Loader2 size={12} className="lumiverse-spin" />
-                                        ) : (
-                                            <Download size={12} strokeWidth={1.5} />
+                                return (
+                                    <div 
+                                        key={version.slug}
+                                        className={clsx(
+                                            'lumiverse-preset-version',
+                                            version.isProlix && 'is-prolix',
+                                            version.isLatest && 'is-latest'
                                         )}
-                                    </button>
-                                </div>
-                            );
-                        })}
+                                    >
+                                        <div className="lumiverse-preset-version-info">
+                                            <span className="lumiverse-preset-version-name">
+                                                {version.name}
+                                            </span>
+                                            <div className="lumiverse-preset-version-badges">
+                                                {version.isLatest && (
+                                                    <span className="lumiverse-preset-version-badge is-latest">
+                                                        Latest
+                                                    </span>
+                                                )}
+                                                {version.isProlix && (
+                                                    <span className="lumiverse-preset-version-badge is-prolix">
+                                                        Prolix
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <button
+                                            className="lumiverse-preset-version-download"
+                                            onClick={() => onDownload(preset.slug, version.slug, version.name)}
+                                            disabled={isDownloading}
+                                            type="button"
+                                        >
+                                            {isDownloading ? (
+                                                <Loader2 size={12} strokeWidth={2} className="lumiverse-spin" />
+                                            ) : (
+                                                <>
+                                                    <Download size={12} strokeWidth={2} />
+                                                    <span>Add</span>
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
-        </div>
+        </motion.div>
     );
 }
 
