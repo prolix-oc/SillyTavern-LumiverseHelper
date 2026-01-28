@@ -16,7 +16,7 @@ export function EditorLayout({ children, className }) {
                 flexDirection: 'column', 
                 flex: 1, 
                 minHeight: 0, 
-                height: '100%', 
+                maxHeight: '100%', // Ensure it doesn't overflow parent
                 overflow: 'hidden' 
             }}
         >
