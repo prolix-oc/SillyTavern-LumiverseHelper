@@ -307,6 +307,10 @@ export async function importPreset(presetData, presetName, options = {}) {
 
         // 3. Chat/API Completion preset
         if (isPossiblyTextCompletionData(presetData)) {
+            // Ensure mistralai_model exists (required by ST core)
+            if (typeof presetData.mistralai_model === "undefined") {
+                presetData.mistralai_model = "";
+            }
             const manager = context.getPresetManager("openai");
             await manager.savePreset(presetName, presetData);
             if (activate) {
@@ -353,6 +357,10 @@ export async function importPreset(presetData, presetName, options = {}) {
         }
 
         if (presetData.preset && isPossiblyTextCompletionData(presetData.preset)) {
+            // Ensure mistralai_model exists (required by ST core)
+            if (typeof presetData.preset.mistralai_model === "undefined") {
+                presetData.preset.mistralai_model = "";
+            }
             const manager = context.getPresetManager("openai");
             await manager.savePreset(presetData.preset.name || presetName, presetData.preset);
             importedCount++;
