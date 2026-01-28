@@ -28,6 +28,9 @@ let reactUILoaded = false;
 let cleanupFn = null;
 let viewportCleanupFn = null;
 
+// Flag to prevent re-sync loops when React is saving
+let isSavingFromReact = false;
+
 // Callbacks that React components can trigger
 const extensionCallbacks = {
   // Pack management
@@ -114,19 +117,29 @@ export function settingsToReactFormat() {
  * @param {Object} reactState - State from React store (same format as getSettings())
  */
 export function reactFormatToSettings(reactState) {
-  const settings = getSettings();
+  // Set flag to prevent re-sync loops
+  isSavingFromReact = true;
+  
+  try {
+    const settings = getSettings();
 
-  // If using file storage, handle presets separately
-  if (isUsingFileStorage() && reactState.presets !== undefined) {
-    // Update presets in file storage
-    setAllPresets(reactState.presets);
+    // If using file storage, handle presets separately
+    if (isUsingFileStorage() && reactState.presets !== undefined) {
+      // Update presets in file storage
+      setAllPresets(reactState.presets);
+    }
+
+    // Merge all properties from reactState into settings
+    // This preserves the exact structure without transformation
+    Object.assign(settings, reactState);
+
+    saveSettings();
+  } finally {
+    // Clear flag after a short delay to allow any pending notifications to be ignored
+    setTimeout(() => {
+      isSavingFromReact = false;
+    }, 100);
   }
-
-  // Merge all properties from reactState into settings
-  // This preserves the exact structure without transformation
-  Object.assign(settings, reactState);
-
-  saveSettings();
 }
 
 /**
@@ -192,6 +205,10 @@ export async function initializeReactUI(container) {
       resetAllSettings: resetAllSettings,
       // Called by packCache when pack data changes
       onPackCacheChange: () => {
+        // Skip if this change was triggered by React saving
+        if (isSavingFromReact) {
+          return;
+        }
         console.log("[ReactBridge] Pack cache changed, syncing to React...");
         notifyReactOfSettingsChange();
       },
