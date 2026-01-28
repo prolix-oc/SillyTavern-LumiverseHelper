@@ -3726,12 +3726,16 @@ details.lumia-panel[open] .lumia-panel-chevron {
     display: flex;
     flex-direction: column;
     max-height: 80vh;
+    min-height: 0; /* Critical for flex overflow */
 }
 
 .lumiverse-editor-content {
-    flex: 1;
+    flex: 1 1 auto;
+    min-height: 0; /* Critical for flex overflow */
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 16px;
+    -webkit-overflow-scrolling: touch;
 }
 
 .lumiverse-editor-section {
@@ -3864,6 +3868,18 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
 .lumiverse-editor-footer-spacer {
     flex: 1;
+}
+
+/* Editor modal textareas - desktop */
+.lumiverse-editor-modal .lumiverse-textarea {
+    min-height: 120px;
+    line-height: 1.5;
+    resize: vertical;
+}
+
+/* Physicality/Personality/Behavior sections need more space */
+.lumiverse-editor-section:not(:first-child) .lumiverse-textarea {
+    min-height: 140px;
 }
 
 /* ----------------------------------------
@@ -4092,24 +4108,38 @@ details.lumia-panel[open] .lumia-panel-chevron {
 /* ============================================
    MOBILE RESPONSIVE - Editor Modals
    Lumia Editor, Loom Editor, Pack Editor
+   
+   Design Philosophy:
+   - Content scrolls naturally within viewport
+   - Textareas have generous min-heights for usability
+   - Footer stays fixed at bottom via flexbox
+   - Touch-friendly sizing throughout
    ============================================ */
 
 @media (max-width: 600px) {
-    /* Modal container size overrides for editor modals */
+    /* Modal container - fill available space */
     .lumia-modal-lumia-editor,
-    .lumia-modal-loom-editor {
+    .lumia-modal-loom-editor,
+    .lumiverse-modal-lumia-editor,
+    .lumiverse-modal-loom-editor {
         width: 94vw;
         max-width: 94vw;
-        max-height: 90vh;
-        max-height: 90dvh;
+        height: auto;
+        max-height: calc(100dvh - 32px); /* Viewport minus backdrop padding */
     }
 
     /* ----------------------------------------
        Lumia Editor Modal - Mobile
+       
+       Structure:
+       .lumiverse-editor-modal (flex column)
+         .lumiverse-editor-content (scrollable)
+           .lumiverse-editor-section (repeated)
+         .lumiverse-editor-footer (fixed)
        ---------------------------------------- */
     .lumiverse-editor-modal {
         max-height: none;
-        height: 100%;
+        height: auto;
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -4118,21 +4148,49 @@ details.lumia-panel[open] .lumia-panel-chevron {
     .lumiverse-editor-content {
         padding: 12px;
         flex: 1 1 auto;
-        min-height: 0;
+        min-height: 0; /* Critical for flex overflow */
         overflow-y: auto;
+        overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
+        /* Provide visual affordance for scrolling */
+        scroll-behavior: smooth;
+    }
+
+    /* Add subtle scroll shadow indicators */
+    .lumiverse-editor-content::before,
+    .lumiverse-editor-content::after {
+        content: '';
+        position: sticky;
+        left: 0;
+        right: 0;
+        height: 8px;
+        pointer-events: none;
+        z-index: 2;
+    }
+
+    .lumiverse-editor-content::before {
+        top: 0;
+        background: linear-gradient(to bottom, var(--lumiverse-bg) 0%, transparent 100%);
+        margin-bottom: -8px;
     }
 
     .lumiverse-editor-section {
-        margin-bottom: 16px;
+        margin-bottom: 14px;
+        border-radius: var(--lumiverse-radius);
+    }
+
+    .lumiverse-editor-section:last-child {
+        margin-bottom: 8px; /* Extra space before footer */
     }
 
     .lumiverse-editor-section-header {
         padding: 10px 12px;
         font-size: 12px;
+        /* Sticky headers for orientation during scroll */
         position: sticky;
         top: 0;
         z-index: 1;
+        background: var(--lumiverse-bg-secondary);
     }
 
     .lumiverse-editor-section-content {
@@ -4145,116 +4203,157 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
     .lumiverse-editor-label {
         font-size: 11px;
+        font-weight: 600;
         margin-bottom: 5px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        color: var(--lumiverse-text-muted);
     }
 
     /* Stack two-column rows vertically on mobile */
     .lumiverse-editor-row {
         grid-template-columns: 1fr;
-        gap: 12px;
+        gap: 10px;
     }
 
     .lumiverse-editor-row .lumiverse-editor-field {
         margin-bottom: 0;
     }
 
-    /* Smaller avatar preview on mobile */
+    /* Compact avatar preview on mobile */
     .lumiverse-editor-avatar-preview {
-        width: 64px;
-        height: 64px;
+        width: 56px;
+        height: 56px;
+        border-radius: 8px;
     }
 
-    /* Adjust textareas for mobile */
+    /* ----------------------------------------
+       Textarea Sizing - The Key Fix
+       
+       Textareas need reasonable heights for
+       usability without crushing the layout.
+       Using flex-shrink: 0 prevents compression.
+       ---------------------------------------- */
     .lumiverse-editor-modal .lumiverse-textarea {
-        min-height: 100px;
+        min-height: 120px; /* Comfortable editing height */
+        max-height: 200px; /* Limit individual growth */
         font-size: 14px;
+        line-height: 1.5;
+        resize: vertical;
+        flex-shrink: 0; /* Prevent compression */
     }
 
-    /* Footer for editor modals - use flexbox, not sticky */
+    /* First section (Basic Info) textareas can be shorter */
+    .lumiverse-editor-section:first-child .lumiverse-textarea {
+        min-height: 80px;
+    }
+
+    /* Footer - fixed at bottom via flexbox */
     .lumiverse-editor-footer {
-        padding: 10px 12px;
-        gap: 6px;
+        padding: 12px;
+        gap: 8px;
         flex-shrink: 0;
         flex-wrap: wrap;
+        border-top: 1px solid var(--lumiverse-border);
+        background: var(--lumiverse-bg-secondary);
     }
 
     .lumiverse-editor-footer .lumiverse-btn {
-        padding: 8px 12px;
-        font-size: 12px;
-        min-height: 36px;
+        padding: 10px 14px;
+        font-size: 13px;
+        min-height: 40px;
+        font-weight: 500;
     }
 
-    /* Make delete button full width on mobile, stacked below other buttons */
+    /* Cancel and Save buttons side by side at top */
+    .lumiverse-editor-footer .lumiverse-btn--secondary:not(.lumiverse-btn--danger),
+    .lumiverse-editor-footer .lumiverse-btn--primary {
+        flex: 1;
+    }
+
+    /* Delete button full width below */
     .lumiverse-editor-footer .lumiverse-btn--danger {
         order: 3;
         flex: 0 0 100%;
-        margin-top: 6px;
+        margin-top: 4px;
     }
 
     .lumiverse-editor-footer-spacer {
         display: none;
     }
 
-    /* Cancel and Save buttons side by side */
-    .lumiverse-editor-footer .lumiverse-btn--secondary:not(.lumiverse-btn--danger),
-    .lumiverse-editor-footer .lumiverse-btn--primary {
-        flex: 1;
-    }
-
     /* ----------------------------------------
        Loom Editor Modal - Mobile
+       
+       Loom editor has simpler structure:
+       name input, category selector, content textarea
        ---------------------------------------- */
     .lumiverse-loom-editor {
         max-height: none;
-        height: 100%;
+        height: auto;
+        display: flex;
+        flex-direction: column;
     }
 
     .lumiverse-loom-editor-content {
         padding: 12px;
-        flex: 1;
+        flex: 1 1 auto;
+        min-height: 0;
         overflow-y: auto;
+        overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
     }
 
     /* Category buttons - wrap and compact on mobile */
     .lumiverse-loom-category-options {
         gap: 6px;
+        flex-wrap: wrap;
     }
 
     .lumiverse-loom-category-btn {
-        padding: 6px 10px;
-        font-size: 11px;
-        border-radius: 16px;
+        padding: 8px 12px;
+        font-size: 12px;
+        border-radius: 20px;
     }
 
     .lumiverse-loom-category-btn svg {
-        width: 12px;
-        height: 12px;
+        width: 14px;
+        height: 14px;
     }
 
-    /* Adjust content textarea for mobile */
+    /* Loom content textarea - needs more height since it's the main content */
     .lumiverse-loom-content-field .lumiverse-textarea,
     .lumiverse-loom-editor .lumiverse-textarea {
-        min-height: 140px;
+        min-height: 180px;
+        max-height: 300px;
         font-size: 14px;
+        line-height: 1.5;
+        resize: vertical;
+        flex-shrink: 0;
     }
 
     /* ----------------------------------------
        Pack Editor Modal - Mobile
        ---------------------------------------- */
     .lumiverse-pack-editor-modal {
-        height: 100%;
+        height: auto;
+        max-height: none;
+        display: flex;
+        flex-direction: column;
     }
 
     .lumiverse-pack-editor-content {
         padding: 12px;
-        gap: 16px;
+        gap: 14px;
+        flex: 1 1 auto;
+        min-height: 0;
         overflow-y: auto;
+        overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
     }
 
     .lumiverse-pack-editor-title {
-        margin-bottom: 14px;
+        margin-bottom: 12px;
         gap: 8px;
     }
 
@@ -4283,9 +4382,12 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
     /* Pack editor footer - stack buttons on mobile */
     .lumiverse-pack-editor-footer {
-        padding: 10px 12px;
+        padding: 12px;
         flex-wrap: wrap;
         gap: 8px;
+        flex-shrink: 0;
+        border-top: 1px solid var(--lumiverse-border);
+        background: var(--lumiverse-bg-secondary);
     }
 
     .lumiverse-pack-editor-footer-left {
@@ -4302,8 +4404,9 @@ details.lumia-panel[open] .lumia-panel-chevron {
     .lumiverse-pack-editor-footer .lumiverse-btn {
         flex: 1;
         justify-content: center;
-        min-height: 36px;
-        font-size: 12px;
+        min-height: 40px;
+        font-size: 13px;
+        font-weight: 500;
     }
 
     /* ----------------------------------------
