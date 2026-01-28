@@ -16,7 +16,8 @@ import {
     Cloud,
     Clock,
     Settings2,
-    ArrowUpCircle
+    ArrowUpCircle,
+    Edit2
 } from 'lucide-react';
 import { 
     fetchAvailablePresets, 
@@ -31,6 +32,7 @@ import {
     REASONING_EFFORT_LEVELS
 } from '../../../lib/presetsService';
 import { useChatPresetSettings } from '../../hooks/useChatPresetSettings';
+import { useLumiverseActions } from '../../store/LumiverseContext';
 import { ReasoningSettingsContent } from '../shared/ReasoningSettings';
 
 /* global toastr */
@@ -43,6 +45,7 @@ const UPDATE_CHECK_INTERVAL = 30 * 60 * 1000;
  * Displays tracked presets from Lucid.cards with version info and update indicators
  */
 export function ChatPresetsPanel() {
+    const actions = useLumiverseActions();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [trackedPresets, setTrackedPresets] = useState({});
     const [reasoningSettings, setReasoningSettings] = useState(null);
@@ -209,14 +212,24 @@ export function ChatPresetsPanel() {
             )}
 
             {/* Configure Button */}
-            <button
-                className="lumia-btn lumia-btn-primary lumia-btn-full"
-                onClick={handleOpenModal}
-                type="button"
-            >
-                <Settings2 size={14} strokeWidth={2} />
-                {updateCount > 0 ? `Configure (${updateCount} update${updateCount !== 1 ? 's' : ''})` : 'Download & Configure'}
-            </button>
+            <div style={{ display: 'flex', gap: '8px', flexDirection: 'column' }}>
+                <button
+                    className="lumia-btn lumia-btn-primary lumia-btn-full"
+                    onClick={handleOpenModal}
+                    type="button"
+                >
+                    <Settings2 size={14} strokeWidth={2} />
+                    {updateCount > 0 ? `Configure (${updateCount} update${updateCount !== 1 ? 's' : ''})` : 'Download & Configure'}
+                </button>
+                <button
+                    className="lumia-btn lumia-btn-secondary lumia-btn-full"
+                    onClick={() => actions.openModal('presetEditor')}
+                    type="button"
+                >
+                    <Edit2 size={14} strokeWidth={2} />
+                    Preset Editor
+                </button>
+            </div>
 
             {isModalOpen && (
                 <ChatPresetsModal 

@@ -12,6 +12,7 @@ import LumiaEditorModal from './modals/LumiaEditorModal';
 import LoomEditorModal from './modals/LoomEditorModal';
 import ItemTypeSelector from './modals/ItemTypeSelector';
 import CouncilSelectModal from './modals/CouncilSelectModal';
+import PresetEditor from './panels/PresetEditor';
 
 /**
  * Modal wrapper that provides backdrop and close functionality
@@ -211,6 +212,14 @@ const MODAL_CONFIG = {
         modalType: 'selection',
         size: 'large',
         hasCustomHeader: true,
+        props: {},
+    },
+    // Full Preset Editor
+    presetEditor: {
+        component: PresetEditor,
+        modalType: 'editor',
+        size: 'large',
+        hasCustomHeader: false, // PresetEditor renders its own header
         props: {},
     },
 };
