@@ -3,9 +3,10 @@ import { useSettings, useSelections, useLoomSelections, useLumiverseActions, use
 import { useAdaptiveImagePosition } from '../hooks/useAdaptiveImagePosition';
 import { exportPack } from './modals/PackEditorModal';
 import { CollapsibleContent } from './Collapsible';
+import { ChatPresetsPanel } from './panels/ChatPresets';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
-import { Eye, Sparkles, Wrench, Layers, Trash2, Users, Bookmark, Plus, ChevronDown, Check, X, AlertTriangle } from 'lucide-react';
+import { Eye, Sparkles, Wrench, Layers, Trash2, Users, Bookmark, Plus, ChevronDown, Check, X, AlertTriangle, Download } from 'lucide-react';
 
 /* global LumiverseBridge, toastr */
 
@@ -1417,6 +1418,14 @@ function SettingsPanel() {
                     </div>
                 </Panel>
             )}
+
+            {/* Chat Presets - Download from Lucid.cards */}
+            <CollapsiblePanel
+                title="Chat Presets"
+                icon={<Download size={16} strokeWidth={1.5} />}
+            >
+                <ChatPresetsPanel />
+            </CollapsiblePanel>
 
             {/* Danger Zone - Reset Settings */}
             <CollapsiblePanel

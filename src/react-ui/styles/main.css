@@ -10119,3 +10119,468 @@ details.lumia-panel[open] .lumia-panel-chevron {
         font-size: 13px;
     }
 }
+
+/* ========================================
+   CHAT PRESETS PANEL
+   Download presets from Lucid.cards + Reasoning/CoT settings
+   ======================================== */
+
+.lumiverse-chatpresets {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Section container */
+.lumiverse-chatpresets-section {
+    background: var(--lumiverse-bg-elevated);
+    border: 1px solid var(--lumiverse-border);
+    border-radius: var(--lumiverse-radius);
+    overflow: hidden;
+}
+
+/* Section header */
+.lumiverse-chatpresets-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: var(--lumiverse-bg-dark);
+    border: none;
+    width: 100%;
+    cursor: default;
+}
+
+.lumiverse-chatpresets-section-header--clickable {
+    cursor: pointer;
+    transition: background var(--lumiverse-transition-fast);
+}
+
+.lumiverse-chatpresets-section-header--clickable:hover {
+    background: var(--lumiverse-bg-hover);
+}
+
+.lumiverse-chatpresets-section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--lumiverse-text);
+}
+
+.lumiverse-chatpresets-section-title svg {
+    color: var(--lumiverse-primary-text);
+}
+
+.lumiverse-chatpresets-refresh {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: var(--lumiverse-radius-sm);
+    background: var(--lumiverse-secondary);
+    color: var(--lumiverse-text-muted);
+    cursor: pointer;
+    transition: all var(--lumiverse-transition-fast);
+}
+
+.lumiverse-chatpresets-refresh:hover:not(:disabled) {
+    background: var(--lumiverse-primary-light);
+    color: var(--lumiverse-primary-text);
+}
+
+.lumiverse-chatpresets-refresh:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Chevron animation */
+.lumiverse-chatpresets-chevron {
+    transition: transform var(--lumiverse-transition-fast);
+    color: var(--lumiverse-text-muted);
+}
+
+.lumiverse-chatpresets-chevron--expanded {
+    transform: rotate(180deg);
+}
+
+/* Empty/Loading/Error states */
+.lumiverse-chatpresets-empty,
+.lumiverse-chatpresets-loading,
+.lumiverse-chatpresets-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 24px 16px;
+    color: var(--lumiverse-text-muted);
+    font-size: 13px;
+    text-align: center;
+}
+
+.lumiverse-chatpresets-empty svg,
+.lumiverse-chatpresets-loading svg {
+    color: var(--lumiverse-text-dim);
+}
+
+.lumiverse-chatpresets-error {
+    color: var(--lumiverse-danger);
+}
+
+.lumiverse-chatpresets-error button {
+    margin-top: 4px;
+    padding: 4px 12px;
+    border: none;
+    border-radius: var(--lumiverse-radius-sm);
+    background: var(--lumiverse-danger);
+    color: white;
+    font-size: 12px;
+    cursor: pointer;
+    transition: opacity var(--lumiverse-transition-fast);
+}
+
+.lumiverse-chatpresets-error button:hover {
+    opacity: 0.9;
+}
+
+/* Preset list */
+.lumiverse-chatpresets-list {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Individual preset item */
+.lumiverse-chatpresets-item {
+    border-bottom: 1px solid var(--lumiverse-border);
+}
+
+.lumiverse-chatpresets-item:last-child {
+    border-bottom: none;
+}
+
+.lumiverse-chatpresets-item--expanded {
+    background: var(--lumiverse-bg-dark);
+}
+
+.lumiverse-chatpresets-item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 10px 12px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transition: background var(--lumiverse-transition-fast);
+}
+
+.lumiverse-chatpresets-item-header:hover {
+    background: var(--lumiverse-bg-hover);
+}
+
+.lumiverse-chatpresets-item-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+.lumiverse-chatpresets-item-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--lumiverse-text);
+}
+
+.lumiverse-chatpresets-item-meta {
+    font-size: 11px;
+    color: var(--lumiverse-text-muted);
+}
+
+.lumiverse-chatpresets-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.lumiverse-chatpresets-item-quick {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: var(--lumiverse-radius-sm);
+    background: var(--lumiverse-primary-light);
+    color: var(--lumiverse-primary-text);
+    cursor: pointer;
+    transition: all var(--lumiverse-transition-fast);
+}
+
+.lumiverse-chatpresets-item-quick:hover:not(:disabled) {
+    background: var(--lumiverse-primary);
+    color: white;
+}
+
+.lumiverse-chatpresets-item-quick:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.lumiverse-chatpresets-item-chevron {
+    transition: transform var(--lumiverse-transition-fast);
+    color: var(--lumiverse-text-dim);
+}
+
+.lumiverse-chatpresets-item-chevron--expanded {
+    transform: rotate(90deg);
+}
+
+/* Version list (expanded) */
+.lumiverse-chatpresets-item-versions {
+    overflow: hidden;
+}
+
+.lumiverse-chatpresets-version {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px 8px 24px;
+    border-top: 1px solid var(--lumiverse-border);
+    background: var(--lumiverse-bg-darker);
+}
+
+.lumiverse-chatpresets-version--latest {
+    background: rgba(147, 112, 219, 0.05);
+}
+
+.lumiverse-chatpresets-version--prolix {
+    background: rgba(249, 115, 22, 0.05);
+}
+
+.lumiverse-chatpresets-version-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.lumiverse-chatpresets-version-name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--lumiverse-text-muted);
+}
+
+.lumiverse-chatpresets-version-badge {
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--lumiverse-primary-light);
+    color: var(--lumiverse-primary-text);
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.lumiverse-chatpresets-version-badge--prolix {
+    background: rgba(249, 115, 22, 0.15);
+    color: #f97316;
+}
+
+.lumiverse-chatpresets-version-download {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: var(--lumiverse-radius-sm);
+    background: var(--lumiverse-secondary);
+    color: var(--lumiverse-text-muted);
+    cursor: pointer;
+    transition: all var(--lumiverse-transition-fast);
+}
+
+.lumiverse-chatpresets-version-download:hover:not(:disabled) {
+    background: var(--lumiverse-primary-light);
+    color: var(--lumiverse-primary-text);
+}
+
+.lumiverse-chatpresets-version-download:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Reasoning/CoT section */
+.lumiverse-chatpresets-reasoning {
+    padding: 12px;
+    overflow: hidden;
+}
+
+.lumiverse-chatpresets-reasoning-presets {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.lumiverse-chatpresets-reasoning-label {
+    font-size: 11px;
+    color: var(--lumiverse-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.lumiverse-chatpresets-reasoning-buttons {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.lumiverse-chatpresets-reasoning-buttons button {
+    padding: 6px 12px;
+    border: 1px solid var(--lumiverse-border);
+    border-radius: var(--lumiverse-radius-sm);
+    background: var(--lumiverse-secondary);
+    color: var(--lumiverse-text);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all var(--lumiverse-transition-fast);
+}
+
+.lumiverse-chatpresets-reasoning-buttons button:hover {
+    background: var(--lumiverse-primary-light);
+    border-color: var(--lumiverse-primary-muted);
+    color: var(--lumiverse-primary-text);
+}
+
+.lumiverse-chatpresets-reasoning-current {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    margin-bottom: 12px;
+    background: var(--lumiverse-bg-dark);
+    border-radius: var(--lumiverse-radius-sm);
+}
+
+.lumiverse-chatpresets-reasoning-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.lumiverse-chatpresets-reasoning-row label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--lumiverse-text);
+    cursor: pointer;
+}
+
+.lumiverse-chatpresets-reasoning-row input[type="checkbox"] {
+    accent-color: var(--lumiverse-primary);
+}
+
+.lumiverse-chatpresets-reasoning-tags {
+    font-size: 11px;
+    color: var(--lumiverse-text-muted);
+}
+
+.lumiverse-chatpresets-reasoning-tags code {
+    padding: 2px 5px;
+    background: var(--lumiverse-bg-darker);
+    border-radius: 3px;
+    font-family: var(--lumiverse-font-mono);
+    font-size: 10px;
+    color: var(--lumiverse-primary-text);
+}
+
+/* Start Reply With */
+.lumiverse-chatpresets-startreply {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.lumiverse-chatpresets-startreply-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--lumiverse-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.lumiverse-chatpresets-startreply-label svg {
+    color: var(--lumiverse-primary-text);
+}
+
+.lumiverse-chatpresets-startreply-input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--lumiverse-border);
+    border-radius: var(--lumiverse-radius-sm);
+    background: var(--lumiverse-bg-dark);
+    color: var(--lumiverse-text);
+    font-family: var(--lumiverse-font-mono);
+    font-size: 12px;
+    resize: vertical;
+    min-height: 48px;
+    transition: border-color var(--lumiverse-transition-fast);
+}
+
+.lumiverse-chatpresets-startreply-input:focus {
+    outline: none;
+    border-color: var(--lumiverse-primary-muted);
+}
+
+.lumiverse-chatpresets-startreply-input::placeholder {
+    color: var(--lumiverse-text-dim);
+}
+
+.lumiverse-chatpresets-startreply-quick {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.lumiverse-chatpresets-startreply-quick button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    border: 1px solid var(--lumiverse-border);
+    border-radius: var(--lumiverse-radius-sm);
+    background: var(--lumiverse-secondary);
+    color: var(--lumiverse-text-muted);
+    font-family: var(--lumiverse-font-mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all var(--lumiverse-transition-fast);
+}
+
+.lumiverse-chatpresets-startreply-quick button:hover {
+    background: var(--lumiverse-primary-light);
+    border-color: var(--lumiverse-primary-muted);
+    color: var(--lumiverse-primary-text);
+}
+
+/* Spin animation for loading */
+.lumiverse-spin {
+    animation: lumiverse-spin 1s linear infinite;
+}
+
+@keyframes lumiverse-spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}

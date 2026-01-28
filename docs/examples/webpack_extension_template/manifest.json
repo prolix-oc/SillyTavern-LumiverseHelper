@@ -1,0 +1,9 @@
+{
+    "name": "webpack_extension_demo",
+    "display_name": "Webpack Settings Manager",
+    "author": "Antigravity",
+    "version": "1.0.0",
+    "description": "Example using Webpack to inject settings.",
+    "js": "dist/index.js",
+    "loading_order": 1
+}
