@@ -10120,23 +10120,27 @@ details.lumia-panel[open] .lumia-panel-chevron {
     }
 }
 
+
 /* ========================================
-   CHAT PRESETS PANEL
+   CHAT PRESETS PANEL & MODAL
    Download presets from Lucid.cards + Reasoning/CoT settings
-   Refined visual design matching Lumia selection modal aesthetic
+   Modal-based design matching Lumia selection modal aesthetic
    ======================================== */
 
-.lumiverse-presets {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
 /* ============================================
-   PRESET BROWSER SECTION
+   TRIGGER BUTTON (in Settings Panel)
    ============================================ */
 
-.lumiverse-presets-browser {
+.lumiverse-presets-trigger {
+    width: 100%;
+}
+
+.lumiverse-presets-trigger-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 14px 16px;
     background: linear-gradient(
         165deg,
         rgba(28, 24, 38, 0.95),
@@ -10144,34 +10148,26 @@ details.lumia-panel[open] .lumia-panel-chevron {
         rgba(32, 28, 45, 0.95)
     );
     border: 1px solid rgba(147, 112, 219, 0.12);
-    border-radius: 16px;
-    overflow: hidden;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lumiverse-presets-trigger-btn:hover {
+    border-color: rgba(147, 112, 219, 0.3);
     box-shadow: 
-        0 2px 8px rgba(0, 0, 0, 0.15),
-        inset 0 1px 0 rgba(255, 255, 255, 0.03);
+        0 4px 16px rgba(0, 0, 0, 0.2),
+        0 0 0 1px rgba(147, 112, 219, 0.1);
+    transform: translateY(-1px);
 }
 
-/* Header */
-.lumiverse-presets-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 16px;
-    background: linear-gradient(
-        180deg,
-        rgba(147, 112, 219, 0.08) 0%,
-        transparent 100%
-    );
-    border-bottom: 1px solid rgba(147, 112, 219, 0.1);
-}
-
-.lumiverse-presets-header-left {
+.lumiverse-presets-trigger-left {
     display: flex;
     align-items: center;
     gap: 12px;
 }
 
-.lumiverse-presets-header-icon {
+.lumiverse-presets-trigger-icon {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -10181,46 +10177,257 @@ details.lumia-panel[open] .lumia-panel-chevron {
     border: 1px solid rgba(147, 112, 219, 0.25);
     border-radius: 10px;
     color: rgba(147, 112, 219, 0.9);
-    box-shadow: 0 2px 8px rgba(147, 112, 219, 0.15);
+    flex-shrink: 0;
 }
 
-.lumiverse-presets-header-text {
+.lumiverse-presets-trigger-text {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
+    text-align: left;
 }
 
-.lumiverse-presets-header-title {
-    font-size: 14px;
+.lumiverse-presets-trigger-title {
+    font-size: 13px;
     font-weight: 600;
     color: var(--lumiverse-text);
     letter-spacing: -0.01em;
 }
 
-.lumiverse-presets-header-subtitle {
+.lumiverse-presets-trigger-status {
     font-size: 11px;
+    color: var(--lumiverse-text-muted);
+    max-width: 280px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lumiverse-presets-trigger-arrow {
+    color: var(--lumiverse-text-dim);
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+}
+
+.lumiverse-presets-trigger-btn:hover .lumiverse-presets-trigger-arrow {
+    transform: translateX(2px);
+    color: rgba(147, 112, 219, 0.7);
+}
+
+/* ============================================
+   MODAL CONTAINER
+   ============================================ */
+
+.lumiverse-presets-modal {
+    width: 90vw;
+    max-width: 560px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(
+        165deg,
+        rgba(28, 24, 38, 0.98),
+        rgba(35, 30, 48, 0.98),
+        rgba(30, 26, 42, 0.98)
+    );
+    border: 1px solid rgba(147, 112, 219, 0.15);
+    border-radius: 20px;
+    box-shadow: 
+        0 24px 80px rgba(0, 0, 0, 0.5),
+        0 0 1px rgba(147, 112, 219, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+}
+
+/* Modal header */
+.lumiverse-presets-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px;
+    background: linear-gradient(
+        180deg,
+        rgba(147, 112, 219, 0.1) 0%,
+        transparent 100%
+    );
+    border-bottom: 1px solid rgba(147, 112, 219, 0.12);
+    flex-shrink: 0;
+}
+
+.lumiverse-presets-modal-header-info {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.lumiverse-presets-modal-header-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, rgba(147, 112, 219, 0.25), rgba(100, 149, 237, 0.2));
+    border: 1px solid rgba(147, 112, 219, 0.3);
+    border-radius: 12px;
+    color: rgba(147, 112, 219, 1);
+    box-shadow: 0 4px 12px rgba(147, 112, 219, 0.2);
+}
+
+.lumiverse-presets-modal-header-text {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.lumiverse-presets-modal-title {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--lumiverse-text);
+    letter-spacing: -0.02em;
+}
+
+.lumiverse-presets-modal-subtitle {
+    margin: 0;
+    font-size: 12px;
     color: var(--lumiverse-text-muted);
 }
 
+.lumiverse-presets-modal-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid rgba(128, 128, 128, 0.15);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--lumiverse-text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.lumiverse-presets-modal-close:hover {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: rgba(239, 68, 68, 0.95);
+}
+
+/* Modal content */
+.lumiverse-presets-modal-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.lumiverse-presets-modal-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.lumiverse-presets-modal-content::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+}
+
+.lumiverse-presets-modal-content::-webkit-scrollbar-thumb {
+    background: rgba(147, 112, 219, 0.3);
+    border-radius: 3px;
+}
+
+.lumiverse-presets-modal-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(147, 112, 219, 0.5);
+}
+
+/* Modal footer */
+.lumiverse-presets-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 14px 20px;
+    border-top: 1px solid rgba(147, 112, 219, 0.1);
+    background: rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
+}
+
+.lumiverse-presets-modal-btn {
+    padding: 10px 24px;
+    border: 1px solid rgba(128, 128, 128, 0.2);
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.lumiverse-presets-modal-btn--primary {
+    background: linear-gradient(135deg, rgba(147, 112, 219, 0.9), rgba(100, 149, 237, 0.8));
+    border-color: rgba(147, 112, 219, 0.5);
+    color: white;
+}
+
+.lumiverse-presets-modal-btn--primary:hover {
+    background: linear-gradient(135deg, rgba(147, 112, 219, 1), rgba(100, 149, 237, 0.9));
+    box-shadow: 0 4px 12px rgba(147, 112, 219, 0.3);
+    transform: translateY(-1px);
+}
+
+/* ============================================
+   SECTION CONTAINERS
+   ============================================ */
+
+.lumiverse-presets-section {
+    background: rgba(38, 32, 52, 0.5);
+    border: 1px solid rgba(128, 128, 128, 0.1);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.lumiverse-presets-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: rgba(0, 0, 0, 0.15);
+    border-bottom: 1px solid rgba(128, 128, 128, 0.08);
+}
+
+.lumiverse-presets-section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--lumiverse-text);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.lumiverse-presets-section-title svg {
+    color: rgba(147, 112, 219, 0.8);
+}
+
+/* Refresh button */
 .lumiverse-presets-refresh {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     border: 1px solid rgba(147, 112, 219, 0.2);
-    border-radius: 8px;
+    border-radius: 6px;
     background: rgba(147, 112, 219, 0.08);
     color: rgba(147, 112, 219, 0.8);
     cursor: pointer;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s ease;
 }
 
 .lumiverse-presets-refresh:hover:not(:disabled) {
     background: rgba(147, 112, 219, 0.18);
     border-color: rgba(147, 112, 219, 0.35);
     color: rgba(147, 112, 219, 1);
-    transform: scale(1.05);
 }
 
 .lumiverse-presets-refresh:disabled {
@@ -10232,30 +10439,33 @@ details.lumia-panel[open] .lumia-panel-chevron {
     animation: lumiverse-spin 0.8s linear infinite;
 }
 
-/* Empty state */
+/* ============================================
+   EMPTY / LOADING / ERROR STATES
+   ============================================ */
+
 .lumiverse-presets-empty {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 12px;
-    padding: 40px 20px;
+    padding: 32px 20px;
 }
 
 .lumiverse-presets-empty-icon {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 64px;
-    height: 64px;
+    width: 56px;
+    height: 56px;
     background: linear-gradient(135deg, rgba(147, 112, 219, 0.1), rgba(100, 149, 237, 0.08));
     border: 1px dashed rgba(147, 112, 219, 0.25);
-    border-radius: 16px;
+    border-radius: 14px;
     color: rgba(147, 112, 219, 0.5);
 }
 
 .lumiverse-presets-empty-text {
-    font-size: 13px;
+    font-size: 12px;
     color: var(--lumiverse-text-muted);
     text-align: center;
 }
@@ -10264,42 +10474,40 @@ details.lumia-panel[open] .lumia-panel-chevron {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 20px;
+    padding: 9px 18px;
     background: linear-gradient(135deg, rgba(147, 112, 219, 0.2), rgba(100, 149, 237, 0.15));
     border: 1px solid rgba(147, 112, 219, 0.3);
-    border-radius: 10px;
+    border-radius: 8px;
     color: rgba(147, 112, 219, 0.95);
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s ease;
 }
 
 .lumiverse-presets-empty-btn:hover {
     background: linear-gradient(135deg, rgba(147, 112, 219, 0.3), rgba(100, 149, 237, 0.25));
     border-color: rgba(147, 112, 219, 0.5);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(147, 112, 219, 0.2);
+    transform: translateY(-1px);
 }
 
-/* Loading state */
 .lumiverse-presets-loading {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 12px;
-    padding: 40px 20px;
+    padding: 32px 20px;
     color: var(--lumiverse-text-muted);
-    font-size: 13px;
+    font-size: 12px;
 }
 
 .lumiverse-presets-loading-spinner {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
+    width: 44px;
+    height: 44px;
     background: rgba(147, 112, 219, 0.1);
     border-radius: 50%;
     color: rgba(147, 112, 219, 0.8);
@@ -10309,27 +10517,26 @@ details.lumia-panel[open] .lumia-panel-chevron {
     animation: lumiverse-spin 0.8s linear infinite;
 }
 
-/* Error state */
 .lumiverse-presets-error {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 10px;
-    padding: 32px 20px;
+    padding: 28px 20px;
     color: rgba(239, 68, 68, 0.9);
-    font-size: 13px;
+    font-size: 12px;
     text-align: center;
 }
 
 .lumiverse-presets-error button {
     margin-top: 4px;
-    padding: 8px 16px;
+    padding: 7px 14px;
     border: 1px solid rgba(239, 68, 68, 0.4);
-    border-radius: 8px;
+    border-radius: 6px;
     background: rgba(239, 68, 68, 0.15);
     color: rgba(239, 68, 68, 0.95);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -10340,79 +10547,76 @@ details.lumia-panel[open] .lumia-panel-chevron {
     border-color: rgba(239, 68, 68, 0.6);
 }
 
-/* Preset list */
+/* ============================================
+   PRESET LIST & CARDS
+   ============================================ */
+
 .lumiverse-presets-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 12px;
-    max-height: 340px;
+    gap: 6px;
+    padding: 10px;
+    max-height: 280px;
     overflow-y: auto;
 }
 
 .lumiverse-presets-list::-webkit-scrollbar {
-    width: 6px;
+    width: 4px;
 }
 
 .lumiverse-presets-list::-webkit-scrollbar-track {
     background: rgba(0, 0, 0, 0.1);
-    border-radius: 3px;
+    border-radius: 2px;
 }
 
 .lumiverse-presets-list::-webkit-scrollbar-thumb {
-    background: rgba(147, 112, 219, 0.3);
-    border-radius: 3px;
+    background: rgba(147, 112, 219, 0.25);
+    border-radius: 2px;
 }
 
-.lumiverse-presets-list::-webkit-scrollbar-thumb:hover {
-    background: rgba(147, 112, 219, 0.5);
-}
-
-/* ============================================
-   PRESET CARDS
-   ============================================ */
-
+/* Preset card */
 .lumiverse-preset-card {
-    background: linear-gradient(
-        165deg,
-        rgba(38, 32, 52, 0.8),
-        rgba(45, 38, 62, 0.7),
-        rgba(40, 34, 55, 0.8)
-    );
-    border: 1px solid rgba(128, 128, 128, 0.12);
-    border-radius: 12px;
+    background: rgba(45, 38, 60, 0.6);
+    border: 1px solid rgba(128, 128, 128, 0.1);
+    border-radius: 10px;
     overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    animation: lumiverse-preset-card-appear 0.25s ease-out backwards;
+    animation-delay: var(--card-delay, 0ms);
+}
+
+@keyframes lumiverse-preset-card-appear {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .lumiverse-preset-card:hover {
     border-color: rgba(147, 112, 219, 0.25);
-    box-shadow: 
-        0 4px 16px rgba(0, 0, 0, 0.2),
-        0 0 0 1px rgba(147, 112, 219, 0.1);
-    transform: translateY(-2px);
 }
 
 .lumiverse-preset-card.is-expanded {
     border-color: rgba(100, 149, 237, 0.35);
-    box-shadow: 
-        0 6px 24px rgba(0, 0, 0, 0.25),
-        0 0 0 1px rgba(100, 149, 237, 0.15),
-        inset 0 0 20px rgba(100, 149, 237, 0.03);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
 }
 
 /* Card header */
 .lumiverse-preset-card-header {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     width: 100%;
-    padding: 12px 14px;
+    padding: 10px 12px;
     border: none;
     background: transparent;
     cursor: pointer;
     text-align: left;
-    transition: background 0.2s ease;
+    transition: background 0.15s ease;
 }
 
 .lumiverse-preset-card-header:hover {
@@ -10423,20 +10627,13 @@ details.lumia-panel[open] .lumia-panel-chevron {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     background: linear-gradient(135deg, rgba(100, 149, 237, 0.15), rgba(147, 112, 219, 0.1));
     border: 1px solid rgba(100, 149, 237, 0.2);
-    border-radius: 9px;
+    border-radius: 7px;
     color: rgba(100, 149, 237, 0.85);
     flex-shrink: 0;
-    transition: all 0.25s ease;
-}
-
-.lumiverse-preset-card:hover .lumiverse-preset-card-icon {
-    background: linear-gradient(135deg, rgba(100, 149, 237, 0.22), rgba(147, 112, 219, 0.15));
-    border-color: rgba(100, 149, 237, 0.35);
-    color: rgba(100, 149, 237, 1);
 }
 
 .lumiverse-preset-card-info {
@@ -10444,24 +10641,23 @@ details.lumia-panel[open] .lumia-panel-chevron {
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 2px;
 }
 
 .lumiverse-preset-card-name {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--lumiverse-text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    letter-spacing: -0.01em;
 }
 
 .lumiverse-preset-card-meta {
     display: flex;
     align-items: center;
     gap: 4px;
-    font-size: 11px;
+    font-size: 10px;
     color: var(--lumiverse-text-dim);
 }
 
@@ -10472,7 +10668,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
 .lumiverse-preset-card-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     flex-shrink: 0;
 }
 
@@ -10480,22 +10676,20 @@ details.lumia-panel[open] .lumia-panel-chevron {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     border: 1px solid rgba(100, 149, 237, 0.25);
-    border-radius: 8px;
+    border-radius: 6px;
     background: rgba(100, 149, 237, 0.12);
     color: rgba(100, 149, 237, 0.85);
     cursor: pointer;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s ease;
 }
 
 .lumiverse-preset-card-download:hover:not(:disabled) {
     background: rgba(100, 149, 237, 0.25);
     border-color: rgba(100, 149, 237, 0.45);
     color: rgba(100, 149, 237, 1);
-    transform: scale(1.08);
-    box-shadow: 0 2px 10px rgba(100, 149, 237, 0.25);
 }
 
 .lumiverse-preset-card-download:disabled {
@@ -10505,7 +10699,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
 .lumiverse-preset-card-chevron {
     color: var(--lumiverse-text-dim);
-    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.2s ease;
 }
 
 .lumiverse-preset-card.is-expanded .lumiverse-preset-card-chevron {
@@ -10513,18 +10707,30 @@ details.lumia-panel[open] .lumia-panel-chevron {
     color: rgba(100, 149, 237, 0.8);
 }
 
-/* Version list */
+/* Version list - CSS grid collapse to avoid layout thrashing */
 .lumiverse-preset-card-versions {
-    overflow: hidden;
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.2s ease;
+}
+
+.lumiverse-preset-card-versions.is-expanded {
+    grid-template-rows: 1fr;
 }
 
 .lumiverse-preset-card-versions-inner {
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    padding: 8px 12px 12px;
-    background: rgba(0, 0, 0, 0.15);
-    border-top: 1px solid rgba(100, 149, 237, 0.1);
+    gap: 4px;
+    padding: 0;
+    background: rgba(0, 0, 0, 0.12);
+    border-top: 1px solid transparent;
+}
+
+.lumiverse-preset-card-versions.is-expanded .lumiverse-preset-card-versions-inner {
+    padding: 8px 10px 10px;
+    border-top-color: rgba(100, 149, 237, 0.1);
 }
 
 /* Version items */
@@ -10532,38 +10738,38 @@ details.lumia-panel[open] .lumia-panel-chevron {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 12px;
+    padding: 8px 10px;
     background: rgba(38, 32, 52, 0.6);
-    border: 1px solid rgba(128, 128, 128, 0.1);
-    border-radius: 8px;
-    transition: all 0.2s ease;
+    border: 1px solid rgba(128, 128, 128, 0.08);
+    border-radius: 6px;
+    transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .lumiverse-preset-version:hover {
     background: rgba(45, 38, 60, 0.8);
-    border-color: rgba(147, 112, 219, 0.2);
+    border-color: rgba(147, 112, 219, 0.15);
 }
 
 .lumiverse-preset-version.is-latest {
     background: linear-gradient(135deg, rgba(100, 149, 237, 0.08), rgba(147, 112, 219, 0.05));
-    border-color: rgba(100, 149, 237, 0.2);
+    border-color: rgba(100, 149, 237, 0.15);
 }
 
 .lumiverse-preset-version.is-prolix {
     background: linear-gradient(135deg, rgba(249, 115, 22, 0.08), rgba(234, 88, 12, 0.05));
-    border-color: rgba(249, 115, 22, 0.2);
+    border-color: rgba(249, 115, 22, 0.15);
 }
 
 .lumiverse-preset-version-info {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     flex: 1;
     min-width: 0;
 }
 
 .lumiverse-preset-version-name {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
     color: var(--lumiverse-text-muted);
     white-space: nowrap;
@@ -10573,17 +10779,17 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
 .lumiverse-preset-version-badges {
     display: flex;
-    gap: 5px;
+    gap: 4px;
     flex-shrink: 0;
 }
 
 .lumiverse-preset-version-badge {
-    padding: 3px 7px;
-    border-radius: 5px;
+    padding: 2px 6px;
+    border-radius: 4px;
     font-size: 9px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
 }
 
 .lumiverse-preset-version-badge.is-latest {
@@ -10599,16 +10805,16 @@ details.lumia-panel[open] .lumia-panel-chevron {
 .lumiverse-preset-version-download {
     display: flex;
     align-items: center;
-    gap: 5px;
-    padding: 6px 10px;
+    gap: 4px;
+    padding: 5px 9px;
     border: 1px solid rgba(147, 112, 219, 0.2);
-    border-radius: 6px;
+    border-radius: 5px;
     background: rgba(147, 112, 219, 0.1);
     color: rgba(147, 112, 219, 0.85);
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
     flex-shrink: 0;
 }
 
@@ -10624,92 +10830,21 @@ details.lumia-panel[open] .lumia-panel-chevron {
 }
 
 /* ============================================
-   REASONING / COT SECTION
+   REASONING SECTION
    ============================================ */
 
-.lumiverse-presets-reasoning-section {
-    background: linear-gradient(
-        165deg,
-        rgba(28, 24, 38, 0.95),
-        rgba(38, 32, 52, 0.9),
-        rgba(32, 28, 45, 0.95)
-    );
-    border: 1px solid rgba(147, 112, 219, 0.12);
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 
-        0 2px 8px rgba(0, 0, 0, 0.15),
-        inset 0 1px 0 rgba(255, 255, 255, 0.03);
-}
-
-.lumiverse-presets-reasoning-trigger {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    padding: 14px 16px;
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    transition: background 0.2s ease;
-}
-
-.lumiverse-presets-reasoning-trigger:hover {
-    background: rgba(255, 255, 255, 0.02);
-}
-
-.lumiverse-presets-reasoning-trigger-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.lumiverse-presets-reasoning-trigger-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    background: linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(147, 112, 219, 0.1));
-    border: 1px solid rgba(236, 72, 153, 0.2);
-    border-radius: 8px;
-    color: rgba(236, 72, 153, 0.85);
-}
-
-.lumiverse-presets-reasoning-trigger span {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--lumiverse-text);
-}
-
-.lumiverse-presets-reasoning-chevron {
-    color: var(--lumiverse-text-dim);
-    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.lumiverse-presets-reasoning-trigger.is-expanded .lumiverse-presets-reasoning-chevron {
-    transform: rotate(180deg);
-    color: rgba(236, 72, 153, 0.8);
-}
-
-.lumiverse-presets-reasoning-content {
-    overflow: hidden;
-}
-
-.lumiverse-presets-reasoning-inner {
-    padding: 16px;
+.lumiverse-presets-reasoning {
+    padding: 14px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    background: rgba(0, 0, 0, 0.12);
-    border-top: 1px solid rgba(147, 112, 219, 0.08);
+    gap: 14px;
 }
 
 /* Quick presets */
 .lumiverse-presets-reasoning-quick {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
 }
 
 .lumiverse-presets-reasoning-label {
@@ -10720,7 +10855,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     font-weight: 600;
     color: var(--lumiverse-text-dim);
     text-transform: uppercase;
-    letter-spacing: 0.8px;
+    letter-spacing: 0.6px;
 }
 
 .lumiverse-presets-reasoning-label svg {
@@ -10729,7 +10864,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
 .lumiverse-presets-reasoning-btns {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     flex-wrap: wrap;
 }
 
@@ -10737,24 +10872,23 @@ details.lumia-panel[open] .lumia-panel-chevron {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-    padding: 10px 16px;
-    border: 1px solid rgba(128, 128, 128, 0.15);
-    border-radius: 10px;
-    background: rgba(38, 32, 52, 0.7);
+    gap: 3px;
+    padding: 9px 14px;
+    border: 1px solid rgba(128, 128, 128, 0.12);
+    border-radius: 8px;
+    background: rgba(38, 32, 52, 0.6);
     cursor: pointer;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s ease;
     flex: 1;
-    min-width: 90px;
+    min-width: 80px;
 }
 
 .lumiverse-presets-reasoning-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    transform: translateY(-1px);
 }
 
 .lumiverse-presets-reasoning-btn-label {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--lumiverse-text);
 }
@@ -10768,13 +10902,13 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
 /* DeepSeek variant */
 .lumiverse-presets-reasoning-btn--deepseek {
-    border-color: rgba(52, 152, 219, 0.25);
-    background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(41, 128, 185, 0.08));
+    border-color: rgba(52, 152, 219, 0.2);
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.08), rgba(41, 128, 185, 0.05));
 }
 
 .lumiverse-presets-reasoning-btn--deepseek:hover {
-    border-color: rgba(52, 152, 219, 0.45);
-    background: linear-gradient(135deg, rgba(52, 152, 219, 0.18), rgba(41, 128, 185, 0.12));
+    border-color: rgba(52, 152, 219, 0.4);
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.15), rgba(41, 128, 185, 0.1));
 }
 
 .lumiverse-presets-reasoning-btn--deepseek .lumiverse-presets-reasoning-btn-label {
@@ -10783,13 +10917,13 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
 /* Claude variant */
 .lumiverse-presets-reasoning-btn--claude {
-    border-color: rgba(217, 119, 87, 0.25);
-    background: linear-gradient(135deg, rgba(217, 119, 87, 0.1), rgba(193, 95, 63, 0.08));
+    border-color: rgba(217, 119, 87, 0.2);
+    background: linear-gradient(135deg, rgba(217, 119, 87, 0.08), rgba(193, 95, 63, 0.05));
 }
 
 .lumiverse-presets-reasoning-btn--claude:hover {
-    border-color: rgba(217, 119, 87, 0.45);
-    background: linear-gradient(135deg, rgba(217, 119, 87, 0.18), rgba(193, 95, 63, 0.12));
+    border-color: rgba(217, 119, 87, 0.4);
+    background: linear-gradient(135deg, rgba(217, 119, 87, 0.15), rgba(193, 95, 63, 0.1));
 }
 
 .lumiverse-presets-reasoning-btn--claude .lumiverse-presets-reasoning-btn-label {
@@ -10798,13 +10932,13 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
 /* o1 variant */
 .lumiverse-presets-reasoning-btn--o1 {
-    border-color: rgba(16, 163, 127, 0.25);
-    background: linear-gradient(135deg, rgba(16, 163, 127, 0.1), rgba(13, 138, 107, 0.08));
+    border-color: rgba(16, 163, 127, 0.2);
+    background: linear-gradient(135deg, rgba(16, 163, 127, 0.08), rgba(13, 138, 107, 0.05));
 }
 
 .lumiverse-presets-reasoning-btn--o1:hover {
-    border-color: rgba(16, 163, 127, 0.45);
-    background: linear-gradient(135deg, rgba(16, 163, 127, 0.18), rgba(13, 138, 107, 0.12));
+    border-color: rgba(16, 163, 127, 0.4);
+    background: linear-gradient(135deg, rgba(16, 163, 127, 0.15), rgba(13, 138, 107, 0.1));
 }
 
 .lumiverse-presets-reasoning-btn--o1 .lumiverse-presets-reasoning-btn-label {
@@ -10815,11 +10949,11 @@ details.lumia-panel[open] .lumia-panel-chevron {
 .lumiverse-presets-reasoning-current {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding: 12px;
-    background: rgba(38, 32, 52, 0.5);
-    border: 1px solid rgba(128, 128, 128, 0.1);
-    border-radius: 10px;
+    gap: 8px;
+    padding: 10px 12px;
+    background: rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(128, 128, 128, 0.08);
+    border-radius: 8px;
 }
 
 .lumiverse-presets-reasoning-row {
@@ -10834,6 +10968,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     cursor: pointer;
     font-size: 12px;
     color: var(--lumiverse-text);
+    position: relative;
 }
 
 .lumiverse-presets-reasoning-checkbox input[type="checkbox"] {
@@ -10848,8 +10983,9 @@ details.lumia-panel[open] .lumia-panel-chevron {
     background: rgba(28, 24, 38, 0.8);
     border: 1px solid rgba(147, 112, 219, 0.3);
     border-radius: 4px;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
     position: relative;
+    flex-shrink: 0;
 }
 
 .lumiverse-presets-reasoning-checkbox input:checked ~ .lumiverse-presets-reasoning-checkmark {
@@ -10868,7 +11004,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     border-width: 0 2px 2px 0;
     transform: rotate(45deg);
     opacity: 0;
-    transition: opacity 0.2s ease;
+    transition: opacity 0.15s ease;
 }
 
 .lumiverse-presets-reasoning-checkbox input:checked ~ .lumiverse-presets-reasoning-checkmark::after {
@@ -10888,9 +11024,9 @@ details.lumia-panel[open] .lumia-panel-chevron {
 }
 
 .lumiverse-presets-reasoning-tags code {
-    padding: 3px 6px;
-    background: rgba(0, 0, 0, 0.25);
-    border-radius: 4px;
+    padding: 2px 5px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
     font-family: var(--lumiverse-font-mono);
     font-size: 10px;
     color: rgba(147, 112, 219, 0.9);
@@ -10915,7 +11051,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     font-weight: 600;
     color: var(--lumiverse-text-dim);
     text-transform: uppercase;
-    letter-spacing: 0.8px;
+    letter-spacing: 0.6px;
 }
 
 .lumiverse-presets-startreply-label svg {
@@ -10929,21 +11065,21 @@ details.lumia-panel[open] .lumia-panel-chevron {
 .lumiverse-presets-startreply-input {
     width: 100%;
     padding: 10px 12px;
-    border: 1px solid rgba(128, 128, 128, 0.15);
-    border-radius: 10px;
-    background: rgba(28, 24, 38, 0.8);
+    border: 1px solid rgba(128, 128, 128, 0.12);
+    border-radius: 8px;
+    background: rgba(28, 24, 38, 0.7);
     color: var(--lumiverse-text);
     font-family: var(--lumiverse-font-mono);
     font-size: 12px;
     resize: vertical;
-    min-height: 56px;
-    transition: all 0.2s ease;
+    min-height: 52px;
+    transition: all 0.15s ease;
 }
 
 .lumiverse-presets-startreply-input:focus {
     outline: none;
     border-color: rgba(250, 204, 21, 0.35);
-    box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.08);
+    box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.08);
 }
 
 .lumiverse-presets-startreply-input::placeholder {
@@ -10952,20 +11088,20 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
 .lumiverse-presets-startreply-quick {
     display: flex;
-    gap: 6px;
+    gap: 5px;
     flex-wrap: wrap;
 }
 
 .lumiverse-presets-startreply-btn {
-    padding: 6px 12px;
-    border: 1px solid rgba(128, 128, 128, 0.15);
-    border-radius: 6px;
-    background: rgba(38, 32, 52, 0.6);
+    padding: 5px 10px;
+    border: 1px solid rgba(128, 128, 128, 0.12);
+    border-radius: 5px;
+    background: rgba(38, 32, 52, 0.5);
     color: var(--lumiverse-text-muted);
     font-family: var(--lumiverse-font-mono);
-    font-size: 11px;
+    font-size: 10px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
 }
 
 .lumiverse-presets-startreply-btn:hover {
@@ -10978,7 +11114,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 6px 10px;
+    padding: 5px 8px;
     color: var(--lumiverse-text-dim);
 }
 
@@ -10986,18 +11122,4 @@ details.lumia-panel[open] .lumia-panel-chevron {
     background: rgba(239, 68, 68, 0.15);
     border-color: rgba(239, 68, 68, 0.3);
     color: rgba(239, 68, 68, 0.95);
-}
-
-/* Spin animation for loading */
-.lumiverse-spin {
-    animation: lumiverse-spin 1s linear infinite;
-}
-
-@keyframes lumiverse-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
 }
