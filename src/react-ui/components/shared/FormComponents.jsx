@@ -286,7 +286,8 @@ export function ImageInput({ value, onChange, placeholder, className }) {
                                 width: '100%', 
                                 height: '100%', 
                                 objectFit: 'cover',
-                                objectPosition 
+                                objectPosition,
+                                animation: 'lumiverseFadeIn 0.2s ease'
                             }}
                             onError={() => setPreviewError(true)}
                         />

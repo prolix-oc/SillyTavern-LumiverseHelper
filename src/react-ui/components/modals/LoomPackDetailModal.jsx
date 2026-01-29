@@ -102,6 +102,7 @@ const styles = {
         width: '100%',
         height: '100%',
         objectFit: 'cover',
+        animation: 'lumiverseFadeIn 0.2s ease',
     },
     headerText: {
         flex: 1,

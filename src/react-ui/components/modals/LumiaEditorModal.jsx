@@ -331,7 +331,7 @@ function AvatarPreview({ url }) {
             <img
                 src={url}
                 alt="Avatar"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition }}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition, animation: 'lumiverseFadeIn 0.2s ease' }}
                 onError={() => setHasError(true)}
             />
         </div>
