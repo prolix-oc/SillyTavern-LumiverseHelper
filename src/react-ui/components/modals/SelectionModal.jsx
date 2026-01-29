@@ -7,7 +7,10 @@ import {
     saveToExtension,
 } from '../../store/LumiverseContext';
 import { useAdaptiveImagePosition } from '../../hooks/useAdaptiveImagePosition';
-import clsx from 'clsx';
+import { 
+    Star, Check, Trash2, XCircle, ChevronDown, ChevronUp, 
+    Pencil, Folder, User, Wrench, PieChart, ArrowDownAZ, Sparkles 
+} from 'lucide-react';
 
 // Get store for direct state access
 const store = useLumiverseStore;
@@ -19,37 +22,315 @@ const EMPTY_ARRAY = [];
 const selectChimeraMode = () => store.getState().chimeraMode || false;
 const selectSelectedDefinitions = () => store.getState().selectedDefinitions || EMPTY_ARRAY;
 
-// SVG icons matching the old design exactly
-const SVG_ICONS = {
-    star: `<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`,
-    check: `<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>`,
-    trash: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`,
-    clear: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`,
-    chevron: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`,
-    chevronDown: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`,
-    chevronUp: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>`,
-    edit: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`,
-    folder: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>`,
-    definition: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`,
-    behavior: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>`,
-    personality: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10H12V2z"></path><path d="M12 2a10 10 0 0 1 10 10"></path><circle cx="12" cy="12" r="6"></circle></svg>`,
-    sort: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="14" y2="6"></line><line x1="4" y1="12" x2="11" y2="12"></line><line x1="4" y1="18" x2="8" y2="18"></line><polyline points="15 15 18 18 21 15"></polyline><line x1="18" y1="9" x2="18" y2="18"></line></svg>`,
-    sparkles: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>`,
-};
-
 /**
- * Render SVG icon from string
+ * Self-contained styles matching the new modal design pattern
  */
-function Icon({ name, className }) {
-    const svg = SVG_ICONS[name];
-    if (!svg) return null;
-    return (
-        <span
-            className={className}
-            dangerouslySetInnerHTML={{ __html: svg }}
-        />
-    );
-}
+const styles = {
+    layout: {
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        maxHeight: '100%',
+        minHeight: 0,
+    },
+    header: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        padding: '16px 20px',
+        borderBottom: '1px solid var(--lumiverse-border, rgba(255, 255, 255, 0.1))',
+        flexShrink: 0,
+    },
+    headerIcon: {
+        width: '40px',
+        height: '40px',
+        borderRadius: '10px',
+        background: 'linear-gradient(135deg, rgba(147, 112, 219, 0.2), rgba(147, 112, 219, 0.1))',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'var(--lumiverse-primary, #9370db)',
+    },
+    headerText: {
+        flex: 1,
+    },
+    title: {
+        margin: 0,
+        fontSize: '16px',
+        fontWeight: 600,
+        color: 'var(--lumiverse-text, #e0e0e0)',
+    },
+    subtitle: {
+        margin: '4px 0 0',
+        fontSize: '12px',
+        color: 'var(--lumiverse-text-muted, #999)',
+    },
+    clearBtn: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        padding: '8px 12px',
+        fontSize: '12px',
+        fontWeight: 500,
+        borderRadius: '6px',
+        border: '1px solid rgba(239, 68, 68, 0.3)',
+        background: 'rgba(239, 68, 68, 0.1)',
+        color: '#ef4444',
+        cursor: 'pointer',
+        transition: 'all 0.15s ease',
+    },
+    controls: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '10px 20px',
+        background: 'rgba(0, 0, 0, 0.15)',
+        borderBottom: '1px solid var(--lumiverse-border, rgba(255, 255, 255, 0.1))',
+        flexShrink: 0,
+    },
+    controlsGroup: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+    },
+    controlBtn: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+        padding: '6px 10px',
+        fontSize: '11px',
+        fontWeight: 500,
+        borderRadius: '6px',
+        border: 'none',
+        background: 'rgba(0, 0, 0, 0.2)',
+        color: 'var(--lumiverse-text-muted, #999)',
+        cursor: 'pointer',
+        transition: 'all 0.15s ease',
+    },
+    sortContainer: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        fontSize: '11px',
+        color: 'var(--lumiverse-text-muted, #999)',
+    },
+    select: {
+        padding: '5px 24px 5px 8px',
+        fontSize: '11px',
+        borderRadius: '6px',
+        border: '1px solid var(--lumiverse-border, rgba(255, 255, 255, 0.1))',
+        background: 'rgba(0, 0, 0, 0.3)',
+        color: 'var(--lumiverse-text, #e0e0e0)',
+        cursor: 'pointer',
+        appearance: 'none',
+        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'right 6px center',
+    },
+    scrollArea: {
+        flex: '1 1 auto',
+        minHeight: 0,
+        overflowY: 'auto',
+        padding: '12px 20px',
+    },
+    empty: {
+        textAlign: 'center',
+        padding: '40px 20px',
+        color: 'var(--lumiverse-text-muted, #999)',
+        fontSize: '14px',
+    },
+    packSection: {
+        marginBottom: '16px',
+        border: '1px solid var(--lumiverse-border, rgba(255, 255, 255, 0.1))',
+        borderRadius: '10px',
+        overflow: 'hidden',
+    },
+    packHeader: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        padding: '10px 12px',
+        background: 'rgba(0, 0, 0, 0.2)',
+        cursor: 'pointer',
+        transition: 'background 0.15s ease',
+        width: '100%',
+        border: 'none',
+        color: 'inherit',
+        textAlign: 'left',
+        fontFamily: 'inherit',
+    },
+    packCollapseIcon: {
+        color: 'var(--lumiverse-text-muted, #999)',
+        transition: 'transform 0.2s ease',
+    },
+    packFolderIcon: {
+        color: 'var(--lumiverse-primary, #9370db)',
+    },
+    packTitle: {
+        flex: 1,
+        fontSize: '13px',
+        fontWeight: 500,
+        color: 'var(--lumiverse-text, #e0e0e0)',
+    },
+    packBadge: {
+        fontSize: '10px',
+        padding: '2px 6px',
+        borderRadius: '4px',
+        background: 'rgba(147, 112, 219, 0.2)',
+        color: 'var(--lumiverse-primary, #9370db)',
+    },
+    packCount: {
+        fontSize: '11px',
+        color: 'var(--lumiverse-text-muted, #999)',
+    },
+    packRemoveBtn: {
+        width: '24px',
+        height: '24px',
+        borderRadius: '6px',
+        border: 'none',
+        background: 'transparent',
+        color: 'var(--lumiverse-text-muted, #999)',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        transition: 'all 0.15s ease',
+    },
+    cardGrid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+        gap: '10px',
+        padding: '12px',
+    },
+    card: {
+        position: 'relative',
+        borderRadius: '10px',
+        overflow: 'hidden',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        border: '2px solid transparent',
+        background: 'rgba(0, 0, 0, 0.2)',
+    },
+    cardSelected: {
+        borderColor: 'var(--lumiverse-primary, #9370db)',
+        boxShadow: '0 0 0 1px var(--lumiverse-primary, #9370db)',
+    },
+    cardImage: {
+        position: 'relative',
+        aspectRatio: '1',
+        background: 'rgba(0, 0, 0, 0.3)',
+    },
+    cardImg: {
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover',
+    },
+    cardPlaceholder: {
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '24px',
+        color: 'var(--lumiverse-text-muted, #999)',
+        background: 'linear-gradient(135deg, rgba(147, 112, 219, 0.1), rgba(147, 112, 219, 0.05))',
+    },
+    cardCheck: {
+        position: 'absolute',
+        top: '6px',
+        right: '6px',
+        width: '22px',
+        height: '22px',
+        borderRadius: '50%',
+        background: 'var(--lumiverse-primary, #9370db)',
+        color: '#fff',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        opacity: 0,
+        transform: 'scale(0.8)',
+        transition: 'all 0.15s ease',
+    },
+    cardCheckVisible: {
+        opacity: 1,
+        transform: 'scale(1)',
+    },
+    cardIconOverlay: {
+        position: 'absolute',
+        width: '26px',
+        height: '26px',
+        borderRadius: '6px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+        transition: 'all 0.15s ease',
+    },
+    cardDominant: {
+        top: '6px',
+        left: '6px',
+        background: 'rgba(0, 0, 0, 0.6)',
+        color: 'var(--lumiverse-text-muted, #999)',
+    },
+    cardDominantActive: {
+        background: 'rgba(255, 193, 7, 0.9)',
+        color: '#fff',
+    },
+    cardEnableAll: {
+        bottom: '6px',
+        left: '6px',
+        background: 'rgba(0, 0, 0, 0.6)',
+        color: 'var(--lumiverse-text-muted, #999)',
+    },
+    cardEnableAllActive: {
+        background: 'rgba(147, 112, 219, 0.9)',
+        color: '#fff',
+    },
+    cardEdit: {
+        bottom: '6px',
+        right: '6px',
+        background: 'rgba(0, 0, 0, 0.6)',
+        color: 'var(--lumiverse-text-muted, #999)',
+    },
+    cardInfo: {
+        padding: '8px 10px',
+    },
+    cardName: {
+        fontSize: '11px',
+        fontWeight: 500,
+        color: 'var(--lumiverse-text, #e0e0e0)',
+        textAlign: 'center',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+    },
+    footer: {
+        display: 'flex',
+        justifyContent: 'flex-end',
+        gap: '8px',
+        padding: '12px 20px',
+        borderTop: '1px solid var(--lumiverse-border, rgba(255, 255, 255, 0.1))',
+        flexShrink: 0,
+    },
+    btn: {
+        padding: '10px 16px',
+        fontSize: '13px',
+        fontWeight: 500,
+        borderRadius: '8px',
+        border: 'none',
+        cursor: 'pointer',
+        transition: 'all 0.15s ease',
+    },
+    btnSecondary: {
+        background: 'rgba(0, 0, 0, 0.3)',
+        color: 'var(--lumiverse-text, #e0e0e0)',
+        border: '1px solid var(--lumiverse-border, rgba(255, 255, 255, 0.1))',
+    },
+    btnPrimary: {
+        background: 'var(--lumiverse-primary, #9370db)',
+        color: '#fff',
+    },
+};
 
 /**
  * Get a Lumia field with fallback for old/new format
@@ -86,7 +367,7 @@ function hasMultipleContentTypes(item) {
 }
 
 /**
- * Individual card component matching old design
+ * Individual card component
  */
 function LumiaCard({
     item,
@@ -119,10 +400,8 @@ function LumiaCard({
     const { objectPosition } = useAdaptiveImagePosition(imgToShow);
 
     const handleCardClick = (e) => {
-        // Don't trigger if clicking dominant icon, edit button, or enable-all button
-        if (e.target.closest('.lumia-dominant-icon')) return;
-        if (e.target.closest('.lumia-edit-icon')) return;
-        if (e.target.closest('.lumia-enable-all-icon')) return;
+        // Don't trigger if clicking action icons
+        if (e.target.closest('[data-action]')) return;
         onSelect(item);
     };
 
@@ -138,88 +417,92 @@ function LumiaCard({
 
     const handleEnableAllClick = (e) => {
         e.stopPropagation();
-        const enabled = actions.toggleAllTraitsForLumia(packName, displayName);
+        actions.toggleAllTraitsForLumia(packName, displayName);
         saveToExtension();
     };
 
-    // Staggered animation delay
-    const animationDelay = Math.min(animationIndex * 30, 300);
-
     return (
         <div
-            className={clsx(
-                'lumia-card',
-                'lumia-card-appear',
-                isDefinition && 'definition-card',
-                isSelected && 'selected'
-            )}
-            style={{ animationDelay: `${animationDelay}ms` }}
+            style={{
+                ...styles.card,
+                ...(isSelected ? styles.cardSelected : {}),
+            }}
             onClick={handleCardClick}
             data-pack={packName}
             data-item={displayName}
         >
-            <div className="lumia-card-image">
+            <div style={styles.cardImage}>
                 {imgToShow && !imageError ? (
-                    <>
-                        <img
-                            src={imgToShow}
-                            alt={displayName}
-                            loading="lazy"
-                            className={imageLoaded ? 'lumia-img-loaded' : ''}
-                            style={{ objectPosition }}
-                            onLoad={() => setImageLoaded(true)}
-                            onError={() => setImageError(true)}
-                        />
-                        {!imageLoaded && <div className="lumia-img-spinner" />}
-                    </>
+                    <img
+                        src={imgToShow}
+                        alt={displayName}
+                        loading="lazy"
+                        style={{ ...styles.cardImg, objectPosition, opacity: imageLoaded ? 1 : 0 }}
+                        onLoad={() => setImageLoaded(true)}
+                        onError={() => setImageError(true)}
+                    />
                 ) : (
-                    <div className="lumia-card-placeholder">?</div>
+                    <div style={styles.cardPlaceholder}>?</div>
                 )}
 
                 {/* Enable All Icon - shows when item has multiple content types */}
                 {showEnableAll && (
                     <div
-                        className={clsx('lumia-enable-all-icon', isAllEnabled && 'all-enabled')}
+                        data-action="enable-all"
+                        style={{
+                            ...styles.cardIconOverlay,
+                            ...styles.cardEnableAll,
+                            ...(isAllEnabled ? styles.cardEnableAllActive : {}),
+                        }}
                         onClick={handleEnableAllClick}
-                        title={isAllEnabled ? "Disable all traits for this Lumia" : "Enable all traits for this Lumia"}
+                        title={isAllEnabled ? "Disable all traits" : "Enable all traits"}
                     >
-                        <Icon name="sparkles" />
+                        <Sparkles size={12} />
                     </div>
                 )}
 
                 {/* Edit Icon for custom pack items */}
                 {isEditable && onEdit && (
                     <div
-                        className="lumia-edit-icon"
+                        data-action="edit"
+                        style={{
+                            ...styles.cardIconOverlay,
+                            ...styles.cardEdit,
+                        }}
                         onClick={handleEditClick}
                         title="Edit this Lumia"
                     >
-                        <Icon name="edit" />
+                        <Pencil size={12} />
                     </div>
                 )}
 
                 {/* Dominant Star Icon */}
                 {showDominant && (
                     <div
-                        className={clsx(
-                            'lumia-dominant-icon',
-                            isDominant && 'dominant'
-                        )}
+                        data-action="dominant"
+                        style={{
+                            ...styles.cardIconOverlay,
+                            ...styles.cardDominant,
+                            ...(isDominant ? styles.cardDominantActive : {}),
+                        }}
                         onClick={handleDominantClick}
                         title={isDominant ? 'Remove as dominant' : 'Set as dominant trait'}
                     >
-                        <Icon name="star" />
+                        <Star size={12} fill={isDominant ? 'currentColor' : 'none'} />
                     </div>
                 )}
 
                 {/* Selection Checkmark */}
-                <div className="lumia-card-check">
-                    <Icon name="check" />
+                <div style={{
+                    ...styles.cardCheck,
+                    ...(isSelected ? styles.cardCheckVisible : {}),
+                }}>
+                    <Check size={12} strokeWidth={3} />
                 </div>
             </div>
 
-            <div className="lumia-card-info">
-                <div className="lumia-card-name">{displayName}</div>
+            <div style={styles.cardInfo}>
+                <div style={styles.cardName}>{displayName}</div>
             </div>
         </div>
     );
@@ -227,7 +510,6 @@ function LumiaCard({
 
 /**
  * Collapsible pack section
- * Can be controlled (via isCollapsed + onToggleCollapse props) or uncontrolled
  */
 function PackSection({
     pack,
@@ -241,21 +523,18 @@ function PackSection({
     showDominant,
     onRemovePack,
     onEditItem,
-    // Optional controlled mode props
     isCollapsed: controlledCollapsed,
     onToggleCollapse,
 }) {
     const [internalCollapsed, setInternalCollapsed] = useState(false);
 
-    // Use controlled or uncontrolled state
     const isControlled = controlledCollapsed !== undefined;
     const isCollapsed = isControlled ? controlledCollapsed : internalCollapsed;
 
     const packName = pack.name || pack.packName || 'Unknown Pack';
 
     const handleHeaderClick = (e) => {
-        // Don't collapse if clicking remove button
-        if (e.target.closest('.lumia-remove-pack-btn')) return;
+        if (e.target.closest('[data-action]')) return;
 
         if (isControlled && onToggleCollapse) {
             onToggleCollapse(packName);
@@ -265,30 +544,35 @@ function PackSection({
     };
 
     return (
-        <div className={clsx('lumia-modal-panel', 'lumia-collapsible', 'lumia-pack-section', isCollapsed && 'collapsed')}>
-            <div className="lumia-modal-panel-header lumia-collapsible-trigger" onClick={handleHeaderClick}>
-                <span className="lumia-panel-collapse-icon">
-                    <Icon name="chevron" />
+        <div style={styles.packSection}>
+            <div
+                style={styles.packHeader}
+                onClick={handleHeaderClick}
+            >
+                <span style={{
+                    ...styles.packCollapseIcon,
+                    transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
+                }}>
+                    <ChevronDown size={14} />
                 </span>
-                <span className="lumia-modal-panel-icon">
-                    <Icon name="folder" />
-                </span>
-                <span className="lumia-modal-panel-title">{packName}</span>
-                {isEditable && <span className="lumia-pack-badge-custom">Custom</span>}
-                <span className="lumia-modal-panel-count">{items.length} items</span>
+                <Folder size={14} style={styles.packFolderIcon} />
+                <span style={styles.packTitle}>{packName}</span>
+                {isEditable && <span style={styles.packBadge}>Custom</span>}
+                <span style={styles.packCount}>{items.length} items</span>
                 <button
-                    className="lumia-icon-btn-sm lumia-remove-pack-btn"
+                    data-action="remove"
+                    style={styles.packRemoveBtn}
                     onClick={(e) => {
                         e.stopPropagation();
                         onRemovePack(packName);
                     }}
                     title="Remove Pack"
                 >
-                    <Icon name="trash" />
+                    <Trash2 size={14} />
                 </button>
             </div>
-            <div className="lumia-modal-panel-content lumia-modal-panel-content-cards lumia-collapsible-content">
-                <div className="lumia-card-grid">
+            {!isCollapsed && (
+                <div style={styles.cardGrid}>
                     {items.map((item, index) => (
                         <LumiaCard
                             key={getLumiaField(item, 'name') || item.id || index}
@@ -306,25 +590,13 @@ function PackSection({
                         />
                     ))}
                 </div>
-            </div>
+            )}
         </div>
     );
 }
 
 /**
  * Get Lumia items from a pack (filtering out Loom/Narrative Style items)
- *
- * Supports both new format (lumiaItems array) and legacy format (items array)
- *
- * New format (v2):
- * - Lumia items have: lumiaName, avatarUrl, lumiaDefinition, lumiaBehavior, lumiaPersonality
- * - Loom items are in separate loomItems array
- *
- * Legacy format (v1):
- * - Lumia items have: lumiaDefName, lumia_img, lumiaDef, lumia_behavior, lumia_personality
- * - Loom items have: loomName, loomCategory, loomContent
- *
- * Returns all Lumia items from the pack
  */
 function getLumiaItemsFromPack(pack, type) {
     // New format: separate lumiaItems array
@@ -337,9 +609,7 @@ function getLumiaItemsFromPack(pack, type) {
 
     // Filter to only Lumia items (have lumiaDefName, not loomCategory)
     return packItems.filter(item => {
-        // Skip Loom items
         if (item.loomCategory) return false;
-        // Must have lumiaDefName to be a Lumia item
         if (!item.lumiaDefName) return false;
         return true;
     });
@@ -350,22 +620,19 @@ function getLumiaItemsFromPack(pack, type) {
  */
 function getHeaderIcon(type) {
     switch (type) {
-        case 'definitions': return 'definition';
-        case 'behaviors': return 'behavior';
-        case 'personalities': return 'personality';
-        default: return 'definition';
+        case 'definitions': return User;
+        case 'behaviors': return Wrench;
+        case 'personalities': return PieChart;
+        default: return User;
     }
 }
 
 /**
  * Get modal config based on type
- * @param {string} type - The type of selection
- * @param {boolean} chimeraMode - Whether Chimera mode is enabled
  */
 function getModalConfig(type, chimeraMode = false) {
     switch (type) {
         case 'definitions':
-            // Chimera mode allows multi-select definitions
             if (chimeraMode) {
                 return {
                     title: 'Select Chimera Forms',
@@ -405,7 +672,7 @@ function getModalConfig(type, chimeraMode = false) {
 }
 
 /**
- * Main selection modal component - card-based design matching old UI
+ * Main selection modal component
  */
 function SelectionModal({
     type,
@@ -430,16 +697,9 @@ function SelectionModal({
     );
 
     const config = getModalConfig(type, chimeraMode);
-    const headerIcon = getHeaderIcon(type);
+    const HeaderIcon = getHeaderIcon(type);
 
-    /**
-     * Get the appropriate selection data based on type
-     *
-     * OLD CODE FORMAT:
-     * - Selections are stored as: { packName: string, itemName: string }
-     * - selectedItems is an array of { packName, itemName }
-     * - dominantItem is { packName, itemName } or null
-     */
+    // Get the appropriate selection data based on type
     const selectionData = useMemo(() => {
         switch (type) {
             case 'behaviors':
@@ -465,7 +725,6 @@ function SelectionModal({
                     },
                 };
             case 'definitions':
-                // Chimera mode uses multi-select definitions
                 if (chimeraMode) {
                     return {
                         selectedItems: selectedDefinitions,
@@ -475,12 +734,10 @@ function SelectionModal({
                         clearAction: actions.clearChimeraDefinitions,
                     };
                 }
-                // Normal single-select definitions
                 return {
                     selectedItems: selections.definition ? [selections.definition] : [],
                     dominantItem: null,
                     toggleAction: (selection) => {
-                        // selection = { packName, itemName }
                         const current = selections.definition;
                         if (current &&
                             current.packName === selection.packName &&
@@ -513,9 +770,7 @@ function SelectionModal({
     } = selectionData;
 
     // Save to extension whenever selections change
-    // This ensures the settingsManager (which macros read from) stays in sync
     useEffect(() => {
-        // Debounce slightly to avoid rapid saves during multi-click
         const timeoutId = setTimeout(() => {
             saveToExtension();
         }, 100);
@@ -526,7 +781,7 @@ function SelectionModal({
     const [collapsedPacks, setCollapsedPacks] = useState(new Set());
 
     // State for sorting
-    const [sortBy, setSortBy] = useState('default'); // 'default', 'name', 'author'
+    const [sortBy, setSortBy] = useState('default');
 
     // Filter packs to get Lumia items of the correct type
     const packsWithItems = useMemo(() => {
@@ -585,14 +840,7 @@ function SelectionModal({
 
     const isPackCollapsed = useCallback((packName) => collapsedPacks.has(packName), [collapsedPacks]);
 
-    /**
-     * Check if an item is selected
-     * Comparisons use packName + itemName (supports both new and legacy formats)
-     * Memoized with useCallback to prevent unnecessary child re-renders
-     *
-     * @param {Object} item - The item from pack.lumiaItems or pack.items
-     * @param {string} packName - The pack this item belongs to
-     */
+    // Check if an item is selected
     const isSelected = useCallback((item, packName) => {
         const itemName = getLumiaField(item, 'name');
         return selectedItems.some((selected) =>
@@ -600,21 +848,14 @@ function SelectionModal({
         );
     }, [selectedItems]);
 
-    /**
-     * Check if an item is the dominant trait
-     * Memoized with useCallback to prevent unnecessary child re-renders
-     */
+    // Check if an item is the dominant trait
     const isDominant = useCallback((item, packName) => {
         if (!dominantItem) return false;
         const itemName = getLumiaField(item, 'name');
         return dominantItem.packName === packName && dominantItem.itemName === itemName;
     }, [dominantItem]);
 
-    /**
-     * Handle item selection
-     * Converts item + packName to { packName, itemName } format for storage
-     * Memoized with useCallback to prevent unnecessary child re-renders
-     */
+    // Handle item selection
     const handleSelect = useCallback((item, packName) => {
         const selection = {
             packName: packName,
@@ -623,10 +864,7 @@ function SelectionModal({
         toggleAction(selection);
     }, [toggleAction]);
 
-    /**
-     * Handle setting dominant trait
-     * Memoized with useCallback to prevent unnecessary child re-renders
-     */
+    // Handle setting dominant trait
     const handleSetDominant = useCallback((item, packName) => {
         if (!setDominantAction) return;
 
@@ -635,12 +873,10 @@ function SelectionModal({
             itemName: getLumiaField(item, 'name'),
         };
 
-        // If item isn't selected, select it first
         if (!isSelected(item, packName)) {
             toggleAction(selection);
         }
 
-        // Toggle dominant - use selection format { packName, itemName }
         if (isDominant(item, packName)) {
             setDominantAction(null);
         } else {
@@ -660,11 +896,7 @@ function SelectionModal({
         saveToExtension();
     }, [actions]);
 
-    /**
-     * Handle editing a Lumia item from a custom pack
-     * Opens the LumiaEditorModal with the item for editing
-     * Memoized with useCallback to prevent unnecessary child re-renders
-     */
+    // Handle editing a Lumia item from a custom pack
     const handleEditItem = useCallback((item, packName) => {
         actions.openModal('lumiaEditor', {
             packName: packName,
@@ -672,55 +904,52 @@ function SelectionModal({
         });
     }, [actions]);
 
-
     return (
-        <div className="lumia-modal-selection-content">
-            {/* Header with icon, title, subtitle, and clear button */}
-            <div className="lumia-modal-header-inner">
-                <div className="lumia-modal-header-icon">
-                    <Icon name={headerIcon} />
+        <div style={styles.layout}>
+            {/* Header */}
+            <div style={styles.header}>
+                <div style={styles.headerIcon}>
+                    <HeaderIcon size={20} />
                 </div>
-                <div className="lumia-modal-header-text">
-                    <h3 className="lumia-modal-title">{config.title}</h3>
-                    <p className="lumia-modal-subtitle">{config.subtitle}</p>
+                <div style={styles.headerText}>
+                    <h3 style={styles.title}>{config.title}</h3>
+                    <p style={styles.subtitle}>{config.subtitle}</p>
                 </div>
-                <button className="lumia-clear-btn" onClick={handleClearAll} title="Clear all selections">
-                    <Icon name="clear" />
+                <button style={styles.clearBtn} onClick={handleClearAll} title="Clear all selections">
+                    <XCircle size={14} />
                     <span>Clear</span>
                 </button>
             </div>
 
-            {/* Controls - Collapse/Expand and Sort */}
+            {/* Controls */}
             {sortedPacks.length > 0 && (
-                <div className="lumia-modal-controls">
-                    {/* Collapse/Expand controls */}
-                    <div className="lumia-modal-controls-group">
+                <div style={styles.controls}>
+                    <div style={styles.controlsGroup}>
                         <button
-                            className="lumia-modal-control-btn"
+                            style={styles.controlBtn}
                             onClick={expandAll}
                             title="Expand all packs"
                             type="button"
                         >
-                            <Icon name="chevronDown" className="lumia-control-icon" />
+                            <ChevronDown size={12} />
                             <span>Expand All</span>
                         </button>
                         <button
-                            className="lumia-modal-control-btn"
+                            style={styles.controlBtn}
                             onClick={collapseAll}
                             title="Collapse all packs"
                             type="button"
                         >
-                            <Icon name="chevronUp" className="lumia-control-icon" />
+                            <ChevronUp size={12} />
                             <span>Collapse All</span>
                         </button>
                     </div>
 
-                    {/* Sort dropdown */}
-                    <div className="lumia-modal-sort">
-                        <Icon name="sort" className="lumia-sort-icon" />
-                        <span className="lumia-modal-sort-label">Sort:</span>
+                    <div style={styles.sortContainer}>
+                        <ArrowDownAZ size={12} />
+                        <span>Sort:</span>
                         <select
-                            className="lumia-select"
+                            style={styles.select}
                             value={sortBy}
                             onChange={(e) => setSortBy(e.target.value)}
                         >
@@ -732,10 +961,10 @@ function SelectionModal({
                 </div>
             )}
 
-            {/* Content - pack sections with cards */}
-            <div className="lumia-modal-content">
+            {/* Content */}
+            <div style={styles.scrollArea}>
                 {sortedPacks.length === 0 ? (
-                    <div className="lumia-modal-empty">
+                    <div style={styles.empty}>
                         No Lumia Packs loaded. Add one in settings!
                     </div>
                 ) : (
@@ -764,12 +993,12 @@ function SelectionModal({
             </div>
 
             {/* Footer */}
-            <div className="lumia-modal-footer">
-                <button className="lumia-modal-btn lumia-modal-btn-secondary lumia-modal-close-btn" onClick={onClose}>
+            <div style={styles.footer}>
+                <button style={{ ...styles.btn, ...styles.btnSecondary }} onClick={onClose}>
                     Close
                 </button>
                 {config.isMulti && (
-                    <button className="lumia-modal-btn lumia-modal-btn-primary lumia-modal-done" onClick={onClose}>
+                    <button style={{ ...styles.btn, ...styles.btnPrimary }} onClick={onClose}>
                         Done
                     </button>
                 )}

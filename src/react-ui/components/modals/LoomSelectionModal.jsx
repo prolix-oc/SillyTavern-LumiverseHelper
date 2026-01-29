@@ -1,46 +1,327 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { usePacks, useLumiverseActions, useLoomSelections, saveToExtension } from '../../store/LumiverseContext';
-import clsx from 'clsx';
+import { 
+    Search, XCircle, ChevronDown, ChevronUp, Folder, 
+    Trash2, Pencil, ArrowDownAZ, Check, Plus 
+} from 'lucide-react';
 
-// SVG icons matching SelectionModal design - all with explicit width/height for visibility
-const SVG_ICONS = {
-    trash: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`,
-    chevronDown: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`,
-    chevronUp: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>`,
-    chevron: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`,
-    folder: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>`,
-    search: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`,
-    sort: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="14" y2="6"></line><line x1="4" y1="12" x2="11" y2="12"></line><line x1="4" y1="18" x2="8" y2="18"></line><polyline points="15 15 18 18 21 15"></polyline><line x1="18" y1="9" x2="18" y2="18"></line></svg>`,
-    clear: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`,
-    edit: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`,
+/**
+ * Self-contained styles matching the new modal design pattern
+ */
+const styles = {
+    layout: {
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        maxHeight: '100%',
+        minHeight: 0,
+    },
+    header: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        padding: '16px 20px',
+        borderBottom: '1px solid var(--lumiverse-border, rgba(255, 255, 255, 0.1))',
+        flexShrink: 0,
+    },
+    searchBox: {
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        padding: '8px 12px',
+        background: 'rgba(0, 0, 0, 0.25)',
+        border: '1px solid var(--lumiverse-border, rgba(255, 255, 255, 0.1))',
+        borderRadius: '8px',
+    },
+    searchIcon: {
+        color: 'var(--lumiverse-text-muted, #999)',
+        flexShrink: 0,
+    },
+    searchInput: {
+        flex: 1,
+        background: 'transparent',
+        border: 'none',
+        outline: 'none',
+        color: 'var(--lumiverse-text, #e0e0e0)',
+        fontSize: '13px',
+    },
+    searchClear: {
+        width: '20px',
+        height: '20px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'transparent',
+        border: 'none',
+        color: 'var(--lumiverse-text-muted, #999)',
+        cursor: 'pointer',
+        borderRadius: '4px',
+        transition: 'background 0.15s ease',
+    },
+    selectionInfo: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        flexShrink: 0,
+    },
+    selectionCount: {
+        fontSize: '12px',
+        color: 'var(--lumiverse-text-muted, #999)',
+        whiteSpace: 'nowrap',
+    },
+    clearBtn: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        padding: '8px 12px',
+        fontSize: '12px',
+        fontWeight: 500,
+        borderRadius: '6px',
+        border: '1px solid rgba(239, 68, 68, 0.3)',
+        background: 'rgba(239, 68, 68, 0.1)',
+        color: '#ef4444',
+        cursor: 'pointer',
+        transition: 'all 0.15s ease',
+    },
+    controls: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '10px 20px',
+        background: 'rgba(0, 0, 0, 0.15)',
+        borderBottom: '1px solid var(--lumiverse-border, rgba(255, 255, 255, 0.1))',
+        flexShrink: 0,
+    },
+    controlsGroup: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+    },
+    controlBtn: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+        padding: '6px 10px',
+        fontSize: '11px',
+        fontWeight: 500,
+        borderRadius: '6px',
+        border: 'none',
+        background: 'rgba(0, 0, 0, 0.2)',
+        color: 'var(--lumiverse-text-muted, #999)',
+        cursor: 'pointer',
+        transition: 'all 0.15s ease',
+    },
+    sortContainer: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        fontSize: '11px',
+        color: 'var(--lumiverse-text-muted, #999)',
+    },
+    select: {
+        padding: '5px 24px 5px 8px',
+        fontSize: '11px',
+        borderRadius: '6px',
+        border: '1px solid var(--lumiverse-border, rgba(255, 255, 255, 0.1))',
+        background: 'rgba(0, 0, 0, 0.3)',
+        color: 'var(--lumiverse-text, #e0e0e0)',
+        cursor: 'pointer',
+        appearance: 'none',
+        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'right 6px center',
+    },
+    scrollArea: {
+        flex: '1 1 auto',
+        minHeight: 0,
+        overflowY: 'auto',
+        padding: '12px 20px',
+    },
+    empty: {
+        textAlign: 'center',
+        padding: '40px 20px',
+        color: 'var(--lumiverse-text-muted, #999)',
+        fontSize: '14px',
+    },
+    emptyBtn: {
+        marginTop: '12px',
+        padding: '8px 16px',
+        fontSize: '12px',
+        borderRadius: '6px',
+        border: '1px solid var(--lumiverse-border, rgba(255, 255, 255, 0.1))',
+        background: 'rgba(0, 0, 0, 0.2)',
+        color: 'var(--lumiverse-text, #e0e0e0)',
+        cursor: 'pointer',
+    },
+    packSection: {
+        marginBottom: '16px',
+        border: '1px solid var(--lumiverse-border, rgba(255, 255, 255, 0.1))',
+        borderRadius: '10px',
+        overflow: 'hidden',
+    },
+    packHeader: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        padding: '10px 12px',
+        background: 'rgba(0, 0, 0, 0.2)',
+        cursor: 'pointer',
+        transition: 'background 0.15s ease',
+        width: '100%',
+        border: 'none',
+        color: 'inherit',
+        textAlign: 'left',
+        fontFamily: 'inherit',
+    },
+    packCollapseIcon: {
+        color: 'var(--lumiverse-text-muted, #999)',
+        transition: 'transform 0.2s ease',
+    },
+    packFolderIcon: {
+        color: 'var(--lumiverse-primary, #9370db)',
+    },
+    packTitle: {
+        flex: 1,
+        fontSize: '13px',
+        fontWeight: 500,
+        color: 'var(--lumiverse-text, #e0e0e0)',
+    },
+    packBadge: {
+        fontSize: '10px',
+        padding: '2px 6px',
+        borderRadius: '4px',
+        background: 'rgba(147, 112, 219, 0.2)',
+        color: 'var(--lumiverse-primary, #9370db)',
+    },
+    packCount: {
+        fontSize: '11px',
+        color: 'var(--lumiverse-text-muted, #999)',
+    },
+    packRemoveBtn: {
+        width: '24px',
+        height: '24px',
+        borderRadius: '6px',
+        border: 'none',
+        background: 'transparent',
+        color: 'var(--lumiverse-text-muted, #999)',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        transition: 'all 0.15s ease',
+    },
+    itemsList: {
+        padding: '8px 12px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '6px',
+    },
+    item: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        padding: '10px 12px',
+        background: 'rgba(0, 0, 0, 0.15)',
+        border: '1px solid var(--lumiverse-border, rgba(255, 255, 255, 0.1))',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        transition: 'all 0.15s ease',
+    },
+    itemSelected: {
+        background: 'rgba(147, 112, 219, 0.15)',
+        borderColor: 'rgba(147, 112, 219, 0.4)',
+    },
+    itemContent: {
+        flex: 1,
+        minWidth: 0,
+    },
+    itemName: {
+        fontSize: '13px',
+        fontWeight: 500,
+        color: 'var(--lumiverse-text, #e0e0e0)',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+    },
+    itemActions: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        flexShrink: 0,
+    },
+    itemEditBtn: {
+        width: '24px',
+        height: '24px',
+        borderRadius: '6px',
+        border: 'none',
+        background: 'rgba(0, 0, 0, 0.2)',
+        color: 'var(--lumiverse-text-muted, #999)',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        transition: 'all 0.15s ease',
+    },
+    toggleSwitch: {
+        width: '36px',
+        height: '20px',
+        borderRadius: '10px',
+        background: 'rgba(0, 0, 0, 0.3)',
+        border: '1px solid var(--lumiverse-border, rgba(255, 255, 255, 0.15))',
+        position: 'relative',
+        cursor: 'pointer',
+        transition: 'all 0.15s ease',
+    },
+    toggleSwitchChecked: {
+        background: 'var(--lumiverse-primary, #9370db)',
+        borderColor: 'var(--lumiverse-primary, #9370db)',
+    },
+    toggleThumb: {
+        width: '16px',
+        height: '16px',
+        borderRadius: '50%',
+        background: '#fff',
+        position: 'absolute',
+        top: '1px',
+        left: '1px',
+        transition: 'transform 0.15s ease',
+    },
+    toggleThumbChecked: {
+        transform: 'translateX(16px)',
+    },
+    footer: {
+        display: 'flex',
+        justifyContent: 'flex-end',
+        gap: '8px',
+        padding: '12px 20px',
+        borderTop: '1px solid var(--lumiverse-border, rgba(255, 255, 255, 0.1))',
+        flexShrink: 0,
+    },
+    btn: {
+        padding: '10px 16px',
+        fontSize: '13px',
+        fontWeight: 500,
+        borderRadius: '8px',
+        border: 'none',
+        cursor: 'pointer',
+        transition: 'all 0.15s ease',
+    },
+    btnPrimary: {
+        background: 'var(--lumiverse-primary, #9370db)',
+        color: '#fff',
+    },
 };
-
-function Icon({ name, className }) {
-    const svg = SVG_ICONS[name];
-    if (!svg) return null;
-    return (
-        <span
-            className={className}
-            dangerouslySetInnerHTML={{ __html: svg }}
-        />
-    );
-}
 
 /**
  * Category mapping for Loom types
- * Maps modal type to the pack field name and store action
- *
- * OLD CODE: Selections are stored at root level, NOT nested under settings.loom
- * - selectedLoomStyle: [] (not settings.loom.selectedStyle)
- * - selectedLoomUtils: [] (not settings.loom.selectedUtility)
- * - selectedLoomRetrofits: []
  */
 const LOOM_CATEGORIES = {
     loomStyles: {
         category: 'Narrative Style',
-        packField: 'loomStyles',           // Field in pack structure (legacy)
-        storeField: 'styles',              // Field name in useLoomSelections() return value
-        toggleAction: 'toggleLoomStyle',   // Action name in store
+        packField: 'loomStyles',
+        storeField: 'styles',
+        toggleAction: 'toggleLoomStyle',
         isMulti: true,
     },
     loomUtilities: {
@@ -64,23 +345,23 @@ const LOOM_CATEGORIES = {
  */
 function SearchInput({ value, onChange, placeholder }) {
     return (
-        <div className="lumia-search-box">
-            <Icon name="search" className="lumia-search-icon" />
+        <div style={styles.searchBox}>
+            <Search size={14} style={styles.searchIcon} />
             <input
                 type="text"
-                className="lumia-search-input"
+                style={styles.searchInput}
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={placeholder}
             />
             {value && (
                 <button
-                    className="lumia-search-clear"
+                    style={styles.searchClear}
                     onClick={() => onChange('')}
                     type="button"
                     aria-label="Clear search"
                 >
-                    <Icon name="clear" className="lumia-search-clear-icon" />
+                    <XCircle size={14} />
                 </button>
             )}
         </div>
@@ -91,7 +372,6 @@ function SearchInput({ value, onChange, placeholder }) {
  * Individual Loom item row
  */
 function LoomItem({ item, packName, isSelected, onToggle, isMulti, isEditable, onEdit }) {
-    // Handle different field names for item name
     const itemName = item.loomName || item.itemName || item.name || 'Unknown';
 
     const handleEditClick = (e) => {
@@ -101,39 +381,41 @@ function LoomItem({ item, packName, isSelected, onToggle, isMulti, isEditable, o
 
     return (
         <div
-            className={clsx(
-                'lumiverse-loom-item',
-                isSelected && 'lumiverse-loom-item--selected'
-            )}
+            style={{
+                ...styles.item,
+                ...(isSelected ? styles.itemSelected : {}),
+            }}
             onClick={() => onToggle(packName, itemName)}
             role="button"
             tabIndex={0}
             onKeyDown={(e) => e.key === 'Enter' && onToggle(packName, itemName)}
         >
-            <div className="lumiverse-loom-item-content">
-                <span className="lumiverse-loom-item-name">{itemName}</span>
+            <div style={styles.itemContent}>
+                <span style={styles.itemName}>{itemName}</span>
             </div>
-            <div className="lumiverse-loom-item-actions">
+            <div style={styles.itemActions}>
                 {isEditable && onEdit && (
                     <button
-                        className="lumiverse-loom-item-edit"
+                        style={styles.itemEditBtn}
                         onClick={handleEditClick}
                         title="Edit this Loom item"
                         type="button"
                     >
-                        <Icon name="edit" />
+                        <Pencil size={12} />
                     </button>
                 )}
-                <div className="lumiverse-loom-item-toggle">
-                    {isMulti ? (
-                        <div className={clsx('lumiverse-toggle-switch', isSelected && 'checked')}>
-                            <div className="lumiverse-toggle-track">
-                                <div className="lumiverse-toggle-thumb" />
-                            </div>
-                        </div>
-                    ) : (
-                        <span className={clsx('lumiverse-radio-dot', isSelected && 'checked')} />
-                    )}
+                <div
+                    style={{
+                        ...styles.toggleSwitch,
+                        ...(isSelected ? styles.toggleSwitchChecked : {}),
+                    }}
+                >
+                    <div
+                        style={{
+                            ...styles.toggleThumb,
+                            ...(isSelected ? styles.toggleThumbChecked : {}),
+                        }}
+                    />
                 </div>
             </div>
         </div>
@@ -142,7 +424,6 @@ function LoomItem({ item, packName, isSelected, onToggle, isMulti, isEditable, o
 
 /**
  * Collapsible pack section for Loom items
- * Can be controlled (via isCollapsed + onToggleCollapse props) or uncontrolled
  */
 function PackSection({
     pack,
@@ -150,7 +431,6 @@ function PackSection({
     defaultOpen = true,
     isEditable,
     onRemovePack,
-    // Optional controlled mode props
     isCollapsed: controlledCollapsed,
     onToggleCollapse,
 }) {
@@ -158,15 +438,13 @@ function PackSection({
     const itemCount = React.Children.count(children);
     const packName = pack.name || pack.packName || 'Unknown Pack';
 
-    // Use controlled or uncontrolled state
     const isControlled = controlledCollapsed !== undefined;
     const isOpen = isControlled ? !controlledCollapsed : internalOpen;
 
     if (itemCount === 0) return null;
 
     const handleHeaderClick = (e) => {
-        // Don't collapse if clicking remove button
-        if (e.target.closest('.lumiverse-remove-pack-btn')) return;
+        if (e.target.closest('[data-action]')) return;
 
         if (isControlled && onToggleCollapse) {
             onToggleCollapse(packName);
@@ -176,19 +454,21 @@ function PackSection({
     };
 
     return (
-        <div className={clsx('lumia-modal-panel', 'lumia-collapsible', 'lumia-pack-section', !isOpen && 'collapsed')}>
-            <div className="lumia-modal-panel-header lumia-collapsible-trigger" onClick={handleHeaderClick}>
-                <span className="lumia-panel-collapse-icon">
-                    <Icon name="chevron" />
+        <div style={styles.packSection}>
+            <div style={styles.packHeader} onClick={handleHeaderClick}>
+                <span style={{
+                    ...styles.packCollapseIcon,
+                    transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
+                }}>
+                    <ChevronDown size={14} />
                 </span>
-                <span className="lumia-modal-panel-icon">
-                    <Icon name="folder" />
-                </span>
-                <span className="lumia-modal-panel-title">{packName}</span>
-                {isEditable && <span className="lumia-pack-badge-custom">Custom</span>}
-                <span className="lumia-modal-panel-count">{itemCount} items</span>
+                <Folder size={14} style={styles.packFolderIcon} />
+                <span style={styles.packTitle}>{packName}</span>
+                {isEditable && <span style={styles.packBadge}>Custom</span>}
+                <span style={styles.packCount}>{itemCount} items</span>
                 <button
-                    className="lumia-icon-btn-sm lumia-remove-pack-btn"
+                    data-action="remove"
+                    style={styles.packRemoveBtn}
                     onClick={(e) => {
                         e.stopPropagation();
                         onRemovePack(packName);
@@ -196,24 +476,16 @@ function PackSection({
                     title="Remove Pack"
                     type="button"
                 >
-                    <Icon name="trash" />
+                    <Trash2 size={14} />
                 </button>
             </div>
-            {isOpen && <div className="lumia-modal-panel-content lumia-loom-items lumia-collapsible-content">{children}</div>}
+            {isOpen && <div style={styles.itemsList}>{children}</div>}
         </div>
     );
 }
 
 /**
  * Helper to get Loom items from a pack
- * Handles multiple possible pack structures:
- *
- * New format (v2):
- * - pack.loomItems: array of { loomName, loomContent, loomCategory, ... }
- *
- * Legacy formats:
- * - pack.loomStyles, pack.loomUtils, pack.loomRetrofits (very old)
- * - pack.items with loomCategory field (old)
  */
 function getLoomItemsFromPack(pack, config) {
     const items = [];
@@ -225,7 +497,6 @@ function getLoomItemsFromPack(pack, config) {
             if (item.loomCategory === category) {
                 items.push({
                     ...item,
-                    // Normalize the name field
                     loomName: item.loomName || item.itemName || item.name,
                 });
             }
@@ -237,7 +508,6 @@ function getLoomItemsFromPack(pack, config) {
         pack[packField].forEach(item => {
             items.push({
                 ...item,
-                // Normalize the name field
                 loomName: item.loomName || item.itemName || item.name,
             });
         });
@@ -246,7 +516,6 @@ function getLoomItemsFromPack(pack, config) {
     // Legacy: pack.items with loomCategory field
     if (pack.items && Array.isArray(pack.items)) {
         pack.items.forEach(item => {
-            // Check multiple possible category field names
             const itemCategory = item.loomCategory || item.category || item.type;
             if (itemCategory === category || itemCategory === packField) {
                 items.push({
@@ -262,27 +531,23 @@ function getLoomItemsFromPack(pack, config) {
 
 /**
  * Loom Selection Modal
- * Used for selecting Narrative Styles, Loom Utilities, and Retrofits
- *
- * OLD CODE: Selections stored at root level as arrays of { packName, itemName }
  */
 function LoomSelectionModal({ type, onClose }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [collapsedPacks, setCollapsedPacks] = useState(new Set());
-    const [sortBy, setSortBy] = useState('default'); // 'default', 'name', 'author'
+    const [sortBy, setSortBy] = useState('default');
     const { allPacks } = usePacks();
     const actions = useLumiverseActions();
-    const loomSelections = useLoomSelections();  // { styles, utilities, retrofits }
+    const loomSelections = useLoomSelections();
 
     const config = LOOM_CATEGORIES[type];
     if (!config) {
-        return <div className="lumiverse-error">Unknown Loom type: {type}</div>;
+        return <div style={styles.empty}>Unknown Loom type: {type}</div>;
     }
 
     const { category, storeField, toggleAction, isMulti } = config;
 
     // Get current selections from the correct store field
-    // useLoomSelections returns: { styles: [...], utilities: [...], retrofits: [...] }
     const currentSelections = useMemo(() => {
         const selection = loomSelections[storeField];
         if (!selection) return [];
@@ -299,8 +564,6 @@ function LoomSelectionModal({ type, onClose }) {
     // Toggle selection using the store's toggle actions
     const handleToggle = useCallback((packName, itemName) => {
         const selection = { packName, itemName };
-        // Use the appropriate toggle action from the store
-        // toggleLoomStyle, toggleLoomUtility, or toggleLoomRetrofit
         if (actions[toggleAction]) {
             actions[toggleAction](selection);
             saveToExtension();
@@ -309,9 +572,8 @@ function LoomSelectionModal({ type, onClose }) {
         }
     }, [actions, toggleAction]);
 
-    // Clear all selections using the appropriate setter action
+    // Clear all selections
     const handleClear = useCallback(() => {
-        // Map storeField to the setter action
         const setterMap = {
             styles: 'setSelectedLoomStyles',
             utilities: 'setSelectedLoomUtilities',
@@ -330,10 +592,8 @@ function LoomSelectionModal({ type, onClose }) {
 
         return allPacks
             .map((pack) => {
-                // Get Loom items from pack
                 const loomItems = getLoomItemsFromPack(pack, config);
 
-                // Filter by search query
                 const filteredItems = query
                     ? loomItems.filter(item => {
                         const name = (item.loomName || item.itemName || item.name || '').toLowerCase();
@@ -402,7 +662,7 @@ function LoomSelectionModal({ type, onClose }) {
         saveToExtension();
     }, [actions]);
 
-    // Handle editing a Loom item (opens loomEditor modal)
+    // Handle editing a Loom item
     const handleEditItem = useCallback((packName, item) => {
         actions.openModal('loomEditor', { packName, editingItem: item });
     }, [actions]);
@@ -410,62 +670,59 @@ function LoomSelectionModal({ type, onClose }) {
     const totalItems = sortedPacks.reduce((sum, pack) => sum + pack.loomItems.length, 0);
     const selectedCount = currentSelections.length;
 
-    // Get pack name helper
     const getPackName = (pack) => pack.name || pack.packName || 'Unknown Pack';
 
     return (
-        <div className="lumia-modal-selection-content">
+        <div style={styles.layout}>
             {/* Header with search and clear */}
-            <div className="lumia-modal-header-inner">
+            <div style={styles.header}>
                 <SearchInput
                     value={searchQuery}
                     onChange={setSearchQuery}
                     placeholder={`Search ${category}...`}
                 />
-                <div className="lumia-selection-actions">
-                    <span className="lumia-selection-count">
+                <div style={styles.selectionInfo}>
+                    <span style={styles.selectionCount}>
                         {selectedCount} selected
                     </span>
                     {selectedCount > 0 && (
-                        <button className="lumia-clear-btn" onClick={handleClear} title="Clear all selections">
-                            <Icon name="clear" />
+                        <button style={styles.clearBtn} onClick={handleClear} title="Clear all selections">
+                            <XCircle size={14} />
                             <span>Clear</span>
                         </button>
                     )}
                 </div>
             </div>
 
-            {/* Controls - Collapse/Expand and Sort */}
+            {/* Controls */}
             {sortedPacks.length > 0 && (
-                <div className="lumia-modal-controls">
-                    {/* Collapse/Expand controls */}
-                    <div className="lumia-modal-controls-group">
+                <div style={styles.controls}>
+                    <div style={styles.controlsGroup}>
                         <button
-                            className="lumia-modal-control-btn"
+                            style={styles.controlBtn}
                             onClick={expandAll}
                             title="Expand all packs"
                             type="button"
                         >
-                            <Icon name="chevronDown" className="lumia-control-icon" />
+                            <ChevronDown size={12} />
                             <span>Expand All</span>
                         </button>
                         <button
-                            className="lumia-modal-control-btn"
+                            style={styles.controlBtn}
                             onClick={collapseAll}
                             title="Collapse all packs"
                             type="button"
                         >
-                            <Icon name="chevronUp" className="lumia-control-icon" />
+                            <ChevronUp size={12} />
                             <span>Collapse All</span>
                         </button>
                     </div>
 
-                    {/* Sort dropdown */}
-                    <div className="lumia-modal-sort">
-                        <Icon name="sort" className="lumia-sort-icon" />
-                        <span className="lumia-modal-sort-label">Sort:</span>
+                    <div style={styles.sortContainer}>
+                        <ArrowDownAZ size={12} />
+                        <span>Sort:</span>
                         <select
-                            className="lumia-select"
+                            style={styles.select}
                             value={sortBy}
                             onChange={(e) => setSortBy(e.target.value)}
                         >
@@ -477,17 +734,16 @@ function LoomSelectionModal({ type, onClose }) {
                 </div>
             )}
 
-            {/* Content - pack sections */}
-            <div className="lumia-modal-content">
+            {/* Content */}
+            <div style={styles.scrollArea}>
                 {totalItems === 0 ? (
-                    <div className="lumia-modal-empty">
+                    <div style={styles.empty}>
                         No "{category}" items found in loaded packs.
                         {searchQuery && (
                             <button
-                                className="lumia-modal-btn lumia-modal-btn-secondary"
+                                style={styles.emptyBtn}
                                 onClick={() => setSearchQuery('')}
                                 type="button"
-                                style={{ marginTop: '12px' }}
                             >
                                 Clear search
                             </button>
@@ -527,8 +783,8 @@ function LoomSelectionModal({ type, onClose }) {
             </div>
 
             {/* Footer */}
-            <div className="lumia-modal-footer">
-                <button className="lumia-modal-btn lumia-modal-btn-primary lumia-modal-done" onClick={onClose}>
+            <div style={styles.footer}>
+                <button style={{ ...styles.btn, ...styles.btnPrimary }} onClick={onClose}>
                     Done
                 </button>
             </div>

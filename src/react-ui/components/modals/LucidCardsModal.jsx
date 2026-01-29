@@ -147,13 +147,13 @@ const styles = {
     },
     grid: {
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-        gap: '12px',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+        gap: '16px',
     },
     card: {
         position: 'relative',
         background: 'rgba(0, 0, 0, 0.2)',
-        borderRadius: '10px',
+        borderRadius: '12px',
         border: '1px solid var(--lumiverse-border)',
         overflow: 'hidden',
         cursor: 'pointer',
@@ -168,7 +168,7 @@ const styles = {
     },
     cardImage: {
         position: 'relative',
-        aspectRatio: '1',
+        aspectRatio: '3 / 4',
         background: 'rgba(0, 0, 0, 0.3)',
         display: 'flex',
         alignItems: 'center',
@@ -203,24 +203,24 @@ const styles = {
         transform: 'scale(1)',
     },
     cardInfo: {
-        padding: '10px',
+        padding: '12px',
     },
     cardTitle: {
-        fontSize: '12px',
-        fontWeight: 500,
+        fontSize: '14px',
+        fontWeight: 600,
         color: 'var(--lumiverse-text)',
-        marginBottom: '2px',
+        marginBottom: '4px',
         overflow: 'hidden',
         textOverflow: 'ellipsis',
         whiteSpace: 'nowrap',
     },
     cardAuthor: {
-        fontSize: '10px',
+        fontSize: '12px',
         color: 'var(--lumiverse-text-muted)',
-        marginBottom: '4px',
+        marginBottom: '6px',
     },
     cardCounts: {
-        fontSize: '10px',
+        fontSize: '11px',
         color: 'var(--lumiverse-primary)',
     },
     footer: {
