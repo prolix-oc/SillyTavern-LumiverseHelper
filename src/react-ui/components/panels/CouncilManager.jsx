@@ -13,21 +13,50 @@ const EMPTY_ARRAY = [];
 
 /**
  * Create mobile-safe tap handlers that work on all browsers including Samsung Internet.
- * Uses onTouchEnd for touch devices and onClick for mouse, with proper deduplication.
+ * Uses touch tracking to differentiate between taps and scroll gestures.
+ * Only fires the handler for stationary taps, allowing scrolling to work normally.
  * 
  * @param {Function} handler - The function to call on tap/click
- * @returns {Object} Props to spread onto the element: { onClick, onTouchEnd }
+ * @returns {Object} Props to spread onto the element: { onClick, onTouchStart, onTouchEnd }
  */
 function useMobileTapHandler(handler) {
     const touchedRef = useRef(false);
+    const touchStartRef = useRef({ x: 0, y: 0, time: 0 });
+    
+    // Track touch start position
+    const handleTouchStart = useCallback((e) => {
+        if (e.touches.length === 1) {
+            const touch = e.touches[0];
+            touchStartRef.current = {
+                x: touch.clientX,
+                y: touch.clientY,
+                time: Date.now(),
+            };
+        }
+    }, []);
     
     const handleTouchEnd = useCallback((e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        touchedRef.current = true;
-        handler(e);
-        // Reset after a short delay to allow for subsequent interactions
-        setTimeout(() => { touchedRef.current = false; }, 300);
+        // Calculate movement distance
+        if (e.changedTouches.length === 1) {
+            const touch = e.changedTouches[0];
+            const dx = Math.abs(touch.clientX - touchStartRef.current.x);
+            const dy = Math.abs(touch.clientY - touchStartRef.current.y);
+            const dt = Date.now() - touchStartRef.current.time;
+            
+            // Only trigger if it was a tap (small movement, short duration)
+            // Allow 10px tolerance for finger wobble, 500ms max tap duration
+            const isTap = dx < 10 && dy < 10 && dt < 500;
+            
+            if (isTap) {
+                e.preventDefault();
+                e.stopPropagation();
+                touchedRef.current = true;
+                handler(e);
+                // Reset after a short delay to allow for subsequent interactions
+                setTimeout(() => { touchedRef.current = false; }, 300);
+            }
+            // If not a tap (was a scroll), do nothing - let the scroll happen
+        }
     }, [handler]);
     
     const handleClick = useCallback((e) => {
@@ -38,7 +67,7 @@ function useMobileTapHandler(handler) {
         }
     }, [handler]);
     
-    return { onClick: handleClick, onTouchEnd: handleTouchEnd };
+    return { onClick: handleClick, onTouchStart: handleTouchStart, onTouchEnd: handleTouchEnd };
 }
 
 // Stable selector functions
