@@ -6,6 +6,9 @@ import App from './App';
 import ViewportApp from './components/ViewportApp';
 import './styles/main.css';
 
+// Reference to the drawer header for dynamic updates
+let accordionHeaderElement = null;
+
 // Check for React conflicts early (helps debug Error #158)
 function checkReactConflicts() {
     if (typeof window !== 'undefined' && window.React && window.React !== React) {
@@ -70,8 +73,12 @@ function mountSettingsPanel(containerId = 'lumiverse-settings-root', settings = 
     drawerHeader.className = 'inline-drawer-toggle inline-drawer-header';
     drawerHeader.innerHTML = `
         <b>Lumiverse Helper</b>
+        <span id="lumiverse-accordion-update-badge" class="lumiverse-accordion-badge" style="display: none;">New!</span>
         <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
     `;
+    
+    // Store reference for dynamic updates
+    accordionHeaderElement = drawerHeader;
 
     // Create the accordion content area
     const drawerContent = document.createElement('div');
@@ -202,6 +209,19 @@ function syncSettings(settings) {
 }
 
 /**
+ * Update the accordion header badge to show update notification
+ * @param {boolean} hasUpdates - Whether there are updates available
+ * @param {string} badgeText - Text to show in the badge (default: "New!")
+ */
+function updateAccordionBadge(hasUpdates, badgeText = 'New!') {
+    const badge = document.getElementById('lumiverse-accordion-update-badge');
+    if (badge) {
+        badge.style.display = hasUpdates ? 'inline-flex' : 'none';
+        badge.textContent = badgeText;
+    }
+}
+
+/**
  * Get current state from the React store
  * For the extension to read current UI state
  * @returns {Object} Current state
@@ -298,6 +318,9 @@ const LumiverseUI = {
     getState,
     subscribe,
     getStore,
+
+    // Update notifications
+    updateAccordionBadge,
 
     // SillyTavern integration
     getSTContext,

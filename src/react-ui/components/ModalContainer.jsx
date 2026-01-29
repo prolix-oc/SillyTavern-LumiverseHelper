@@ -12,6 +12,14 @@ import LumiaEditorModal from './modals/LumiaEditorModal';
 import LoomEditorModal from './modals/LoomEditorModal';
 import ItemTypeSelector from './modals/ItemTypeSelector';
 import CouncilSelectModal from './modals/CouncilSelectModal';
+import PresetEditor from './panels/PresetEditor';
+
+// New React modals (converted from jQuery)
+import OOCSettingsModal from './modals/OOCSettingsModal';
+import SummarizationModal from './modals/SummarizationModal';
+import PromptSettingsModal from './modals/PromptSettingsModal';
+import LucidCardsModal from './modals/LucidCardsModal';
+import LoomSummaryModal from './modals/LoomSummaryModal';
 
 /**
  * Modal wrapper that provides backdrop and close functionality
@@ -39,10 +47,15 @@ function ModalWrapper({ children, onClose, modalType, size = 'medium', hasCustom
         };
     }, [handleKeyDown]);
 
-    // Stop all pointer/mouse events from propagating to ST's drawer handlers
+    // Stop propagation - but NOT for pointer events when in editor mode
+    // This allows dnd-kit to receive pointer up events properly
     const stopAllPropagation = (e) => {
         e.stopPropagation();
     };
+
+    // For editor modals, we only stop propagation on mousedown (for ST drawer)
+    // but allow pointerup to propagate so dnd-kit can end drags properly
+    const isEditorModal = modalType === 'editor';
 
     // Close on backdrop click (only if clicking backdrop itself, not modal content)
     const handleBackdropClick = (e) => {
@@ -52,27 +65,30 @@ function ModalWrapper({ children, onClose, modalType, size = 'medium', hasCustom
         }
     };
 
-    // Determine modal class based on type
+    // Determine modal class based on type and size
     const modalClass = clsx(
-        'lumia-modal',
-        modalType === 'selection' && 'lumia-modal-selection',
-        modalType === 'settings' && 'lumia-modal-settings',
-        modalType === 'editor' && 'lumia-modal-editor',
-        modalType === 'pack-editor' && 'lumia-modal-pack-editor',
-        modalType === 'pack-selector' && 'lumia-modal-pack-selector',
-        modalType === 'lumia-editor' && 'lumia-modal-lumia-editor',
-        modalType === 'loom-editor' && 'lumia-modal-loom-editor',
-        modalType === 'type-selector' && 'lumia-modal-type-selector'
+        'lumiverse-modal',
+        size === 'small' && 'lumiverse-modal--small',
+        size === 'medium' && 'lumiverse-modal--medium',
+        size === 'large' && 'lumiverse-modal--large',
+        modalType === 'selection' && 'lumiverse-modal-selection',
+        modalType === 'settings' && 'lumiverse-modal-settings',
+        modalType === 'editor' && 'lumiverse-modal-editor',
+        modalType === 'pack-editor' && 'lumiverse-modal-pack-editor',
+        modalType === 'pack-selector' && 'lumiverse-modal-pack-selector',
+        modalType === 'lumia-editor' && 'lumiverse-modal-lumia-editor',
+        modalType === 'loom-editor' && 'lumiverse-modal-loom-editor',
+        modalType === 'type-selector' && 'lumiverse-modal-type-selector'
     );
 
     return (
         <div
-            className="lumia-modal-backdrop"
+            className="lumiverse-modal-backdrop"
             onClick={handleBackdropClick}
             onMouseDown={stopAllPropagation}
             onMouseUp={stopAllPropagation}
-            onPointerDown={stopAllPropagation}
-            onPointerUp={stopAllPropagation}
+            onPointerDown={isEditorModal ? undefined : stopAllPropagation}
+            onPointerUp={isEditorModal ? undefined : stopAllPropagation}
             onTouchStart={stopAllPropagation}
             onTouchEnd={stopAllPropagation}
         >
@@ -210,6 +226,54 @@ const MODAL_CONFIG = {
         component: CouncilSelectModal,
         modalType: 'selection',
         size: 'large',
+        hasCustomHeader: true,
+        props: {},
+    },
+    // Full Preset Editor
+    presetEditor: {
+        component: PresetEditor,
+        modalType: 'editor',
+        size: 'large',
+        hasCustomHeader: false, // PresetEditor renders its own header
+        props: {},
+    },
+    // OOC Settings (converted from jQuery showMiscFeaturesModal)
+    oocSettings: {
+        component: OOCSettingsModal,
+        modalType: 'settings',
+        size: 'medium',
+        hasCustomHeader: true,
+        props: {},
+    },
+    // Summarization Settings (converted from jQuery showSummarizationModal)
+    summarization: {
+        component: SummarizationModal,
+        modalType: 'settings',
+        size: 'large',
+        hasCustomHeader: true,
+        props: {},
+    },
+    // Prompt Settings (converted from jQuery showPromptSettingsModal)
+    promptSettings: {
+        component: PromptSettingsModal,
+        modalType: 'settings',
+        size: 'large',
+        hasCustomHeader: true,
+        props: {},
+    },
+    // Lucid Cards Browser (converted from jQuery showLucidCardsModal)
+    lucidCards: {
+        component: LucidCardsModal,
+        modalType: 'selection',
+        size: 'large',
+        hasCustomHeader: true,
+        props: {},
+    },
+    // Loom Summary Editor (converted from jQuery showLoomSummaryModal)
+    loomSummary: {
+        component: LoomSummaryModal,
+        modalType: 'settings',
+        size: 'medium',
         hasCustomHeader: true,
         props: {},
     },

@@ -19,6 +19,7 @@ import {
   getPacks,
   isUsingFileStorage,
   saveSelections,
+  savePreferences,
   setAllPresets,
   savePack,
   deletePack,
@@ -134,6 +135,52 @@ export function reactFormatToSettings(reactState) {
     if (isUsingFileStorage() && reactState.presets !== undefined) {
       // Update presets in file storage
       setAllPresets(reactState.presets);
+    }
+
+    // If using file storage, handle selections separately
+    if (isUsingFileStorage()) {
+      // Extract selection fields that need to be persisted to file storage
+      const selections = {};
+      const selectionFields = [
+        'selectedDefinition',
+        'selectedBehaviors',
+        'selectedPersonalities',
+        'dominantBehavior',
+        'dominantPersonality',
+        'selectedLoomStyle',
+        'selectedLoomUtils',
+        'selectedLoomRetrofits',
+        'selectedDefinitions',
+        'councilMembers',
+      ];
+      for (const field of selectionFields) {
+        if (reactState[field] !== undefined) {
+          selections[field] = reactState[field];
+        }
+      }
+      if (Object.keys(selections).length > 0) {
+        saveSelections(selections);
+      }
+
+      // Extract preference fields that need to be persisted to file storage
+      const preferences = {};
+      const preferenceFields = [
+        'chimeraMode',
+        'councilMode',
+        'lumiaQuirks',
+        'lumiaQuirksEnabled',
+        'lumiaOOCInterval',
+        'lumiaOOCStyle',
+        'activePresetName',
+      ];
+      for (const field of preferenceFields) {
+        if (reactState[field] !== undefined) {
+          preferences[field] = reactState[field];
+        }
+      }
+      if (Object.keys(preferences).length > 0) {
+        savePreferences(preferences);
+      }
     }
 
     // Merge all properties from reactState into settings

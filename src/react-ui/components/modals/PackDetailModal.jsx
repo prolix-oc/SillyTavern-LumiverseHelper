@@ -1,9 +1,9 @@
-import React, { useState, useMemo, useSyncExternalStore, useCallback, useEffect } from 'react';
+import React, { useMemo, useSyncExternalStore, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import clsx from 'clsx';
-import { X, Package, FileText, Zap, Heart, ChevronDown, ChevronUp, Check, Plus, User } from 'lucide-react';
+import { X, Package, FileText, Zap, Heart, Check, Plus, User } from 'lucide-react';
 import { useLumiverseStore, useLumiverseActions, useSelections, saveToExtension } from '../../store/LumiverseContext';
 import { useAdaptiveImagePosition } from '../../hooks/useAdaptiveImagePosition';
+import LazyImage from '../shared/LazyImage';
 
 /* global toastr */
 
@@ -16,6 +16,110 @@ const EMPTY_OBJECT = {};
 // Stable selector functions
 const selectViewingPack = () => store.getState().ui?.viewingPack;
 const selectPacks = () => store.getState().packs || EMPTY_OBJECT;
+
+/**
+ * Self-contained styles for card content (layout handled by CSS classes)
+ */
+const styles = {
+    lumiaCard: {
+        background: 'rgba(0, 0, 0, 0.2)',
+        border: '1px solid var(--lumiverse-border, rgba(255, 255, 255, 0.1))',
+        borderRadius: '12px',
+        overflow: 'hidden',
+        transition: 'border-color 0.15s ease',
+        display: 'flex',
+        flexDirection: 'column',
+    },
+    lumiaImageContainer: {
+        position: 'relative',
+        aspectRatio: '3 / 4',
+        background: 'rgba(0, 0, 0, 0.3)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+    },
+    lumiaImage: {
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover',
+    },
+    lumiaPlaceholder: {
+        color: 'var(--lumiverse-text-muted, #999)',
+        opacity: 0.5,
+    },
+    lumiaInfo: {
+        padding: '12px',
+    },
+    lumiaName: {
+        margin: 0,
+        fontSize: '14px',
+        fontWeight: 600,
+        color: 'var(--lumiverse-text, #e0e0e0)',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+    },
+    lumiaAuthor: {
+        fontSize: '12px',
+        color: 'var(--lumiverse-text-muted, #999)',
+        marginTop: '4px',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+    },
+    traitBadges: {
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '6px',
+        marginTop: '8px',
+    },
+    traitBadge: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+        padding: '4px 8px',
+        fontSize: '10px',
+        fontWeight: 500,
+        borderRadius: '4px',
+        background: 'rgba(147, 112, 219, 0.15)',
+        color: 'var(--lumiverse-primary, #9370db)',
+    },
+    actions: {
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '6px',
+        padding: '0 12px 12px',
+    },
+    actionBtn: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+        padding: '6px 10px',
+        fontSize: '11px',
+        fontWeight: 500,
+        borderRadius: '6px',
+        border: '1px solid var(--lumiverse-border, rgba(255, 255, 255, 0.1))',
+        background: 'rgba(0, 0, 0, 0.2)',
+        color: 'var(--lumiverse-text, #e0e0e0)',
+        cursor: 'pointer',
+        transition: 'all 0.15s ease',
+    },
+    actionBtnSelected: {
+        background: 'rgba(147, 112, 219, 0.2)',
+        borderColor: 'var(--lumiverse-primary, #9370db)',
+        color: 'var(--lumiverse-primary, #9370db)',
+    },
+    actionBtnEnableAll: {
+        background: 'rgba(147, 112, 219, 0.1)',
+        borderColor: 'rgba(147, 112, 219, 0.3)',
+    },
+    actionBtnAllEnabled: {
+        background: 'rgba(147, 112, 219, 0.25)',
+        borderColor: 'var(--lumiverse-primary, #9370db)',
+        color: 'var(--lumiverse-primary, #9370db)',
+    },
+};
 
 /**
  * Get a Lumia field with fallback for old/new format
@@ -64,55 +168,15 @@ function getLumiaItemsFromPack(pack) {
 }
 
 /**
- * Truncate text to a maximum length with ellipsis
- */
-function truncateText(text, maxLength = 200) {
-    if (!text || text.length <= maxLength) return text;
-    return text.slice(0, maxLength) + '...';
-}
-
-/**
- * Collapsible trait preview component
- */
-function TraitPreview({ title, Icon, content, defaultOpen = false }) {
-    const [isOpen, setIsOpen] = useState(defaultOpen);
-
-    if (!content) return null;
-
-    return (
-        <div className="lumiverse-pack-detail-trait">
-            <button
-                className={clsx('lumiverse-pack-detail-trait-header', isOpen && 'lumiverse-pack-detail-trait-header--open')}
-                onClick={() => setIsOpen(!isOpen)}
-                type="button"
-            >
-                <span className="lumiverse-pack-detail-trait-icon">
-                    <Icon size={14} strokeWidth={1.5} />
-                </span>
-                <span className="lumiverse-pack-detail-trait-title">{title}</span>
-                <span className="lumiverse-pack-detail-trait-chevron">
-                    {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                </span>
-            </button>
-            {isOpen && (
-                <div className="lumiverse-pack-detail-trait-content">
-                    <p>{truncateText(content, 500)}</p>
-                </div>
-            )}
-        </div>
-    );
-}
-
-/**
  * Quick-add action button
  */
 function QuickAddButton({ label, Icon, isSelected, onClick, disabled }) {
     return (
         <button
-            className={clsx(
-                'lumiverse-pack-detail-action',
-                isSelected && 'lumiverse-pack-detail-action--selected'
-            )}
+            style={{
+                ...styles.actionBtn,
+                ...(isSelected ? styles.actionBtnSelected : {}),
+            }}
             onClick={onClick}
             disabled={disabled}
             title={isSelected ? 'Already selected' : label}
@@ -205,51 +269,50 @@ function LumiaDetailCard({ item, packName, selections, actions }) {
     }, [actions, packName, itemName]);
 
     return (
-        <div className="lumiverse-pack-detail-lumia">
-            <div className="lumiverse-pack-detail-lumia-header">
-                <div className="lumiverse-pack-detail-lumia-avatar">
-                    {itemImg ? (
-                        <img
-                            src={itemImg}
-                            alt={itemName}
-                            style={{ objectPosition }}
-                        />
-                    ) : (
-                        <User size={24} strokeWidth={1.5} />
-                    )}
-                </div>
-                <div className="lumiverse-pack-detail-lumia-info">
-                    <h4 className="lumiverse-pack-detail-lumia-name">{itemName}</h4>
-                    {itemAuthor && (
-                        <span className="lumiverse-pack-detail-lumia-author">by {itemAuthor}</span>
-                    )}
-                </div>
+        <div style={styles.lumiaCard}>
+            {/* Large image */}
+            <div style={styles.lumiaImageContainer}>
+                {itemImg ? (
+                    <LazyImage
+                        src={itemImg}
+                        alt={itemName}
+                        style={styles.lumiaImage}
+                        objectPosition={objectPosition}
+                    />
+                ) : (
+                    <User size={48} strokeWidth={1.5} style={styles.lumiaPlaceholder} />
+                )}
             </div>
-
-            {/* Trait previews */}
-            <div className="lumiverse-pack-detail-traits">
-                <TraitPreview
-                    title="Definition"
-                    Icon={FileText}
-                    content={itemDef}
-                    defaultOpen={false}
-                />
-                <TraitPreview
-                    title="Behavior"
-                    Icon={Zap}
-                    content={itemBehavior}
-                    defaultOpen={false}
-                />
-                <TraitPreview
-                    title="Personality"
-                    Icon={Heart}
-                    content={itemPersonality}
-                    defaultOpen={false}
-                />
+            
+            {/* Info section */}
+            <div style={styles.lumiaInfo}>
+                <h4 style={styles.lumiaName}>{itemName}</h4>
+                {itemAuthor && (
+                    <span style={styles.lumiaAuthor}>by {itemAuthor}</span>
+                )}
+                
+                {/* Trait badges */}
+                <div style={styles.traitBadges}>
+                    {hasDefinition && (
+                        <span style={styles.traitBadge}>
+                            <FileText size={10} /> Def
+                        </span>
+                    )}
+                    {hasBehavior && (
+                        <span style={styles.traitBadge}>
+                            <Zap size={10} /> Behav
+                        </span>
+                    )}
+                    {hasPersonality && (
+                        <span style={styles.traitBadge}>
+                            <Heart size={10} /> Pers
+                        </span>
+                    )}
+                </div>
             </div>
 
             {/* Quick-add actions */}
-            <div className="lumiverse-pack-detail-actions">
+            <div style={styles.actions}>
                 {hasDefinition && (
                     <QuickAddButton
                         label="Set Def"
@@ -276,7 +339,11 @@ function LumiaDetailCard({ item, packName, selections, actions }) {
                 )}
                 {hasMultipleContentTypes && (
                     <button
-                        className={`lumiverse-pack-detail-action lumiverse-pack-detail-action--enable-all${isAllEnabled ? ' all-enabled' : ''}`}
+                        style={{
+                            ...styles.actionBtn,
+                            ...styles.actionBtnEnableAll,
+                            ...(isAllEnabled ? styles.actionBtnAllEnabled : {}),
+                        }}
                         onClick={handleToggleAll}
                         title={isAllEnabled ? "Disable all traits for this Lumia" : "Enable all traits for this Lumia"}
                         type="button"
@@ -376,10 +443,9 @@ function PackDetailModal() {
     if (!viewingPack || !pack) return null;
 
     // Use createPortal to render at document.body level
-    // Use lumia-modal-backdrop + lumia-modal for consistent centering with other modals
     return createPortal(
         <div
-            className="lumia-modal-backdrop"
+            className="lumiverse-modal-backdrop"
             onClick={handleBackdropClick}
             onMouseDown={stopAllPropagation}
             onMouseUp={stopAllPropagation}
@@ -389,38 +455,36 @@ function PackDetailModal() {
             onTouchEnd={stopAllPropagation}
         >
             <div
-                className="lumia-modal lumiverse-pack-detail-modal"
+                className="lumiverse-modal lumiverse-modal--large"
                 onClick={stopAllPropagation}
                 role="dialog"
                 aria-modal="true"
             >
                 {/* Header */}
-                <div className="lumiverse-pack-detail-header">
-                    <div className="lumiverse-pack-detail-header-info">
-                        <span className="lumiverse-pack-detail-header-icon">
-                            {pack.packCover ? (
-                                <img src={pack.packCover} alt={viewingPack} />
-                            ) : (
-                                <Package size={24} strokeWidth={1.5} />
-                            )}
-                        </span>
-                        <div className="lumiverse-pack-detail-header-text">
-                            <h3 className="lumiverse-pack-detail-title">{viewingPack}</h3>
-                            <div className="lumiverse-pack-detail-stats">
-                                <span>
-                                    <FileText size={12} /> {stats.lumias} Lumia{stats.lumias !== 1 ? 's' : ''}
-                                </span>
-                                <span>
-                                    <Zap size={12} /> {stats.behaviors} Behavior{stats.behaviors !== 1 ? 's' : ''}
-                                </span>
-                                <span>
-                                    <Heart size={12} /> {stats.personalities} Personalit{stats.personalities !== 1 ? 'ies' : 'y'}
-                                </span>
-                            </div>
+                <div className="lumiverse-modal-header lumiverse-pack-detail-header">
+                    <div className="lumiverse-pack-detail-header-icon">
+                        {pack.packCover ? (
+                            <img src={pack.packCover} alt={viewingPack} className="lumiverse-pack-detail-header-img" />
+                        ) : (
+                            <Package size={24} strokeWidth={1.5} />
+                        )}
+                    </div>
+                    <div className="lumiverse-pack-detail-header-text">
+                        <h3 className="lumiverse-pack-detail-title">{viewingPack}</h3>
+                        <div className="lumiverse-pack-detail-stats">
+                            <span className="lumiverse-pack-detail-stat">
+                                <FileText size={12} /> {stats.lumias} Lumia{stats.lumias !== 1 ? 's' : ''}
+                            </span>
+                            <span className="lumiverse-pack-detail-stat">
+                                <Zap size={12} /> {stats.behaviors} Behavior{stats.behaviors !== 1 ? 's' : ''}
+                            </span>
+                            <span className="lumiverse-pack-detail-stat">
+                                <Heart size={12} /> {stats.personalities} Personalit{stats.personalities !== 1 ? 'ies' : 'y'}
+                            </span>
                         </div>
                     </div>
                     <button
-                        className="lumiverse-pack-detail-close"
+                        className="lumiverse-modal-close"
                         onClick={handleClose}
                         title="Close"
                         type="button"
@@ -430,14 +494,14 @@ function PackDetailModal() {
                 </div>
 
                 {/* Content */}
-                <div className="lumiverse-pack-detail-content">
+                <div className="lumiverse-modal-body lumiverse-pack-detail-content">
                     {lumiaItems.length === 0 ? (
                         <div className="lumiverse-pack-detail-empty">
                             <Package size={32} strokeWidth={1.5} />
                             <p>No Lumias found in this pack</p>
                         </div>
                     ) : (
-                        <div className="lumiverse-pack-detail-list">
+                        <div className="lumiverse-responsive-card-grid">
                             {lumiaItems.map((item, index) => (
                                 <LumiaDetailCard
                                     key={getLumiaField(item, 'name') || index}

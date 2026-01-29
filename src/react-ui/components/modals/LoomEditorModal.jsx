@@ -2,6 +2,15 @@ import React, { useState, useCallback } from 'react';
 import { usePacks, useLumiverseActions, saveToExtension } from '../../store/LumiverseContext';
 import clsx from 'clsx';
 import { ScrollText, Palette, Wrench, Settings, Trash2 } from 'lucide-react';
+import { 
+    EditorLayout, 
+    EditorContent, 
+    EditorFooter, 
+    EditorSection, 
+    FormField, 
+    TextInput, 
+    TextArea 
+} from '../shared/FormComponents';
 
 /**
  * Loom Item Structure (v2 format):
@@ -55,40 +64,6 @@ function getLoomField(item, field) {
         }
     }
     return null;
-}
-
-/**
- * Form field component
- */
-function FormField({ label, required, hint, children, error }) {
-    return (
-        <div className={clsx('lumiverse-editor-field', error && 'lumiverse-editor-field--error')}>
-            <label className="lumiverse-editor-label">
-                {label}
-                {required && <span className="lumiverse-required">*</span>}
-            </label>
-            {children}
-            {hint && <span className="lumiverse-editor-hint">{hint}</span>}
-            {error && <span className="lumiverse-editor-error">{error}</span>}
-        </div>
-    );
-}
-
-/**
- * Section with icon header
- */
-function EditorSection({ Icon, title, children }) {
-    return (
-        <div className="lumiverse-editor-section">
-            <div className="lumiverse-editor-section-header">
-                <Icon size={16} strokeWidth={1.5} />
-                <span>{title}</span>
-            </div>
-            <div className="lumiverse-editor-section-content">
-                {children}
-            </div>
-        </div>
-    );
 }
 
 /**
@@ -247,7 +222,7 @@ function LoomEditorModal({ packName, editingItem = null, onClose, onSaved }) {
 
     if (!pack) {
         return (
-            <div className="lumiverse-loom-editor lumiverse-editor-error">
+            <div className="lumiverse-editor-modal lumiverse-editor-error">
                 <p>Pack "{packName}" not found.</p>
                 <button className="lumiverse-btn lumiverse-btn--secondary" onClick={onClose}>
                     Close
@@ -257,17 +232,15 @@ function LoomEditorModal({ packName, editingItem = null, onClose, onSaved }) {
     }
 
     return (
-        <div className="lumiverse-loom-editor">
-            <div className="lumiverse-loom-editor-content">
+        <EditorLayout>
+            <EditorContent>
                 {/* Basic Info Section */}
                 <EditorSection Icon={ScrollText} title="Loom Details">
                     <FormField label="Loom Name" required error={errors.name}>
-                        <input
-                            type="text"
-                            className="lumiverse-input"
+                        <TextInput
                             value={name}
-                            onChange={(e) => {
-                                setName(e.target.value);
+                            onChange={(val) => {
+                                setName(val);
                                 if (errors.name) setErrors(prev => ({ ...prev, name: null }));
                             }}
                             placeholder="e.g., Gothic Horror, Scene Helper"
@@ -276,17 +249,15 @@ function LoomEditorModal({ packName, editingItem = null, onClose, onSaved }) {
                     </FormField>
 
                     <FormField label="Author">
-                        <input
-                            type="text"
-                            className="lumiverse-input"
+                        <TextInput
                             value={author}
-                            onChange={(e) => setAuthor(e.target.value)}
+                            onChange={(val) => setAuthor(val)}
                             placeholder="Your name"
                         />
                     </FormField>
 
                     <FormField label="Category" required>
-                        <div className="lumiverse-loom-category-options">
+                        <div className="lumiverse-loom-category-options" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
                             {LOOM_CATEGORIES.map(cat => (
                                 <button
                                     key={cat.value}
@@ -297,9 +268,22 @@ function LoomEditorModal({ packName, editingItem = null, onClose, onSaved }) {
                                     )}
                                     onClick={() => setCategory(cat.value)}
                                     title={cat.description}
+                                    style={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        padding: '10px 4px',
+                                        background: category === cat.value ? 'rgba(147, 112, 219, 0.15)' : 'rgba(0, 0, 0, 0.2)',
+                                        border: `1px solid ${category === cat.value ? 'var(--lumiverse-primary)' : 'var(--lumiverse-border)'}`,
+                                        borderRadius: '8px',
+                                        color: category === cat.value ? 'var(--lumiverse-primary)' : 'var(--lumiverse-text-muted)',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s ease'
+                                    }}
                                 >
-                                    <cat.Icon size={14} strokeWidth={1.5} />
-                                    {cat.label}
+                                    <cat.Icon size={16} strokeWidth={1.5} />
+                                    <span style={{ fontSize: '11px', fontWeight: 500 }}>{cat.label}</span>
                                 </button>
                             ))}
                         </div>
@@ -314,37 +298,39 @@ function LoomEditorModal({ packName, editingItem = null, onClose, onSaved }) {
                         error={errors.content}
                         hint={getCategoryHint(category)}
                     >
-                        <textarea
-                            className="lumiverse-textarea"
+                        <TextArea
                             value={content}
-                            onChange={(e) => {
-                                setContent(e.target.value);
+                            onChange={(val) => {
+                                setContent(val);
                                 if (errors.content) setErrors(prev => ({ ...prev, content: null }));
                             }}
                             placeholder={getContentPlaceholder(category)}
-                            rows={8}
+                            rows={12}
                         />
                     </FormField>
                 </EditorSection>
-            </div>
+            </EditorContent>
 
             {/* Footer */}
-            <div className="lumiverse-editor-footer">
+            <EditorFooter>
                 {isEditing && (
                     <button
                         className="lumiverse-btn lumiverse-btn--danger"
                         onClick={handleDelete}
                         type="button"
+                        style={{ marginRight: 'auto' }}
                     >
-                        <Trash2 size={14} />
+                        <Trash2 size={14} style={{ marginRight: '6px' }} />
                         Delete
                     </button>
                 )}
-                <div className="lumiverse-editor-footer-spacer" />
+                {!isEditing && <div style={{ marginRight: 'auto' }} />}
+                
                 <button
                     className="lumiverse-btn lumiverse-btn--secondary"
                     onClick={onClose}
                     type="button"
+                    style={{ marginRight: '8px' }}
                 >
                     Cancel
                 </button>
@@ -355,8 +341,8 @@ function LoomEditorModal({ packName, editingItem = null, onClose, onSaved }) {
                 >
                     {isEditing ? 'Save Changes' : 'Create Loom'}
                 </button>
-            </div>
-        </div>
+            </EditorFooter>
+        </EditorLayout>
     );
 }
 

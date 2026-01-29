@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useSyncExternalStore, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import clsx from 'clsx';
 import { X, Package, Layers, Wrench, Sparkles, ChevronDown, ChevronUp, Check, Plus } from 'lucide-react';
 import { useLumiverseStore, useLumiverseActions, useLoomSelections, saveToExtension } from '../../store/LumiverseContext';
 
@@ -23,23 +22,162 @@ const LOOM_CATEGORIES = {
     'Narrative Style': {
         Icon: Sparkles,
         color: 'rgba(147, 112, 219, 0.15)',
+        colorActive: 'rgba(147, 112, 219, 0.25)',
         border: 'rgba(147, 112, 219, 0.3)',
+        borderActive: 'rgba(147, 112, 219, 0.6)',
         storeField: 'styles',
         toggleAction: 'toggleLoomStyle',
     },
     'Loom Utilities': {
         Icon: Wrench,
         color: 'rgba(100, 200, 255, 0.15)',
+        colorActive: 'rgba(100, 200, 255, 0.25)',
         border: 'rgba(100, 200, 255, 0.3)',
+        borderActive: 'rgba(100, 200, 255, 0.6)',
         storeField: 'utilities',
         toggleAction: 'toggleLoomUtility',
     },
     'Retrofits': {
         Icon: Layers,
         color: 'rgba(255, 180, 100, 0.15)',
+        colorActive: 'rgba(255, 180, 100, 0.25)',
         border: 'rgba(255, 180, 100, 0.3)',
+        borderActive: 'rgba(255, 180, 100, 0.6)',
         storeField: 'retrofits',
         toggleAction: 'toggleLoomRetrofit',
+    },
+};
+
+/**
+ * Self-contained styles for category content (layout handled by CSS classes)
+ */
+const styles = {
+    categorySection: {
+        marginBottom: '16px',
+    },
+    categoryHeader: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        padding: '10px 12px',
+        background: 'transparent',
+        border: '1px solid var(--lumiverse-border, rgba(255, 255, 255, 0.1))',
+        borderRadius: '10px',
+        width: '100%',
+        color: 'var(--lumiverse-text, #e0e0e0)',
+        fontSize: '13px',
+        fontWeight: 500,
+        cursor: 'pointer',
+        transition: 'background 0.15s ease',
+    },
+    categoryHeaderExpanded: {
+        borderBottomLeftRadius: 0,
+        borderBottomRightRadius: 0,
+        background: 'rgba(0, 0, 0, 0.2)',
+    },
+    categoryIcon: {
+        width: '24px',
+        height: '24px',
+        borderRadius: '6px',
+        background: 'rgba(147, 112, 219, 0.15)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'var(--lumiverse-primary, #9370db)',
+    },
+    categoryTitle: {
+        flex: 1,
+        textAlign: 'left',
+    },
+    categoryCount: {
+        fontSize: '11px',
+        color: 'var(--lumiverse-text-muted, #999)',
+        background: 'rgba(0, 0, 0, 0.3)',
+        padding: '2px 8px',
+        borderRadius: '10px',
+    },
+    categoryChevron: {
+        color: 'var(--lumiverse-text-muted, #999)',
+        transition: 'transform 0.2s ease',
+    },
+    categoryItems: {
+        border: '1px solid var(--lumiverse-border, rgba(255, 255, 255, 0.1))',
+        borderTop: 'none',
+        borderBottomLeftRadius: '10px',
+        borderBottomRightRadius: '10px',
+        padding: '8px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '6px',
+    },
+    itemCard: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px',
+        padding: '12px',
+        borderRadius: '8px',
+        border: '1px solid',
+        transition: 'all 0.15s ease',
+    },
+    itemHeader: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+    },
+    itemIcon: {
+        width: '20px',
+        height: '20px',
+        borderRadius: '5px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    itemName: {
+        flex: 1,
+        fontSize: '13px',
+        fontWeight: 500,
+        color: 'var(--lumiverse-text, #e0e0e0)',
+    },
+    itemToggle: {
+        width: '24px',
+        height: '24px',
+        borderRadius: '6px',
+        border: '1px solid var(--lumiverse-border, rgba(255, 255, 255, 0.15))',
+        background: 'rgba(0, 0, 0, 0.2)',
+        color: 'var(--lumiverse-text-muted, #999)',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        transition: 'all 0.15s ease',
+    },
+    itemToggleSelected: {
+        background: 'var(--lumiverse-primary, #9370db)',
+        borderColor: 'var(--lumiverse-primary, #9370db)',
+        color: '#fff',
+    },
+    contentToggle: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        padding: '6px 10px',
+        background: 'rgba(0, 0, 0, 0.2)',
+        border: 'none',
+        borderRadius: '6px',
+        width: 'fit-content',
+        color: 'var(--lumiverse-text-muted, #999)',
+        fontSize: '11px',
+        cursor: 'pointer',
+        transition: 'background 0.15s ease',
+    },
+    contentText: {
+        fontSize: '12px',
+        lineHeight: 1.6,
+        color: 'var(--lumiverse-text-muted, #999)',
+        padding: '8px 10px',
+        background: 'rgba(0, 0, 0, 0.15)',
+        borderRadius: '6px',
+        margin: 0,
     },
 };
 
@@ -60,23 +198,21 @@ function ContentPreview({ content, defaultOpen = false }) {
     if (!content) return null;
 
     return (
-        <div className="lumiverse-loom-detail-content-preview">
+        <>
             <button
-                className={clsx('lumiverse-loom-detail-content-toggle', isOpen && 'lumiverse-loom-detail-content-toggle--open')}
+                style={styles.contentToggle}
                 onClick={() => setIsOpen(!isOpen)}
                 type="button"
             >
                 <span>Preview</span>
-                <span className="lumiverse-loom-detail-content-chevron">
-                    {isOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                <span>
+                    {isOpen ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
                 </span>
             </button>
             {isOpen && (
-                <div className="lumiverse-loom-detail-content-text">
-                    <p>{truncateText(content, 500)}</p>
-                </div>
+                <p style={styles.contentText}>{truncateText(content, 500)}</p>
             )}
-        </div>
+        </>
     );
 }
 
@@ -85,30 +221,27 @@ function ContentPreview({ content, defaultOpen = false }) {
  */
 function LoomItemCard({ item, packName, category, isSelected, onToggle }) {
     const config = LOOM_CATEGORIES[category] || LOOM_CATEGORIES['Narrative Style'];
-    const { Icon } = config;
+    const { Icon, color, colorActive, border, borderActive } = config;
     const itemName = item.loomName || item.itemName || item.name || 'Unknown';
 
     return (
         <div
-            className={clsx(
-                'lumiverse-loom-detail-item',
-                isSelected && 'lumiverse-loom-detail-item--selected'
-            )}
             style={{
-                background: isSelected ? config.color.replace('0.15', '0.25') : config.color,
-                borderColor: isSelected ? config.border.replace('0.3', '0.6') : config.border,
+                ...styles.itemCard,
+                background: isSelected ? colorActive : color,
+                borderColor: isSelected ? borderActive : border,
             }}
         >
-            <div className="lumiverse-loom-detail-item-header">
-                <span className="lumiverse-loom-detail-item-icon">
-                    <Icon size={14} strokeWidth={1.5} />
+            <div style={styles.itemHeader}>
+                <span style={{ ...styles.itemIcon, background: isSelected ? colorActive : color }}>
+                    <Icon size={12} strokeWidth={1.5} />
                 </span>
-                <span className="lumiverse-loom-detail-item-name">{itemName}</span>
+                <span style={styles.itemName}>{itemName}</span>
                 <button
-                    className={clsx(
-                        'lumiverse-loom-detail-item-toggle',
-                        isSelected && 'lumiverse-loom-detail-item-toggle--selected'
-                    )}
+                    style={{
+                        ...styles.itemToggle,
+                        ...(isSelected ? styles.itemToggleSelected : {}),
+                    }}
                     onClick={() => onToggle(packName, itemName)}
                     title={isSelected ? 'Remove from selection' : 'Add to selection'}
                     type="button"
@@ -152,26 +285,26 @@ function CategorySection({ category, items, packName, selections, actions }) {
     if (!items || items.length === 0) return null;
 
     return (
-        <div className="lumiverse-loom-detail-category">
+        <div style={styles.categorySection}>
             <button
-                className={clsx(
-                    'lumiverse-loom-detail-category-header',
-                    isExpanded && 'lumiverse-loom-detail-category-header--expanded'
-                )}
+                style={{
+                    ...styles.categoryHeader,
+                    ...(isExpanded ? styles.categoryHeaderExpanded : {}),
+                }}
                 onClick={() => setIsExpanded(!isExpanded)}
                 type="button"
             >
-                <span className="lumiverse-loom-detail-category-icon">
-                    <Icon size={16} strokeWidth={1.5} />
+                <span style={styles.categoryIcon}>
+                    <Icon size={14} strokeWidth={1.5} />
                 </span>
-                <span className="lumiverse-loom-detail-category-title">{category}</span>
-                <span className="lumiverse-loom-detail-category-count">{items.length}</span>
-                <span className="lumiverse-loom-detail-category-chevron">
+                <span style={styles.categoryTitle}>{category}</span>
+                <span style={styles.categoryCount}>{items.length}</span>
+                <span style={styles.categoryChevron}>
                     {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                 </span>
             </button>
             {isExpanded && (
-                <div className="lumiverse-loom-detail-category-items">
+                <div style={styles.categoryItems}>
                     {items.map((item, index) => {
                         const itemName = item.loomName || item.itemName || item.name;
                         return (
@@ -331,10 +464,9 @@ function LoomPackDetailModal() {
     if (!viewingLoomPack || !pack) return null;
 
     // Use createPortal to render at document.body level
-    // Use lumia-modal-backdrop + lumia-modal for consistent centering with other modals
     return createPortal(
         <div
-            className="lumia-modal-backdrop"
+            className="lumiverse-modal-backdrop"
             onClick={handleBackdropClick}
             onMouseDown={stopAllPropagation}
             onMouseUp={stopAllPropagation}
@@ -344,38 +476,36 @@ function LoomPackDetailModal() {
             onTouchEnd={stopAllPropagation}
         >
             <div
-                className="lumia-modal lumiverse-pack-detail-modal lumiverse-loom-detail-modal"
+                className="lumiverse-modal lumiverse-modal--medium"
                 onClick={stopAllPropagation}
                 role="dialog"
                 aria-modal="true"
             >
                 {/* Header */}
-                <div className="lumiverse-pack-detail-header">
-                    <div className="lumiverse-pack-detail-header-info">
-                        <span className="lumiverse-pack-detail-header-icon">
-                            {pack.packCover ? (
-                                <img src={pack.packCover} alt={viewingLoomPack} />
-                            ) : (
-                                <Layers size={24} strokeWidth={1.5} />
-                            )}
-                        </span>
-                        <div className="lumiverse-pack-detail-header-text">
-                            <h3 className="lumiverse-pack-detail-title">{viewingLoomPack}</h3>
-                            <div className="lumiverse-pack-detail-stats">
-                                <span>
-                                    <Sparkles size={12} /> {stats.styles} Style{stats.styles !== 1 ? 's' : ''}
-                                </span>
-                                <span>
-                                    <Wrench size={12} /> {stats.utilities} Utilit{stats.utilities !== 1 ? 'ies' : 'y'}
-                                </span>
-                                <span>
-                                    <Layers size={12} /> {stats.retrofits} Retrofit{stats.retrofits !== 1 ? 's' : ''}
-                                </span>
-                            </div>
+                <div className="lumiverse-modal-header lumiverse-pack-detail-header">
+                    <div className="lumiverse-pack-detail-header-icon">
+                        {pack.packCover ? (
+                            <img src={pack.packCover} alt={viewingLoomPack} className="lumiverse-pack-detail-header-img" />
+                        ) : (
+                            <Layers size={24} strokeWidth={1.5} />
+                        )}
+                    </div>
+                    <div className="lumiverse-pack-detail-header-text">
+                        <h3 className="lumiverse-pack-detail-title">{viewingLoomPack}</h3>
+                        <div className="lumiverse-pack-detail-stats">
+                            <span className="lumiverse-pack-detail-stat">
+                                <Sparkles size={12} /> {stats.styles} Style{stats.styles !== 1 ? 's' : ''}
+                            </span>
+                            <span className="lumiverse-pack-detail-stat">
+                                <Wrench size={12} /> {stats.utilities} Utilit{stats.utilities !== 1 ? 'ies' : 'y'}
+                            </span>
+                            <span className="lumiverse-pack-detail-stat">
+                                <Layers size={12} /> {stats.retrofits} Retrofit{stats.retrofits !== 1 ? 's' : ''}
+                            </span>
                         </div>
                     </div>
                     <button
-                        className="lumiverse-pack-detail-close"
+                        className="lumiverse-modal-close"
                         onClick={handleClose}
                         title="Close"
                         type="button"
@@ -385,14 +515,14 @@ function LoomPackDetailModal() {
                 </div>
 
                 {/* Content */}
-                <div className="lumiverse-pack-detail-content">
+                <div className="lumiverse-modal-body lumiverse-pack-detail-content">
                     {totalItems === 0 ? (
                         <div className="lumiverse-pack-detail-empty">
                             <Layers size={32} strokeWidth={1.5} />
                             <p>No Loom items found in this pack</p>
                         </div>
                     ) : (
-                        <div className="lumiverse-loom-detail-categories">
+                        <>
                             <CategorySection
                                 category="Narrative Style"
                                 items={loomCategories['Narrative Style']}
@@ -414,7 +544,7 @@ function LoomPackDetailModal() {
                                 selections={loomSelections}
                                 actions={actions}
                             />
-                        </div>
+                        </>
                     )}
                 </div>
             </div>

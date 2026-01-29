@@ -4,6 +4,7 @@ import { useAdaptiveImagePosition } from '../hooks/useAdaptiveImagePosition';
 import { exportPack } from './modals/PackEditorModal';
 import { CollapsibleContent } from './Collapsible';
 import { ChatPresetsPanel } from './panels/ChatPresets';
+import { PresetBindingsPanel } from './panels/PresetBindings';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
 import { Eye, Sparkles, Wrench, Layers, Trash2, Users, Bookmark, Plus, ChevronDown, Check, X, AlertTriangle, Download } from 'lucide-react';
@@ -926,8 +927,8 @@ function SettingsPanel() {
                 </div>
             )}
 
-            {/* World Book Source Section */}
-            <Panel title="World Book Source" icon={Icons.book}>
+            {/* Lumia DLC Packs Section */}
+            <Panel title="Lumia DLC Packs" icon={Icons.book}>
                 <div className="lumia-status-badge">
                     {totalPacks > 0
                         ? `${totalPacks} pack${totalPacks !== 1 ? 's' : ''} loaded (${totalItems} items)`
@@ -938,7 +939,7 @@ function SettingsPanel() {
                     <input
                         type="text"
                         className="lumia-input"
-                        placeholder="Enter World Book URL (JSON)"
+                        placeholder="Enter Lumia DLC Pack URL (JSON)"
                         id="lumia-url-input-react"
                     />
                     <button
@@ -973,7 +974,7 @@ function SettingsPanel() {
 
                     <button
                         className="lumia-btn lumia-btn-primary lumia-btn-full"
-                        onClick={() => callExtensionCallback('showLucidCardsModal')}
+                        onClick={() => actions.openModal('lucidCards')}
                         type="button"
                     >
                         {Icons.box}
@@ -985,6 +986,11 @@ function SettingsPanel() {
             {/* Chat Presets - Download from Lucid.cards */}
             <Panel title="Chat Presets" icon={<Download size={16} strokeWidth={1.5} />}>
                 <ChatPresetsPanel />
+            </Panel>
+
+            {/* Preset Bindings - Auto-switch presets per character/chat */}
+            <Panel title="Preset Bindings" icon={Icons.layers}>
+                <PresetBindingsPanel />
             </Panel>
 
             {/* Lumia Configuration Section */}
@@ -1095,17 +1101,17 @@ function SettingsPanel() {
                     <ToolButton
                         icon={Icons.dots}
                         label="OOC Settings"
-                        onClick={() => callExtensionCallback('showMiscFeaturesModal')}
+                        onClick={() => actions.openModal('oocSettings')}
                     />
                     <ToolButton
                         icon={Icons.lines}
                         label="Summarization"
-                        onClick={() => callExtensionCallback('showSummarizationModal')}
+                        onClick={() => actions.openModal('summarization')}
                     />
                     <ToolButton
                         icon={Icons.edit}
                         label="Prompt Settings"
-                        onClick={() => callExtensionCallback('showPromptSettingsModal')}
+                        onClick={() => actions.openModal('promptSettings')}
                     />
                 </div>
             </Panel>

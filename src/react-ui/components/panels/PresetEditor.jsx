@@ -1,0 +1,566 @@
+
+import React, { useState, useMemo, useCallback } from 'react';
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    DragOverlay,
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    verticalListSortingStrategy,
+    useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import {
+    GripVertical,
+    ChevronDown,
+    ChevronRight,
+    Plus,
+    Trash2,
+    Save,
+    X,
+    Edit2,
+    MoreVertical,
+    Eye,
+    EyeOff,
+    Check,
+    Bookmark,
+    BookmarkCheck,
+} from 'lucide-react';
+import clsx from 'clsx';
+import { usePresetEditor } from '../../hooks/usePresetEditor';
+
+const CATEGORY_MARKER = '\u2501';
+
+/**
+ * Sortable Prompt Item
+ */
+function SortablePromptItem({ prompt, index, onEdit, onDelete, onToggleEnabled, onToggleCollapse, isCollapsed }) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: prompt.identifier || prompt._uiId });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+    };
+
+    const isCategory = prompt.name.startsWith(CATEGORY_MARKER);
+    const displayName = isCategory ? prompt.name.substring(1).trim() : prompt.name;
+
+    return (
+        <div
+            ref={setNodeRef}
+            style={style}
+            className={clsx(
+                'lumiverse-prompt-item',
+                isCategory && 'lumiverse-prompt-category',
+                !prompt.enabled && 'lumiverse-prompt-disabled'
+            )}
+        >
+            <div className="lumiverse-prompt-drag-handle" {...attributes} {...listeners}>
+                <GripVertical size={16} />
+            </div>
+
+            <div className="lumiverse-prompt-content">
+                <div className="lumiverse-prompt-header">
+                    {isCategory && (
+                        <button 
+                            className="lumiverse-icon-btn" 
+                            onClick={() => onToggleCollapse(prompt.identifier || prompt._uiId)}
+                            style={{ marginRight: 4 }}
+                        >
+                            {isCollapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
+                        </button>
+                    )}
+                    <span className="lumiverse-prompt-name">{displayName}</span>
+                    <div className="lumiverse-prompt-badges">
+                         <span className={clsx('lumiverse-badge', `lumiverse-badge-${prompt.role}`)}>
+                            {prompt.role}
+                         </span>
+                    </div>
+                </div>
+                {!isCategory && (
+                    <div className="lumiverse-prompt-preview">
+                        {prompt.content.substring(0, 60)}
+                        {prompt.content.length > 60 && '...'}
+                    </div>
+                )}
+            </div>
+
+            <div className="lumiverse-prompt-actions">
+                <button
+                    className="lumiverse-icon-btn"
+                    onClick={() => onToggleEnabled(index)}
+                    title={prompt.enabled ? "Disable" : "Enable"}
+                >
+                    {prompt.enabled ? <Eye size={18} /> : <EyeOff size={18} />}
+                </button>
+                <button
+                    className="lumiverse-icon-btn"
+                    onClick={() => onEdit(index)}
+                    title="Edit"
+                >
+                    <Edit2 size={18} />
+                </button>
+                <button
+                    className="lumiverse-icon-btn lumiverse-btn-danger"
+                    onClick={() => onDelete(index)}
+                    title="Delete"
+                >
+                    <Trash2 size={18} />
+                </button>
+            </div>
+        </div>
+    );
+}
+
+/**
+ * Prompt Editor Modal
+ */
+export default function PresetEditor({ onClose }) {
+    const {
+        currentPreset,
+        prompts,
+        availablePresets,
+        toggleStateNames,
+        savePrompts,
+        selectPreset,
+        exportPreset,
+        saveToggleState,
+        applyToggleState,
+        deleteToggleState,
+        isLoading,
+        error
+    } = usePresetEditor();
+
+    const [editingIndex, setEditingIndex] = useState(null);
+    const [editForm, setEditForm] = useState(null);
+    const [collapsedCategories, setCollapsedCategories] = useState(new Set());
+    const [activeId, setActiveId] = useState(null);
+    
+    // Toggle state UI
+    const [showToggleStateMenu, setShowToggleStateMenu] = useState(false);
+    const [newToggleStateName, setNewToggleStateName] = useState('');
+    const [toggleStateMessage, setToggleStateMessage] = useState(null);
+
+    const toggleCategory = (id) => {
+        const newCollapsed = new Set(collapsedCategories);
+        if (newCollapsed.has(id)) {
+            newCollapsed.delete(id);
+        } else {
+            newCollapsed.add(id);
+        }
+        setCollapsedCategories(newCollapsed);
+    };
+
+    const visiblePrompts = useMemo(() => {
+        const result = [];
+        let isHidden = false;
+        
+        for (const prompt of prompts) {
+            const isCategory = prompt.name.startsWith(CATEGORY_MARKER);
+            if (isCategory) {
+                const id = prompt.identifier || prompt._uiId;
+                isHidden = collapsedCategories.has(id);
+                result.push(prompt);
+            } else {
+                if (!isHidden) {
+                    result.push(prompt);
+                }
+            }
+        }
+        return result;
+    }, [prompts, collapsedCategories]);
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8, // Require 8px movement before drag starts
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
+
+    const handleDragStart = useCallback((event) => {
+        setActiveId(event.active.id);
+    }, []);
+
+    const handleDragEnd = useCallback((event) => {
+        const { active, over } = event;
+        setActiveId(null);
+
+        if (over && active.id !== over.id) {
+            const oldIndex = prompts.findIndex(p => (p.identifier || p._uiId) === active.id);
+            const newIndex = prompts.findIndex(p => (p.identifier || p._uiId) === over.id);
+            
+            if (oldIndex !== -1 && newIndex !== -1) {
+                savePrompts(arrayMove(prompts, oldIndex, newIndex));
+            }
+        }
+    }, [prompts, savePrompts]);
+
+    const handleDragCancel = useCallback(() => {
+        setActiveId(null);
+    }, []);
+
+    // Get active prompt for drag overlay
+    const activePrompt = useMemo(() => {
+        if (!activeId) return null;
+        return prompts.find(p => (p.identifier || p._uiId) === activeId);
+    }, [activeId, prompts]);
+
+    const handleEdit = (index) => {
+        // Find the actual prompt in the full list
+        // The index passed from SortablePromptItem might be from visiblePrompts if I mapped index there?
+        // Wait, SortablePromptItem receives `index`. If I map `visiblePrompts`, index is index in `visiblePrompts`.
+        // But I need index in `prompts` for editing.
+        // Better to pass prompt object or ID to handleEdit
+        
+        // I'll fix this below in the render loop
+        setEditingIndex(index); 
+        setEditForm({ ...prompts[index] });
+    };
+    
+    // ... helper functions need to use ID or find index
+    
+    const findRealIndex = (prompt) => {
+        return prompts.findIndex(p => (p.identifier || p._uiId) === (prompt.identifier || prompt._uiId));
+    };
+
+    // Refactored handlers to use prompt object/ID
+    const handleEditPrompt = (prompt) => {
+        const realIndex = findRealIndex(prompt);
+        setEditingIndex(realIndex);
+        setEditForm({ ...prompts[realIndex] });
+    };
+
+    const handleDeletePrompt = (prompt) => {
+        if (confirm('Are you sure you want to delete this prompt?')) {
+            const realIndex = findRealIndex(prompt);
+            const newPrompts = [...prompts];
+            newPrompts.splice(realIndex, 1);
+            savePrompts(newPrompts);
+        }
+    };
+
+    const handleToggleEnabledPrompt = (prompt) => {
+        const realIndex = findRealIndex(prompt);
+        const newPrompts = [...prompts];
+        newPrompts[realIndex].enabled = !newPrompts[realIndex].enabled;
+        savePrompts(newPrompts);
+    };
+
+    const handleSaveEdit = () => {
+        const newPrompts = [...prompts];
+        newPrompts[editingIndex] = editForm;
+        savePrompts(newPrompts);
+        setEditingIndex(null);
+        setEditForm(null);
+    };
+
+    const handleCancelEdit = () => {
+        setEditingIndex(null);
+        setEditForm(null);
+    };
+
+    const handleAddPrompt = (isCategory = false) => {
+        const newPrompt = {
+            identifier: crypto.randomUUID(),
+            name: isCategory ? `${CATEGORY_MARKER} New Category` : 'New Prompt',
+            content: '',
+            role: 'system',
+            enabled: true,
+            injection_position: 0,
+            injection_depth: 4,
+            _uiId: crypto.randomUUID()
+        };
+        savePrompts([...prompts, newPrompt]);
+    };
+
+    // Toggle State handlers
+    const handleSaveToggleState = async () => {
+        if (!newToggleStateName.trim()) {
+            setToggleStateMessage({ type: 'error', text: 'Please enter a name' });
+            return;
+        }
+        const success = await saveToggleState(newToggleStateName.trim());
+        if (success) {
+            setToggleStateMessage({ type: 'success', text: `Saved "${newToggleStateName.trim()}"` });
+            setNewToggleStateName('');
+            setTimeout(() => setToggleStateMessage(null), 2000);
+        }
+    };
+
+    const handleApplyToggleState = async (stateName) => {
+        const result = await applyToggleState(stateName);
+        if (result) {
+            setToggleStateMessage({ 
+                type: 'success', 
+                text: `Applied "${stateName}": ${result.matched} matched, ${result.unmatched} unchanged` 
+            });
+            setTimeout(() => setToggleStateMessage(null), 3000);
+        }
+        setShowToggleStateMenu(false);
+    };
+
+    const handleDeleteToggleState = async (stateName, e) => {
+        e.stopPropagation();
+        if (confirm(`Delete toggle state "${stateName}"?`)) {
+            await deleteToggleState(stateName);
+            setToggleStateMessage({ type: 'success', text: `Deleted "${stateName}"` });
+            setTimeout(() => setToggleStateMessage(null), 2000);
+        }
+    };
+
+    if (isLoading && !currentPreset) {
+        return <div className="lumiverse-loading">Loading...</div>;
+    }
+
+    return (
+        <div className="lumiverse-preset-editor">
+            <div className="lumiverse-modal-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
+                    <h3>Preset Editor:</h3>
+                    <select 
+                        value={currentPreset?.name || ''} 
+                        onChange={(e) => selectPreset(e.target.value)}
+                        className="lumiverse-select"
+                        style={{ maxWidth: '250px' }}
+                    >
+                        {availablePresets.map(name => (
+                            <option key={name} value={name}>{name}</option>
+                        ))}
+                    </select>
+                </div>
+                <button className="lumiverse-close-btn" onClick={onClose}>
+                    <X size={20} />
+                </button>
+            </div>
+
+            <div className="lumiverse-editor-content">
+                {/* Toolbar */}
+                <div className="lumiverse-toolbar">
+                    <button className="lumiverse-btn" onClick={() => handleAddPrompt(false)}>
+                        <Plus size={16} /> Add Prompt
+                    </button>
+                    <button className="lumiverse-btn" onClick={() => handleAddPrompt(true)}>
+                        <Plus size={16} /> Add Category
+                    </button>
+                    
+                    {/* Toggle States Section */}
+                    <div className="lumiverse-toggle-states" style={{ position: 'relative' }}>
+                        <button 
+                            className={clsx('lumiverse-btn', toggleStateNames.length > 0 && 'lumiverse-btn-accent')}
+                            onClick={() => setShowToggleStateMenu(!showToggleStateMenu)}
+                            title="Toggle States - Save/Load prompt enabled states"
+                        >
+                            {toggleStateNames.length > 0 ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
+                            States {toggleStateNames.length > 0 && `(${toggleStateNames.length})`}
+                        </button>
+                        
+                        {showToggleStateMenu && (
+                            <div className="lumiverse-toggle-state-menu">
+                                <div className="lumiverse-toggle-state-save">
+                                    <input
+                                        type="text"
+                                        placeholder="Name for current state..."
+                                        value={newToggleStateName}
+                                        onChange={(e) => setNewToggleStateName(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleSaveToggleState()}
+                                    />
+                                    <button 
+                                        className="lumiverse-btn lumiverse-btn-primary"
+                                        onClick={handleSaveToggleState}
+                                        disabled={!newToggleStateName.trim()}
+                                    >
+                                        <Save size={14} />
+                                    </button>
+                                </div>
+                                
+                                {toggleStateNames.length > 0 && (
+                                    <>
+                                        <div className="lumiverse-toggle-state-divider">Saved States</div>
+                                        <div className="lumiverse-toggle-state-list">
+                                            {toggleStateNames.map(name => (
+                                                <div 
+                                                    key={name} 
+                                                    className="lumiverse-toggle-state-item"
+                                                    onClick={() => handleApplyToggleState(name)}
+                                                >
+                                                    <span>{name}</span>
+                                                    <button 
+                                                        className="lumiverse-icon-btn lumiverse-btn-danger"
+                                                        onClick={(e) => handleDeleteToggleState(name, e)}
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
+                                
+                                {toggleStateNames.length === 0 && (
+                                    <div className="lumiverse-toggle-state-empty">
+                                        No saved states yet. Enter a name above to save current toggle configuration.
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                    
+                    <div style={{ flex: 1 }}></div>
+                    
+                    {/* Toggle State Message */}
+                    {toggleStateMessage && (
+                        <div className={clsx('lumiverse-toggle-message', `lumiverse-toggle-message-${toggleStateMessage.type}`)}>
+                            {toggleStateMessage.text}
+                        </div>
+                    )}
+                    
+                    <button className="lumiverse-btn" onClick={exportPreset} title="Export as JSON">
+                        <Save size={16} /> Export
+                    </button>
+                </div>
+
+                {/* Edit Form Overlay */}
+                {editingIndex !== null && (
+                    <div className="lumiverse-edit-form">
+                        <h4>Edit Prompt</h4>
+                        <div className="lumiverse-form-group">
+                            <label>Name</label>
+                            <input
+                                type="text"
+                                value={editForm.name}
+                                onChange={e => setEditForm({...editForm, name: e.target.value})}
+                            />
+                        </div>
+                        <div className="lumiverse-form-group">
+                            <label>Role</label>
+                            <select
+                                value={editForm.role}
+                                onChange={e => setEditForm({...editForm, role: e.target.value})}
+                            >
+                                <option value="system">System</option>
+                                <option value="user">User</option>
+                                <option value="assistant">Assistant</option>
+                            </select>
+                        </div>
+                        <div className="lumiverse-form-group">
+                            <label>Content</label>
+                            <textarea
+                                value={editForm.content}
+                                onChange={e => setEditForm({...editForm, content: e.target.value})}
+                                rows={10}
+                            />
+                        </div>
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <div className="lumiverse-form-group" style={{ flex: 1 }}>
+                                <label>Injection Position</label>
+                                <select
+                                    value={editForm.injection_position || 0}
+                                    onChange={e => setEditForm({...editForm, injection_position: parseInt(e.target.value)})}
+                                >
+                                    <option value={0}>Relative (0)</option>
+                                    <option value={1}>Absolute (1)</option>
+                                </select>
+                            </div>
+                            <div className="lumiverse-form-group" style={{ flex: 1 }}>
+                                <label>Injection Depth</label>
+                                <input
+                                    type="number"
+                                    value={editForm.injection_depth || 4}
+                                    onChange={e => setEditForm({...editForm, injection_depth: parseInt(e.target.value)})}
+                                />
+                            </div>
+                        </div>
+                        <div className="lumiverse-form-actions">
+                            <button className="lumiverse-btn lumiverse-btn-primary" onClick={handleSaveEdit}>
+                                <Check size={16} /> Save
+                            </button>
+                            <button className="lumiverse-btn" onClick={handleCancelEdit}>
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Draggable List */}
+                <div className="lumiverse-prompt-list">
+                    {visiblePrompts.length === 0 ? (
+                        <div className="lumiverse-empty-state" style={{ padding: '20px', textAlign: 'center', color: 'var(--lumiverse-text-muted)' }}>
+                            {prompts.length === 0 
+                                ? "No prompts found in this preset. Click 'Add Prompt' to start." 
+                                : "All prompts hidden. Expand categories to view."}
+                        </div>
+                    ) : (
+                        <DndContext
+                            sensors={sensors}
+                            collisionDetection={closestCenter}
+                            onDragStart={handleDragStart}
+                            onDragEnd={handleDragEnd}
+                            onDragCancel={handleDragCancel}
+                        >
+                            <SortableContext
+                                items={visiblePrompts.map(p => p.identifier || p._uiId)}
+                                strategy={verticalListSortingStrategy}
+                            >
+                                {visiblePrompts.map((prompt) => (
+                                    <SortablePromptItem
+                                        key={prompt.identifier || prompt._uiId}
+                                        prompt={prompt}
+                                        index={0}
+                                        onEdit={() => handleEditPrompt(prompt)}
+                                        onDelete={() => handleDeletePrompt(prompt)}
+                                        onToggleEnabled={() => handleToggleEnabledPrompt(prompt)}
+                                        onToggleCollapse={toggleCategory}
+                                        isCollapsed={collapsedCategories.has(prompt.identifier || prompt._uiId)}
+                                    />
+                                ))}
+                            </SortableContext>
+                            <DragOverlay>
+                                {activePrompt ? (
+                                    <div className="lumiverse-prompt-item lumiverse-prompt-dragging">
+                                        <div className="lumiverse-prompt-drag-handle">
+                                            <GripVertical size={16} />
+                                        </div>
+                                        <div className="lumiverse-prompt-content">
+                                            <div className="lumiverse-prompt-header">
+                                                <span className="lumiverse-prompt-name">
+                                                    {activePrompt.name.startsWith(CATEGORY_MARKER) 
+                                                        ? activePrompt.name.substring(1).trim() 
+                                                        : activePrompt.name}
+                                                </span>
+                                                <div className="lumiverse-prompt-badges">
+                                                    <span className={clsx('lumiverse-badge', `lumiverse-badge-${activePrompt.role}`)}>
+                                                        {activePrompt.role}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : null}
+                            </DragOverlay>
+                        </DndContext>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}

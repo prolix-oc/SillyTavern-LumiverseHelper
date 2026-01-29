@@ -16,7 +16,8 @@ import {
     Cloud,
     Clock,
     Settings2,
-    ArrowUpCircle
+    ArrowUpCircle,
+    Edit2
 } from 'lucide-react';
 import { 
     fetchAvailablePresets, 
@@ -31,6 +32,7 @@ import {
     REASONING_EFFORT_LEVELS
 } from '../../../lib/presetsService';
 import { useChatPresetSettings } from '../../hooks/useChatPresetSettings';
+import { useLumiverseActions } from '../../store/LumiverseContext';
 import { ReasoningSettingsContent } from '../shared/ReasoningSettings';
 
 /* global toastr */
@@ -43,6 +45,7 @@ const UPDATE_CHECK_INTERVAL = 30 * 60 * 1000;
  * Displays tracked presets from Lucid.cards with version info and update indicators
  */
 export function ChatPresetsPanel() {
+    const actions = useLumiverseActions();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [trackedPresets, setTrackedPresets] = useState({});
     const [reasoningSettings, setReasoningSettings] = useState(null);
@@ -60,17 +63,29 @@ export function ChatPresetsPanel() {
         const unsubscribe = subscribeToTrackingChanges((newTrackedPresets) => {
             setTrackedPresets(newTrackedPresets);
             // Also refresh update checks when tracking changes
-            checkForPresetUpdates().then(setAvailableUpdates);
+            checkForPresetUpdates().then((updates) => {
+                setAvailableUpdates(updates);
+                // Sync to global store for update banners
+                actions.setPresetUpdates(updates);
+            });
         });
         
         // Initial update check (delayed to not block UI)
         const initialCheck = setTimeout(() => {
-            checkForPresetUpdates().then(setAvailableUpdates);
+            checkForPresetUpdates().then((updates) => {
+                setAvailableUpdates(updates);
+                // Sync to global store for update banners
+                actions.setPresetUpdates(updates);
+            });
         }, 5000);
         
         // Periodic update checks
         updateCheckRef.current = setInterval(() => {
-            checkForPresetUpdates().then(setAvailableUpdates);
+            checkForPresetUpdates().then((updates) => {
+                setAvailableUpdates(updates);
+                // Sync to global store for update banners
+                actions.setPresetUpdates(updates);
+            });
         }, UPDATE_CHECK_INTERVAL);
         
         return () => {
@@ -80,7 +95,7 @@ export function ChatPresetsPanel() {
                 clearInterval(updateCheckRef.current);
             }
         };
-    }, []);
+    }, [actions]);
 
     const handleOpenModal = useCallback(() => {
         setIsModalOpen(true);
@@ -92,8 +107,11 @@ export function ChatPresetsPanel() {
         setTrackedPresets(getTrackedPresets());
         setReasoningSettings(getReasoningSettings());
         setStartReplyWithState(getStartReplyWith());
-        checkForPresetUpdates().then(setAvailableUpdates);
-    }, []);
+        checkForPresetUpdates().then((updates) => {
+            setAvailableUpdates(updates);
+            actions.setPresetUpdates(updates);
+        });
+    }, [actions]);
 
     // Derive tracked preset list with update status
     const presetList = useMemo(() => {
@@ -209,14 +227,24 @@ export function ChatPresetsPanel() {
             )}
 
             {/* Configure Button */}
-            <button
-                className="lumia-btn lumia-btn-primary lumia-btn-full"
-                onClick={handleOpenModal}
-                type="button"
-            >
-                <Settings2 size={14} strokeWidth={2} />
-                {updateCount > 0 ? `Configure (${updateCount} update${updateCount !== 1 ? 's' : ''})` : 'Download & Configure'}
-            </button>
+            <div className="lumia-chat-presets-actions" style={{ display: 'flex', gap: '8px', flexDirection: 'column' }}>
+                <button
+                    className="lumia-btn lumia-btn-primary lumia-btn-full"
+                    onClick={handleOpenModal}
+                    type="button"
+                >
+                    <Settings2 size={14} strokeWidth={2} />
+                    {updateCount > 0 ? `Configure (${updateCount} update${updateCount !== 1 ? 's' : ''})` : 'Download & Configure'}
+                </button>
+                <button
+                    className="lumia-btn lumia-btn-secondary lumia-btn-full"
+                    onClick={() => actions.openModal('presetEditor')}
+                    type="button"
+                >
+                    <Edit2 size={14} strokeWidth={2} />
+                    Preset Editor
+                </button>
+            </div>
 
             {isModalOpen && (
                 <ChatPresetsModal 
@@ -335,14 +363,14 @@ function ChatPresetsModal({ onClose, availableUpdates = [], onUpdateComplete }) 
 
     return createPortal(
         <div
-            className="lumia-modal-backdrop"
+            className="lumiverse-modal-backdrop"
             onClick={handleBackdropClick}
             onMouseDown={handleModalClick}
             onMouseUp={handleModalClick}
         >
             <div
                 ref={modalRef}
-                className="lumia-modal lumiverse-presets-modal"
+                className="lumiverse-modal lumiverse-presets-modal"
                 onClick={handleModalClick}
                 role="dialog"
                 aria-modal="true"

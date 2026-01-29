@@ -1021,6 +1021,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     object-fit: cover;
     border: 1px solid rgba(147, 112, 219, 0.2);
     flex-shrink: 0;
+    animation: lumiverseFadeIn 0.2s ease;
 }
 
 /* Lumia name in expanded list */
@@ -1712,16 +1713,14 @@ details.lumia-panel[open] .lumia-panel-chevron {
    ---------------------------------------- */
 .lumiverse-modal-backdrop {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0;
     background: rgba(0, 0, 0, 0.7);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 10000;
-    padding: 20px;
+    padding: 16px;
+    box-sizing: border-box;
 }
 
 .lumiverse-modal {
@@ -1733,6 +1732,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    min-height: 0; /* Critical: allows flex children to shrink below content size */
 }
 
 .lumiverse-modal--small {
@@ -1748,6 +1748,47 @@ details.lumia-panel[open] .lumia-panel-chevron {
     max-width: 90vw;
 }
 
+/* Editor modals need their content to scroll, not the modal wrapper */
+.lumiverse-modal-lumia-editor,
+.lumiverse-modal-loom-editor,
+.lumiverse-modal-pack-editor {
+    min-height: 0; /* Ensure scrolling works in nested flex */
+}
+
+/* Mobile responsiveness for modals */
+@media (max-width: 600px) {
+    .lumiverse-modal-backdrop {
+        padding: 12px;
+        align-items: flex-start; /* Align to top on mobile for long modals */
+        padding-top: max(12px, env(safe-area-inset-top));
+        padding-bottom: max(12px, env(safe-area-inset-bottom));
+    }
+
+    .lumiverse-modal {
+        width: calc(100vw - 24px);
+        max-width: calc(100vw - 24px);
+        max-height: calc(100dvh - 24px);
+        max-height: calc(100vh - 24px); /* Fallback */
+        margin: auto;
+    }
+
+    .lumiverse-modal--small,
+    .lumiverse-modal--medium,
+    .lumiverse-modal--large {
+        width: calc(100vw - 24px);
+        max-width: calc(100vw - 24px);
+    }
+
+    /* Editor modals on mobile - maximize usable space */
+    .lumiverse-modal-lumia-editor,
+    .lumiverse-modal-loom-editor,
+    .lumiverse-modal-pack-editor {
+        max-height: calc(100dvh - 24px);
+        height: auto; /* Content determines height */
+        overflow: hidden; /* Contain the flex layout */
+    }
+}
+
 .lumiverse-modal-header {
     display: flex;
     align-items: center;
@@ -1755,6 +1796,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     padding: 16px 20px;
     background: var(--lumiverse-bg-elevated);
     border-bottom: 1px solid var(--lumiverse-border);
+    flex-shrink: 0;
 }
 
 .lumiverse-modal-title {
@@ -1784,6 +1826,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    min-height: 0;
 }
 
 /* ----------------------------------------
@@ -3619,6 +3662,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    animation: lumiverseFadeIn 0.2s ease;
 }
 
 .lumiverse-pack-selector-item-name {
@@ -3697,7 +3741,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
 /* ----------------------------------------
    Lumia Editor Modal
    ---------------------------------------- */
-.lumia-modal-lumia-editor {
+.lumiverse-modal-lumia-editor {
     max-width: 640px;
     width: 90%;
 }
@@ -3705,13 +3749,18 @@ details.lumia-panel[open] .lumia-panel-chevron {
 .lumiverse-editor-modal {
     display: flex;
     flex-direction: column;
-    max-height: 80vh;
+    flex: 1;
+    min-height: 0; /* Critical for flex overflow */
+    overflow: hidden; /* Let child .lumiverse-editor-content scroll */
 }
 
 .lumiverse-editor-content {
     flex: 1;
+    min-height: 0; /* Critical for flex overflow */
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 16px;
+    -webkit-overflow-scrolling: touch;
 }
 
 .lumiverse-editor-section {
@@ -3839,10 +3888,23 @@ details.lumia-panel[open] .lumia-panel-chevron {
     padding: 12px 16px;
     border-top: 1px solid var(--lumiverse-border);
     background: var(--lumiverse-bg-secondary);
+    flex-shrink: 0;
 }
 
 .lumiverse-editor-footer-spacer {
     flex: 1;
+}
+
+/* Editor modal textareas - desktop */
+.lumiverse-editor-modal .lumiverse-textarea {
+    min-height: 120px;
+    line-height: 1.5;
+    resize: vertical;
+}
+
+/* Physicality/Personality/Behavior sections need more space */
+.lumiverse-editor-section:not(:first-child) .lumiverse-textarea {
+    min-height: 140px;
 }
 
 /* ----------------------------------------
@@ -4066,6 +4128,396 @@ details.lumia-panel[open] .lumia-panel-chevron {
 .lumiverse-loom-content-field .lumiverse-textarea {
     min-height: 200px;
     resize: vertical;
+}
+
+/* ============================================
+   MOBILE RESPONSIVE - Editor Modals
+   Lumia Editor, Loom Editor, Pack Editor, Pack Selector
+   
+   CRITICAL: The modal hierarchy is:
+   .lumiverse-modal-backdrop (fixed, flex center)
+     .lumiverse-modal.lumiverse-modal-lumia-editor (flex column, max-height constrained)
+       .lumiverse-editor-modal (flex column, fills parent)
+         .lumiverse-editor-content (MUST SCROLL - flex: 1, overflow-y: auto)
+         .lumiverse-editor-footer (flex-shrink: 0, stays at bottom)
+   
+   The parent .lumiverse-modal has overflow: hidden by default.
+   We override it for editor modals to allow internal scrolling.
+   ============================================ */
+
+@media (max-width: 600px) {
+    /* ----------------------------------------
+       Editor Modal Wrapper - Mobile
+       Override the parent .lumiverse-modal settings
+       ---------------------------------------- */
+    .lumiverse-modal.lumiverse-modal-lumia-editor,
+    .lumiverse-modal.lumiverse-modal-loom-editor,
+    .lumiverse-modal.lumiverse-modal-pack-editor,
+    .lumiverse-modal.lumiverse-modal-pack-selector {
+        width: calc(100vw - 24px) !important;
+        max-width: calc(100vw - 24px) !important;
+        /* Height: use vh as fallback, dvh as enhancement */
+        height: calc(100vh - 24px);
+        max-height: calc(100vh - 24px);
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        min-height: 0 !important; /* Critical for nested flex scroll */
+    }
+
+    /* Dynamic viewport units for modern browsers */
+    @supports (height: 100dvh) {
+        .lumiverse-modal.lumiverse-modal-lumia-editor,
+        .lumiverse-modal.lumiverse-modal-loom-editor,
+        .lumiverse-modal.lumiverse-modal-pack-editor,
+        .lumiverse-modal.lumiverse-modal-pack-selector {
+            height: calc(100dvh - 24px);
+            max-height: calc(100dvh - 24px);
+        }
+    }
+
+    /* ----------------------------------------
+       Lumia Editor Modal - Mobile
+       
+       This is the inner container inside .lumiverse-modal
+       ---------------------------------------- */
+    .lumiverse-editor-modal {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0 !important; /* Critical: allows flex child to shrink */
+        height: 100%;
+        overflow: hidden;
+    }
+
+    /* Scrollable content area - THE KEY ELEMENT */
+    .lumiverse-editor-content {
+        flex: 1;
+        min-height: 0 !important; /* Critical: enables overflow scrolling */
+        overflow-y: auto !important;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        padding: 12px;
+        overscroll-behavior: contain;
+    }
+
+    /* Section styling */
+    .lumiverse-editor-section {
+        margin-bottom: 12px;
+        border-radius: var(--lumiverse-radius);
+        background: var(--lumiverse-bg-tertiary);
+    }
+
+    .lumiverse-editor-section:last-child {
+        margin-bottom: 0;
+    }
+
+    .lumiverse-editor-section-header {
+        padding: 10px 12px;
+        font-size: 12px;
+        font-weight: 600;
+        background: var(--lumiverse-bg-secondary);
+        border-bottom: 1px solid var(--lumiverse-border);
+    }
+
+    .lumiverse-editor-section-content {
+        padding: 12px;
+    }
+
+    /* Form fields */
+    .lumiverse-editor-field {
+        margin-bottom: 12px;
+    }
+
+    .lumiverse-editor-field:last-child {
+        margin-bottom: 0;
+    }
+
+    .lumiverse-editor-label {
+        display: block;
+        font-size: 11px;
+        font-weight: 600;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        color: var(--lumiverse-text-muted);
+    }
+
+    /* Stack two-column rows vertically */
+    .lumiverse-editor-row {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .lumiverse-editor-row .lumiverse-editor-field {
+        margin-bottom: 0;
+    }
+
+    /* Avatar preview */
+    .lumiverse-editor-avatar-preview {
+        width: 60px;
+        height: 60px;
+        border-radius: 8px;
+        flex-shrink: 0;
+    }
+
+    /* ----------------------------------------
+       Input Sizing - Mobile
+       All inputs need comfortable touch targets
+       ---------------------------------------- */
+    .lumiverse-editor-modal .lumiverse-input,
+    .lumiverse-editor-modal .lumiverse-select {
+        min-height: 44px; /* iOS touch target minimum */
+        font-size: 16px; /* Prevents iOS zoom on focus */
+        padding: 10px 12px;
+    }
+
+    /* Select dropdown - ensure it's visible */
+    .lumiverse-editor-modal .lumiverse-select {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        padding-right: 36px;
+    }
+
+    /* Textareas - generous sizing */
+    .lumiverse-editor-modal .lumiverse-textarea {
+        min-height: 100px;
+        font-size: 16px; /* Prevents iOS zoom */
+        line-height: 1.5;
+        padding: 12px;
+        resize: vertical;
+    }
+
+    /* Hint text */
+    .lumiverse-editor-hint {
+        font-size: 11px;
+        color: var(--lumiverse-text-muted);
+        margin-top: 4px;
+        font-style: italic;
+    }
+
+    /* ----------------------------------------
+       Footer - Fixed at bottom
+       ---------------------------------------- */
+    .lumiverse-editor-footer {
+        flex-shrink: 0; /* Never compress the footer */
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 12px;
+        border-top: 1px solid var(--lumiverse-border);
+        background: var(--lumiverse-bg-secondary);
+    }
+
+    .lumiverse-editor-footer .lumiverse-btn {
+        min-height: 44px;
+        padding: 10px 16px;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    /* Primary and Secondary buttons side by side */
+    .lumiverse-editor-footer .lumiverse-btn--primary,
+    .lumiverse-editor-footer .lumiverse-btn--secondary:not(.lumiverse-btn--danger) {
+        flex: 1 1 auto;
+    }
+
+    /* Delete button full width on its own row */
+    .lumiverse-editor-footer .lumiverse-btn--danger {
+        flex: 0 0 100%;
+        order: 10; /* Push to end */
+        margin-top: 4px;
+    }
+
+    .lumiverse-editor-footer-spacer {
+        display: none;
+    }
+
+    /* ----------------------------------------
+       Loom Editor Modal - Mobile
+       
+       Same flex structure as Lumia editor
+       ---------------------------------------- */
+    .lumiverse-loom-editor {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0;
+        max-height: 100%;
+        overflow: hidden;
+    }
+
+    .lumiverse-loom-editor-content {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        padding: 12px;
+        overscroll-behavior: contain;
+    }
+
+    /* Category buttons - touch friendly */
+    .lumiverse-loom-category-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .lumiverse-loom-category-btn {
+        min-height: 40px;
+        padding: 8px 14px;
+        font-size: 13px;
+        border-radius: 20px;
+    }
+
+    .lumiverse-loom-category-btn svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    /* Loom content textarea */
+    .lumiverse-loom-content-field .lumiverse-textarea,
+    .lumiverse-loom-editor .lumiverse-textarea {
+        min-height: 150px;
+        font-size: 16px;
+        line-height: 1.5;
+        resize: vertical;
+    }
+
+    /* ----------------------------------------
+       Pack Editor Modal - Mobile
+       ---------------------------------------- */
+    .lumiverse-pack-editor-modal,
+    .lumiverse-pack-selector-modal {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0 !important;
+        max-height: 100%;
+        overflow: hidden;
+    }
+
+    .lumiverse-pack-editor-content,
+    .lumiverse-pack-selector-content {
+        flex: 1 1 auto;
+        min-height: 0 !important;
+        overflow-y: auto !important;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        padding: 12px;
+        gap: 12px;
+        overscroll-behavior: contain;
+    }
+
+    .lumiverse-pack-editor-title {
+        margin-bottom: 12px;
+        gap: 8px;
+    }
+
+    .lumiverse-pack-editor-title h3 {
+        font-size: 16px;
+    }
+
+    .lumiverse-pack-editor-title svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    /* Pack lumias info section */
+    .lumiverse-pack-lumias-info {
+        padding: 12px;
+    }
+
+    .lumiverse-pack-lumias-count {
+        font-size: 13px;
+    }
+
+    .lumiverse-pack-lumias-hint {
+        font-size: 12px;
+        margin-bottom: 10px;
+    }
+
+    /* Pack editor footer */
+    .lumiverse-pack-editor-footer {
+        flex-shrink: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 12px;
+        border-top: 1px solid var(--lumiverse-border);
+        background: var(--lumiverse-bg-secondary);
+    }
+
+    .lumiverse-pack-editor-footer-left {
+        flex: 0 0 100%;
+        order: 2;
+        justify-content: center;
+    }
+
+    .lumiverse-pack-editor-actions {
+        flex: 0 0 100%;
+        order: 1;
+    }
+
+    .lumiverse-pack-editor-footer .lumiverse-btn {
+        flex: 1;
+        justify-content: center;
+        min-height: 44px;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    /* ----------------------------------------
+       Common Input Styles - Mobile
+       16px font prevents iOS zoom on focus
+       ---------------------------------------- */
+    .lumiverse-input,
+    .lumiverse-select {
+        font-size: 16px;
+        padding: 10px 12px;
+        min-height: 44px;
+    }
+
+    .lumiverse-textarea {
+        font-size: 16px;
+        padding: 10px 12px;
+        min-height: 80px;
+    }
+
+    /* Image input adjustments */
+    .lumiverse-image-input .lumiverse-image-preview {
+        margin-top: 8px;
+    }
+
+    .lumiverse-image-input .lumiverse-image-preview img {
+        max-height: 100px;
+    }
+
+    /* Form field adjustments */
+    .lumiverse-form-field {
+        margin-bottom: 12px;
+    }
+
+    .lumiverse-form-label {
+        font-size: 11px;
+        margin-bottom: 5px;
+    }
+
+    .lumiverse-form-hint,
+    .lumiverse-editor-hint {
+        font-size: 10px;
+    }
+
+    /* Stack lumia row fields vertically */
+    .lumiverse-lumia-row {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
 }
 
 /* ----------------------------------------
@@ -4354,6 +4806,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    animation: lumiverseFadeIn 0.2s ease;
 }
 
 .lumiverse-profile-avatar-placeholder {
@@ -4534,6 +4987,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    animation: lumiverseFadeIn 0.2s ease;
 }
 
 .lumiverse-council-banner-more {
@@ -4928,6 +5382,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     border-radius: 6px;
     object-fit: cover;
     flex-shrink: 0;
+    animation: lumiverseFadeIn 0.2s ease;
 }
 
 .lumiverse-browser-pack-cover-placeholder {
@@ -5050,6 +5505,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     border-radius: 4px;
     object-fit: cover;
     flex-shrink: 0;
+    animation: lumiverseFadeIn 0.2s ease;
 }
 
 .lumiverse-browser-item-content {
@@ -6517,11 +6973,24 @@ details.lumia-panel[open] .lumia-panel-chevron {
     max-width: 520px;
 }
 
+/* Editor Modal Variant - needs scrollable content */
+.lumia-modal-editor {
+    max-width: 640px;
+    width: 90%;
+}
+
+.lumia-modal-editor .lumia-modal-content {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
 /* Modal Selection Content Wrapper */
 .lumia-modal-selection-content {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    flex: 1;
     min-height: 0; /* Allow flex children to shrink properly */
     overflow: hidden; /* Let child scroll container handle overflow */
 }
@@ -7374,6 +7843,186 @@ details.lumia-panel[open] .lumia-panel-chevron {
         font-size: 36px;
     }
 
+    /* ----------------------------------------
+       Legacy Lumia Editor Modal - Mobile
+       This is the jQuery <dialog> based editor
+       ---------------------------------------- */
+    .lumia-modal-editor {
+        width: calc(100vw - 24px) !important;
+        max-width: calc(100vw - 24px) !important;
+        height: calc(100vh - 24px);
+        max-height: calc(100vh - 24px);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        min-height: 0;
+    }
+
+    @supports (height: 100dvh) {
+        .lumia-modal-editor {
+            height: calc(100dvh - 24px);
+            max-height: calc(100dvh - 24px);
+        }
+    }
+
+    /* Editor content must scroll */
+    .lumia-modal-editor .lumia-modal-content {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        padding: 12px;
+    }
+
+    /* Editor form fills content */
+    .lumia-modal-editor .lumia-editor-form {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    /* Editor sections */
+    .lumia-modal-editor .lumia-editor-section {
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(128, 128, 128, 0.12);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .lumia-modal-editor .lumia-editor-section-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+        background: rgba(255, 255, 255, 0.02);
+        border-bottom: 1px solid rgba(128, 128, 128, 0.08);
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .lumia-modal-editor .lumia-editor-section-icon {
+        display: flex;
+        align-items: center;
+        width: 16px;
+        height: 16px;
+    }
+
+    .lumia-modal-editor .lumia-editor-section-icon svg {
+        width: 16px;
+        height: 16px;
+        stroke: rgba(147, 112, 219, 0.7);
+    }
+
+    .lumia-modal-editor .lumia-editor-section-content {
+        padding: 12px;
+    }
+
+    /* Form fields */
+    .lumia-modal-editor .lumia-editor-field {
+        margin-bottom: 12px;
+    }
+
+    .lumia-modal-editor .lumia-editor-field:last-child {
+        margin-bottom: 0;
+    }
+
+    .lumia-modal-editor .lumia-editor-label {
+        display: block;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        color: rgba(255, 255, 255, 0.6);
+        margin-bottom: 6px;
+    }
+
+    /* Stack row fields vertically on mobile */
+    .lumia-modal-editor .lumia-editor-row {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .lumia-modal-editor .lumia-editor-field-half {
+        width: 100%;
+    }
+
+    /* Inputs - 16px font prevents iOS zoom */
+    .lumia-modal-editor .lumia-input,
+    .lumia-modal-editor .lumia-select {
+        width: 100%;
+        min-height: 44px;
+        padding: 10px 12px;
+        font-size: 16px;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(128, 128, 128, 0.2);
+        border-radius: 8px;
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .lumia-modal-editor .lumia-textarea {
+        width: 100%;
+        min-height: 100px;
+        padding: 12px;
+        font-size: 16px;
+        line-height: 1.5;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(128, 128, 128, 0.2);
+        border-radius: 8px;
+        color: rgba(255, 255, 255, 0.9);
+        resize: vertical;
+    }
+
+    .lumia-modal-editor .lumia-editor-hint {
+        display: block;
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.4);
+        margin-top: 4px;
+        font-style: italic;
+    }
+
+    /* Avatar preview */
+    .lumia-modal-editor .lumia-editor-preview {
+        width: 60px;
+        height: 60px;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-top: 8px;
+    }
+
+    .lumia-modal-editor .lumia-editor-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    /* Footer stays at bottom */
+    .lumia-modal-editor .lumia-modal-footer {
+        flex-shrink: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 12px;
+        border-top: 1px solid rgba(128, 128, 128, 0.12);
+        background: rgba(0, 0, 0, 0.2);
+    }
+
+    .lumia-modal-editor .lumia-modal-footer .lumia-modal-btn {
+        flex: 1;
+        min-height: 44px;
+        padding: 10px 16px;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    /* Delete button full width on bottom */
+    .lumia-modal-editor .lumia-modal-footer .lumia-modal-btn-danger {
+        flex: 0 0 100%;
+        order: 10;
+        margin-top: 4px;
+    }
+
     /* Disable animations on mobile for performance */
     .lumia-card,
     .lumia-card-image img,
@@ -8081,6 +8730,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    animation: lumiverseFadeIn 0.2s ease;
 }
 
 .lumiverse-council-add-item-info {
@@ -8175,6 +8825,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    animation: lumiverseFadeIn 0.2s ease;
 }
 
 .lumiverse-council-member-info {
@@ -8608,6 +9259,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    animation: lumiverseFadeIn 0.2s ease;
 }
 
 .lumiverse-council-member-card-content {
@@ -8809,6 +9461,12 @@ details.lumia-panel[open] .lumia-panel-chevron {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.lumiverse-council-select-card-image img.lumia-img-loaded {
+    opacity: 1;
 }
 
 .lumiverse-council-select-card-placeholder {
@@ -9352,6 +10010,11 @@ details.lumia-panel[open] .lumia-panel-chevron {
     to { opacity: 1; }
 }
 
+@keyframes lumiverseFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
 /* Pack detail modal - extends lumia-modal base class */
 .lumiverse-pack-detail-modal {
     /* Override base modal width for pack details */
@@ -9410,6 +10073,14 @@ details.lumia-panel[open] .lumia-panel-chevron {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    animation: lumiverseFadeIn 0.2s ease;
+}
+
+.lumiverse-pack-detail-header-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    animation: lumiverseFadeIn 0.2s ease;
 }
 
 .lumiverse-pack-detail-header-text {
@@ -9435,6 +10106,14 @@ details.lumia-panel[open] .lumia-panel-chevron {
 }
 
 .lumiverse-pack-detail-stats > span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--lumiverse-text-muted);
+}
+
+.lumiverse-pack-detail-stat {
     display: flex;
     align-items: center;
     gap: 4px;
@@ -9745,6 +10424,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     border-radius: var(--lumiverse-radius-sm);
     object-fit: cover;
     flex-shrink: 0;
+    animation: lumiverseFadeIn 0.2s ease;
 }
 
 .lumia-downloaded-pack-cover-placeholder {
@@ -10016,6 +10696,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     border-radius: var(--lumiverse-radius-sm);
     object-fit: cover;
     flex-shrink: 0;
+    animation: lumiverseFadeIn 0.2s ease;
 }
 
 .lumia-loom-pack-cover-placeholder {
@@ -10431,18 +11112,10 @@ details.lumia-panel[open] .lumia-panel-chevron {
     min-height: 0;
     display: flex;
     flex-direction: column;
-    background: linear-gradient(
-        165deg,
-        rgba(28, 24, 38, 0.98),
-        rgba(35, 30, 48, 0.98),
-        rgba(30, 26, 42, 0.98)
-    );
-    border: 1px solid rgba(147, 112, 219, 0.15);
-    border-radius: 20px;
-    box-shadow: 
-        0 24px 80px rgba(0, 0, 0, 0.5),
-        0 0 1px rgba(147, 112, 219, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    background: var(--lumiverse-bg);
+    border: 1px solid var(--lumiverse-border);
+    border-radius: 16px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
     overflow: hidden;
 }
 
@@ -10460,13 +11133,9 @@ details.lumia-panel[open] .lumia-panel-chevron {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 18px 20px;
-    background: linear-gradient(
-        180deg,
-        rgba(147, 112, 219, 0.1) 0%,
-        transparent 100%
-    );
-    border-bottom: 1px solid rgba(147, 112, 219, 0.12);
+    padding: 16px 20px;
+    background: transparent;
+    border-bottom: 1px solid var(--lumiverse-border);
     flex-shrink: 0;
 }
 
@@ -10480,13 +11149,11 @@ details.lumia-panel[open] .lumia-panel-chevron {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 44px;
-    height: 44px;
-    background: linear-gradient(135deg, rgba(147, 112, 219, 0.25), rgba(100, 149, 237, 0.2));
-    border: 1px solid rgba(147, 112, 219, 0.3);
-    border-radius: 12px;
-    color: rgba(147, 112, 219, 1);
-    box-shadow: 0 4px 12px rgba(147, 112, 219, 0.2);
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, rgba(147, 112, 219, 0.2), rgba(147, 112, 219, 0.1));
+    border-radius: 10px;
+    color: var(--lumiverse-primary);
 }
 
 .lumiverse-presets-modal-header-text {
@@ -10565,8 +11232,8 @@ details.lumia-panel[open] .lumia-panel-chevron {
     align-items: center;
     justify-content: flex-end;
     padding: 14px 20px;
-    border-top: 1px solid rgba(147, 112, 219, 0.1);
-    background: rgba(0, 0, 0, 0.1);
+    border-top: 1px solid var(--lumiverse-border);
+    background: transparent;
     flex-shrink: 0;
 }
 
@@ -11604,4 +12271,1652 @@ details.lumia-panel[open] .lumia-panel-chevron {
 /* Compact mode for post-processing */
 .lumiverse-presets-reasoning--compact .lumiverse-presets-postprocessing {
     padding: 10px;
+}
+
+/* ========================================
+   Preset Editor Styles
+   ======================================== */
+
+.lumiverse-preset-editor {
+    width: 800px;
+    height: 80vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.lumiverse-editor-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0;
+}
+
+.lumiverse-toolbar {
+    display: flex;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--lumiverse-bg-elevated);
+    border-bottom: 1px solid var(--lumiverse-border);
+}
+
+.lumiverse-prompt-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.lumiverse-prompt-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 10px;
+    background: var(--lumiverse-bg-elevated);
+    border: 1px solid var(--lumiverse-border);
+    border-radius: var(--lumiverse-radius);
+    gap: 12px;
+    transition: all 0.2s ease;
+}
+
+.lumiverse-prompt-item:hover {
+    border-color: var(--lumiverse-border-hover);
+    background: var(--lumiverse-bg-hover);
+}
+
+.lumiverse-prompt-category {
+    background: rgba(147, 112, 219, 0.1);
+    border-color: rgba(147, 112, 219, 0.25);
+    margin-top: 16px;
+    margin-bottom: 4px;
+}
+
+.lumiverse-prompt-category .lumiverse-prompt-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--lumiverse-primary-text);
+}
+
+.lumiverse-prompt-drag-handle {
+    cursor: grab;
+    color: var(--lumiverse-text-muted);
+    padding-top: 2px;
+    /* Required for dnd-kit to handle pointer events properly */
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.lumiverse-prompt-drag-handle:active {
+    cursor: grabbing;
+}
+
+.lumiverse-prompt-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.lumiverse-prompt-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.lumiverse-prompt-name {
+    font-weight: 500;
+    color: var(--lumiverse-text);
+}
+
+.lumiverse-prompt-category-icon {
+    color: var(--lumiverse-primary);
+    display: flex;
+    align-items: center;
+}
+
+.lumiverse-prompt-preview {
+    font-size: 12px;
+    color: var(--lumiverse-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: var(--lumiverse-font-mono);
+}
+
+.lumiverse-prompt-badges {
+    display: flex;
+    gap: 4px;
+    margin-left: 8px;
+}
+
+.lumiverse-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.lumiverse-badge-system {
+    background: rgba(147, 112, 219, 0.2);
+    color: var(--lumiverse-primary-text);
+}
+
+.lumiverse-badge-user {
+    background: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+}
+
+.lumiverse-badge-assistant {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+}
+
+.lumiverse-prompt-actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.lumiverse-icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: var(--lumiverse-text-muted);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.lumiverse-icon-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--lumiverse-text);
+}
+
+.lumiverse-prompt-disabled {
+    opacity: 0.5;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+/* Edit Form Overlay */
+.lumiverse-edit-form {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--lumiverse-bg);
+    padding: 24px;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.lumiverse-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.lumiverse-form-group label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--lumiverse-text-muted);
+}
+
+.lumiverse-form-group input,
+.lumiverse-form-group select,
+.lumiverse-form-group textarea {
+    padding: 10px;
+    background: var(--lumiverse-bg-elevated);
+    border: 1px solid var(--lumiverse-border);
+    border-radius: var(--lumiverse-radius);
+    color: var(--lumiverse-text);
+    font-family: inherit;
+    font-size: 14px;
+}
+
+.lumiverse-form-group textarea {
+    font-family: var(--lumiverse-font-mono);
+    line-height: 1.5;
+    resize: none;
+    flex: 1;
+}
+
+.lumiverse-form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: auto;
+}
+
+/* Select Dropdown */
+.lumiverse-select {
+    padding: 8px 12px;
+    background: var(--lumiverse-bg-elevated);
+    border: 1px solid var(--lumiverse-border);
+    border-radius: var(--lumiverse-radius);
+    color: var(--lumiverse-text);
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    outline: none;
+    transition: all var(--lumiverse-transition);
+}
+
+.lumiverse-select:hover,
+.lumiverse-select:focus {
+    border-color: var(--lumiverse-primary);
+    background: var(--lumiverse-bg-hover);
+}
+
+.lumiverse-select option {
+    background: var(--lumiverse-bg-elevated);
+    color: var(--lumiverse-text);
+}
+
+/* ========================================
+   Preset Editor - Enhanced Button Styles
+   ======================================== */
+
+/* Base .lumiverse-btn inside preset-editor gets default styling */
+.lumiverse-preset-editor .lumiverse-btn {
+    background: rgba(75, 75, 95, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--lumiverse-text);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.lumiverse-preset-editor .lumiverse-btn:hover {
+    background: rgba(95, 95, 115, 0.7);
+    border-color: rgba(147, 112, 219, 0.35);
+    transform: translateY(-1px);
+}
+
+/* Primary button in preset editor */
+.lumiverse-preset-editor .lumiverse-btn.lumiverse-btn-primary {
+    background: linear-gradient(
+        135deg,
+        rgba(147, 112, 219, 0.85) 0%,
+        rgba(123, 95, 196, 0.85) 100%
+    );
+    border: 1px solid rgba(147, 112, 219, 0.4);
+    color: #fff;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.lumiverse-preset-editor .lumiverse-btn.lumiverse-btn-primary:hover {
+    background: linear-gradient(
+        135deg,
+        rgba(167, 132, 239, 0.95) 0%,
+        rgba(143, 115, 216, 0.95) 100%
+    );
+    border-color: rgba(147, 112, 219, 0.6);
+    box-shadow: 0 4px 12px rgba(147, 112, 219, 0.3);
+}
+
+/* Danger button variant */
+.lumiverse-preset-editor .lumiverse-btn-danger,
+.lumiverse-preset-editor .lumiverse-icon-btn.lumiverse-btn-danger {
+    color: rgba(239, 100, 100, 0.9);
+}
+
+.lumiverse-preset-editor .lumiverse-btn-danger:hover,
+.lumiverse-preset-editor .lumiverse-icon-btn.lumiverse-btn-danger:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+}
+
+/* Modal header styling */
+.lumiverse-preset-editor .lumiverse-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: linear-gradient(
+        180deg,
+        rgba(45, 45, 65, 0.9) 0%,
+        rgba(35, 35, 50, 0.8) 100%
+    );
+}
+
+.lumiverse-preset-editor .lumiverse-modal-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--lumiverse-text);
+}
+
+/* Close button */
+.lumiverse-preset-editor .lumiverse-close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: var(--lumiverse-text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.lumiverse-preset-editor .lumiverse-close-btn:hover {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #f87171;
+}
+
+/* Toolbar enhancements */
+.lumiverse-preset-editor .lumiverse-toolbar {
+    background: linear-gradient(
+        180deg,
+        rgba(35, 35, 50, 0.6) 0%,
+        rgba(30, 30, 45, 0.4) 100%
+    );
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 12px 16px;
+}
+
+/* Edit form overlay enhancements */
+.lumiverse-preset-editor .lumiverse-edit-form {
+    background: linear-gradient(
+        180deg,
+        rgba(30, 30, 46, 0.98) 0%,
+        rgba(25, 25, 38, 0.98) 100%
+    );
+    border-radius: 0;
+}
+
+.lumiverse-preset-editor .lumiverse-edit-form h4 {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--lumiverse-text);
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Form inputs enhanced */
+.lumiverse-preset-editor .lumiverse-form-group input,
+.lumiverse-preset-editor .lumiverse-form-group select,
+.lumiverse-preset-editor .lumiverse-form-group textarea {
+    background: rgba(20, 20, 35, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.2s ease;
+}
+
+.lumiverse-preset-editor .lumiverse-form-group input:focus,
+.lumiverse-preset-editor .lumiverse-form-group select:focus,
+.lumiverse-preset-editor .lumiverse-form-group textarea:focus {
+    outline: none;
+    border-color: rgba(147, 112, 219, 0.5);
+    box-shadow: 0 0 0 3px rgba(147, 112, 219, 0.15);
+}
+
+/* Prompt list container */
+.lumiverse-preset-editor .lumiverse-prompt-list {
+    background: rgba(20, 20, 35, 0.4);
+}
+
+/* Prompt items enhanced */
+.lumiverse-preset-editor .lumiverse-prompt-item {
+    background: rgba(45, 45, 65, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.lumiverse-preset-editor .lumiverse-prompt-item:hover {
+    background: rgba(55, 55, 75, 0.6);
+    border-color: rgba(147, 112, 219, 0.25);
+}
+
+/* Dragging state */
+.lumiverse-preset-editor .lumiverse-prompt-item[style*="opacity: 0.5"] {
+    background: rgba(147, 112, 219, 0.15);
+    border-color: rgba(147, 112, 219, 0.4);
+}
+
+/* Icon buttons in prompt actions */
+.lumiverse-preset-editor .lumiverse-prompt-actions .lumiverse-icon-btn {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid transparent;
+}
+
+.lumiverse-preset-editor .lumiverse-prompt-actions .lumiverse-icon-btn:hover {
+    background: rgba(147, 112, 219, 0.2);
+    border-color: rgba(147, 112, 219, 0.3);
+    color: var(--lumiverse-primary-text);
+}
+
+/* Category toggle button */
+.lumiverse-preset-editor .lumiverse-prompt-category .lumiverse-icon-btn {
+    color: var(--lumiverse-primary-text);
+}
+
+/* Empty state */
+.lumiverse-preset-editor .lumiverse-empty-state {
+    color: var(--lumiverse-text-muted);
+    font-style: italic;
+}
+
+/* Drag overlay item */
+.lumiverse-prompt-dragging {
+    display: flex;
+    align-items: flex-start;
+    padding: 10px;
+    background: rgba(147, 112, 219, 0.25);
+    border: 2px solid rgba(147, 112, 219, 0.6);
+    border-radius: var(--lumiverse-radius);
+    gap: 12px;
+    box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(147, 112, 219, 0.3);
+    cursor: grabbing;
+    transform: scale(1.02);
+}
+
+.lumiverse-prompt-dragging .lumiverse-prompt-drag-handle {
+    color: var(--lumiverse-primary-text);
+    cursor: grabbing;
+}
+
+.lumiverse-prompt-dragging .lumiverse-prompt-name {
+    font-weight: 500;
+    color: var(--lumiverse-text);
+}
+
+/* ========================================
+   Toggle State Menu Styles
+   ======================================== */
+
+/* Accent button (when states exist) */
+.lumiverse-preset-editor .lumiverse-btn.lumiverse-btn-accent {
+    background: rgba(147, 112, 219, 0.25);
+    border-color: rgba(147, 112, 219, 0.4);
+    color: var(--lumiverse-primary-text);
+}
+
+.lumiverse-preset-editor .lumiverse-btn.lumiverse-btn-accent:hover {
+    background: rgba(147, 112, 219, 0.35);
+    border-color: rgba(147, 112, 219, 0.6);
+}
+
+/* Toggle states container */
+.lumiverse-toggle-states {
+    position: relative;
+}
+
+/* Toggle state dropdown menu */
+.lumiverse-toggle-state-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 100;
+    min-width: 280px;
+    background: linear-gradient(
+        180deg,
+        rgba(35, 35, 52, 0.98) 0%,
+        rgba(28, 28, 42, 0.98) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--lumiverse-radius);
+    box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(147, 112, 219, 0.1);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    overflow: hidden;
+}
+
+/* Save section */
+.lumiverse-toggle-state-save {
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.lumiverse-toggle-state-save input {
+    flex: 1;
+    padding: 8px 12px;
+    background: rgba(20, 20, 35, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--lumiverse-radius-sm);
+    color: var(--lumiverse-text);
+    font-size: 13px;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.lumiverse-toggle-state-save input:focus {
+    border-color: rgba(147, 112, 219, 0.5);
+    box-shadow: 0 0 0 2px rgba(147, 112, 219, 0.15);
+}
+
+.lumiverse-toggle-state-save input::placeholder {
+    color: var(--lumiverse-text-muted);
+}
+
+.lumiverse-toggle-state-save .lumiverse-btn {
+    padding: 8px 12px;
+    min-width: auto;
+}
+
+/* Divider */
+.lumiverse-toggle-state-divider {
+    padding: 8px 12px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--lumiverse-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* State list */
+.lumiverse-toggle-state-list {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* Individual state item */
+.lumiverse-toggle-state-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.lumiverse-toggle-state-item:hover {
+    background: rgba(147, 112, 219, 0.15);
+}
+
+.lumiverse-toggle-state-item span {
+    flex: 1;
+    font-size: 13px;
+    color: var(--lumiverse-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lumiverse-toggle-state-item .lumiverse-icon-btn {
+    opacity: 0.5;
+    padding: 4px;
+}
+
+.lumiverse-toggle-state-item:hover .lumiverse-icon-btn {
+    opacity: 1;
+}
+
+/* Empty state */
+.lumiverse-toggle-state-empty {
+    padding: 16px 12px;
+    font-size: 12px;
+    color: var(--lumiverse-text-muted);
+    text-align: center;
+    font-style: italic;
+    line-height: 1.5;
+}
+
+/* Toggle message (success/error feedback) */
+.lumiverse-toggle-message {
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: var(--lumiverse-radius-sm);
+    animation: fadeIn 0.2s ease;
+}
+
+.lumiverse-toggle-message-success {
+    background: rgba(34, 197, 94, 0.2);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.lumiverse-toggle-message-error {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+
+/* ----------------------------------------
+   Update Notification System
+   ---------------------------------------- */
+
+/* Update Banner - warm amber/orange with purple accents */
+.lumiverse-update-banner {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.2) 50%, rgba(147, 112, 219, 0.1) 100%);
+    border: 1px solid rgba(251, 191, 36, 0.4);
+    border-radius: var(--lumiverse-radius);
+    padding: 12px 16px;
+    margin-bottom: 12px;
+    animation: updateBannerSlideIn 0.3s ease-out;
+}
+
+.lumiverse-update-banner.has-extension-update {
+    border-color: rgba(251, 191, 36, 0.6);
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.15);
+}
+
+@keyframes updateBannerSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.lumiverse-update-banner-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.lumiverse-update-banner-icon {
+    color: #fbbf24;
+    flex-shrink: 0;
+    margin-top: 2px;
+    animation: updatePulse 2s ease-in-out infinite;
+}
+
+@keyframes updatePulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+.lumiverse-update-banner-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.lumiverse-update-banner-main {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #fcd34d;
+    font-weight: 500;
+}
+
+.lumiverse-update-banner-main strong {
+    color: #fef08a;
+}
+
+.lumiverse-update-banner-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #a78bfa;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.lumiverse-update-banner-link:hover {
+    color: #c4b5fd;
+    text-decoration: underline;
+}
+
+.lumiverse-update-banner-presets {
+    font-size: 12px;
+    color: var(--lumiverse-text-muted);
+    margin-top: 4px;
+}
+
+.lumiverse-update-banner-dismiss {
+    padding: 4px;
+    background: transparent;
+    border: none;
+    color: var(--lumiverse-text-muted);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.lumiverse-update-banner-dismiss:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--lumiverse-text);
+}
+
+/* Update Dot - small pulsing indicator on toggle button */
+.lumiverse-update-dot {
+    width: 8px;
+    height: 8px;
+    background: #fbbf24;
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
+    animation: updateDotPulse 1.5s ease-in-out infinite;
+    margin-left: 4px;
+}
+
+@keyframes updateDotPulse {
+    0%, 100% {
+        box-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 0 12px rgba(251, 191, 36, 0.9);
+        transform: scale(1.1);
+    }
+}
+
+/* Toggle button with updates - blended purple/amber gradient */
+.lumiverse-panel-toggle--has-updates {
+    background: linear-gradient(135deg, rgba(147, 112, 219, 0.85) 0%, rgba(180, 140, 200, 0.9) 50%, rgba(251, 191, 36, 0.75) 100%);
+    border-color: rgba(251, 191, 36, 0.4);
+    box-shadow: 0 4px 12px rgba(147, 112, 219, 0.3), 0 0 15px rgba(251, 191, 36, 0.25);
+}
+
+.lumiverse-panel-toggle--has-updates:hover {
+    box-shadow: 0 4px 16px rgba(147, 112, 219, 0.5), 0 0 25px rgba(251, 191, 36, 0.4);
+    border-color: rgba(251, 191, 36, 0.6);
+}
+
+/* Accordion Badge - "New!" indicator next to title */
+.lumiverse-accordion-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    margin-left: 8px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #1f2937;
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(251, 191, 36, 0.4);
+    animation: badgeBounce 0.5s ease-out;
+}
+
+@keyframes badgeBounce {
+    0% { transform: scale(0); opacity: 0; }
+    60% { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* Update indicator for ViewportPanel header area */
+.lumiverse-vp-main .lumiverse-update-banner {
+    margin: 0 0 8px 0;
+    border-radius: var(--lumiverse-radius-sm);
+}
+
+/* Compact version for tight spaces */
+.lumiverse-update-banner--compact {
+    padding: 8px 12px;
+}
+
+.lumiverse-update-banner--compact .lumiverse-update-banner-main {
+    font-size: 12px;
+}
+
+.lumiverse-update-banner--compact .lumiverse-update-banner-icon {
+    display: none;
+}
+
+/* ============================================
+   PRESET BINDINGS PANEL STYLES
+   ============================================ */
+
+/* Status Section */
+.lumiverse-bindings-status {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    background: var(--lumiverse-bg-secondary);
+    border-radius: var(--lumiverse-radius-sm);
+    margin-bottom: 10px;
+}
+
+.lumiverse-bindings-context {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.lumiverse-bindings-context-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--lumiverse-text-muted);
+}
+
+.lumiverse-bindings-context-item svg {
+    flex-shrink: 0;
+    opacity: 0.7;
+}
+
+.lumiverse-bindings-context-label {
+    opacity: 0.7;
+}
+
+.lumiverse-bindings-context-value {
+    color: var(--lumiverse-text);
+    font-weight: 500;
+}
+
+.lumiverse-bindings-context-value--mono {
+    font-family: var(--lumiverse-font-mono);
+    font-size: 11px;
+}
+
+.lumiverse-bindings-context-bound {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 6px;
+    background: rgba(147, 112, 219, 0.2);
+    color: var(--lumiverse-accent);
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 500;
+    margin-left: auto;
+}
+
+.lumiverse-bindings-active {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: rgba(147, 112, 219, 0.15);
+    border: 1px solid rgba(147, 112, 219, 0.3);
+    border-radius: var(--lumiverse-radius-sm);
+    font-size: 12px;
+    color: var(--lumiverse-accent);
+}
+
+.lumiverse-bindings-empty-context {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    color: var(--lumiverse-text-muted);
+    font-size: 12px;
+}
+
+.lumiverse-bindings-empty-context svg {
+    opacity: 0.5;
+}
+
+.lumiverse-bindings-summary {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.lumiverse-bindings-summary-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--lumiverse-text-muted);
+}
+
+/* Modal Styles */
+.lumiverse-bindings-modal {
+    width: min(520px, 95vw);
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.lumiverse-bindings-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--lumiverse-border);
+    background: linear-gradient(180deg, var(--lumiverse-bg-secondary) 0%, var(--lumiverse-bg) 100%);
+}
+
+.lumiverse-bindings-modal-header-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.lumiverse-bindings-modal-header-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, rgba(147, 112, 219, 0.2) 0%, rgba(147, 112, 219, 0.1) 100%);
+    border-radius: var(--lumiverse-radius);
+    color: var(--lumiverse-accent);
+}
+
+.lumiverse-bindings-modal-header-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.lumiverse-bindings-modal-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--lumiverse-text);
+}
+
+.lumiverse-bindings-modal-subtitle {
+    margin: 0;
+    font-size: 12px;
+    color: var(--lumiverse-text-muted);
+}
+
+.lumiverse-bindings-modal-close {
+    padding: 8px;
+    background: transparent;
+    border: none;
+    color: var(--lumiverse-text-muted);
+    cursor: pointer;
+    border-radius: var(--lumiverse-radius-sm);
+    transition: all 0.2s ease;
+}
+
+.lumiverse-bindings-modal-close:hover {
+    background: var(--lumiverse-bg-secondary);
+    color: var(--lumiverse-text);
+}
+
+.lumiverse-bindings-modal-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.lumiverse-bindings-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding: 12px 20px;
+    border-top: 1px solid var(--lumiverse-border);
+    background: var(--lumiverse-bg-secondary);
+}
+
+.lumiverse-bindings-modal-btn {
+    padding: 8px 20px;
+    border: none;
+    border-radius: var(--lumiverse-radius-sm);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.lumiverse-bindings-modal-btn--primary {
+    background: var(--lumiverse-accent);
+    color: white;
+}
+
+.lumiverse-bindings-modal-btn--primary:hover {
+    background: var(--lumiverse-accent-hover);
+}
+
+/* Sections */
+.lumiverse-bindings-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.lumiverse-bindings-section-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--lumiverse-text);
+}
+
+.lumiverse-bindings-section-header svg {
+    color: var(--lumiverse-accent);
+}
+
+/* Create Binding Form */
+.lumiverse-bindings-create {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    background: var(--lumiverse-bg-secondary);
+    border-radius: var(--lumiverse-radius);
+}
+
+.lumiverse-bindings-type-toggle {
+    display: flex;
+    gap: 8px;
+}
+
+.lumiverse-bindings-type-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: var(--lumiverse-bg);
+    border: 1px solid var(--lumiverse-border);
+    border-radius: var(--lumiverse-radius-sm);
+    font-size: 12px;
+    color: var(--lumiverse-text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.lumiverse-bindings-type-btn:hover:not(:disabled) {
+    border-color: var(--lumiverse-border-light);
+    color: var(--lumiverse-text);
+}
+
+.lumiverse-bindings-type-btn.is-active {
+    background: rgba(147, 112, 219, 0.15);
+    border-color: var(--lumiverse-accent);
+    color: var(--lumiverse-accent);
+}
+
+.lumiverse-bindings-type-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.lumiverse-bindings-create-context {
+    display: flex;
+    align-items: center;
+    padding: 8px 10px;
+    background: var(--lumiverse-bg);
+    border-radius: var(--lumiverse-radius-sm);
+    font-size: 12px;
+    color: var(--lumiverse-text);
+}
+
+.lumiverse-bindings-create-context span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.lumiverse-bindings-create-context svg {
+    color: var(--lumiverse-text-muted);
+}
+
+.lumiverse-bindings-create-existing {
+    margin-left: 8px;
+    color: var(--lumiverse-accent);
+    font-size: 11px;
+}
+
+.lumiverse-bindings-create-row {
+    display: flex;
+    gap: 8px;
+}
+
+.lumiverse-bindings-select {
+    flex: 1;
+    padding: 8px 10px;
+    background: var(--lumiverse-bg);
+    border: 1px solid var(--lumiverse-border);
+    border-radius: var(--lumiverse-radius-sm);
+    font-size: 12px;
+    color: var(--lumiverse-text);
+    cursor: pointer;
+}
+
+.lumiverse-bindings-select:focus {
+    outline: none;
+    border-color: var(--lumiverse-accent);
+}
+
+.lumiverse-bindings-no-presets {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px;
+    background: rgba(234, 179, 8, 0.1);
+    border: 1px solid rgba(234, 179, 8, 0.3);
+    border-radius: var(--lumiverse-radius-sm);
+    font-size: 11px;
+    color: #eab308;
+}
+
+.lumiverse-bindings-no-context {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 24px;
+    color: var(--lumiverse-text-muted);
+    text-align: center;
+}
+
+.lumiverse-bindings-no-context svg {
+    opacity: 0.5;
+}
+
+/* Bindings List */
+.lumiverse-bindings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.lumiverse-bindings-list-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--lumiverse-bg-secondary);
+    border-radius: var(--lumiverse-radius-sm);
+    transition: all 0.2s ease;
+}
+
+.lumiverse-bindings-list-item:hover {
+    background: var(--lumiverse-bg-hover);
+}
+
+.lumiverse-bindings-list-item-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: rgba(147, 112, 219, 0.15);
+    border-radius: var(--lumiverse-radius-sm);
+    color: var(--lumiverse-accent);
+    flex-shrink: 0;
+}
+
+.lumiverse-bindings-list-item-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.lumiverse-bindings-list-item-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--lumiverse-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lumiverse-bindings-list-item-type {
+    font-size: 10px;
+    color: var(--lumiverse-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.lumiverse-bindings-list-item-preset {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: rgba(147, 112, 219, 0.15);
+    border-radius: var(--lumiverse-radius-sm);
+    font-size: 11px;
+    color: var(--lumiverse-accent);
+    white-space: nowrap;
+}
+
+.lumiverse-bindings-list-item-remove {
+    padding: 6px;
+    background: transparent;
+    border: none;
+    color: var(--lumiverse-text-muted);
+    cursor: pointer;
+    border-radius: var(--lumiverse-radius-sm);
+    transition: all 0.2s ease;
+    opacity: 0;
+}
+
+.lumiverse-bindings-list-item:hover .lumiverse-bindings-list-item-remove {
+    opacity: 1;
+}
+
+.lumiverse-bindings-list-item-remove:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+/* Empty State */
+.lumiverse-bindings-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 24px;
+    color: var(--lumiverse-text-muted);
+    text-align: center;
+}
+
+.lumiverse-bindings-empty svg {
+    opacity: 0.5;
+}
+
+.lumiverse-bindings-empty-hint {
+    font-size: 11px;
+    opacity: 0.7;
+}
+
+/* Info Box */
+.lumiverse-bindings-info {
+    padding: 12px;
+    background: rgba(147, 112, 219, 0.08);
+    border: 1px solid rgba(147, 112, 219, 0.2);
+    border-radius: var(--lumiverse-radius);
+}
+
+.lumiverse-bindings-info-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--lumiverse-accent);
+    margin-bottom: 8px;
+}
+
+.lumiverse-bindings-info-list {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 11px;
+    color: var(--lumiverse-text-muted);
+    line-height: 1.6;
+}
+
+.lumiverse-bindings-info-list li {
+    margin-bottom: 4px;
+}
+
+.lumiverse-bindings-info-list strong {
+    color: var(--lumiverse-text);
+}
+
+/* =============================================================================
+   PROFILE BIND BUTTON - Quick bind button in profile header
+   ============================================================================= */
+
+.lumiverse-profile-bind-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    background: rgba(147, 112, 219, 0.08);
+    border: 1px solid rgba(147, 112, 219, 0.2);
+    border-radius: 10px;
+    color: var(--lumiverse-text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.lumiverse-profile-bind-btn:hover {
+    background: rgba(147, 112, 219, 0.15);
+    border-color: rgba(147, 112, 219, 0.35);
+    color: var(--lumiverse-primary);
+    transform: scale(1.05);
+}
+
+.lumiverse-profile-bind-btn--active {
+    background: rgba(147, 112, 219, 0.2);
+    border-color: var(--lumiverse-primary);
+    color: var(--lumiverse-primary);
+}
+
+.lumiverse-profile-bind-btn--active:hover {
+    background: rgba(147, 112, 219, 0.3);
+}
+
+/* =============================================================================
+   PROFILE BINDINGS MODAL - Compact modal from profile tab
+   ============================================================================= */
+
+.lumiverse-profile-bindings-backdrop {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lumiverse-profile-bindings-modal {
+    background: var(--lumiverse-bg);
+    border: 1px solid var(--lumiverse-border);
+    border-radius: 14px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    width: 320px;
+    max-width: 90vw;
+    overflow: hidden;
+    animation: lumiverseProfileModalIn 0.2s ease;
+}
+
+@keyframes lumiverseProfileModalIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Header */
+.lumiverse-profile-bindings-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    background: rgba(147, 112, 219, 0.08);
+    border-bottom: 1px solid var(--lumiverse-border);
+}
+
+.lumiverse-profile-bindings-header-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: rgba(147, 112, 219, 0.15);
+    border-radius: 8px;
+    color: var(--lumiverse-primary);
+    flex-shrink: 0;
+}
+
+.lumiverse-profile-bindings-header-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.lumiverse-profile-bindings-title {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--lumiverse-text);
+}
+
+.lumiverse-profile-bindings-subtitle {
+    display: block;
+    font-size: 11px;
+    color: var(--lumiverse-text-muted);
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lumiverse-profile-bindings-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: var(--lumiverse-text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+}
+
+.lumiverse-profile-bindings-close:hover {
+    background: rgba(255, 100, 100, 0.15);
+    color: #ff6b6b;
+}
+
+/* Content */
+.lumiverse-profile-bindings-content {
+    padding: 14px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* Status section */
+.lumiverse-profile-bindings-status {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.lumiverse-profile-bindings-status-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--lumiverse-text-muted);
+}
+
+.lumiverse-profile-bindings-status-row.is-bound {
+    background: rgba(147, 112, 219, 0.12);
+    color: var(--lumiverse-text);
+}
+
+.lumiverse-profile-bindings-status-row svg:first-child {
+    flex-shrink: 0;
+    opacity: 0.7;
+}
+
+.lumiverse-profile-bindings-status-label {
+    font-weight: 500;
+    flex-shrink: 0;
+}
+
+.lumiverse-profile-bindings-status-value {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lumiverse-profile-bindings-status-row.is-bound .lumiverse-profile-bindings-status-value {
+    color: var(--lumiverse-primary);
+    font-weight: 500;
+}
+
+.lumiverse-profile-bindings-status-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: var(--lumiverse-text-muted);
+    cursor: pointer;
+    flex-shrink: 0;
+    opacity: 0.6;
+    transition: all 0.15s ease;
+}
+
+.lumiverse-profile-bindings-status-remove:hover {
+    background: rgba(255, 100, 100, 0.2);
+    color: #ff6b6b;
+    opacity: 1;
+}
+
+/* Create section */
+.lumiverse-profile-bindings-create {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--lumiverse-border);
+}
+
+.lumiverse-profile-bindings-type-toggle {
+    display: flex;
+    gap: 6px;
+}
+
+.lumiverse-profile-bindings-type-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.1);
+    border: 1px solid transparent;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--lumiverse-text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.lumiverse-profile-bindings-type-btn:hover:not(:disabled) {
+    background: rgba(147, 112, 219, 0.1);
+    color: var(--lumiverse-text);
+}
+
+.lumiverse-profile-bindings-type-btn.is-active {
+    background: rgba(147, 112, 219, 0.15);
+    border-color: var(--lumiverse-primary);
+    color: var(--lumiverse-primary);
+}
+
+.lumiverse-profile-bindings-type-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.lumiverse-profile-bindings-select-row {
+    display: flex;
+    gap: 8px;
+}
+
+.lumiverse-profile-bindings-select {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--lumiverse-border);
+    border-radius: 8px;
+    color: var(--lumiverse-text);
+    font-size: 12px;
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+}
+
+.lumiverse-profile-bindings-select:hover {
+    border-color: rgba(147, 112, 219, 0.4);
+}
+
+.lumiverse-profile-bindings-select:focus {
+    outline: none;
+    border-color: var(--lumiverse-primary);
+}
+
+.lumiverse-profile-bindings-bind-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: var(--lumiverse-primary);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+}
+
+.lumiverse-profile-bindings-bind-btn:hover:not(:disabled) {
+    background: var(--lumiverse-primary-hover);
+    transform: scale(1.05);
+}
+
+.lumiverse-profile-bindings-bind-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Empty state */
+.lumiverse-profile-bindings-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 28px 20px;
+    color: var(--lumiverse-text-muted);
+    text-align: center;
+}
+
+.lumiverse-profile-bindings-empty svg {
+    opacity: 0.4;
+}
+
+/* ============================================
+   RESPONSIVE CARD GRID
+   3 columns on desktop, 2 columns on mobile
+   ============================================ */
+
+.lumiverse-responsive-card-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+@media (max-width: 600px) {
+    .lumiverse-responsive-card-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Small card grid (for selection modals with square cards) */
+.lumiverse-responsive-small-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
+    padding: 12px;
+}
+
+@media (max-width: 480px) {
+    .lumiverse-responsive-small-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }

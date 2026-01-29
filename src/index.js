@@ -85,6 +85,8 @@ import {
   notifyReactOfSettingsChange,
 } from "./lib/reactBridge.js";
 
+import { initPresetBindingService } from "./lib/presetBindingService.js";
+
 // Import React UI - this bundles it together and exposes window.LumiverseUI
 import "./react-ui/index.jsx";
 
@@ -415,23 +417,25 @@ jQuery(async () => {
   loadSettings();
 
   // Initialize file storage for packs (migrates on first run)
-  // This runs async but we don't need to await - packs load in background
-  initPackFileStorage().then((usingFileStorage) => {
+  // IMPORTANT: Must await this before initializing React UI so that selections
+  // from file storage are loaded into settings before React reads them
+  try {
+    const usingFileStorage = await initPackFileStorage();
     if (usingFileStorage) {
       console.log(`[${MODULE_NAME}] Pack file storage initialized`);
-      // Refresh UI after packs are loaded from files
-      refreshUIDisplay();
-      notifyReactOfSettingsChange();
     }
-  }).catch((err) => {
+  } catch (err) {
     console.error(`[${MODULE_NAME}] Failed to initialize pack file storage:`, err);
-  });
+  }
 
   // Register macros
   registerAllMacros();
 
   // Initialize RAF batch renderer for optimized OOC rendering
   initializeRAFBatchRenderer();
+
+  // Initialize preset binding service for auto-switching
+  initPresetBindingService();
 
   // Set up UI refresh callback for modals
   setRefreshUICallback(refreshUIDisplay);
