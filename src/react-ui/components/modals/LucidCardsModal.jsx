@@ -484,7 +484,7 @@ function LucidCardsModal({ onClose }) {
                         No items available in this category.
                     </div>
                 ) : (
-                    <div style={styles.grid}>
+                    <div className="lumiverse-responsive-card-grid">
                         {filteredPacks.map((pack) => {
                             const selected = isSelected(pack);
                             const counts = [];

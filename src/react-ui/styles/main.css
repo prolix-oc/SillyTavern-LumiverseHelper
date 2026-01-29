@@ -13851,3 +13851,20 @@ details.lumia-panel[open] .lumia-panel-chevron {
 .lumiverse-profile-bindings-empty svg {
     opacity: 0.4;
 }
+
+/* ============================================
+   RESPONSIVE CARD GRID
+   3 columns on desktop, 2 columns on mobile
+   ============================================ */
+
+.lumiverse-responsive-card-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+@media (max-width: 600px) {
+    .lumiverse-responsive-card-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}

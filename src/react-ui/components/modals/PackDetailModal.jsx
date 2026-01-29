@@ -616,7 +616,7 @@ function PackDetailModal() {
                             <p style={{ margin: 0 }}>No Lumias found in this pack</p>
                         </div>
                     ) : (
-                        <div style={styles.lumiaGrid}>
+                        <div className="lumiverse-responsive-card-grid">
                             {lumiaItems.map((item, index) => (
                                 <LumiaDetailCard
                                     key={getLumiaField(item, 'name') || index}
