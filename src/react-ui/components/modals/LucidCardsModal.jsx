@@ -4,6 +4,7 @@ import {
     Box, User, Wrench, Settings, Palette, 
     Check, X, Download, Loader2, RefreshCw 
 } from 'lucide-react';
+import LazyImage from '../shared/LazyImage';
 
 /**
  * Lucid Cards Browser Modal
@@ -502,11 +503,10 @@ function LucidCardsModal({ onClose }) {
                                 >
                                     <div style={styles.cardImage}>
                                         {pack.coverUrl ? (
-                                            <img
+                                            <LazyImage
                                                 src={pack.coverUrl}
                                                 alt=""
                                                 style={styles.cardImg}
-                                                loading="lazy"
                                             />
                                         ) : (
                                             <Box size={32} style={styles.cardPlaceholder} />

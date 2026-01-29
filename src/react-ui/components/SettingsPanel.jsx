@@ -927,8 +927,8 @@ function SettingsPanel() {
                 </div>
             )}
 
-            {/* World Book Source Section */}
-            <Panel title="World Book Source" icon={Icons.book}>
+            {/* Lumia DLC Packs Section */}
+            <Panel title="Lumia DLC Packs" icon={Icons.book}>
                 <div className="lumia-status-badge">
                     {totalPacks > 0
                         ? `${totalPacks} pack${totalPacks !== 1 ? 's' : ''} loaded (${totalItems} items)`
@@ -939,7 +939,7 @@ function SettingsPanel() {
                     <input
                         type="text"
                         className="lumia-input"
-                        placeholder="Enter World Book URL (JSON)"
+                        placeholder="Enter Lumia DLC Pack URL (JSON)"
                         id="lumia-url-input-react"
                     />
                     <button

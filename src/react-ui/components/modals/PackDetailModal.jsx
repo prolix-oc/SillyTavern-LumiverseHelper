@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, Package, FileText, Zap, Heart, Check, Plus, User } from 'lucide-react';
 import { useLumiverseStore, useLumiverseActions, useSelections, saveToExtension } from '../../store/LumiverseContext';
 import { useAdaptiveImagePosition } from '../../hooks/useAdaptiveImagePosition';
+import LazyImage from '../shared/LazyImage';
 
 /* global toastr */
 
@@ -383,11 +384,11 @@ function LumiaDetailCard({ item, packName, selections, actions }) {
             {/* Large image */}
             <div style={styles.lumiaImageContainer}>
                 {itemImg ? (
-                    <img
+                    <LazyImage
                         src={itemImg}
                         alt={itemName}
-                        style={{ ...styles.lumiaImage, objectPosition }}
-                        loading="lazy"
+                        style={styles.lumiaImage}
+                        objectPosition={objectPosition}
                     />
                 ) : (
                     <User size={48} strokeWidth={1.5} style={styles.lumiaPlaceholder} />
