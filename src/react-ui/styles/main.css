@@ -13868,3 +13868,17 @@ details.lumia-panel[open] .lumia-panel-chevron {
         grid-template-columns: repeat(2, 1fr);
     }
 }
+
+/* Small card grid (for selection modals with square cards) */
+.lumiverse-responsive-small-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
+    padding: 12px;
+}
+
+@media (max-width: 480px) {
+    .lumiverse-responsive-small-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}

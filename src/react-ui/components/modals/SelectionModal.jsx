@@ -572,7 +572,7 @@ function PackSection({
                 </button>
             </div>
             {!isCollapsed && (
-                <div style={styles.cardGrid}>
+                <div className="lumiverse-responsive-small-grid">
                     {items.map((item, index) => (
                         <LumiaCard
                             key={getLumiaField(item, 'name') || item.id || index}
