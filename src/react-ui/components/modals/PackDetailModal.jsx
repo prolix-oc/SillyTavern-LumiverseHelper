@@ -18,121 +18,9 @@ const selectViewingPack = () => store.getState().ui?.viewingPack;
 const selectPacks = () => store.getState().packs || EMPTY_OBJECT;
 
 /**
- * Self-contained styles matching the new modal design pattern
+ * Self-contained styles for card content (layout handled by CSS classes)
  */
 const styles = {
-    backdrop: {
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'rgba(0, 0, 0, 0.7)',
-        backdropFilter: 'blur(4px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 10000,
-        padding: '20px',
-    },
-    modal: {
-        background: 'var(--lumiverse-bg, #1a1a2e)',
-        borderRadius: '16px',
-        border: '1px solid var(--lumiverse-border, rgba(255, 255, 255, 0.1))',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-        width: '100%',
-        maxWidth: '900px',
-        maxHeight: 'calc(100vh - 40px)',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-    },
-    header: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        padding: '16px 20px',
-        borderBottom: '1px solid var(--lumiverse-border, rgba(255, 255, 255, 0.1))',
-        flexShrink: 0,
-    },
-    headerIcon: {
-        width: '44px',
-        height: '44px',
-        borderRadius: '10px',
-        overflow: 'hidden',
-        background: 'linear-gradient(135deg, rgba(147, 112, 219, 0.2), rgba(147, 112, 219, 0.1))',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'var(--lumiverse-primary, #9370db)',
-        flexShrink: 0,
-    },
-    headerIconImg: {
-        width: '100%',
-        height: '100%',
-        objectFit: 'cover',
-        animation: 'lumiverseFadeIn 0.2s ease',
-    },
-    headerText: {
-        flex: 1,
-        minWidth: 0,
-    },
-    title: {
-        margin: 0,
-        fontSize: '16px',
-        fontWeight: 600,
-        color: 'var(--lumiverse-text, #e0e0e0)',
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-    },
-    stats: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        marginTop: '4px',
-        fontSize: '12px',
-        color: 'var(--lumiverse-text-muted, #999)',
-    },
-    statItem: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '4px',
-    },
-    closeBtn: {
-        width: '32px',
-        height: '32px',
-        borderRadius: '8px',
-        border: 'none',
-        background: 'transparent',
-        color: 'var(--lumiverse-text-muted, #999)',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        transition: 'all 0.15s ease',
-        flexShrink: 0,
-    },
-    scrollArea: {
-        flex: '1 1 auto',
-        minHeight: 0,
-        overflowY: 'auto',
-        padding: '16px 20px',
-    },
-    empty: {
-        textAlign: 'center',
-        padding: '40px 20px',
-        color: 'var(--lumiverse-text-muted, #999)',
-    },
-    emptyIcon: {
-        marginBottom: '12px',
-        opacity: 0.5,
-    },
-    lumiaGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-        gap: '16px',
-    },
     lumiaCard: {
         background: 'rgba(0, 0, 0, 0.2)',
         border: '1px solid var(--lumiverse-border, rgba(255, 255, 255, 0.1))',
@@ -557,7 +445,7 @@ function PackDetailModal() {
     // Use createPortal to render at document.body level
     return createPortal(
         <div
-            style={styles.backdrop}
+            className="lumiverse-modal-backdrop"
             onClick={handleBackdropClick}
             onMouseDown={stopAllPropagation}
             onMouseUp={stopAllPropagation}
@@ -567,54 +455,50 @@ function PackDetailModal() {
             onTouchEnd={stopAllPropagation}
         >
             <div
-                style={styles.modal}
+                className="lumiverse-modal lumiverse-modal--large"
                 onClick={stopAllPropagation}
                 role="dialog"
                 aria-modal="true"
             >
                 {/* Header */}
-                <div style={styles.header}>
-                    <div style={styles.headerIcon}>
+                <div className="lumiverse-modal-header lumiverse-pack-detail-header">
+                    <div className="lumiverse-pack-detail-header-icon">
                         {pack.packCover ? (
-                            <img src={pack.packCover} alt={viewingPack} style={styles.headerIconImg} />
+                            <img src={pack.packCover} alt={viewingPack} className="lumiverse-pack-detail-header-img" />
                         ) : (
                             <Package size={24} strokeWidth={1.5} />
                         )}
                     </div>
-                    <div style={styles.headerText}>
-                        <h3 style={styles.title}>{viewingPack}</h3>
-                        <div style={styles.stats}>
-                            <span style={styles.statItem}>
+                    <div className="lumiverse-pack-detail-header-text">
+                        <h3 className="lumiverse-pack-detail-title">{viewingPack}</h3>
+                        <div className="lumiverse-pack-detail-stats">
+                            <span className="lumiverse-pack-detail-stat">
                                 <FileText size={12} /> {stats.lumias} Lumia{stats.lumias !== 1 ? 's' : ''}
                             </span>
-                            <span style={styles.statItem}>
+                            <span className="lumiverse-pack-detail-stat">
                                 <Zap size={12} /> {stats.behaviors} Behavior{stats.behaviors !== 1 ? 's' : ''}
                             </span>
-                            <span style={styles.statItem}>
+                            <span className="lumiverse-pack-detail-stat">
                                 <Heart size={12} /> {stats.personalities} Personalit{stats.personalities !== 1 ? 'ies' : 'y'}
                             </span>
                         </div>
                     </div>
                     <button
-                        style={styles.closeBtn}
+                        className="lumiverse-modal-close"
                         onClick={handleClose}
                         title="Close"
                         type="button"
-                        onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
-                        onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                     >
                         <X size={20} strokeWidth={2} />
                     </button>
                 </div>
 
                 {/* Content */}
-                <div style={styles.scrollArea}>
+                <div className="lumiverse-modal-body lumiverse-pack-detail-content">
                     {lumiaItems.length === 0 ? (
-                        <div style={styles.empty}>
-                            <div style={styles.emptyIcon}>
-                                <Package size={32} strokeWidth={1.5} />
-                            </div>
-                            <p style={{ margin: 0 }}>No Lumias found in this pack</p>
+                        <div className="lumiverse-pack-detail-empty">
+                            <Package size={32} strokeWidth={1.5} />
+                            <p>No Lumias found in this pack</p>
                         </div>
                     ) : (
                         <div className="lumiverse-responsive-card-grid">

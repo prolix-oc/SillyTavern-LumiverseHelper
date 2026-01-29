@@ -49,116 +49,9 @@ const LOOM_CATEGORIES = {
 };
 
 /**
- * Self-contained styles matching the new modal design pattern
+ * Self-contained styles for category content (layout handled by CSS classes)
  */
 const styles = {
-    backdrop: {
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'rgba(0, 0, 0, 0.7)',
-        backdropFilter: 'blur(4px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 10000,
-        padding: '20px',
-    },
-    modal: {
-        background: 'var(--lumiverse-bg, #1a1a2e)',
-        borderRadius: '16px',
-        border: '1px solid var(--lumiverse-border, rgba(255, 255, 255, 0.1))',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-        width: '100%',
-        maxWidth: '600px',
-        maxHeight: 'calc(100vh - 40px)',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-    },
-    header: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        padding: '16px 20px',
-        borderBottom: '1px solid var(--lumiverse-border, rgba(255, 255, 255, 0.1))',
-        flexShrink: 0,
-    },
-    headerIcon: {
-        width: '44px',
-        height: '44px',
-        borderRadius: '10px',
-        overflow: 'hidden',
-        background: 'linear-gradient(135deg, rgba(147, 112, 219, 0.2), rgba(147, 112, 219, 0.1))',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'var(--lumiverse-primary, #9370db)',
-        flexShrink: 0,
-    },
-    headerIconImg: {
-        width: '100%',
-        height: '100%',
-        objectFit: 'cover',
-        animation: 'lumiverseFadeIn 0.2s ease',
-    },
-    headerText: {
-        flex: 1,
-        minWidth: 0,
-    },
-    title: {
-        margin: 0,
-        fontSize: '16px',
-        fontWeight: 600,
-        color: 'var(--lumiverse-text, #e0e0e0)',
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-    },
-    stats: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        marginTop: '4px',
-        fontSize: '12px',
-        color: 'var(--lumiverse-text-muted, #999)',
-    },
-    statItem: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '4px',
-    },
-    closeBtn: {
-        width: '32px',
-        height: '32px',
-        borderRadius: '8px',
-        border: 'none',
-        background: 'transparent',
-        color: 'var(--lumiverse-text-muted, #999)',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        transition: 'all 0.15s ease',
-        flexShrink: 0,
-    },
-    scrollArea: {
-        flex: '1 1 auto',
-        minHeight: 0,
-        overflowY: 'auto',
-        padding: '16px 20px',
-    },
-    empty: {
-        textAlign: 'center',
-        padding: '40px 20px',
-        color: 'var(--lumiverse-text-muted, #999)',
-    },
-    emptyIcon: {
-        marginBottom: '12px',
-        opacity: 0.5,
-    },
     categorySection: {
         marginBottom: '16px',
     },
@@ -573,7 +466,7 @@ function LoomPackDetailModal() {
     // Use createPortal to render at document.body level
     return createPortal(
         <div
-            style={styles.backdrop}
+            className="lumiverse-modal-backdrop"
             onClick={handleBackdropClick}
             onMouseDown={stopAllPropagation}
             onMouseUp={stopAllPropagation}
@@ -583,54 +476,50 @@ function LoomPackDetailModal() {
             onTouchEnd={stopAllPropagation}
         >
             <div
-                style={styles.modal}
+                className="lumiverse-modal lumiverse-modal--medium"
                 onClick={stopAllPropagation}
                 role="dialog"
                 aria-modal="true"
             >
                 {/* Header */}
-                <div style={styles.header}>
-                    <div style={styles.headerIcon}>
+                <div className="lumiverse-modal-header lumiverse-pack-detail-header">
+                    <div className="lumiverse-pack-detail-header-icon">
                         {pack.packCover ? (
-                            <img src={pack.packCover} alt={viewingLoomPack} style={styles.headerIconImg} />
+                            <img src={pack.packCover} alt={viewingLoomPack} className="lumiverse-pack-detail-header-img" />
                         ) : (
                             <Layers size={24} strokeWidth={1.5} />
                         )}
                     </div>
-                    <div style={styles.headerText}>
-                        <h3 style={styles.title}>{viewingLoomPack}</h3>
-                        <div style={styles.stats}>
-                            <span style={styles.statItem}>
+                    <div className="lumiverse-pack-detail-header-text">
+                        <h3 className="lumiverse-pack-detail-title">{viewingLoomPack}</h3>
+                        <div className="lumiverse-pack-detail-stats">
+                            <span className="lumiverse-pack-detail-stat">
                                 <Sparkles size={12} /> {stats.styles} Style{stats.styles !== 1 ? 's' : ''}
                             </span>
-                            <span style={styles.statItem}>
+                            <span className="lumiverse-pack-detail-stat">
                                 <Wrench size={12} /> {stats.utilities} Utilit{stats.utilities !== 1 ? 'ies' : 'y'}
                             </span>
-                            <span style={styles.statItem}>
+                            <span className="lumiverse-pack-detail-stat">
                                 <Layers size={12} /> {stats.retrofits} Retrofit{stats.retrofits !== 1 ? 's' : ''}
                             </span>
                         </div>
                     </div>
                     <button
-                        style={styles.closeBtn}
+                        className="lumiverse-modal-close"
                         onClick={handleClose}
                         title="Close"
                         type="button"
-                        onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
-                        onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                     >
                         <X size={20} strokeWidth={2} />
                     </button>
                 </div>
 
                 {/* Content */}
-                <div style={styles.scrollArea}>
+                <div className="lumiverse-modal-body lumiverse-pack-detail-content">
                     {totalItems === 0 ? (
-                        <div style={styles.empty}>
-                            <div style={styles.emptyIcon}>
-                                <Layers size={32} strokeWidth={1.5} />
-                            </div>
-                            <p style={{ margin: 0 }}>No Loom items found in this pack</p>
+                        <div className="lumiverse-pack-detail-empty">
+                            <Layers size={32} strokeWidth={1.5} />
+                            <p>No Loom items found in this pack</p>
                         </div>
                     ) : (
                         <>

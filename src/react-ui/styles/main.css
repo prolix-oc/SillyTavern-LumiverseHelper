@@ -10073,6 +10073,14 @@ details.lumia-panel[open] .lumia-panel-chevron {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    animation: lumiverseFadeIn 0.2s ease;
+}
+
+.lumiverse-pack-detail-header-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    animation: lumiverseFadeIn 0.2s ease;
 }
 
 .lumiverse-pack-detail-header-text {
@@ -10098,6 +10106,14 @@ details.lumia-panel[open] .lumia-panel-chevron {
 }
 
 .lumiverse-pack-detail-stats > span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--lumiverse-text-muted);
+}
+
+.lumiverse-pack-detail-stat {
     display: flex;
     align-items: center;
     gap: 4px;
