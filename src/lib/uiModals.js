@@ -2791,8 +2791,17 @@ export function createLoomSummaryButton() {
   // Append directly to document.body for proper fixed positioning
   document.body.appendChild(button);
 
-  // Attach click handler
+  // Attach click handler - prefer React modal if available
   button.addEventListener("click", () => {
+    // Try to use React modal system first
+    if (window.LumiverseUI?.getStore) {
+      const store = window.LumiverseUI.getStore();
+      if (store?.getState()?.actions?.openModal) {
+        store.getState().actions.openModal('loomSummary');
+        return;
+      }
+    }
+    // Fallback to jQuery modal
     showLoomSummaryModal();
   });
 

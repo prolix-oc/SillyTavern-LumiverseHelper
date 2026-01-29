@@ -14,6 +14,13 @@ import ItemTypeSelector from './modals/ItemTypeSelector';
 import CouncilSelectModal from './modals/CouncilSelectModal';
 import PresetEditor from './panels/PresetEditor';
 
+// New React modals (converted from jQuery)
+import OOCSettingsModal from './modals/OOCSettingsModal';
+import SummarizationModal from './modals/SummarizationModal';
+import PromptSettingsModal from './modals/PromptSettingsModal';
+import LucidCardsModal from './modals/LucidCardsModal';
+import LoomSummaryModal from './modals/LoomSummaryModal';
+
 /**
  * Modal wrapper that provides backdrop and close functionality
  * Uses lumia-modal class naming to match old design
@@ -228,6 +235,46 @@ const MODAL_CONFIG = {
         modalType: 'editor',
         size: 'large',
         hasCustomHeader: false, // PresetEditor renders its own header
+        props: {},
+    },
+    // OOC Settings (converted from jQuery showMiscFeaturesModal)
+    oocSettings: {
+        component: OOCSettingsModal,
+        modalType: 'settings',
+        size: 'medium',
+        hasCustomHeader: true,
+        props: {},
+    },
+    // Summarization Settings (converted from jQuery showSummarizationModal)
+    summarization: {
+        component: SummarizationModal,
+        modalType: 'settings',
+        size: 'large',
+        hasCustomHeader: true,
+        props: {},
+    },
+    // Prompt Settings (converted from jQuery showPromptSettingsModal)
+    promptSettings: {
+        component: PromptSettingsModal,
+        modalType: 'settings',
+        size: 'large',
+        hasCustomHeader: true,
+        props: {},
+    },
+    // Lucid Cards Browser (converted from jQuery showLucidCardsModal)
+    lucidCards: {
+        component: LucidCardsModal,
+        modalType: 'selection',
+        size: 'large',
+        hasCustomHeader: true,
+        props: {},
+    },
+    // Loom Summary Editor (converted from jQuery showLoomSummaryModal)
+    loomSummary: {
+        component: LoomSummaryModal,
+        modalType: 'settings',
+        size: 'medium',
+        hasCustomHeader: true,
         props: {},
     },
 };

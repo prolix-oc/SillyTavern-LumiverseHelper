@@ -974,7 +974,7 @@ function SettingsPanel() {
 
                     <button
                         className="lumia-btn lumia-btn-primary lumia-btn-full"
-                        onClick={() => callExtensionCallback('showLucidCardsModal')}
+                        onClick={() => actions.openModal('lucidCards')}
                         type="button"
                     >
                         {Icons.box}
@@ -1101,17 +1101,17 @@ function SettingsPanel() {
                     <ToolButton
                         icon={Icons.dots}
                         label="OOC Settings"
-                        onClick={() => callExtensionCallback('showMiscFeaturesModal')}
+                        onClick={() => actions.openModal('oocSettings')}
                     />
                     <ToolButton
                         icon={Icons.lines}
                         label="Summarization"
-                        onClick={() => callExtensionCallback('showSummarizationModal')}
+                        onClick={() => actions.openModal('summarization')}
                     />
                     <ToolButton
                         icon={Icons.edit}
                         label="Prompt Settings"
-                        onClick={() => callExtensionCallback('showPromptSettingsModal')}
+                        onClick={() => actions.openModal('promptSettings')}
                     />
                 </div>
             </Panel>
