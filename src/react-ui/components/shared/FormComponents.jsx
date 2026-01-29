@@ -10,12 +10,13 @@ import { useAdaptiveImagePosition } from '../../hooks/useAdaptiveImagePosition';
 export function EditorLayout({ children, className }) {
     return (
         <div 
-            className={clsx('lumiverse-editor-layout', className)}
+            className={clsx('lumiverse-editor-modal', className)}
             style={{ 
                 display: 'flex', 
                 flexDirection: 'column', 
-                flex: 1, 
-                minHeight: 0, 
+                flex: '1 1 auto', 
+                minHeight: 0,
+                maxHeight: '100%', 
                 overflow: 'hidden' 
             }}
         >
@@ -32,7 +33,7 @@ export function EditorContent({ children, className }) {
         <div 
             className={clsx('lumiverse-editor-content', className)}
             style={{ 
-                flex: 1, 
+                flex: '1 1 auto', 
                 minHeight: 0, 
                 overflowY: 'auto', 
                 overflowX: 'hidden',
