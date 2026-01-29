@@ -287,7 +287,8 @@ function LumiaEditorModal({ packName, editingItem = null, onClose, onSaved }) {
                             value={physicality}
                             onChange={(val) => setPhysicality(val)}
                             placeholder="Describe Lumia's physical appearance, form, and presence..."
-                            rows={5}
+                            rows={10}
+                            style={{ height: '250px' }}
                         />
                     </FormField>
                 </EditorSection>
@@ -299,7 +300,8 @@ function LumiaEditorModal({ packName, editingItem = null, onClose, onSaved }) {
                             value={personality}
                             onChange={(val) => setPersonality(val)}
                             placeholder="Describe Lumia's personality, disposition, and inner nature..."
-                            rows={5}
+                            rows={10}
+                            style={{ height: '250px' }}
                         />
                     </FormField>
                 </EditorSection>
@@ -311,7 +313,8 @@ function LumiaEditorModal({ packName, editingItem = null, onClose, onSaved }) {
                             value={behavior}
                             onChange={(val) => setBehavior(val)}
                             placeholder="Describe Lumia's behavioral patterns, habits, and tendencies..."
-                            rows={5}
+                            rows={10}
+                            style={{ height: '250px' }}
                         />
                     </FormField>
                 </EditorSection>
