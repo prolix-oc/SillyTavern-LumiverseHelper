@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useLumiverseActions, saveToExtension } from '../../store/LumiverseContext';
+import { savePack, getPackByName } from '@lib/settingsManager.js';
 import { 
     Box, User, Wrench, Settings, Palette, 
     Check, X, Download, Loader2, RefreshCw 
@@ -285,7 +285,7 @@ const styles = {
 };
 
 function LucidCardsModal({ onClose }) {
-    const actions = useLumiverseActions();
+
     
     // State
     const [activeTab, setActiveTab] = useState('Lumia DLCs');
@@ -366,15 +366,12 @@ function LucidCardsModal({ onClose }) {
         let skipped = 0;
         let failed = 0;
         
-        // Get current packs from store to check for duplicates
-        const currentPacks = window.LumiverseBridge?.getSettings?.()?.packs || {};
-        
         for (let i = 0; i < selectedPacks.length; i++) {
             const pack = selectedPacks[i];
             setImportProgress({ current: i + 1, total });
             
-            // Check if pack already exists
-            if (currentPacks[pack.packName]) {
+            // Check if pack already exists using the proper pack cache
+            if (getPackByName(pack.packName)) {
                 skipped++;
                 continue;
             }
@@ -392,17 +389,27 @@ function LucidCardsModal({ onClose }) {
                 // Extract the pack data
                 const packData = data.pack || data;
                 
-                // Import via actions
-                actions.addPack(packData);
+                // Build pack structure for saving
+                const packToSave = {
+                    packName: packData.packName || pack.packName,
+                    packAuthor: packData.packAuthor || null,
+                    coverUrl: packData.coverUrl || null,
+                    version: packData.version || 1,
+                    packExtras: packData.packExtras || [],
+                    lumiaItems: packData.lumiaItems || [],
+                    loomItems: packData.loomItems || [],
+                    isCustom: false, // Downloaded from Lucid.cards, not editable
+                    url: `https://lucid.cards/api/lumia-dlc/${pack.slug}`,
+                };
+                
+                // Save pack using the proper storage system
+                await savePack(packToSave);
                 imported++;
             } catch (err) {
                 console.error(`[LucidCardsModal] Import failed for "${pack.packName}":`, err);
                 failed++;
             }
         }
-        
-        // Save to extension
-        saveToExtension();
         
         // Show summary toast
         const parts = [];
@@ -423,7 +430,7 @@ function LucidCardsModal({ onClose }) {
         setImporting(false);
         setSelectedPacks([]);
         setImportProgress({ current: 0, total: 0 });
-    }, [selectedPacks, importing, actions]);
+    }, [selectedPacks, importing]);
 
     return (
         <div style={styles.layout}>

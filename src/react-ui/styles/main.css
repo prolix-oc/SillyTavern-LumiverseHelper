@@ -9417,6 +9417,31 @@ details.lumia-panel[open] .lumia-panel-chevron {
     padding: 4px 0;
 }
 
+/* Show more button for pagination */
+.lumiverse-council-show-more {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    margin-top: 12px;
+    background: rgba(147, 112, 219, 0.1);
+    border: 1px solid var(--lumiverse-border);
+    border-radius: 8px;
+    color: var(--lumiverse-text-primary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.lumiverse-council-show-more:hover {
+    background: rgba(147, 112, 219, 0.2);
+    border-color: var(--lumiverse-primary);
+}
+
+.lumiverse-council-show-more:active {
+    transform: scale(0.99);
+}
+
 /* Selectable card - now a button for iOS touch compatibility */
 .lumiverse-council-select-card {
     display: flex;

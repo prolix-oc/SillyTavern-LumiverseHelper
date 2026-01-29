@@ -32,6 +32,7 @@ import {
     loadToggleState,
     deleteToggleState,
     createToggleStateRegistryEntry,
+    deleteAllLumiverseFiles,
 } from "./fileStorage.js";
 import { MODULE_NAME } from "./settingsManager.js";
 
@@ -62,6 +63,12 @@ const INDEX_SAVE_DEBOUNCE = 500;
 
 /** @type {Set<Function>} Listeners for cache changes */
 const cacheListeners = new Set();
+
+/** @type {Object} Pending updates queued before cache was initialized */
+const pendingUpdates = {
+    selections: null,
+    preferences: null,
+};
 
 // ============================================================================
 // INITIALIZATION
@@ -127,6 +134,9 @@ export async function initPackCache() {
 
         initialized = true;
 
+        // Apply any pending updates that were queued before initialization
+        applyPendingUpdates();
+
         // Background load remaining packs
         loadRemainingPacksBackground();
 
@@ -188,6 +198,34 @@ function getActivePackIds(selections) {
     }
 
     return Array.from(packIds);
+}
+
+/**
+ * Apply any pending updates that were queued before the cache was initialized.
+ */
+function applyPendingUpdates() {
+    if (pendingUpdates.selections && cachedIndex) {
+        console.log(`[${MODULE_NAME}] Applying pending selection updates`);
+        cachedIndex.selections = {
+            ...cachedIndex.selections,
+            ...pendingUpdates.selections,
+        };
+        pendingUpdates.selections = null;
+    }
+
+    if (pendingUpdates.preferences && cachedIndex) {
+        console.log(`[${MODULE_NAME}] Applying pending preference updates`);
+        cachedIndex.preferences = {
+            ...cachedIndex.preferences,
+            ...pendingUpdates.preferences,
+        };
+        pendingUpdates.preferences = null;
+    }
+
+    // If we applied any pending updates, trigger a save
+    if (cachedIndex && (pendingUpdates.selections === null || pendingUpdates.preferences === null)) {
+        debouncedIndexSave();
+    }
 }
 
 /**
@@ -438,7 +476,12 @@ export async function removePack(packId) {
  * @param {Object} newSelections - Partial selections to merge
  */
 export function updateSelections(newSelections) {
-    if (!cachedIndex) return;
+    if (!cachedIndex) {
+        console.warn(`[${MODULE_NAME}] updateSelections called before cache initialized, queuing update`);
+        // Queue the update for when cache is ready
+        pendingUpdates.selections = { ...pendingUpdates.selections, ...newSelections };
+        return;
+    }
 
     cachedIndex.selections = {
         ...cachedIndex.selections,
@@ -454,7 +497,12 @@ export function updateSelections(newSelections) {
  * @param {Object} newPreferences - Partial preferences to merge
  */
 export function updatePreferences(newPreferences) {
-    if (!cachedIndex) return;
+    if (!cachedIndex) {
+        console.warn(`[${MODULE_NAME}] updatePreferences called before cache initialized, queuing update`);
+        // Queue the update for when cache is ready
+        pendingUpdates.preferences = { ...pendingUpdates.preferences, ...newPreferences };
+        return;
+    }
 
     cachedIndex.preferences = {
         ...cachedIndex.preferences,
@@ -878,6 +926,48 @@ export function migrateSelectionsFromSettings(legacySettings) {
 
 // ============================================================================
 // DEBUG UTILITIES
+// ============================================================================
+
+// ============================================================================
+// NUCLEAR RESET
+// ============================================================================
+
+/**
+ * Clear all Lumiverse data - both in-memory cache and User Files API.
+ * This is the "nuclear option" that completely wipes all extension data.
+ * @returns {Promise<{deleted: string[], failed: string[]}>} Results from file deletion
+ */
+export async function clearAllData() {
+    console.log(`[${MODULE_NAME}] NUCLEAR: Clearing all Lumiverse data...`);
+    
+    // Cancel any pending index save
+    if (indexSaveTimer) {
+        clearTimeout(indexSaveTimer);
+        indexSaveTimer = null;
+    }
+    
+    // Clear all in-memory state
+    cachedIndex = null;
+    packCache.clear();
+    loadingPacks.clear();
+    initialized = false;
+    allPacksLoaded = false;
+    pendingUpdates.selections = null;
+    pendingUpdates.preferences = null;
+    
+    // Delete all files from User Files API
+    const result = await deleteAllLumiverseFiles();
+    
+    // Notify listeners that cache has been cleared
+    notifyCacheChange();
+    
+    console.log(`[${MODULE_NAME}] NUCLEAR: All Lumiverse data cleared`);
+    
+    return result;
+}
+
+// ============================================================================
+// DEBUG
 // ============================================================================
 
 /**

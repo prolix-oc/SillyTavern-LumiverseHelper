@@ -1,13 +1,12 @@
-import React, { useState, useMemo, useSyncExternalStore, useCallback } from 'react';
-import clsx from 'clsx';
+import React, { useState, useMemo, useSyncExternalStore, useCallback, memo } from 'react';
 import { Users, Plus, Trash2, Search, X, Edit2, Check, Zap, Heart } from 'lucide-react';
 import {
     useLumiverseStore,
     useLumiverseActions,
     usePacks,
     saveToExtension,
+    saveToExtensionImmediate,
 } from '../../store/LumiverseContext';
-import { useAdaptiveImagePosition } from '../../hooks/useAdaptiveImagePosition';
 
 // Get store for direct state access
 const store = useLumiverseStore;
@@ -85,46 +84,42 @@ function getLumiaFieldLocal(item, field) {
 /**
  * Card for a selectable Lumia (not yet in council)
  * Uses div with onClick like working SelectionModal
+ * Memoized to prevent unnecessary re-renders when parent state changes
  */
-function SelectableLumiaCard({ item, packName, onAdd, animationIndex }) {
+const SelectableLumiaCard = memo(function SelectableLumiaCard({ item, packName, onAdd, animationIndex }) {
     const itemImg = getLumiaFieldLocal(item, 'img');
     const itemName = getLumiaFieldLocal(item, 'name') || 'Unknown';
-
-    const { objectPosition } = useAdaptiveImagePosition(itemImg);
-    const [imageLoaded, setImageLoaded] = useState(false);
     const [imageError, setImageError] = useState(false);
 
-    // Staggered animation delay
-    const animationDelay = Math.min(animationIndex * 30, 300);
+    // Simplified animation - only apply to first 10 items on desktop to reduce lag
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 600;
+    const animationDelay = isMobile ? 0 : (animationIndex < 10 ? animationIndex * 20 : 0);
 
-    const handleClick = (e) => {
+    const handleClick = useCallback((e) => {
         e.stopPropagation();
         e.preventDefault();
         onAdd({ packName, itemName });
-    };
+    }, [onAdd, packName, itemName]);
+
+    const handleImageError = useCallback(() => setImageError(true), []);
 
     return (
         <div
             className="lumiverse-council-select-card lumia-card-appear"
-            style={{ animationDelay: `${animationDelay}ms` }}
+            style={animationDelay ? { animationDelay: `${animationDelay}ms` } : undefined}
             onPointerUp={handleClick}
             role="button"
             tabIndex={0}
         >
             <div className="lumiverse-council-select-card-image">
                 {itemImg && !imageError ? (
-                    <>
-                        <img
-                            src={itemImg}
-                            alt={itemName}
-                            loading="lazy"
-                            className={imageLoaded ? 'lumia-img-loaded' : ''}
-                            style={{ objectPosition }}
-                            onLoad={() => setImageLoaded(true)}
-                            onError={() => setImageError(true)}
-                        />
-                        {!imageLoaded && <div className="lumia-img-spinner" />}
-                    </>
+                    <img
+                        src={itemImg}
+                        alt={itemName}
+                        loading="lazy"
+                        className="lumia-img-loaded"
+                        onError={handleImageError}
+                    />
                 ) : (
                     <div className="lumiverse-council-select-card-placeholder">
                         <Users size={24} strokeWidth={1.5} />
@@ -140,32 +135,38 @@ function SelectableLumiaCard({ item, packName, onAdd, animationIndex }) {
             </div>
         </div>
     );
-}
+});
 
 /**
  * Card for an existing council member
  * Uses plain onClick handlers like working SelectionModal
+ * Memoized to prevent unnecessary re-renders
  */
-function CouncilMemberCard({ member, packs, onRemove, onUpdateRole }) {
+const CouncilMemberCard = memo(function CouncilMemberCard({ member, packs, onRemove, onUpdateRole }) {
     const [isEditingRole, setIsEditingRole] = useState(false);
     const [roleValue, setRoleValue] = useState(member.role || '');
 
     const memberName = getLumiaName(packs, member.packName, member.itemName);
     const memberImage = getLumiaImage(packs, member.packName, member.itemName);
-    const { objectPosition } = useAdaptiveImagePosition(memberImage);
 
-    const handleRoleSave = () => {
+    const handleRoleSave = useCallback(() => {
         onUpdateRole(member.id, { role: roleValue });
         setIsEditingRole(false);
-    };
+    }, [member.id, roleValue, onUpdateRole]);
 
-    const handleRoleKeyDown = (e) => {
+    const handleRoleKeyDown = useCallback((e) => {
         if (e.key === 'Enter') handleRoleSave();
         if (e.key === 'Escape') {
             setRoleValue(member.role || '');
             setIsEditingRole(false);
         }
-    };
+    }, [handleRoleSave, member.role]);
+
+    const handleRemove = useCallback((e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        onRemove(member.id);
+    }, [member.id, onRemove]);
 
     const behaviorsCount = member.behaviors?.length || 0;
     const personalitiesCount = member.personalities?.length || 0;
@@ -177,7 +178,6 @@ function CouncilMemberCard({ member, packs, onRemove, onUpdateRole }) {
                     <img
                         src={memberImage}
                         alt={memberName}
-                        style={{ objectPosition }}
                     />
                 ) : (
                     <Users size={20} strokeWidth={1.5} />
@@ -256,11 +256,7 @@ function CouncilMemberCard({ member, packs, onRemove, onUpdateRole }) {
             </div>
             <button
                 className="lumiverse-council-btn-sm lumiverse-council-btn-sm--danger"
-                onPointerUp={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    onRemove(member.id);
-                }}
+                onPointerUp={handleRemove}
                 title="Remove from council"
                 type="button"
             >
@@ -268,7 +264,7 @@ function CouncilMemberCard({ member, packs, onRemove, onUpdateRole }) {
             </button>
         </div>
     );
-}
+});
 
 /**
  * Empty state for no members
@@ -316,6 +312,8 @@ function CouncilSelectModal({ onClose }) {
     const actions = useLumiverseActions();
     const { allPacks } = usePacks();
     const [searchTerm, setSearchTerm] = useState('');
+    // Limit initial render for performance - show more on demand
+    const [displayLimit, setDisplayLimit] = useState(20);
 
     // Subscribe to council state
     const councilMembers = useSyncExternalStore(
@@ -380,12 +378,14 @@ function CouncilSelectModal({ onClose }) {
     // Handlers
     const handleAddMember = useCallback((member) => {
         actions.addCouncilMember(member);
-        saveToExtension();
+        // Use immediate save for member changes - critical state
+        saveToExtensionImmediate();
     }, [actions]);
 
     const handleRemoveMember = useCallback((memberId) => {
         actions.removeCouncilMember(memberId);
-        saveToExtension();
+        // Use immediate save for member changes - critical state
+        saveToExtensionImmediate();
     }, [actions]);
 
     const handleUpdateRole = useCallback((memberId, updates) => {
@@ -459,17 +459,28 @@ function CouncilSelectModal({ onClose }) {
                     {availableItems.length === 0 ? (
                         <EmptyAvailable hasSearch={!!searchTerm.trim()} />
                     ) : (
-                        <div className="lumiverse-council-select-grid">
-                            {availableItems.map(({ item, packName }, index) => (
-                                <SelectableLumiaCard
-                                    key={`${packName}:${getLumiaFieldLocal(item, 'name')}`}
-                                    item={item}
-                                    packName={packName}
-                                    onAdd={handleAddMember}
-                                    animationIndex={index}
-                                />
-                            ))}
-                        </div>
+                        <>
+                            <div className="lumiverse-council-select-grid">
+                                {availableItems.slice(0, displayLimit).map(({ item, packName }, index) => (
+                                    <SelectableLumiaCard
+                                        key={`${packName}:${getLumiaFieldLocal(item, 'name')}`}
+                                        item={item}
+                                        packName={packName}
+                                        onAdd={handleAddMember}
+                                        animationIndex={index}
+                                    />
+                                ))}
+                            </div>
+                            {availableItems.length > displayLimit && (
+                                <button
+                                    className="lumiverse-council-show-more"
+                                    onClick={() => setDisplayLimit(prev => prev + 20)}
+                                    type="button"
+                                >
+                                    Show more ({availableItems.length - displayLimit} remaining)
+                                </button>
+                            )}
+                        </>
                     )}
                 </div>
             </div>

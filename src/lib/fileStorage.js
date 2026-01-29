@@ -597,3 +597,83 @@ export function createToggleStateRegistryEntry(stateName, sourcePreset = null) {
         createdAt: Date.now(),
     };
 }
+
+// ============================================================================
+// NUCLEAR RESET - DELETE ALL LUMIVERSE FILES
+// ============================================================================
+
+/**
+ * Delete all Lumiverse files from the User Files API.
+ * This includes the index file, all pack files, and all toggle state files.
+ * @returns {Promise<{deleted: string[], failed: string[]}>} Results of deletion
+ */
+export async function deleteAllLumiverseFiles() {
+    const deleted = [];
+    const failed = [];
+    
+    console.log(`[${MODULE_NAME}] NUCLEAR: Deleting all Lumiverse files from User Files API...`);
+    
+    // First, try to load the index to get the list of files
+    let index = null;
+    try {
+        const result = await loadIndex();
+        index = result.index;
+    } catch (err) {
+        console.warn(`[${MODULE_NAME}] Could not load index for cleanup, proceeding with index deletion only`);
+    }
+    
+    // Delete all pack files from the registry
+    if (index?.packRegistry) {
+        const packFileKeys = Object.values(index.packRegistry)
+            .map(meta => meta.fileKey)
+            .filter(Boolean);
+        
+        for (const fileKey of packFileKeys) {
+            try {
+                const success = await deletePack(fileKey);
+                if (success) {
+                    deleted.push(fileKey);
+                } else {
+                    failed.push(fileKey);
+                }
+            } catch (err) {
+                console.warn(`[${MODULE_NAME}] Failed to delete pack file ${fileKey}:`, err);
+                failed.push(fileKey);
+            }
+        }
+    }
+    
+    // Delete all toggle state files from the registry
+    if (index?.toggleStateRegistry) {
+        for (const stateName of Object.keys(index.toggleStateRegistry)) {
+            try {
+                const success = await deleteToggleState(stateName);
+                if (success) {
+                    deleted.push(`togglestate:${stateName}`);
+                } else {
+                    failed.push(`togglestate:${stateName}`);
+                }
+            } catch (err) {
+                console.warn(`[${MODULE_NAME}] Failed to delete toggle state ${stateName}:`, err);
+                failed.push(`togglestate:${stateName}`);
+            }
+        }
+    }
+    
+    // Finally, delete the index file itself
+    try {
+        const success = await deleteFile(INDEX_FILENAME);
+        if (success) {
+            deleted.push(INDEX_FILENAME);
+        } else {
+            failed.push(INDEX_FILENAME);
+        }
+    } catch (err) {
+        console.warn(`[${MODULE_NAME}] Failed to delete index file:`, err);
+        failed.push(INDEX_FILENAME);
+    }
+    
+    console.log(`[${MODULE_NAME}] NUCLEAR: Deleted ${deleted.length} files, ${failed.length} failed`);
+    
+    return { deleted, failed };
+}

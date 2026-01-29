@@ -30,6 +30,7 @@ import {
   migratePacksFromSettings,
   migrateSelectionsFromSettings,
   subscribeToCacheChanges,
+  clearAllData,
 } from "./packCache.js";
 
 export const MODULE_NAME = "lumia-injector";
@@ -956,14 +957,23 @@ export function clearClaudeCache() {
 
 /**
  * Reset all settings to defaults (nuclear option)
- * This completely wipes all extension settings and reloads the page.
+ * This completely wipes all extension settings, User Files API data, and reloads the page.
  * On reload, the extension will initialize with fresh DEFAULT_SETTINGS.
  */
-export function resetAllSettings() {
+export async function resetAllSettings() {
   const extension_settings = getExtensionSettings();
   const saveSettingsDebounced = getSaveSettingsDebounced();
 
-  console.log(`[${MODULE_NAME}] NUCLEAR RESET: Wiping all extension settings...`);
+  console.log(`[${MODULE_NAME}] NUCLEAR RESET: Wiping all extension settings and User Files data...`);
+
+  // First, clear all User Files API data (packs, index, toggle states)
+  try {
+    const result = await clearAllData();
+    console.log(`[${MODULE_NAME}] User Files cleanup: ${result.deleted.length} deleted, ${result.failed.length} failed`);
+  } catch (err) {
+    console.error(`[${MODULE_NAME}] Failed to clear User Files data:`, err);
+    // Continue with settings reset even if file cleanup fails
+  }
 
   // Delete the entire settings key
   delete extension_settings[SETTINGS_KEY];

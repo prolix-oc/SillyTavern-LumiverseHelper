@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useSyncExternalStore, useCallback, useRef } from 'react';
 import clsx from 'clsx';
 import { Users, Plus, Trash2, ChevronDown, ChevronUp, Edit2, X, Check, Zap, Heart, Star, Package } from 'lucide-react';
-import { useLumiverseStore, useLumiverseActions, usePacks, saveToExtension } from '../../store/LumiverseContext';
+import { useLumiverseStore, useLumiverseActions, usePacks, saveToExtension, saveToExtensionImmediate } from '../../store/LumiverseContext';
 
 /* global toastr */
 
@@ -588,12 +588,14 @@ function CouncilManager() {
 
     const handleAddMember = useCallback((member) => {
         actions.addCouncilMember(member);
-        saveToExtension();
+        // Use immediate save for member changes - critical state
+        saveToExtensionImmediate();
     }, [actions]);
 
     const handleAddPack = useCallback((packName) => {
         const addedCount = actions.addCouncilMembersFromPack(packName);
-        saveToExtension();
+        // Use immediate save for member changes - critical state
+        saveToExtensionImmediate();
         // Show feedback
         if (typeof toastr !== 'undefined') {
             if (addedCount > 0) {
@@ -611,12 +613,14 @@ function CouncilManager() {
 
     const handleRemoveMember = useCallback((memberId) => {
         actions.removeCouncilMember(memberId);
-        saveToExtension();
+        // Use immediate save for member changes - critical state
+        saveToExtensionImmediate();
     }, [actions]);
 
     const handleToggleCouncilMode = useCallback((enabled) => {
         actions.setCouncilMode(enabled);
-        saveToExtension();
+        // Use immediate save for mode toggle - critical state
+        saveToExtensionImmediate();
     }, [actions]);
 
     // Build packs object for lookups - support both name and packName

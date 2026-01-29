@@ -692,5 +692,15 @@ jQuery(async () => {
     );
   }
 
+  // Set up beforeunload handler to flush pending saves
+  window.addEventListener('beforeunload', async () => {
+    try {
+      const { flushPendingSaves } = await import('./lib/settingsManager.js');
+      await flushPendingSaves();
+    } catch (err) {
+      console.warn(`[${MODULE_NAME}] Error flushing saves on unload:`, err);
+    }
+  });
+
   console.log(`${MODULE_NAME} initialized`);
 });
