@@ -3,7 +3,7 @@
  * Checks for extension and preset updates via GitHub API
  */
 
-import { getExtensionManifestVersion } from "../stContext.js";
+import { EXTENSION_VERSION } from "./version.js";
 
 export const MODULE_NAME = "update-service";
 
@@ -95,49 +95,24 @@ function compareSemver(v1, v2) {
 }
 
 /**
- * Get the local extension version from manifest.
- * Uses aggressive cache-busting to ensure we get the actual installed version,
- * even after manual file updates.
- * @param {boolean} forceFresh - If true, bypass the cache and re-read manifest
- * @returns {Promise<string|null>}
+ * Get the local extension version.
+ * Uses the EXTENSION_VERSION constant from version.js, which is updated
+ * by update.sh whenever the manifest.json version changes.
+ * This avoids all manifest caching issues since the version is baked into the code.
+ * @param {boolean} forceFresh - Ignored - kept for API compatibility
+ * @returns {Promise<string>}
  */
 async function getLocalVersion(forceFresh = false) {
-    // Return cached version unless forceFresh is requested
-    if (localVersion && !forceFresh) return localVersion;
-
-    // Clear the cache if forcing fresh read
-    if (forceFresh) {
-        localVersion = null;
-    }
-
-    // Fetch from the manifest file per EXTENSION_GUIDE_UPDATES.md
-    // Uses dynamic extension name discovery from import.meta.url
-    // The stContext function now uses aggressive cache-busting (jQuery + fetch fallback)
-    const manifestVersion = await getExtensionManifestVersion(getExtensionName());
-    if (manifestVersion) {
-        localVersion = manifestVersion;
-        console.log(`[${MODULE_NAME}] Local version from manifest:`, localVersion);
+    // Use the imported constant - this is updated at build/deploy time
+    // by update.sh, so it always matches the manifest.json version
+    if (EXTENSION_VERSION) {
+        localVersion = EXTENSION_VERSION;
         return localVersion;
     }
 
-    // Fallback: try to get from SillyTavern's extension settings
-    try {
-        if (typeof SillyTavern !== 'undefined' && SillyTavern.getContext) {
-            const ctx = SillyTavern.getContext();
-            if (ctx.extensionSettings?.['lumiverse-helper']?.version) {
-                localVersion = ctx.extensionSettings['lumiverse-helper'].version;
-                console.log(`[${MODULE_NAME}] Local version from settings:`, localVersion);
-                return localVersion;
-            }
-        }
-    } catch (e) {
-        // Fallback below
-    }
-
-    // Last resort hardcoded fallback
-    console.warn(`[${MODULE_NAME}] Could not determine local version, using fallback`);
-    localVersion = "4.0.0";
-    return localVersion;
+    // Fallback - should never happen since EXTENSION_VERSION is a required import
+    console.warn(`[${MODULE_NAME}] EXTENSION_VERSION not available, using fallback`);
+    return "4.0.0";
 }
 
 /**
