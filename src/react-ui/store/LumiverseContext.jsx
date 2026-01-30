@@ -1222,11 +1222,12 @@ const actions = {
     /**
      * Trigger extension update via SillyTavern API.
      * Uses centralized triggerExtensionUpdate from stContext per EXTENSION_GUIDE_UPDATES.md.
+     * Uses dynamic extension name discovery from import.meta.url.
      * @returns {Promise<{success: boolean, message: string}>}
      */
     updateExtension: async () => {
         const state = store.getState();
-        
+
         // Set updating state
         store.setState({
             ui: { ...state.ui, isUpdatingExtension: true },
@@ -1244,7 +1245,12 @@ const actions = {
                 return { success: false, message: 'Update API not available' };
             }
 
-            const result = await triggerUpdate('SillyTavern-LumiverseHelper');
+            // Get extension name from bridge (derived from import.meta.url per EXTENSION_GUIDE_UPDATES.md)
+            const extensionName = typeof LumiverseBridge !== 'undefined' && LumiverseBridge.extensionName
+                ? LumiverseBridge.extensionName
+                : 'SillyTavern-LumiverseHelper';
+
+            const result = await triggerUpdate(extensionName);
 
             const currentState = store.getState();
             store.setState({

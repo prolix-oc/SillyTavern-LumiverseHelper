@@ -6,7 +6,21 @@
 import { getExtensionManifestVersion } from "../stContext.js";
 
 export const MODULE_NAME = "update-service";
-const EXTENSION_NAME = "SillyTavern-LumiverseHelper";
+
+// Fallback extension name if bridge is not available
+const FALLBACK_EXTENSION_NAME = "SillyTavern-LumiverseHelper";
+
+/**
+ * Get the extension folder name, preferring the dynamic value from LumiverseBridge
+ * which is derived from import.meta.url per EXTENSION_GUIDE_UPDATES.md.
+ * @returns {string} Extension folder name
+ */
+function getExtensionName() {
+    if (typeof LumiverseBridge !== 'undefined' && LumiverseBridge.extensionName) {
+        return LumiverseBridge.extensionName;
+    }
+    return FALLBACK_EXTENSION_NAME;
+}
 
 // GitHub raw content URL for manifest.json
 const GITHUB_MANIFEST_URL = "https://raw.githubusercontent.com/prolix-oc/SillyTavern-LumiverseHelper/main/manifest.json";
@@ -87,9 +101,10 @@ function compareSemver(v1, v2) {
  */
 async function getLocalVersion() {
     if (localVersion) return localVersion;
-    
+
     // Fetch from the manifest file per EXTENSION_GUIDE_UPDATES.md
-    const manifestVersion = await getExtensionManifestVersion(EXTENSION_NAME);
+    // Uses dynamic extension name discovery from import.meta.url
+    const manifestVersion = await getExtensionManifestVersion(getExtensionName());
     if (manifestVersion) {
         localVersion = manifestVersion;
         return localVersion;

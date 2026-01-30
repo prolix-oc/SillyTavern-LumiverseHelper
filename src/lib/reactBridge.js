@@ -27,6 +27,13 @@ import {
 } from "./settingsManager.js";
 import { getEventSource, getEventTypes, getRequestHeaders, triggerExtensionUpdate, getExtensionGitVersion, getExtensionManifestVersion } from "../stContext.js";
 
+// Extension name discovery from import.meta.url per EXTENSION_GUIDE_UPDATES.md
+// Structure: .../third-party/<folder_name>/index.js
+const myUrl = import.meta.url;
+const pathParts = myUrl.split('/');
+const EXTENSION_FOLDER_NAME = pathParts[pathParts.length - 2] || 'SillyTavern-LumiverseHelper';
+console.log('[ReactBridge] Extension folder detected:', EXTENSION_FOLDER_NAME);
+
 // Track if React UI is loaded
 let reactUILoaded = false;
 let cleanupFn = null;
@@ -309,9 +316,11 @@ export async function initializeReactUI(container) {
       resetAllSettings: resetAllSettings,
       getRequestHeaders: getRequestHeaders,
       // Extension update functions per EXTENSION_GUIDE_UPDATES.md
-      triggerExtensionUpdate: triggerExtensionUpdate,
-      getExtensionGitVersion: getExtensionGitVersion,
-      getExtensionManifestVersion: getExtensionManifestVersion,
+      triggerExtensionUpdate: (name) => triggerExtensionUpdate(name || EXTENSION_FOLDER_NAME),
+      getExtensionGitVersion: (name) => getExtensionGitVersion(name || EXTENSION_FOLDER_NAME),
+      getExtensionManifestVersion: (name) => getExtensionManifestVersion(name || EXTENSION_FOLDER_NAME),
+      // Expose detected extension name for React store
+      extensionName: EXTENSION_FOLDER_NAME,
       // Called by packCache when pack data changes
       onPackCacheChange: () => {
         // Skip if this change was triggered by React saving
