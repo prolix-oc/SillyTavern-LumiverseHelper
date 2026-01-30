@@ -109,13 +109,11 @@ async function getLocalVersion(forceFresh = false) {
  */
 async function fetchRemoteVersion() {
     try {
-        const response = await fetch(`${LUCID_API_URL}?extension=${encodeURIComponent(EXTENSION_NAME)}`, {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-            },
-        });
+        const url = `${LUCID_API_URL}?extension=${encodeURIComponent(EXTENSION_NAME)}`;
+        console.log(`[${MODULE_NAME}] Fetching version from:`, url);
+
+        const response = await fetch(url);
+        console.log(`[${MODULE_NAME}] Response status:`, response.status);
 
         if (!response.ok) {
             console.warn(`[${MODULE_NAME}] Failed to fetch remote version: ${response.status}`);
@@ -123,8 +121,9 @@ async function fetchRemoteVersion() {
         }
 
         const result = await response.json();
+        console.log(`[${MODULE_NAME}] Parsed response:`, result);
 
-        if (!result.success || !result.data) {
+        if (!result.success || !result.data || !result.data.version) {
             console.warn(`[${MODULE_NAME}] Invalid response from version API:`, result);
             return null;
         }
@@ -133,7 +132,9 @@ async function fetchRemoteVersion() {
             version: result.data.version,
         };
     } catch (error) {
-        console.warn(`[${MODULE_NAME}] Error fetching remote version:`, error);
+        console.error(`[${MODULE_NAME}] Error fetching remote version:`, error);
+        console.error(`[${MODULE_NAME}] Error type:`, error?.constructor?.name);
+        console.error(`[${MODULE_NAME}] Error message:`, error?.message);
         return null;
     }
 }
@@ -152,10 +153,15 @@ export async function checkExtensionUpdate(force = false) {
     }
     
     // Always fetch fresh local version to detect manual updates
+    console.log(`[${MODULE_NAME}] Starting update check...`);
     const currentVersion = await getLocalVersion(true);
+    console.log(`[${MODULE_NAME}] Local version:`, currentVersion);
+
     const remoteVersion = await fetchRemoteVersion();
+    console.log(`[${MODULE_NAME}] Remote version result:`, remoteVersion);
 
     if (!remoteVersion) {
+        console.warn(`[${MODULE_NAME}] Could not fetch remote version, aborting check`);
         return null;
     }
 
