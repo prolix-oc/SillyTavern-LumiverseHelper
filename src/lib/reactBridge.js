@@ -28,10 +28,11 @@ import {
 import { getEventSource, getEventTypes, getRequestHeaders, triggerExtensionUpdate, getExtensionGitVersion, getExtensionManifestVersion } from "../stContext.js";
 
 // Extension name discovery from import.meta.url per EXTENSION_GUIDE_UPDATES.md
-// Structure: .../third-party/<folder_name>/index.js
+// Structure: .../third-party/<folder_name>/src/lib/reactBridge.js
+// We need to go back 4 levels from the filename to get the extension folder
 const myUrl = import.meta.url;
 const pathParts = myUrl.split('/');
-const EXTENSION_FOLDER_NAME = pathParts[pathParts.length - 2] || 'SillyTavern-LumiverseHelper';
+const EXTENSION_FOLDER_NAME = pathParts[pathParts.length - 4] || 'SillyTavern-LumiverseHelper';
 console.log('[ReactBridge] Extension folder detected:', EXTENSION_FOLDER_NAME);
 
 // Track if React UI is loaded
