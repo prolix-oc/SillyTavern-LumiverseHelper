@@ -20,6 +20,7 @@ import SummarizationModal from './modals/SummarizationModal';
 import PromptSettingsModal from './modals/PromptSettingsModal';
 import LucidCardsModal from './modals/LucidCardsModal';
 import LoomSummaryModal from './modals/LoomSummaryModal';
+import PresetManageModal from './modals/PresetManageModal';
 
 /**
  * Modal wrapper that provides backdrop and close functionality
@@ -275,6 +276,14 @@ const MODAL_CONFIG = {
         modalType: 'settings',
         size: 'medium',
         hasCustomHeader: true,
+        props: {},
+    },
+    // Preset Management Modal
+    presetManage: {
+        component: PresetManageModal,
+        modalType: 'settings',
+        size: 'medium',
+        hasCustomHeader: false, // PresetManageModal renders its own header
         props: {},
     },
 };

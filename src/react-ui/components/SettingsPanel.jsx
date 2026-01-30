@@ -7,7 +7,7 @@ import { ChatPresetsPanel } from './panels/ChatPresets';
 import { PresetBindingsPanel } from './panels/PresetBindings';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
-import { Eye, Sparkles, Wrench, Layers, Trash2, Users, Bookmark, Plus, ChevronDown, Check, X, AlertTriangle, Download } from 'lucide-react';
+import { Eye, Sparkles, Wrench, Layers, Trash2, Users, Bookmark, Plus, ChevronDown, Check, X, AlertTriangle, Download, Settings2 } from 'lucide-react';
 
 /* global LumiverseBridge, toastr */
 
@@ -539,6 +539,16 @@ function QuickActionsSection({ councilMode, councilMembers, onOpenCouncil, actio
                                 )}
                             </AnimatePresence>
                         </div>
+
+                        {/* Manage Presets Button */}
+                        <button
+                            className="lumia-quick-action-btn"
+                            onClick={() => actions.openModal('presetManage')}
+                            title="Manage presets"
+                            type="button"
+                        >
+                            <Settings2 size={14} strokeWidth={1.5} />
+                        </button>
                     </>
                 ) : (
                     /* Create New Preset Form */
