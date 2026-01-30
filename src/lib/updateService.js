@@ -1,29 +1,17 @@
 /**
  * Update Service Module
- * Checks for extension and preset updates via GitHub API
+ * Checks for extension updates via lucid.cards API
  */
 
 import { EXTENSION_VERSION } from "./version.js";
 
 export const MODULE_NAME = "update-service";
 
-// Fallback extension name if bridge is not available
-const FALLBACK_EXTENSION_NAME = "SillyTavern-LumiverseHelper";
+// Extension name constant
+const EXTENSION_NAME = "SillyTavern-LumiverseHelper";
 
-/**
- * Get the extension folder name, preferring the dynamic value from LumiverseBridge
- * which is derived from import.meta.url per EXTENSION_GUIDE_UPDATES.md.
- * @returns {string} Extension folder name
- */
-function getExtensionName() {
-    if (typeof LumiverseBridge !== 'undefined' && LumiverseBridge.extensionName) {
-        return LumiverseBridge.extensionName;
-    }
-    return FALLBACK_EXTENSION_NAME;
-}
-
-// GitHub raw content URL for manifest.json
-const GITHUB_MANIFEST_URL = "https://raw.githubusercontent.com/prolix-oc/SillyTavern-LumiverseHelper/main/manifest.json";
+// Lucid.cards API endpoint for version checking
+const LUCID_API_URL = "https://lucid.cards/api/extension-versions";
 
 // Current extension version (injected at build time or read from local manifest)
 let localVersion = null;
@@ -116,32 +104,36 @@ async function getLocalVersion(forceFresh = false) {
 }
 
 /**
- * Fetch the latest manifest from GitHub
- * @returns {Promise<{version: string, display_name: string}|null>}
+ * Fetch the latest version from lucid.cards API
+ * @returns {Promise<{version: string}|null>}
  */
-async function fetchRemoteManifest() {
+async function fetchRemoteVersion() {
     try {
-        // Add cache-busting query param to bypass GitHub's CDN caching
-        const cacheBuster = `?t=${Date.now()}`;
-        const response = await fetch(GITHUB_MANIFEST_URL + cacheBuster, {
-            cache: 'no-store',
+        const response = await fetch(`${LUCID_API_URL}?extension=${encodeURIComponent(EXTENSION_NAME)}`, {
+            method: 'GET',
             headers: {
                 'Accept': 'application/json',
+                'Content-Type': 'application/json',
             },
         });
-        
+
         if (!response.ok) {
-            console.warn(`[${MODULE_NAME}] Failed to fetch remote manifest: ${response.status}`);
+            console.warn(`[${MODULE_NAME}] Failed to fetch remote version: ${response.status}`);
             return null;
         }
-        
-        const manifest = await response.json();
+
+        const result = await response.json();
+
+        if (!result.success || !result.data) {
+            console.warn(`[${MODULE_NAME}] Invalid response from version API:`, result);
+            return null;
+        }
+
         return {
-            version: manifest.version,
-            display_name: manifest.display_name || 'Lumiverse Helper',
+            version: result.data.version,
         };
     } catch (error) {
-        console.warn(`[${MODULE_NAME}] Error fetching remote manifest:`, error);
+        console.warn(`[${MODULE_NAME}] Error fetching remote version:`, error);
         return null;
     }
 }
@@ -160,15 +152,14 @@ export async function checkExtensionUpdate(force = false) {
     }
     
     // Always fetch fresh local version to detect manual updates
-    // Use forceFresh=true to bypass cache and re-read manifest
     const currentVersion = await getLocalVersion(true);
-    const remoteManifest = await fetchRemoteManifest();
-    
-    if (!remoteManifest) {
+    const remoteVersion = await fetchRemoteVersion();
+
+    if (!remoteVersion) {
         return null;
     }
-    
-    const latestVersion = remoteManifest.version;
+
+    const latestVersion = remoteVersion.version;
     const hasUpdate = compareSemver(currentVersion, latestVersion) < 0;
     
     cachedExtensionUpdate = {

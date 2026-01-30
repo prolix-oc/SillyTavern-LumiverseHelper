@@ -243,6 +243,20 @@ git push --set-upstream origin "$CURRENT_BRANCH"
 
 if [ "$SKIP_UPDATE" = false ]; then
     echo "Success! Deployed version $NEW_VERSION to $CURRENT_BRANCH."
+
+    # Update lucid.cards with the new version
+    echo "Updating version on lucid.cards..."
+    LUCID_RESPONSE=$(curl -s -X POST "http://localhost:3000/api/extension-versions" \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer 8d2f0d1b6ea3d5ea8e8cb5938f2cdc59f03542853162b5e3dabfa6dc0c2cd796" \
+        -d "{\"extension\": \"SillyTavern-LumiverseHelper\", \"version\": \"$NEW_VERSION\"}" 2>&1)
+
+    if echo "$LUCID_RESPONSE" | grep -q '"success":true'; then
+        echo "Version updated on lucid.cards successfully."
+    else
+        echo "Warning: Failed to update version on lucid.cards."
+        echo "Response: $LUCID_RESPONSE"
+    fi
 else
     echo "Success! Changes pushed to $CURRENT_BRANCH (Version remained $CURRENT_VERSION)."
 fi
