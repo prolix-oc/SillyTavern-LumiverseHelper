@@ -246,9 +246,9 @@ if [ "$SKIP_UPDATE" = false ]; then
 
     # Update lucid.cards with the new version
     echo "Updating version on lucid.cards..."
-    LUCID_RESPONSE=$(curl -s -X POST "http://localhost:3000/api/extension-versions" \
+    LUCID_RESPONSE=$(curl -s -X POST "https://lucid.cards/api/extension-versions" \
         -H "Content-Type: application/json" \
-        -H "Authorization: Bearer 8d2f0d1b6ea3d5ea8e8cb5938f2cdc59f03542853162b5e3dabfa6dc0c2cd796" \
+        -H "Authorization: Bearer sJcMrpYKmOo536ZQs64bfm63L2rxtbhyetbMsPFjH6xtYXC0G3B3dAFUixx2KFO7" \
         -d "{\"extension\": \"SillyTavern-LumiverseHelper\", \"version\": \"$NEW_VERSION\"}" 2>&1)
 
     if echo "$LUCID_RESPONSE" | grep -q '"success":true'; then
