@@ -360,7 +360,9 @@ export async function getExtensionManifestVersion(extensionName) {
     // Works regardless of "third-party/" prefix or folder renaming
     const manifestUrl = new URL('../manifest.json', import.meta.url).href;
 
-    const response = await fetch(manifestUrl);
+    // Add cache-busting to ensure we get the latest version after updates
+    const cacheBuster = `?t=${Date.now()}`;
+    const response = await fetch(manifestUrl + cacheBuster, { cache: 'no-store' });
     if (!response.ok) {
       // Fallback: try the old path-based approach for compatibility
       if (extensionName) {
