@@ -349,13 +349,45 @@ export async function getExtensionGitVersion(extensionName) {
 
 /**
  * Get the semantic version from manifest.json.
- * Per EXTENSION_GUIDE_UPDATES.md - fetches manifest from ST server paths.
- * Tries both core and third-party paths.
- * @param {string} extensionName - Folder name of the extension
+ * Per EXTENSION_GUIDE_UPDATES.md - resolves manifest.json relative to the current script
+ * using import.meta.url. This works regardless of folder renaming or third-party prefix.
+ * @param {string} [extensionName] - Optional folder name (unused, kept for compatibility)
  * @returns {Promise<string|null>} The version string (e.g., "4.0.4") or null
  */
 export async function getExtensionManifestVersion(extensionName) {
-  // Helper to fetch manifest from a specific path
+  try {
+    // Resolve manifest.json relative to the current script
+    // Works regardless of "third-party/" prefix or folder renaming
+    const manifestUrl = new URL('../manifest.json', import.meta.url).href;
+
+    const response = await fetch(manifestUrl);
+    if (!response.ok) {
+      // Fallback: try the old path-based approach for compatibility
+      if (extensionName) {
+        const fallbackResult = await getExtensionManifestVersionLegacy(extensionName);
+        return fallbackResult;
+      }
+      return null;
+    }
+
+    const manifest = await response.json();
+    return manifest.version || null;
+  } catch (error) {
+    console.error('[LumiverseHelper] Failed to load manifest:', error);
+    // Fallback: try the old path-based approach
+    if (extensionName) {
+      return await getExtensionManifestVersionLegacy(extensionName);
+    }
+    return null;
+  }
+}
+
+/**
+ * Legacy fallback for getting manifest version from ST server paths.
+ * @param {string} extensionName - Folder name of the extension
+ * @returns {Promise<string|null>} The version string or null
+ */
+async function getExtensionManifestVersionLegacy(extensionName) {
   const tryFetch = async (path) => {
     try {
       const response = await fetch(path);
@@ -366,10 +398,7 @@ export async function getExtensionManifestVersion(extensionName) {
     return null;
   };
 
-  // Try standard path first (for core extensions)
   let manifest = await tryFetch(`/scripts/extensions/${extensionName}/manifest.json`);
-
-  // If not found, try third-party path (for user-installed extensions)
   if (!manifest) {
     manifest = await tryFetch(`/scripts/extensions/third-party/${extensionName}/manifest.json`);
   }
