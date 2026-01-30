@@ -276,6 +276,42 @@ export function getRequestHeaders() {
 }
 
 /**
+ * Discover extension type (global vs local) via the Discovery API.
+ * Per EXTENSION_GUIDE_UPDATES.md - uses /api/extensions/discover endpoint.
+ * This is more reliable than importing internal modules.
+ * @param {string} extensionName - The folder name of the extension
+ * @returns {Promise<{type: string, name: string}|null>} Extension info or null if not found
+ */
+async function discoverExtensionInfo(extensionName) {
+  try {
+    const cleanName = extensionName.replace(/^third-party\//, '').replace(/^\//, '');
+
+    const response = await fetch('/api/extensions/discover');
+    if (!response.ok) {
+      console.warn('[LumiverseHelper] Failed to discover extension info:', response.statusText);
+      return null;
+    }
+
+    const extensionsList = await response.json();
+
+    // Find our entry in the list. Names can be "MyExtension" or "third-party/MyExtension"
+    const myEntry = extensionsList.find(ext =>
+      ext.name === cleanName || ext.name.endsWith('/' + cleanName)
+    );
+
+    if (!myEntry) {
+      console.warn(`[LumiverseHelper] Extension '${cleanName}' not found in server registry.`);
+      return null;
+    }
+
+    return myEntry;
+  } catch (error) {
+    console.error('[LumiverseHelper] Error discovering extension info:', error);
+    return null;
+  }
+}
+
+/**
  * Trigger an update for the extension via ST backend API.
  * Per EXTENSION_GUIDE_UPDATES.md - uses /api/extensions/update endpoint.
  * @param {string} extensionName - Folder name of the extension
@@ -286,14 +322,28 @@ export async function triggerExtensionUpdate(extensionName) {
     // Backend expects just the folder name without "third-party/" prefix
     const cleanName = extensionName.replace(/^third-party\//, '').replace(/^\//, '');
 
+    // Determine if extension is global or local via Discovery API
+    const myEntry = await discoverExtensionInfo(extensionName);
+    if (!myEntry) {
+      return { success: false, message: 'Extension not found in server registry' };
+    }
+
+    const isGlobal = myEntry.type === 'global';
+    console.log(`[LumiverseHelper] Attempting update for '${cleanName}' (Global: ${isGlobal})...`);
+
     const response = await fetch('/api/extensions/update', {
       method: 'POST',
       headers: getRequestHeaders(),
       body: JSON.stringify({
         extensionName: cleanName,
-        global: false,
+        global: isGlobal,
       }),
     });
+
+    if (response.status === 403) {
+      console.error('[LumiverseHelper] Update failed: Admin permission required for global extensions');
+      return { success: false, message: 'Permission denied: Admin required to update global extensions' };
+    }
 
     if (!response.ok) {
       console.error(`[LumiverseHelper] Update failed: ${response.statusText}`);
@@ -329,12 +379,16 @@ export async function getExtensionGitVersion(extensionName) {
   try {
     const cleanName = extensionName.replace(/^third-party\//, '').replace(/^\//, '');
 
+    // Determine if extension is global or local via Discovery API
+    const myEntry = await discoverExtensionInfo(extensionName);
+    const isGlobal = myEntry ? myEntry.type === 'global' : false;
+
     const response = await fetch('/api/extensions/version', {
       method: 'POST',
       headers: getRequestHeaders(),
       body: JSON.stringify({
         extensionName: cleanName,
-        global: false,
+        global: isGlobal,
       }),
     });
 
