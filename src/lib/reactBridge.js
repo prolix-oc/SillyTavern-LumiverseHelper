@@ -25,7 +25,7 @@ import {
   savePack,
   deletePack,
 } from "./settingsManager.js";
-import { getEventSource, getEventTypes, getRequestHeaders } from "../stContext.js";
+import { getEventSource, getEventTypes, getRequestHeaders, triggerExtensionUpdate, getExtensionGitVersion, getExtensionManifestVersion } from "../stContext.js";
 
 // Track if React UI is loaded
 let reactUILoaded = false;
@@ -308,6 +308,10 @@ export async function initializeReactUI(container) {
       clearClaudeCache: clearClaudeCache,
       resetAllSettings: resetAllSettings,
       getRequestHeaders: getRequestHeaders,
+      // Extension update functions per EXTENSION_GUIDE_UPDATES.md
+      triggerExtensionUpdate: triggerExtensionUpdate,
+      getExtensionGitVersion: getExtensionGitVersion,
+      getExtensionManifestVersion: getExtensionManifestVersion,
       // Called by packCache when pack data changes
       onPackCacheChange: () => {
         // Skip if this change was triggered by React saving

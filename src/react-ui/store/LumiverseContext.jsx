@@ -1221,7 +1221,7 @@ const actions = {
 
     /**
      * Trigger extension update via SillyTavern API.
-     * Calls /api/extensions/update endpoint.
+     * Uses centralized triggerExtensionUpdate from stContext per EXTENSION_GUIDE_UPDATES.md.
      * @returns {Promise<{success: boolean, message: string}>}
      */
     updateExtension: async () => {
@@ -1233,39 +1233,25 @@ const actions = {
         });
 
         try {
-            // Get request headers from ST context
-            const getRequestHeaders = typeof LumiverseBridge !== 'undefined' && LumiverseBridge.getRequestHeaders
-                ? LumiverseBridge.getRequestHeaders
-                : () => ({ 'Content-Type': 'application/json' });
+            // Use the centralized update function from stContext
+            // This is exposed via LumiverseBridge so React can access it
+            const triggerUpdate = typeof LumiverseBridge !== 'undefined' && LumiverseBridge.triggerExtensionUpdate
+                ? LumiverseBridge.triggerExtensionUpdate
+                : null;
 
-            const response = await fetch('/api/extensions/update', {
-                method: 'POST',
-                headers: getRequestHeaders(),
-                body: JSON.stringify({
-                    extensionName: 'SillyTavern-LumiverseHelper',
-                    global: false,
-                }),
-            });
+            if (!triggerUpdate) {
+                console.error('[LumiverseHelper] triggerExtensionUpdate not available on LumiverseBridge');
+                return { success: false, message: 'Update API not available' };
+            }
+
+            const result = await triggerUpdate('SillyTavern-LumiverseHelper');
 
             const currentState = store.getState();
             store.setState({
                 ui: { ...currentState.ui, isUpdatingExtension: false },
             });
 
-            if (!response.ok) {
-                console.error(`[LumiverseHelper] Extension update failed: ${response.statusText}`);
-                return { success: false, message: `Update failed: ${response.statusText}` };
-            }
-
-            const data = await response.json();
-
-            if (data.isUpToDate) {
-                console.log('[LumiverseHelper] Extension is already up to date.');
-                return { success: false, message: 'Already up to date' };
-            } else {
-                console.log(`[LumiverseHelper] Extension updated successfully to ${data.shortCommitHash}.`);
-                return { success: true, message: `Updated to ${data.shortCommitHash}. Reload to apply changes.` };
-            }
+            return result;
         } catch (error) {
             console.error('[LumiverseHelper] Error updating extension:', error);
             const currentState = store.getState();

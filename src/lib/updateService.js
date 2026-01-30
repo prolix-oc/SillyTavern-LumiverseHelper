@@ -3,7 +3,10 @@
  * Checks for extension and preset updates via GitHub API
  */
 
+import { getExtensionManifestVersion } from "../stContext.js";
+
 export const MODULE_NAME = "update-service";
+const EXTENSION_NAME = "SillyTavern-LumiverseHelper";
 
 // GitHub raw content URL for manifest.json
 const GITHUB_MANIFEST_URL = "https://raw.githubusercontent.com/prolix-oc/SillyTavern-LumiverseHelper/main/manifest.json";
@@ -78,13 +81,21 @@ function compareSemver(v1, v2) {
 }
 
 /**
- * Get the local extension version from manifest
- * @returns {string|null}
+ * Get the local extension version from manifest.
+ * Uses the ST server path to fetch the actual installed manifest.
+ * @returns {Promise<string|null>}
  */
-function getLocalVersion() {
+async function getLocalVersion() {
     if (localVersion) return localVersion;
     
-    // Try to get from SillyTavern's extension manager
+    // Fetch from the manifest file per EXTENSION_GUIDE_UPDATES.md
+    const manifestVersion = await getExtensionManifestVersion(EXTENSION_NAME);
+    if (manifestVersion) {
+        localVersion = manifestVersion;
+        return localVersion;
+    }
+    
+    // Fallback: try to get from SillyTavern's extension settings
     try {
         if (typeof SillyTavern !== 'undefined' && SillyTavern.getContext) {
             const ctx = SillyTavern.getContext();
@@ -97,9 +108,9 @@ function getLocalVersion() {
         // Fallback below
     }
     
-    // Hardcoded fallback - should be updated with build or read from window
-    // The manifest version is 4.0.1 as of now
-    localVersion = "4.0.1";
+    // Last resort hardcoded fallback
+    console.warn(`[${MODULE_NAME}] Could not determine local version, using fallback`);
+    localVersion = "4.0.0";
     return localVersion;
 }
 
@@ -145,7 +156,8 @@ export async function checkExtensionUpdate(force = false) {
         return cachedExtensionUpdate;
     }
     
-    const currentVersion = getLocalVersion();
+    // getLocalVersion is now async - fetches from manifest
+    const currentVersion = await getLocalVersion();
     const remoteManifest = await fetchRemoteManifest();
     
     if (!remoteManifest) {

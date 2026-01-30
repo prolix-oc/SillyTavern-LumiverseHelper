@@ -263,6 +263,7 @@ export function getSlashCommand() {
 
 /**
  * Get request headers for API calls.
+ * Required for authenticated ST backend API calls.
  * @returns {Object} Headers object for fetch requests
  */
 export function getRequestHeaders() {
@@ -270,7 +271,110 @@ export function getRequestHeaders() {
   if (ctx?.getRequestHeaders) {
     return ctx.getRequestHeaders();
   }
-  return {};
+  // Fallback with Content-Type for JSON requests
+  return { 'Content-Type': 'application/json' };
+}
+
+/**
+ * Trigger an update for the extension via ST backend API.
+ * Per EXTENSION_GUIDE_UPDATES.md - uses /api/extensions/update endpoint.
+ * @param {string} extensionName - Folder name of the extension
+ * @returns {Promise<{success: boolean, message: string, isUpToDate?: boolean, shortCommitHash?: string}>}
+ */
+export async function triggerExtensionUpdate(extensionName) {
+  try {
+    // Backend expects just the folder name without "third-party/" prefix
+    const cleanName = extensionName.replace(/^third-party\//, '').replace(/^\//, '');
+
+    const response = await fetch('/api/extensions/update', {
+      method: 'POST',
+      headers: getRequestHeaders(),
+      body: JSON.stringify({
+        extensionName: cleanName,
+        global: false,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error(`[LumiverseHelper] Update failed: ${response.statusText}`);
+      return { success: false, message: `Update failed: ${response.statusText}` };
+    }
+
+    const data = await response.json();
+
+    if (data.isUpToDate) {
+      console.log(`[LumiverseHelper] Extension '${cleanName}' is already up to date.`);
+      return { success: false, message: 'Already up to date', isUpToDate: true };
+    } else {
+      console.log(`[LumiverseHelper] Extension '${cleanName}' updated successfully to ${data.shortCommitHash}.`);
+      return { 
+        success: true, 
+        message: `Updated to ${data.shortCommitHash}. Reload to apply changes.`,
+        shortCommitHash: data.shortCommitHash,
+      };
+    }
+  } catch (error) {
+    console.error('[LumiverseHelper] Error triggering extension update:', error);
+    return { success: false, message: `Error: ${error.message}` };
+  }
+}
+
+/**
+ * Get the current Git version details of the extension.
+ * Per EXTENSION_GUIDE_UPDATES.md - uses /api/extensions/version endpoint.
+ * @param {string} extensionName - Folder name of the extension
+ * @returns {Promise<{currentBranchName: string, currentCommitHash: string, remoteUrl: string, isUpToDate: boolean}|null>}
+ */
+export async function getExtensionGitVersion(extensionName) {
+  try {
+    const cleanName = extensionName.replace(/^third-party\//, '').replace(/^\//, '');
+
+    const response = await fetch('/api/extensions/version', {
+      method: 'POST',
+      headers: getRequestHeaders(),
+      body: JSON.stringify({
+        extensionName: cleanName,
+        global: false,
+      }),
+    });
+
+    if (!response.ok) return null;
+
+    return await response.json();
+  } catch (error) {
+    console.error('[LumiverseHelper] Failed to get git version:', error);
+    return null;
+  }
+}
+
+/**
+ * Get the semantic version from manifest.json.
+ * Per EXTENSION_GUIDE_UPDATES.md - fetches manifest from ST server paths.
+ * Tries both core and third-party paths.
+ * @param {string} extensionName - Folder name of the extension
+ * @returns {Promise<string|null>} The version string (e.g., "4.0.4") or null
+ */
+export async function getExtensionManifestVersion(extensionName) {
+  // Helper to fetch manifest from a specific path
+  const tryFetch = async (path) => {
+    try {
+      const response = await fetch(path);
+      if (response.ok) return await response.json();
+    } catch (e) {
+      // ignore fetch errors
+    }
+    return null;
+  };
+
+  // Try standard path first (for core extensions)
+  let manifest = await tryFetch(`/scripts/extensions/${extensionName}/manifest.json`);
+
+  // If not found, try third-party path (for user-installed extensions)
+  if (!manifest) {
+    manifest = await tryFetch(`/scripts/extensions/third-party/${extensionName}/manifest.json`);
+  }
+
+  return manifest ? (manifest.version || null) : null;
 }
 
 /**
