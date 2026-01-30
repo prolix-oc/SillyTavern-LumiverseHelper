@@ -3,7 +3,7 @@ SillySimTracker/
 .DS_Store
 .claude/
 *.md
-update.sh
+push.sh
 !README.md
 !docs/*.md
 generate_raw_example.js
