@@ -715,7 +715,7 @@ function SettingsPanel() {
         console.log('[SettingsPanel] File selected for upload:', file.name);
 
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             try {
                 const data = JSON.parse(e.target.result);
                 console.log('[SettingsPanel] JSON parsed successfully, entries:', data.entries ? Object.keys(data.entries).length : 'no entries field');
@@ -727,8 +727,9 @@ function SettingsPanel() {
 
                     if (callbacks && callbacks.handleNewBook) {
                         console.log('[SettingsPanel] Calling handleNewBook...');
-                        callbacks.handleNewBook(data, file.name, false);
-                        // Refresh the UI after import
+                        // MUST await since handleNewBook is async - ensures pack is in cache before continuing
+                        await callbacks.handleNewBook(data, file.name, false);
+                        // Refresh the UI after import is fully complete
                         if (callbacks.refreshUIDisplay) {
                             callbacks.refreshUIDisplay();
                         }

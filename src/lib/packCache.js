@@ -992,7 +992,7 @@ export async function clearAllData() {
     const result = await deleteAllLumiverseFiles();
     
     // Notify listeners that cache has been cleared
-    notifyCacheChange();
+    notifyListeners();
     
     console.log(`[${MODULE_NAME}] NUCLEAR: All Lumiverse data cleared`);
     

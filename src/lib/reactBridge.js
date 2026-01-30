@@ -130,7 +130,7 @@ export async function reactFormatToSettings(reactState, immediate = false) {
 
     // If using file storage, handle pack changes
     if (isUsingFileStorage() && reactState.packs !== undefined) {
-      syncPackChangesToFileStorage(reactState.packs);
+      await syncPackChangesToFileStorage(reactState.packs);
     }
 
     // If using file storage, handle presets separately

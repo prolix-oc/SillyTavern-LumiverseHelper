@@ -462,9 +462,10 @@ jQuery(async () => {
       notifyReactOfSettingsChange();
     });
   });
-  registerReactCallback("handleNewBook", (data, filename) => {
+  registerReactCallback("handleNewBook", async (data, filename) => {
     // Use importPack which handles both native Lumiverse format and World Book format
-    importPack(data, filename, false);
+    // MUST await since importPack is async - otherwise pack won't be in cache yet
+    await importPack(data, filename, false);
     refreshUIDisplay();
     notifyReactOfSettingsChange();
   });
