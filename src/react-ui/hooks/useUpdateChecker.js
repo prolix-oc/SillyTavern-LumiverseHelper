@@ -5,7 +5,7 @@ import { checkForPresetUpdates } from '../../lib/presetsService';
 
 // Check intervals
 const INITIAL_CHECK_DELAY = 5000; // 5 seconds after mount
-const UPDATE_CHECK_INTERVAL = 30 * 60 * 1000; // 30 minutes
+const UPDATE_CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Update the accordion badge in the DOM (outside React)

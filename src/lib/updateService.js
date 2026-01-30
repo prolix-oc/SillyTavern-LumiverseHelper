@@ -22,7 +22,7 @@ let localVersion = null;
 // Cached update state
 let cachedExtensionUpdate = null;
 let lastExtensionCheck = 0;
-const CHECK_INTERVAL = 30 * 60 * 1000; // 30 minutes
+const CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
 // Event listeners for update state changes
 const updateListeners = new Set();
