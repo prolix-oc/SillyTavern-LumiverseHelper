@@ -1166,13 +1166,19 @@ function SettingsPanel() {
                 </div>
 
                 <div className="lumia-macro-group">
+                    <div className="lumia-macro-group-title">Message History</div>
+                    <div className="lumia-macro-list">
+                        <MacroItem code="{{loomLastUserMessage}}" description="Last user message content" />
+                        <MacroItem code="{{loomLastCharMessage}}" description="Last character message content" />
+                        <MacroItem code="{{lastMessageName}}" description="Name of whoever sent the last message" />
+                    </div>
+                </div>
+
+                <div className="lumia-macro-group">
                     <div className="lumia-macro-group-title">Sovereign Hand</div>
                     <div className="lumia-macro-list">
                         <MacroItem code="{{loomSovHand}}" description="Full Sovereign Hand prompt (with user message)" />
                         <MacroItem code="{{loomSovHandActive}}" description="Yes/No status indicator (conditional ready)" />
-                        <MacroItem code="{{loomLastUserMessage}}" description="Last user message content" />
-                        <MacroItem code="{{loomLastCharMessage}}" description="Last character message content" />
-                        <MacroItem code="{{lastMessageName}}" description="Name of whoever sent the last message" />
                         <MacroItem code="{{loomContinuePrompt}}" description="Continue-scene prompt when character spoke last" />
                     </div>
                 </div>

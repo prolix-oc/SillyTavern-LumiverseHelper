@@ -445,15 +445,10 @@ Format the summary as dense but readable prose, preserving enough detail that th
   });
 
   // Register loomLastUserMessage macro - returns the last user message content
-  // Only active when Sovereign Hand features are enabled
   // Reads directly from chat for real-time updates on edits/deletions
   MacrosParser.registerMacro("loomLastUserMessage", {
     delayArgResolution: true,
     handler: ({ resolve }) => {
-      const settings = getSettings();
-      if (!settings.sovereignHand?.enabled) {
-        return "";
-      }
       // Read directly from chat for real-time updates
       // Falls back to captured content if chat is not available
       const liveContent = findLastUserMessage();
@@ -461,7 +456,7 @@ Format the summary as dense but readable prose, preserving enough detail that th
       // Resolve any nested macros in the user message content
       return resolve ? resolve(result) : result;
     },
-    description: "Returns the last user message content. Only active when Sovereign Hand is enabled.",
+    description: "Returns the last user message content.",
     returns: "User message text or empty string",
     returnType: "string",
     exampleUsage: ["{{loomLastUserMessage}}"],

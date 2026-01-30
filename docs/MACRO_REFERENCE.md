@@ -100,7 +100,7 @@ These macros support the Loom summarization and Sovereign Hand features.
 | ------------------------- | -------------------------------------------------------------------- |
 | `{{loomSovHand}}`         | Full Sovereign Hand prompt with user instructions injected           |
 | `{{loomSovHandActive}}`   | Returns `**Yes.**` or `**No.**` based on feature status              |
-| `{{loomLastUserMessage}}` | The captured last user message (only when Sovereign Hand is enabled) |
+| `{{loomLastUserMessage}}` | The captured last user message |
 
 ---
 
