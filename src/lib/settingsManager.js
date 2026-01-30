@@ -22,6 +22,7 @@ import {
   removePack as removePackFromCache,
   updateSelections,
   updatePreferences,
+  updatePreferencesImmediate,
   getPresets as getCachedPresets,
   upsertPreset,
   deletePreset as deletePresetFromCache,
@@ -122,6 +123,8 @@ const DEFAULT_SETTINGS = {
   disableAnthropicCache: false,
   // Tracked presets from Lucid.cards (for update notifications)
   trackedPresets: {}, // { [presetSlug]: { name, version: {major, minor, patch}, importedAt, versionName } }
+  // Dismissed update version (to not show banner again for same version)
+  dismissedUpdateVersion: null,
   // Lumia button position (percentage from edges)
   lumiaButtonPosition: {
     useDefault: true, // When true, use default positioning (top-right, animates with panel)
@@ -834,6 +837,23 @@ export function savePreferences(newPreferences) {
   
   if (isUsingFileStorage()) {
     updatePreferences(newPreferences);
+  } else {
+    saveSettings();
+  }
+}
+
+/**
+ * Update preferences with immediate save (no debounce).
+ * Use for critical settings that must persist before page unload or modal close.
+ * @param {Object} newPreferences - Partial preferences to merge
+ * @returns {Promise<void>}
+ */
+export async function savePreferencesImmediate(newPreferences) {
+  // Always update in-memory settings so getSettings() returns current values
+  Object.assign(settings, newPreferences);
+  
+  if (isUsingFileStorage()) {
+    await updatePreferencesImmediate(newPreferences);
   } else {
     saveSettings();
   }

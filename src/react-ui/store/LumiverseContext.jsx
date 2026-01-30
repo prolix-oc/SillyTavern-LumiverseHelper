@@ -134,6 +134,7 @@ const initialState = {
 
     // UI preferences
     showLumiverseDrawer: true,  // Whether to show the viewport drawer
+    dismissedUpdateVersion: null, // Version user dismissed update notification for
     lumiaButtonPosition: {
         useDefault: true, // When true, use default positioning (top-right, animates with panel)
         xPercent: 1,      // Percentage from right edge (0-100)
@@ -148,6 +149,7 @@ const initialState = {
     ui: {
         activeModal: null,
         isLoading: false,
+        isUpdatingExtension: false,  // True while extension update is in progress
         error: null,
         viewingPack: null,      // Pack name currently being viewed in detail modal
         viewingLoomPack: null,  // Pack name currently being viewed in loom detail modal
@@ -1211,6 +1213,68 @@ const actions = {
             },
         });
     },
+
+    dismissExtensionUpdate: (version) => {
+        store.setState({ dismissedUpdateVersion: version });
+        saveToExtensionImmediate();
+    },
+
+    /**
+     * Trigger extension update via SillyTavern API.
+     * Calls /api/extensions/update endpoint.
+     * @returns {Promise<{success: boolean, message: string}>}
+     */
+    updateExtension: async () => {
+        const state = store.getState();
+        
+        // Set updating state
+        store.setState({
+            ui: { ...state.ui, isUpdatingExtension: true },
+        });
+
+        try {
+            // Get request headers from ST context
+            const getRequestHeaders = typeof LumiverseBridge !== 'undefined' && LumiverseBridge.getRequestHeaders
+                ? LumiverseBridge.getRequestHeaders
+                : () => ({ 'Content-Type': 'application/json' });
+
+            const response = await fetch('/api/extensions/update', {
+                method: 'POST',
+                headers: getRequestHeaders(),
+                body: JSON.stringify({
+                    extensionName: 'SillyTavern-LumiverseHelper',
+                    global: false,
+                }),
+            });
+
+            const currentState = store.getState();
+            store.setState({
+                ui: { ...currentState.ui, isUpdatingExtension: false },
+            });
+
+            if (!response.ok) {
+                console.error(`[LumiverseHelper] Extension update failed: ${response.statusText}`);
+                return { success: false, message: `Update failed: ${response.statusText}` };
+            }
+
+            const data = await response.json();
+
+            if (data.isUpToDate) {
+                console.log('[LumiverseHelper] Extension is already up to date.');
+                return { success: false, message: 'Already up to date' };
+            } else {
+                console.log(`[LumiverseHelper] Extension updated successfully to ${data.shortCommitHash}.`);
+                return { success: true, message: `Updated to ${data.shortCommitHash}. Reload to apply changes.` };
+            }
+        } catch (error) {
+            console.error('[LumiverseHelper] Error updating extension:', error);
+            const currentState = store.getState();
+            store.setState({
+                ui: { ...currentState.ui, isUpdatingExtension: false },
+            });
+            return { success: false, message: `Error: ${error.message}` };
+        }
+    },
 };
 
 /**
@@ -1260,9 +1324,10 @@ function saveToExtension() {
 }
 
 // Save to extension immediately (no debounce - for critical settings like OOC style)
-function saveToExtensionImmediate() {
+// Also passes immediate=true to ensure file storage saves immediately (no 500ms debounce)
+async function saveToExtensionImmediate() {
     if (typeof LumiverseBridge !== 'undefined' && LumiverseBridge.saveSettings) {
-        LumiverseBridge.saveSettings(exportForExtension());
+        await LumiverseBridge.saveSettings(exportForExtension(), true);
     }
 }
 
@@ -1516,7 +1581,7 @@ export function useUI() {
 
 /**
  * Hook to access update notification state
- * Returns: { extensionUpdate, presetUpdates, hasAnyUpdate }
+ * Returns: { extensionUpdate, presetUpdates, hasAnyUpdate, dismissedVersion }
  */
 export function useUpdates() {
     const updates = useSyncExternalStore(
@@ -1525,14 +1590,27 @@ export function useUpdates() {
         selectUpdates
     );
 
-    return useMemo(() => ({
-        extensionUpdate: updates.extensionUpdate,
-        presetUpdates: updates.presetUpdates || [],
-        lastChecked: updates.lastChecked,
-        hasExtensionUpdate: updates.extensionUpdate?.hasUpdate || false,
-        hasPresetUpdates: (updates.presetUpdates?.length || 0) > 0,
-        hasAnyUpdate: (updates.extensionUpdate?.hasUpdate) || (updates.presetUpdates?.length > 0),
-    }), [updates]);
+    const dismissedVersion = useSyncExternalStore(
+        store.subscribe,
+        () => store.getState().dismissedUpdateVersion,
+        () => store.getState().dismissedUpdateVersion
+    );
+
+    return useMemo(() => {
+        const extUpdate = updates.extensionUpdate;
+        const isDismissed = dismissedVersion && extUpdate?.latestVersion === dismissedVersion;
+        const hasExtUpdate = extUpdate?.hasUpdate && !isDismissed;
+
+        return {
+            extensionUpdate: extUpdate,
+            presetUpdates: updates.presetUpdates || [],
+            lastChecked: updates.lastChecked,
+            dismissedVersion,
+            hasExtensionUpdate: hasExtUpdate,
+            hasPresetUpdates: (updates.presetUpdates?.length || 0) > 0,
+            hasAnyUpdate: hasExtUpdate || (updates.presetUpdates?.length > 0),
+        };
+    }, [updates, dismissedVersion]);
 }
 
 // Export the store object for external access

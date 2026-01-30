@@ -20,11 +20,12 @@ import {
   isUsingFileStorage,
   saveSelections,
   savePreferences,
+  savePreferencesImmediate,
   setAllPresets,
   savePack,
   deletePack,
 } from "./settingsManager.js";
-import { getEventSource, getEventTypes } from "../stContext.js";
+import { getEventSource, getEventTypes, getRequestHeaders } from "../stContext.js";
 
 // Track if React UI is loaded
 let reactUILoaded = false;
@@ -118,8 +119,9 @@ export function settingsToReactFormat() {
  * to ensure they're persisted to the appropriate files, not extension_settings.
  *
  * @param {Object} reactState - State from React store (same format as getSettings())
+ * @param {boolean} immediate - If true, save preferences immediately (no debounce)
  */
-export function reactFormatToSettings(reactState) {
+export async function reactFormatToSettings(reactState, immediate = false) {
   // Set flag to prevent re-sync loops
   isSavingFromReact = true;
   
@@ -172,6 +174,7 @@ export function reactFormatToSettings(reactState) {
         'lumiaOOCInterval',
         'lumiaOOCStyle',
         'activePresetName',
+        'dismissedUpdateVersion',
       ];
       for (const field of preferenceFields) {
         if (reactState[field] !== undefined) {
@@ -179,7 +182,11 @@ export function reactFormatToSettings(reactState) {
         }
       }
       if (Object.keys(preferences).length > 0) {
-        savePreferences(preferences);
+        if (immediate) {
+          await savePreferencesImmediate(preferences);
+        } else {
+          savePreferences(preferences);
+        }
       }
     }
 
@@ -300,6 +307,7 @@ export async function initializeReactUI(container) {
       notifySettingsChange: notifyReactOfSettingsChange,
       clearClaudeCache: clearClaudeCache,
       resetAllSettings: resetAllSettings,
+      getRequestHeaders: getRequestHeaders,
       // Called by packCache when pack data changes
       onPackCacheChange: () => {
         // Skip if this change was triggered by React saving

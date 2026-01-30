@@ -513,6 +513,39 @@ export function updatePreferences(newPreferences) {
     notifyListeners();
 }
 
+/**
+ * Update preferences in the cache and save immediately (no debounce).
+ * Use for critical settings that must persist before page unload.
+ * @param {Object} newPreferences - Partial preferences to merge
+ * @returns {Promise<void>}
+ */
+export async function updatePreferencesImmediate(newPreferences) {
+    if (!cachedIndex) {
+        console.warn(`[${MODULE_NAME}] updatePreferencesImmediate called before cache initialized, queuing update`);
+        pendingUpdates.preferences = { ...pendingUpdates.preferences, ...newPreferences };
+        return;
+    }
+
+    cachedIndex.preferences = {
+        ...cachedIndex.preferences,
+        ...newPreferences,
+    };
+
+    // Cancel any pending debounced save and save immediately
+    if (indexSaveTimer) {
+        clearTimeout(indexSaveTimer);
+        indexSaveTimer = null;
+    }
+
+    try {
+        await saveIndex(cachedIndex);
+    } catch (err) {
+        console.error(`[${MODULE_NAME}] Failed to save preferences immediately:`, err);
+    }
+
+    notifyListeners();
+}
+
 // ============================================================================
 // PRESETS
 // ============================================================================

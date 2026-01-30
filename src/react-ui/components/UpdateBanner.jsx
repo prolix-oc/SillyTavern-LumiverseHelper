@@ -1,7 +1,7 @@
-import React from 'react';
-import { ArrowUpCircle, ExternalLink, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowUpCircle, ExternalLink, X, Loader2, Check, AlertCircle, RefreshCw } from 'lucide-react';
 import clsx from 'clsx';
-import { useUpdates, useLumiverseActions } from '../store/LumiverseContext';
+import { useUpdates, useLumiverseActions, useLumiverse } from '../store/LumiverseContext';
 
 /**
  * Update Banner Component
@@ -11,13 +11,33 @@ import { useUpdates, useLumiverseActions } from '../store/LumiverseContext';
  * Shows extension updates prominently, with preset updates listed below.
  */
 export default function UpdateBanner({ variant = 'full', onDismiss }) {
-    const { extensionUpdate, presetUpdates, hasAnyUpdate } = useUpdates();
+    const { extensionUpdate, presetUpdates, hasAnyUpdate, hasExtensionUpdate } = useUpdates();
+    const isUpdating = useLumiverse(state => state.ui.isUpdatingExtension);
+    const actions = useLumiverseActions();
+    const [updateResult, setUpdateResult] = useState(null);
+
+    const handleUpdateClick = async () => {
+        if (isUpdating) return;
+        const result = await actions.updateExtension();
+        setUpdateResult(result);
+        
+        // On successful update, clear the extension update notification after a brief delay
+        // This gives user time to see the success message
+        if (result.success) {
+            setTimeout(() => {
+                actions.setExtensionUpdate(null);
+            }, 5000);
+        }
+    };
+
+    const handleReload = () => {
+        window.location.reload();
+    };
 
     if (!hasAnyUpdate) {
         return null;
     }
 
-    const hasExtUpdate = extensionUpdate?.hasUpdate;
     const presetCount = presetUpdates?.length || 0;
 
     // Compact variant for sidebar toggle area
@@ -38,24 +58,72 @@ export default function UpdateBanner({ variant = 'full', onDismiss }) {
 
     // Full banner for settings panel and sidebar
     return (
-        <div className={clsx('lumiverse-update-banner', hasExtUpdate && 'has-extension-update')}>
+        <div className={clsx('lumiverse-update-banner', hasExtensionUpdate && 'has-extension-update')}>
             <div className="lumiverse-update-banner-content">
                 <div className="lumiverse-update-banner-icon">
                     <ArrowUpCircle size={20} strokeWidth={2} />
                 </div>
                 
                 <div className="lumiverse-update-banner-text">
-                    {hasExtUpdate && (
+                    {hasExtensionUpdate && (
                         <div className="lumiverse-update-banner-main">
                             <strong>Lumiverse Helper {extensionUpdate.latestVersion}</strong> available
-                            <a 
-                                href="https://github.com/prolix-oc/SillyTavern-LumiverseHelper/releases"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="lumiverse-update-banner-link"
-                            >
-                                Update now <ExternalLink size={12} />
-                            </a>
+                            {!updateResult ? (
+                                <button 
+                                    className="lumiverse-update-banner-link"
+                                    onClick={handleUpdateClick}
+                                    disabled={isUpdating}
+                                    style={{ 
+                                        background: 'none', 
+                                        border: 'none', 
+                                        padding: 0, 
+                                        font: 'inherit', 
+                                        cursor: isUpdating ? 'wait' : 'pointer', 
+                                        display: 'inline-flex', 
+                                        alignItems: 'center', 
+                                        gap: '4px', 
+                                        textDecoration: 'underline' 
+                                    }}
+                                >
+                                    {isUpdating ? 'Updating...' : 'Update now'} 
+                                    {isUpdating ? <Loader2 size={12} className="animate-spin" /> : <ExternalLink size={12} />}
+                                </button>
+                            ) : (
+                                <span 
+                                    className={clsx("lumiverse-update-result", updateResult.success ? "success" : "error")} 
+                                    style={{ 
+                                        display: 'inline-flex', 
+                                        alignItems: 'center', 
+                                        gap: '4px', 
+                                        marginLeft: '8px', 
+                                        fontSize: '0.9em',
+                                        fontWeight: 'normal'
+                                    }}
+                                >
+                                    {updateResult.success ? <Check size={12} /> : <AlertCircle size={12} />}
+                                    {updateResult.success ? 'Updated!' : updateResult.message}
+                                    {updateResult.success && (
+                                        <button
+                                            className="lumiverse-update-banner-link"
+                                            onClick={handleReload}
+                                            style={{
+                                                background: 'none',
+                                                border: 'none',
+                                                padding: 0,
+                                                font: 'inherit',
+                                                cursor: 'pointer',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '4px',
+                                                textDecoration: 'underline',
+                                                marginLeft: '4px',
+                                            }}
+                                        >
+                                            Reload now <RefreshCw size={12} />
+                                        </button>
+                                    )}
+                                </span>
+                            )}
                         </div>
                     )}
                     

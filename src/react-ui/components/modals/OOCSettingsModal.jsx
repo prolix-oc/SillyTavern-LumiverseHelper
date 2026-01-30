@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { useLumiverseStore, useLumiverseActions, saveToExtension } from '../../store/LumiverseContext';
+import { useLumiverseStore, useLumiverseActions, saveToExtensionImmediate } from '../../store/LumiverseContext';
 import { MessageSquare, Clock, LayoutGrid, Image, FileText, MessageCircle } from 'lucide-react';
 
 /**
@@ -217,8 +217,8 @@ function OOCSettingsModal({ onClose }) {
             lumiaOOCStyle: style,
         });
         
-        // Persist to extension
-        saveToExtension();
+        // Persist to extension immediately (not debounced, to ensure save before modal closes)
+        saveToExtensionImmediate();
         
         // Show toast if available
         if (window.toastr) {

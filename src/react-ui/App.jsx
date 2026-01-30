@@ -1,5 +1,5 @@
-import React from 'react';
-import { useSettings, useLumiverseActions, useUI } from './store/LumiverseContext';
+import React, { useCallback } from 'react';
+import { useSettings, useLumiverseActions, useUI, useUpdates } from './store/LumiverseContext';
 import SettingsPanel from './components/SettingsPanel';
 import ModalContainer from './components/ModalContainer';
 import PackDetailModal from './components/modals/PackDetailModal';
@@ -17,14 +17,21 @@ function App() {
     const settings = useSettings();
     const actions = useLumiverseActions();
     const ui = useUI();
+    const { extensionUpdate } = useUpdates();
 
     // Initialize update checking (runs once at app mount)
     useUpdateChecker();
 
+    const handleDismissUpdate = useCallback(() => {
+        if (extensionUpdate?.latestVersion) {
+            actions.dismissExtensionUpdate(extensionUpdate.latestVersion);
+        }
+    }, [actions, extensionUpdate?.latestVersion]);
+
     return (
         <div className="lumiverse-app">
             {/* Update notification banner */}
-            <UpdateBanner variant="full" />
+            <UpdateBanner variant="full" onDismiss={handleDismissUpdate} />
 
             <SettingsPanel />
 
