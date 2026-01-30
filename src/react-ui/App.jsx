@@ -19,6 +19,9 @@ function App() {
     const ui = useUI();
     const { extensionUpdate } = useUpdates();
 
+    // Debug: Log when App renders
+    console.log('[App] Component rendering, actions available:', !!actions);
+
     // Initialize update checking (runs once at app mount)
     useUpdateChecker();
 

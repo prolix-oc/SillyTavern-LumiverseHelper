@@ -3,7 +3,7 @@
  * Checks for extension updates via lucid.cards API
  */
 
-import { EXTENSION_VERSION } from "./version.js";
+import * as versionModule from "./version.js";
 
 export const MODULE_NAME = "update-service";
 
@@ -13,7 +13,10 @@ const EXTENSION_NAME = "SillyTavern-LumiverseHelper";
 // Lucid.cards API endpoint for version checking
 const LUCID_API_URL = "https://lucid.cards/api/extension-versions";
 
-// Current extension version (injected at build time or read from local manifest)
+// Current extension version - safely extract from module or use fallback
+const EXTENSION_VERSION = versionModule?.EXTENSION_VERSION || versionModule?.default || "4.0.22";
+
+// Cached local version
 let localVersion = null;
 
 // Cached update state
@@ -91,15 +94,10 @@ function compareSemver(v1, v2) {
  * @returns {Promise<string>}
  */
 async function getLocalVersion(forceFresh = false) {
-    // Use the imported constant - this is updated at build/deploy time
-    // by update.sh, so it always matches the manifest.json version
-    if (EXTENSION_VERSION) {
+    if (typeof EXTENSION_VERSION !== 'undefined' && EXTENSION_VERSION) {
         localVersion = EXTENSION_VERSION;
         return localVersion;
     }
-
-    // Fallback - should never happen since EXTENSION_VERSION is a required import
-    console.warn(`[${MODULE_NAME}] EXTENSION_VERSION not available, using fallback`);
     return "4.0.0";
 }
 
@@ -109,32 +107,15 @@ async function getLocalVersion(forceFresh = false) {
  */
 async function fetchRemoteVersion() {
     try {
-        const url = `${LUCID_API_URL}?extension=${encodeURIComponent(EXTENSION_NAME)}`;
-        console.log(`[${MODULE_NAME}] Fetching version from:`, url);
-
-        const response = await fetch(url);
-        console.log(`[${MODULE_NAME}] Response status:`, response.status);
-
-        if (!response.ok) {
-            console.warn(`[${MODULE_NAME}] Failed to fetch remote version: ${response.status}`);
+        const response = await fetch(`${LUCID_API_URL}?extension=${encodeURIComponent(EXTENSION_NAME)}`);
+        if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+        const data = await response.json();
+        if (!data.success || !data.data || !data.data.version) {
             return null;
         }
-
-        const result = await response.json();
-        console.log(`[${MODULE_NAME}] Parsed response:`, result);
-
-        if (!result.success || !result.data || !result.data.version) {
-            console.warn(`[${MODULE_NAME}] Invalid response from version API:`, result);
-            return null;
-        }
-
-        return {
-            version: result.data.version,
-        };
-    } catch (error) {
-        console.error(`[${MODULE_NAME}] Error fetching remote version:`, error);
-        console.error(`[${MODULE_NAME}] Error type:`, error?.constructor?.name);
-        console.error(`[${MODULE_NAME}] Error message:`, error?.message);
+        return { version: data.data.version };
+    } catch (err) {
+        console.error(`[${MODULE_NAME}] Fetch error:`, err);
         return null;
     }
 }
@@ -152,16 +133,10 @@ export async function checkExtensionUpdate(force = false) {
         return cachedExtensionUpdate;
     }
     
-    // Always fetch fresh local version to detect manual updates
-    console.log(`[${MODULE_NAME}] Starting update check...`);
     const currentVersion = await getLocalVersion(true);
-    console.log(`[${MODULE_NAME}] Local version:`, currentVersion);
-
     const remoteVersion = await fetchRemoteVersion();
-    console.log(`[${MODULE_NAME}] Remote version result:`, remoteVersion);
 
     if (!remoteVersion) {
-        console.warn(`[${MODULE_NAME}] Could not fetch remote version, aborting check`);
         return null;
     }
 
@@ -175,11 +150,7 @@ export async function checkExtensionUpdate(force = false) {
     };
     lastExtensionCheck = now;
     
-    // Notify listeners
     notifyUpdateChange();
-    
-    console.log(`[${MODULE_NAME}] Extension update check: current=${currentVersion}, latest=${latestVersion}, hasUpdate=${hasUpdate}`);
-    
     return cachedExtensionUpdate;
 }
 
@@ -219,4 +190,9 @@ export function clearUpdateCache() {
 export function setLocalVersion(version) {
     localVersion = version;
     clearUpdateCache();
+}
+
+// Expose debug function globally for testing
+if (typeof window !== 'undefined') {
+    window.debugUpdateCheck = () => checkExtensionUpdate(true);
 }

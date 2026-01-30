@@ -25,7 +25,7 @@ import {
   savePack,
   deletePack,
 } from "./settingsManager.js";
-import { getEventSource, getEventTypes, getRequestHeaders, triggerExtensionUpdate, getExtensionGitVersion, getExtensionManifestVersion } from "../stContext.js";
+import { getEventSource, getEventTypes, getRequestHeaders, triggerExtensionUpdate, getExtensionGitVersion } from "../stContext.js";
 
 // Extension name discovery from import.meta.url per EXTENSION_GUIDE_UPDATES.md
 // Structure: .../third-party/<folder_name>/src/lib/reactBridge.js
@@ -319,7 +319,6 @@ export async function initializeReactUI(container) {
       // Extension update functions per EXTENSION_GUIDE_UPDATES.md
       triggerExtensionUpdate: (name) => triggerExtensionUpdate(name || EXTENSION_FOLDER_NAME),
       getExtensionGitVersion: (name) => getExtensionGitVersion(name || EXTENSION_FOLDER_NAME),
-      getExtensionManifestVersion: (name) => getExtensionManifestVersion(name || EXTENSION_FOLDER_NAME),
       // Expose detected extension name for React store
       extensionName: EXTENSION_FOLDER_NAME,
       // Called by packCache when pack data changes
