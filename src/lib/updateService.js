@@ -120,7 +120,9 @@ async function getLocalVersion() {
  */
 async function fetchRemoteManifest() {
     try {
-        const response = await fetch(GITHUB_MANIFEST_URL, {
+        // Add cache-busting query param to bypass GitHub's CDN caching
+        const cacheBuster = `?t=${Date.now()}`;
+        const response = await fetch(GITHUB_MANIFEST_URL + cacheBuster, {
             cache: 'no-store',
             headers: {
                 'Accept': 'application/json',
