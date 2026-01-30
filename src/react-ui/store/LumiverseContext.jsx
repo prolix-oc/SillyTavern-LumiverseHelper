@@ -1252,6 +1252,14 @@ const actions = {
 
             const result = await triggerUpdate(extensionName);
 
+            // Clear update service cache to force re-check with fresh manifest
+            // This ensures we read the new version after update completes
+            if (result.success) {
+                const { clearUpdateCache } = await import('../../lib/updateService.js');
+                clearUpdateCache();
+                console.log('[LumiverseHelper] Update cache cleared after successful update');
+            }
+
             const currentState = store.getState();
             store.setState({
                 ui: { ...currentState.ui, isUpdatingExtension: false },

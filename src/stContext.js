@@ -405,6 +405,13 @@ export async function getExtensionGitVersion(extensionName) {
  * Get the semantic version from manifest.json.
  * Per EXTENSION_GUIDE_UPDATES.md - resolves manifest.json relative to the current script
  * using import.meta.url. This works regardless of folder renaming or third-party prefix.
+ *
+ * Uses aggressive cache-busting techniques:
+ * 1. jQuery $.get with cache: false (adds its own timestamp)
+ * 2. Explicit Cache-Control headers via ajaxSetup
+ * 3. Random + timestamp for extra entropy
+ * 4. Multiple fetch strategies as fallback
+ *
  * @param {string} [extensionName] - Optional folder name (unused, kept for compatibility)
  * @returns {Promise<string|null>} The version string (e.g., "4.0.4") or null
  */
@@ -414,20 +421,50 @@ export async function getExtensionManifestVersion(extensionName) {
     // Works regardless of "third-party/" prefix or folder renaming
     const manifestUrl = new URL('../manifest.json', import.meta.url).href;
 
-    // Add cache-busting to ensure we get the latest version after updates
-    const cacheBuster = `?t=${Date.now()}`;
-    const response = await fetch(manifestUrl + cacheBuster, { cache: 'no-store' });
-    if (!response.ok) {
-      // Fallback: try the old path-based approach for compatibility
-      if (extensionName) {
-        const fallbackResult = await getExtensionManifestVersionLegacy(extensionName);
-        return fallbackResult;
+    // Aggressive cache-busting: timestamp + random for unique URL every time
+    const cacheBuster = `?_=${Date.now()}&_r=${Math.random().toString(36).substring(2, 15)}`;
+    const urlWithCacheBust = manifestUrl + cacheBuster;
+
+    // Try jQuery first (if available) - it handles caching differently than fetch
+    if (typeof jQuery !== 'undefined' && jQuery.get) {
+      try {
+        // Temporarily disable caching for this request
+        const originalCache = jQuery.ajaxSetup().cache;
+        jQuery.ajaxSetup({ cache: false });
+
+        const data = await jQuery.get(urlWithCacheBust);
+
+        // Restore original cache setting
+        jQuery.ajaxSetup({ cache: originalCache });
+
+        // jQuery may auto-parse JSON, or return a string
+        const manifest = typeof data === 'string' ? JSON.parse(data) : data;
+        console.log('[LumiverseHelper] Manifest loaded via jQuery:', manifest.version);
+        return manifest.version || null;
+      } catch (jqError) {
+        console.warn('[LumiverseHelper] jQuery manifest fetch failed, trying fetch:', jqError.message);
+        // Continue to fetch fallback
       }
-      return null;
+    }
+
+    // Fallback to fetch with aggressive no-cache headers
+    const response = await fetch(urlWithCacheBust, {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
     const manifest = await response.json();
+    console.log('[LumiverseHelper] Manifest loaded via fetch:', manifest.version);
     return manifest.version || null;
+
   } catch (error) {
     console.error('[LumiverseHelper] Failed to load manifest:', error);
     // Fallback: try the old path-based approach

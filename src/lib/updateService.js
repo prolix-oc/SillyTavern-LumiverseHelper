@@ -96,33 +96,44 @@ function compareSemver(v1, v2) {
 
 /**
  * Get the local extension version from manifest.
- * Uses the ST server path to fetch the actual installed manifest.
+ * Uses aggressive cache-busting to ensure we get the actual installed version,
+ * even after manual file updates.
+ * @param {boolean} forceFresh - If true, bypass the cache and re-read manifest
  * @returns {Promise<string|null>}
  */
-async function getLocalVersion() {
-    if (localVersion) return localVersion;
+async function getLocalVersion(forceFresh = false) {
+    // Return cached version unless forceFresh is requested
+    if (localVersion && !forceFresh) return localVersion;
+
+    // Clear the cache if forcing fresh read
+    if (forceFresh) {
+        localVersion = null;
+    }
 
     // Fetch from the manifest file per EXTENSION_GUIDE_UPDATES.md
     // Uses dynamic extension name discovery from import.meta.url
+    // The stContext function now uses aggressive cache-busting (jQuery + fetch fallback)
     const manifestVersion = await getExtensionManifestVersion(getExtensionName());
     if (manifestVersion) {
         localVersion = manifestVersion;
+        console.log(`[${MODULE_NAME}] Local version from manifest:`, localVersion);
         return localVersion;
     }
-    
+
     // Fallback: try to get from SillyTavern's extension settings
     try {
         if (typeof SillyTavern !== 'undefined' && SillyTavern.getContext) {
             const ctx = SillyTavern.getContext();
             if (ctx.extensionSettings?.['lumiverse-helper']?.version) {
                 localVersion = ctx.extensionSettings['lumiverse-helper'].version;
+                console.log(`[${MODULE_NAME}] Local version from settings:`, localVersion);
                 return localVersion;
             }
         }
     } catch (e) {
         // Fallback below
     }
-    
+
     // Last resort hardcoded fallback
     console.warn(`[${MODULE_NAME}] Could not determine local version, using fallback`);
     localVersion = "4.0.0";
@@ -173,8 +184,9 @@ export async function checkExtensionUpdate(force = false) {
         return cachedExtensionUpdate;
     }
     
-    // getLocalVersion is now async - fetches from manifest
-    const currentVersion = await getLocalVersion();
+    // Always fetch fresh local version to detect manual updates
+    // Use forceFresh=true to bypass cache and re-read manifest
+    const currentVersion = await getLocalVersion(true);
     const remoteManifest = await fetchRemoteManifest();
     
     if (!remoteManifest) {
