@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useLayoutEffect, useSyncExternalStore, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useLayoutEffect, useSyncExternalStore, useMemo, useRef } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { Clock, Sparkles, Users, Package, RefreshCw, Compass, Loader2 } from 'lucide-react';
 import { landingPageStyles } from './LandingPageStyles.js';
@@ -42,31 +42,133 @@ function formatRelativeTime(timestamp) {
 }
 
 /**
- * Get avatar URL for a character or group
+ * Get avatar URL for a character or single avatar file
+ * @param {Object|string} itemOrAvatar - Character object or avatar filename
  */
-async function getAvatarUrl(item) {
-    if (!item) return '/img/fa-solid-user.svg';
+async function getAvatarUrl(itemOrAvatar) {
+    if (!itemOrAvatar) return '/img/fa-solid-user.svg';
 
-    // Groups have members array and use avatar_url
-    if (item.members || item.is_group) {
-        return item.avatar_url || '/img/fa-solid-groups.svg';
+    // If passed a string (avatar filename), resolve directly
+    const avatar = typeof itemOrAvatar === 'string' ? itemOrAvatar : itemOrAvatar.avatar;
+
+    // Groups have members array - handle separately
+    if (typeof itemOrAvatar === 'object' && (itemOrAvatar.members || itemOrAvatar.is_group)) {
+        return itemOrAvatar.avatar_url || '/img/fa-solid-groups.svg';
     }
 
     // Characters use getThumbnailUrl for optimized thumbnails
-    if (item.avatar) {
+    if (avatar) {
         try {
             const { getThumbnailUrl: stGetThumbnailUrl } = await import(/* webpackIgnore: true */ '../../../../../script.js');
             if (stGetThumbnailUrl) {
-                return stGetThumbnailUrl('avatar', item.avatar);
+                return stGetThumbnailUrl('avatar', avatar);
             }
         } catch (err) {
             console.warn('[Lumiverse] Failed to import getThumbnailUrl, using fallback:', err);
         }
-        return `/characters/${encodeURIComponent(item.avatar)}`;
+        return `/characters/${encodeURIComponent(avatar)}`;
     }
 
     return '/img/fa-solid-user.svg';
 }
+
+/**
+ * Group Avatar Stack Component
+ * Displays up to 4 member avatars in an overlapping stack
+ */
+const GroupAvatarStack = React.memo(({ members, groupName }) => {
+    const [avatarUrls, setAvatarUrls] = useState([]);
+    const [loadedCount, setLoadedCount] = useState(0);
+    const totalMembers = (members || []).length;
+    
+    // For 5+ members, show only 3 avatars + overflow indicator
+    const maxAvatars = totalMembers >= 5 ? 3 : 4;
+    const membersToShow = (members || []).slice(0, maxAvatars);
+    const overflow = totalMembers > maxAvatars ? totalMembers - maxAvatars : 0;
+    
+    // Determine layout type for CSS
+    const getCountAttr = () => {
+        if (totalMembers >= 5) return '5+';
+        return String(totalMembers);
+    };
+
+    useEffect(() => {
+        let cancelled = false;
+        setLoadedCount(0);
+
+        Promise.all(
+            membersToShow.map(memberFile => getAvatarUrl(memberFile))
+        ).then(urls => {
+            if (!cancelled) setAvatarUrls(urls);
+        });
+
+        return () => { cancelled = true; };
+    }, [members]);
+
+    const handleImageLoad = useCallback(() => {
+        setLoadedCount(prev => prev + 1);
+    }, []);
+
+    const allLoaded = loadedCount >= membersToShow.length;
+
+    return (
+        <div className="lumiverse-lp-group-stack">
+            {!allLoaded && (
+                <div className="lumiverse-lp-group-stack-loading">
+                    <Loader2 className="lumiverse-lp-spin" size={24} />
+                </div>
+            )}
+            <div 
+                className="lumiverse-lp-group-stack-avatars"
+                data-count={getCountAttr()}
+                style={{ opacity: allLoaded ? 1 : 0 }}
+            >
+                {avatarUrls.map((url, index) => (
+                    <motion.div
+                        key={`${membersToShow[index]}-${index}`}
+                        className="lumiverse-lp-group-avatar-wrapper"
+                        style={{
+                            '--stack-index': index,
+                            '--stack-total': membersToShow.length,
+                            zIndex: maxAvatars - index,
+                        }}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ 
+                            delay: index * 0.05,
+                            type: "spring",
+                            stiffness: 400,
+                            damping: 25
+                        }}
+                    >
+                        <img
+                            src={url}
+                            alt={`Group member ${index + 1}`}
+                            className="lumiverse-lp-group-avatar-img"
+                            draggable={false}
+                            onLoad={handleImageLoad}
+                            onError={(e) => {
+                                e.target.src = '/img/fa-solid-user.svg';
+                                handleImageLoad();
+                            }}
+                        />
+                    </motion.div>
+                ))}
+                {overflow > 0 && (
+                    <div 
+                        className="lumiverse-lp-group-avatar-overflow"
+                        style={{
+                            '--stack-index': maxAvatars,
+                            zIndex: 0,
+                        }}
+                    >
+                        <span>+{overflow}</span>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+});
 
 // Animation Variants
 const containerVariants = {
@@ -98,7 +200,7 @@ const cardVariants = {
  * Character/Group Card Component
  */
 const ChatCard = React.memo(({ item, presetName, onClick, index }) => {
-    const isGroup = item.members || item.is_group;
+    const isGroup = item._type === 'group' || item.is_group || (Array.isArray(item.members) && item.members.length > 0);
     const [avatarUrl, setAvatarUrl] = useState('/img/fa-solid-user.svg');
     const [isHovered, setIsHovered] = useState(false);
     const [imageLoaded, setImageLoaded] = useState(false);
@@ -142,12 +244,13 @@ const ChatCard = React.memo(({ item, presetName, onClick, index }) => {
             )}
 
             {/* Avatar Container */}
-            <div className="lumiverse-lp-card-image-container">
+            <div className={`lumiverse-lp-card-image-container ${isGroup ? 'lumiverse-lp-card-image-group' : ''}`}>
                 <div className="lumiverse-lp-card-glow" />
                 {isGroup ? (
-                    <div className="lumiverse-lp-card-avatar-group">
-                        <Users size={32} strokeWidth={1.5} />
-                    </div>
+                    <GroupAvatarStack 
+                        members={item.members} 
+                        groupName={item.name}
+                    />
                 ) : (
                     <>
                         {!imageLoaded && (
@@ -205,7 +308,7 @@ const ChatCard = React.memo(({ item, presetName, onClick, index }) => {
                     {isGroup && (
                         <span className="lumiverse-lp-card-badge lumiverse-lp-card-badge-group">
                             <Users size={10} strokeWidth={2} />
-                            Group
+                            {(item.members?.length || 0)} Members
                         </span>
                     )}
                 </div>
@@ -378,12 +481,15 @@ function LandingPage() {
 
     // Fetch recent chats
     const fetchChats = useCallback(async (retryCount = 0) => {
+        console.log('[Lumiverse LP] fetchChats called, retry:', retryCount);
         // Only set loading true on the very first attempt of a sequence
         if (retryCount === 0) setLoading(true);
         setError(null);
 
         try {
-            const { characters, groups } = await import(/* webpackIgnore: true */ '../../../../../script.js');
+            const { characters } = await import(/* webpackIgnore: true */ '../../../../../script.js');
+            const { groups } = await import(/* webpackIgnore: true */ '../../../../group-chats.js');
+            console.log('[Lumiverse LP] imports done - chars:', characters?.length, 'groups:', groups?.length, 'groups[0]:', groups?.[0]);
 
             const mappedChars = (characters || []).map((char, index) => ({
                 ...char,
@@ -394,16 +500,28 @@ function LandingPage() {
 
             const mappedGroups = (groups || []).map(group => ({
                 ...group,
+                members: group.members,
                 _type: 'group',
+                is_group: true,
                 _sortDate: group.date_last_chat || 0,
             }));
 
+            // Combine and filter
             const allItems = [...mappedChars, ...mappedGroups]
                 .filter(item => item._sortDate > 0);
+            
+            const groupsInAll = allItems.filter(i => i._type === 'group');
+            console.log('[Lumiverse LP] allItems:', allItems.length, 'groups in allItems:', groupsInAll.length, 'chatsDisplayed:', chatsDisplayed);
+            if (groupsInAll.length > 0) {
+                console.log('[Lumiverse LP] group _sortDate:', groupsInAll[0]._sortDate, 'top 3 char dates:', allItems.filter(i => i._type === 'character').slice(0, 3).map(c => ({ name: c.name, date: c._sortDate })));
+            }
 
             const sortedItems = allItems
                 .sort((a, b) => b._sortDate - a._sortDate)
                 .slice(0, chatsDisplayed);
+            
+            const groupsInSorted = sortedItems.filter(i => i._type === 'group');
+            console.log('[Lumiverse LP] sortedItems:', sortedItems.length, 'groups in sorted:', groupsInSorted.length);
             
             // SMART RETRY LOGIC:
             // If we found no chats, and we are within the first 4 seconds of mounting,

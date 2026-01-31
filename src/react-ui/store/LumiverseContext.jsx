@@ -1,4 +1,5 @@
 import { createContext, useEffect, useRef, useSyncExternalStore, useCallback, useMemo } from 'react';
+import { compareSemver, getCurrentVersion } from '../../lib/updateService.js';
 
 /* global SillyTavern, LumiverseBridge */
 
@@ -1586,6 +1587,9 @@ export function useUI() {
 /**
  * Hook to access update notification state
  * Returns: { extensionUpdate, presetUpdates, hasAnyUpdate, dismissedVersion }
+ * 
+ * BULLETPROOF: Validates hasUpdate at display time by re-comparing versions.
+ * This prevents stale cached results from showing false update banners.
  */
 export function useUpdates() {
     const updates = useSyncExternalStore(
@@ -1603,7 +1607,18 @@ export function useUpdates() {
     return useMemo(() => {
         const extUpdate = updates.extensionUpdate;
         const isDismissed = dismissedVersion && extUpdate?.latestVersion === dismissedVersion;
-        const hasExtUpdate = extUpdate?.hasUpdate && !isDismissed;
+        
+        // BULLETPROOF: Re-validate hasUpdate at display time
+        // Even if cache says hasUpdate=true, verify by comparing current version
+        // This handles cases where:
+        // 1. Extension was updated externally (git pull) but tab wasn't reloaded
+        // 2. Cache was stale from a previous session
+        // 3. Version.js was updated but updateService cache wasn't cleared
+        let hasExtUpdate = false;
+        if (extUpdate?.latestVersion && !isDismissed) {
+            const currentVersion = getCurrentVersion();
+            hasExtUpdate = compareSemver(currentVersion, extUpdate.latestVersion) < 0;
+        }
 
         return {
             extensionUpdate: extUpdate,

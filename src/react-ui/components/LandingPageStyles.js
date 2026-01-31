@@ -475,7 +475,7 @@ export const landingPageStyles = `
     0 0 30px rgba(147, 112, 219, 0.2);
 }
 
-/* Group avatar placeholder */
+/* Group avatar placeholder (legacy fallback) */
 .lumiverse-lp-card-avatar-group {
   width: 75%;
   height: 75%;
@@ -490,6 +490,247 @@ export const landingPageStyles = `
   border-radius: 50%;
   border: 3px solid rgba(255, 255, 255, 0.1);
   color: rgba(186, 135, 255, 0.8);
+}
+
+/* Group image container variant */
+.lumiverse-lp-card-image-container.lumiverse-lp-card-image-group {
+  background: linear-gradient(
+    135deg,
+    rgba(100, 149, 237, 0.08) 0%,
+    rgba(147, 112, 219, 0.05) 50%,
+    rgba(75, 85, 150, 0.1) 100%
+  );
+}
+
+/* Stacked Group Avatar System */
+.lumiverse-lp-group-stack {
+  position: relative;
+  width: 85%;
+  height: 85%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Container sizing for 3-member layout - no transform here to keep spinner centered */
+.lumiverse-lp-group-stack:has(.lumiverse-lp-group-stack-avatars[data-count="3"]) {
+  width: 90%;
+  height: 90%;
+}
+
+.lumiverse-lp-group-stack-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(147, 112, 219, 0.5);
+}
+
+.lumiverse-lp-group-stack-avatars {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.3s ease;
+}
+
+/* Shift only the avatars container for 3-member layout to visually center the cluster */
+.lumiverse-lp-group-stack-avatars[data-count="3"] {
+  transform: translateX(-22%);
+}
+
+/* Base avatar wrapper styles */
+.lumiverse-lp-group-avatar-wrapper {
+  position: absolute;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow:
+    0 2px 12px rgba(0, 0, 0, 0.4),
+    0 0 0 2px rgba(255, 255, 255, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* ===== 2 MEMBERS: Diagonal layout (top-left to bottom-right) ===== */
+.lumiverse-lp-group-stack-avatars[data-count="2"] .lumiverse-lp-group-avatar-wrapper {
+  width: 55%;
+  height: 55%;
+}
+
+.lumiverse-lp-group-stack-avatars[data-count="2"] .lumiverse-lp-group-avatar-wrapper:nth-child(1) {
+  top: 5%;
+  left: 5%;
+}
+
+.lumiverse-lp-group-stack-avatars[data-count="2"] .lumiverse-lp-group-avatar-wrapper:nth-child(2) {
+  bottom: 5%;
+  right: 5%;
+}
+
+/* ===== 3 MEMBERS: Tight cluster layout ===== */
+/* Avatars clustered near center with slight overlaps for cohesive group feel. */
+.lumiverse-lp-group-stack-avatars[data-count="3"] .lumiverse-lp-group-avatar-wrapper {
+  width: 44%;
+  height: 44%;
+}
+
+/* Top avatar: horizontally centered */
+.lumiverse-lp-group-stack-avatars[data-count="3"] .lumiverse-lp-group-avatar-wrapper:nth-child(1) {
+  top: 8%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Bottom-left: offset left from center */
+.lumiverse-lp-group-stack-avatars[data-count="3"] .lumiverse-lp-group-avatar-wrapper:nth-child(2) {
+  bottom: 8%;
+  left: calc(50% - 24%);
+  transform: translateX(-50%);
+}
+
+/* Bottom-right: offset right from center, mirror of bottom-left */
+.lumiverse-lp-group-stack-avatars[data-count="3"] .lumiverse-lp-group-avatar-wrapper:nth-child(3) {
+  bottom: 8%;
+  left: calc(50% + 24%);
+  transform: translateX(-50%);
+}
+
+/* ===== 4 MEMBERS: Square grid layout ===== */
+.lumiverse-lp-group-stack-avatars[data-count="4"] .lumiverse-lp-group-avatar-wrapper {
+  width: 46%;
+  height: 46%;
+}
+
+.lumiverse-lp-group-stack-avatars[data-count="4"] .lumiverse-lp-group-avatar-wrapper:nth-child(1) {
+  top: 2%;
+  left: 2%;
+}
+
+.lumiverse-lp-group-stack-avatars[data-count="4"] .lumiverse-lp-group-avatar-wrapper:nth-child(2) {
+  top: 2%;
+  right: 2%;
+}
+
+.lumiverse-lp-group-stack-avatars[data-count="4"] .lumiverse-lp-group-avatar-wrapper:nth-child(3) {
+  bottom: 2%;
+  left: 2%;
+}
+
+.lumiverse-lp-group-stack-avatars[data-count="4"] .lumiverse-lp-group-avatar-wrapper:nth-child(4) {
+  bottom: 2%;
+  right: 2%;
+}
+
+/* ===== 5+ MEMBERS: Square grid with overflow indicator ===== */
+.lumiverse-lp-group-stack-avatars[data-count="5+"] .lumiverse-lp-group-avatar-wrapper {
+  width: 46%;
+  height: 46%;
+}
+
+.lumiverse-lp-group-stack-avatars[data-count="5+"] .lumiverse-lp-group-avatar-wrapper:nth-child(1) {
+  top: 2%;
+  left: 2%;
+}
+
+.lumiverse-lp-group-stack-avatars[data-count="5+"] .lumiverse-lp-group-avatar-wrapper:nth-child(2) {
+  top: 2%;
+  right: 2%;
+}
+
+.lumiverse-lp-group-stack-avatars[data-count="5+"] .lumiverse-lp-group-avatar-wrapper:nth-child(3) {
+  bottom: 2%;
+  left: 2%;
+}
+
+/* Overflow indicator (+N more) - matches 4-member grid sizing */
+.lumiverse-lp-group-avatar-overflow {
+  position: absolute;
+  width: 46%;
+  height: 46%;
+  bottom: 2%;
+  right: 2%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    135deg,
+    rgba(100, 149, 237, 0.85) 0%,
+    rgba(147, 112, 219, 0.9) 100%
+  );
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(4px);
+  box-shadow:
+    0 2px 12px rgba(0, 0, 0, 0.4),
+    0 0 20px rgba(100, 149, 237, 0.3);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: -0.3px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.lumiverse-lp-group-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-drag: none;
+  -webkit-user-drag: none;
+}
+
+/* Hover effects for group cards */
+.lumiverse-lp-card:hover .lumiverse-lp-group-avatar-wrapper {
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.5),
+    0 0 0 2px rgba(147, 112, 219, 0.4),
+    0 0 20px rgba(147, 112, 219, 0.15);
+}
+
+.lumiverse-lp-card:hover .lumiverse-lp-group-avatar-wrapper:nth-child(1) {
+  transform: translate(-2px, -2px);
+}
+
+.lumiverse-lp-card:hover .lumiverse-lp-group-avatar-wrapper:nth-child(2) {
+  transform: translate(2px, -2px);
+}
+
+.lumiverse-lp-card:hover .lumiverse-lp-group-avatar-wrapper:nth-child(3) {
+  transform: translate(-2px, 2px);
+}
+
+.lumiverse-lp-card:hover .lumiverse-lp-group-avatar-wrapper:nth-child(4) {
+  transform: translate(2px, 2px);
+}
+
+/* Adjust hover transforms for 2-member layout */
+.lumiverse-lp-card:hover .lumiverse-lp-group-stack-avatars:has(.lumiverse-lp-group-avatar-wrapper:nth-child(2):last-child) .lumiverse-lp-group-avatar-wrapper:nth-child(1) {
+  transform: translate(-3px, -50%);
+}
+
+.lumiverse-lp-card:hover .lumiverse-lp-group-stack-avatars:has(.lumiverse-lp-group-avatar-wrapper:nth-child(2):last-child) .lumiverse-lp-group-avatar-wrapper:nth-child(2) {
+  transform: translate(3px, -50%);
+}
+
+/* Adjust hover transforms for 3-member layout - spread cluster apart */
+.lumiverse-lp-card:hover .lumiverse-lp-group-stack-avatars:has(.lumiverse-lp-group-avatar-wrapper:nth-child(3):last-child) .lumiverse-lp-group-avatar-wrapper:nth-child(1) {
+  transform: translateX(-50%) translateY(-4px);
+}
+
+.lumiverse-lp-card:hover .lumiverse-lp-group-stack-avatars:has(.lumiverse-lp-group-avatar-wrapper:nth-child(3):last-child) .lumiverse-lp-group-avatar-wrapper:nth-child(2) {
+  transform: translateX(-50%) translate(-4px, 4px);
+}
+
+.lumiverse-lp-card:hover .lumiverse-lp-group-stack-avatars:has(.lumiverse-lp-group-avatar-wrapper:nth-child(3):last-child) .lumiverse-lp-group-avatar-wrapper:nth-child(3) {
+  transform: translateX(-50%) translate(4px, 4px);
+}
+
+.lumiverse-lp-card:hover .lumiverse-lp-group-avatar-overflow {
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.5),
+    0 0 30px rgba(100, 149, 237, 0.4);
 }
 
 /* Time badge */
@@ -817,6 +1058,18 @@ export const landingPageStyles = `
     font-size: 9px;
     padding: 2px 6px;
   }
+
+  /* Smaller group avatars on mobile */
+  .lumiverse-lp-group-avatar-wrapper {
+    width: 45%;
+    height: 45%;
+  }
+
+  .lumiverse-lp-group-avatar-overflow {
+    width: 32%;
+    height: 32%;
+    font-size: 10px;
+  }
 }
 
 /* Reduced motion */
@@ -828,7 +1081,8 @@ export const landingPageStyles = `
   .lumiverse-lp-card,
   .lumiverse-lp-card-avatar,
   .lumiverse-lp-card-glow,
-  .lumiverse-lp-btn {
+  .lumiverse-lp-btn,
+  .lumiverse-lp-group-avatar-wrapper {
     transition: none;
   }
 
@@ -839,6 +1093,11 @@ export const landingPageStyles = `
   .lumiverse-lp-skeleton-image,
   .lumiverse-lp-skeleton-line {
     animation: none;
+  }
+
+  /* Disable hover transforms for group avatars */
+  .lumiverse-lp-card:hover .lumiverse-lp-group-avatar-wrapper {
+    transform: none;
   }
 }
 `;

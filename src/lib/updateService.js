@@ -75,7 +75,7 @@ function parseSemver(version) {
  * @param {string} v2 - Second version
  * @returns {number} -1 if v1 < v2, 0 if equal, 1 if v1 > v2
  */
-function compareSemver(v1, v2) {
+export function compareSemver(v1, v2) {
     const a = parseSemver(v1);
     const b = parseSemver(v2);
     
@@ -121,12 +121,28 @@ async function fetchRemoteVersion() {
 }
 
 /**
+ * Get the current local extension version synchronously
+ * @returns {string}
+ */
+export function getCurrentVersion() {
+    return EXTENSION_VERSION;
+}
+
+/**
  * Check for extension updates
  * @param {boolean} force - Force check even if within interval
  * @returns {Promise<{hasUpdate: boolean, currentVersion: string, latestVersion: string}|null>}
  */
 export async function checkExtensionUpdate(force = false) {
     const now = Date.now();
+    
+    // Invalidate cache if the local version has changed (e.g., after update + reload)
+    // This ensures we don't show stale "update available" when already up-to-date
+    if (cachedExtensionUpdate && cachedExtensionUpdate.currentVersion !== EXTENSION_VERSION) {
+        console.log(`[${MODULE_NAME}] Cache invalidated: version changed from ${cachedExtensionUpdate.currentVersion} to ${EXTENSION_VERSION}`);
+        cachedExtensionUpdate = null;
+        lastExtensionCheck = 0;
+    }
     
     // Return cached result if within interval
     if (!force && cachedExtensionUpdate && (now - lastExtensionCheck) < CHECK_INTERVAL) {
