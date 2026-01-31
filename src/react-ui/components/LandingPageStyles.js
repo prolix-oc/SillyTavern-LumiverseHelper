@@ -333,6 +333,7 @@ export const landingPageStyles = `
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
+  align-items: flex-start;
   align-content: flex-start;
   gap: 20px;
   padding: 4px;
@@ -492,7 +493,7 @@ export const landingPageStyles = `
   color: rgba(186, 135, 255, 0.8);
 }
 
-/* Group image container variant */
+/* Group image container variant - same aspect ratio as solo cards */
 .lumiverse-lp-card-image-container.lumiverse-lp-card-image-group {
   background: linear-gradient(
     135deg,
@@ -738,6 +739,7 @@ export const landingPageStyles = `
   position: absolute;
   bottom: 10px;
   right: 10px;
+  z-index: 10;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -788,6 +790,7 @@ export const landingPageStyles = `
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  min-height: 22px; /* Ensure consistent height whether badges present or not */
 }
 
 .lumiverse-lp-card-badge {
