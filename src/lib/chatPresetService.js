@@ -1,14 +1,24 @@
 
-import { getContext } from "../stContext.js";
+import { getContext, getChatMetadata, getSaveSettingsDebounced } from "../stContext.js";
 import {
     getToggleStateNames,
     getToggleStateRegistry,
     upsertToggleState,
     getToggleState,
     removeToggleState,
+    getChatToggleBinding,
+    getCharacterToggleBinding,
+    setChatToggleBinding,
+    setCharacterToggleBinding,
+    clearChatToggleBinding as clearChatToggleBindingCache,
+    clearCharacterToggleBinding as clearCharacterToggleBindingCache,
 } from "./packCache.js";
 
 const API_ID = 'openai';
+
+// Metadata keys for storing toggle states (deprecated - kept for migration reference)
+const CHAT_TOGGLE_STATE_KEY = 'lumiverse_prompt_toggles';
+const CHAR_TOGGLE_STATES_KEY = 'lumiverse_character_toggles'; // Stored in extension settings
 
 /**
  * Service for interacting with SillyTavern's Chat Completion Preset Manager.
@@ -297,6 +307,380 @@ export class ChatPresetService {
     async deleteToggleState(stateName) {
         await removeToggleState(stateName);
         console.log(`[ChatPresetService] Deleted toggle state "${stateName}"`);
+    }
+
+    // =========================================================================
+    // CHAT-SPECIFIC TOGGLE STATE OPERATIONS
+    // =========================================================================
+
+    /**
+     * Get the current chat ID.
+     * @returns {string|null}
+     */
+    getCurrentChatId() {
+        const ctx = getContext();
+        if (!ctx) return null;
+        
+        // Use getCurrentChatId if available
+        if (typeof ctx.getCurrentChatId === 'function') {
+            return ctx.getCurrentChatId();
+        }
+        
+        // Fallback: derive from character or group
+        if (ctx.groupId) {
+            // Group chat
+            return ctx.groups?.find(g => g.id === ctx.groupId)?.chat_id || null;
+        }
+        
+        // Character chat
+        const char = ctx.characters?.[ctx.characterId];
+        return char?.chat || null;
+    }
+
+    /**
+     * Save current prompts' enabled states to the current chat.
+     * This creates a per-chat override that is automatically applied when
+     * switching to this chat. Persisted to the Lumiverse index file.
+     * @param {Array} prompts - Current prompts array
+     * @returns {Promise<boolean>} Success status
+     */
+    async saveToggleStateToChat(prompts) {
+        const chatId = this.getCurrentChatId();
+        if (!chatId) {
+            console.warn('[ChatPresetService] No chat ID available');
+            return false;
+        }
+
+        // Build toggle map: identifier -> enabled
+        const toggles = {};
+        for (const prompt of prompts) {
+            const key = prompt.identifier || prompt.name;
+            if (key) {
+                toggles[key] = prompt.enabled !== false;
+            }
+        }
+
+        // Store in packCache (persisted to index file)
+        setChatToggleBinding(chatId, {
+            toggles,
+            sourcePreset: this.getCurrentPreset()?.name || null,
+        });
+
+        console.log(`[ChatPresetService] Saved toggle state to chat "${chatId}" with ${Object.keys(toggles).length} prompts`);
+        return true;
+    }
+
+    /**
+     * Get the toggle state stored for the current chat.
+     * @returns {Object|null} Toggle state data or null if not set
+     */
+    getChatToggleState() {
+        const chatId = this.getCurrentChatId();
+        if (!chatId) return null;
+        return getChatToggleBinding(chatId);
+    }
+
+    /**
+     * Clear the toggle state from the current chat.
+     * @returns {boolean} Success status
+     */
+    clearChatToggleState() {
+        const chatId = this.getCurrentChatId();
+        if (!chatId) return false;
+
+        clearChatToggleBindingCache(chatId);
+        console.log(`[ChatPresetService] Cleared toggle state for chat "${chatId}"`);
+        return true;
+    }
+
+    /**
+     * Check if the current chat has a toggle state saved.
+     * @returns {boolean}
+     */
+    hasChatToggleState() {
+        return this.getChatToggleState() !== null;
+    }
+
+    // =========================================================================
+    // CHARACTER-SPECIFIC TOGGLE STATE OPERATIONS
+    // =========================================================================
+
+    /**
+     * Get the current character's avatar name.
+     * @returns {string|null}
+     */
+    getCurrentCharacterAvatar() {
+        const ctx = getContext();
+        if (!ctx || ctx.characterId === undefined || ctx.characterId === null) {
+            return null;
+        }
+        return ctx.characters?.[ctx.characterId]?.avatar || null;
+    }
+
+    /**
+     * Save current prompts' enabled states for the current character.
+     * This creates a per-character override that is automatically applied
+     * when switching to any chat with this character. Persisted to the Lumiverse index file.
+     * @param {Array} prompts - Current prompts array
+     * @returns {Promise<boolean>} Success status
+     */
+    async saveToggleStateToCharacter(prompts) {
+        const avatar = this.getCurrentCharacterAvatar();
+        if (!avatar) {
+            console.warn('[ChatPresetService] No character avatar available');
+            return false;
+        }
+
+        // Build toggle map: identifier -> enabled
+        const toggles = {};
+        for (const prompt of prompts) {
+            const key = prompt.identifier || prompt.name;
+            if (key) {
+                toggles[key] = prompt.enabled !== false;
+            }
+        }
+
+        // Store in packCache (persisted to index file)
+        setCharacterToggleBinding(avatar, {
+            toggles,
+            sourcePreset: this.getCurrentPreset()?.name || null,
+        });
+
+        console.log(`[ChatPresetService] Saved toggle state for character "${avatar}" with ${Object.keys(toggles).length} prompts`);
+        return true;
+    }
+
+    /**
+     * Get the toggle state for the current character.
+     * @returns {Object|null} Toggle state data or null if not set
+     */
+    getCharacterToggleState() {
+        const avatar = this.getCurrentCharacterAvatar();
+        if (!avatar) return null;
+        return getCharacterToggleBinding(avatar);
+    }
+
+    /**
+     * Get the toggle state for a specific character by avatar.
+     * @param {string} avatar - Character avatar filename
+     * @returns {Object|null} Toggle state data or null if not set
+     */
+    getCharacterToggleStateByAvatar(avatar) {
+        if (!avatar) return null;
+        return getCharacterToggleBinding(avatar);
+    }
+
+    /**
+     * Clear the toggle state for the current character.
+     * @returns {boolean} Success status
+     */
+    clearCharacterToggleState() {
+        const avatar = this.getCurrentCharacterAvatar();
+        if (!avatar) return false;
+
+        clearCharacterToggleBindingCache(avatar);
+        console.log(`[ChatPresetService] Cleared toggle state for character "${avatar}"`);
+        return true;
+    }
+
+    /**
+     * Check if the current character has a toggle state saved.
+     * @returns {boolean}
+     */
+    hasCharacterToggleState() {
+        return this.getCharacterToggleState() !== null;
+    }
+
+    /**
+     * Apply toggle state from raw toggle data (used by binding service).
+     * @param {Object} toggleData - Object with { toggles: { identifier: boolean } }
+     * @param {Array} prompts - Current prompts array
+     * @returns {{prompts: Array, matched: number, unmatched: number}}
+     */
+    applyToggleData(toggleData, prompts) {
+        if (!toggleData?.toggles) {
+            return { prompts, matched: 0, unmatched: 0 };
+        }
+
+        let matched = 0;
+        let unmatched = 0;
+
+        const newPrompts = prompts.map(prompt => {
+            const key = prompt.identifier || prompt.name;
+            if (key && key in toggleData.toggles) {
+                matched++;
+                return { ...prompt, enabled: toggleData.toggles[key] };
+            }
+            unmatched++;
+            return prompt;
+        });
+
+        return { prompts: newPrompts, matched, unmatched };
+    }
+
+    // =========================================================================
+    // PROMPT ORDER TOGGLE OPERATIONS (Runtime State)
+    // =========================================================================
+
+    /**
+     * Get the active character ID for prompt_order access.
+     * For Global Strategy, returns dummy ID 100001.
+     * For Character-specific, returns the actual character ID.
+     * @returns {{activeCharId: number, isGlobal: boolean}|null}
+     */
+    getActivePromptOrderCharacterId() {
+        const ctx = getContext();
+        const oaiSettings = ctx?.chatCompletionSettings;
+        
+        if (!oaiSettings) {
+            console.warn('[ChatPresetService] chatCompletionSettings not available');
+            return null;
+        }
+
+        const OPENAI_DUMMY_ID = 100001;
+        const isGlobal = !oaiSettings.prompt_manager_settings?.showCharacterPromptOrder;
+        const activeCharId = isGlobal ? OPENAI_DUMMY_ID : ctx?.characterId;
+
+        return { activeCharId, isGlobal };
+    }
+
+    /**
+     * Get the prompt_order entry for the active character.
+     * @returns {Object|null} The order entry with { character_id, order: [...] }
+     */
+    getActivePromptOrderEntry() {
+        const ctx = getContext();
+        const oaiSettings = ctx?.chatCompletionSettings;
+        
+        if (!oaiSettings?.prompt_order) {
+            return null;
+        }
+
+        const charInfo = this.getActivePromptOrderCharacterId();
+        if (!charInfo) return null;
+
+        return oaiSettings.prompt_order.find(entry => entry.character_id === charInfo.activeCharId);
+    }
+
+    /**
+     * Toggle a single prompt's enabled state in the runtime prompt_order.
+     * This is the CORRECT way to toggle prompts per SillyTavern documentation.
+     * 
+     * @param {string} promptId - The prompt identifier
+     * @param {boolean} enabled - Whether to enable or disable
+     * @returns {boolean} Whether the toggle was successful
+     */
+    setPromptEnabled(promptId, enabled) {
+        const orderEntry = this.getActivePromptOrderEntry();
+        if (!orderEntry?.order) {
+            console.warn('[ChatPresetService] No prompt_order entry found');
+            return false;
+        }
+
+        const orderItem = orderEntry.order.find(item => item.identifier === promptId);
+        if (!orderItem) {
+            console.warn(`[ChatPresetService] Prompt "${promptId}" not found in prompt_order`);
+            return false;
+        }
+
+        orderItem.enabled = enabled;
+        return true;
+    }
+
+    /**
+     * Apply multiple toggle states to the runtime prompt_order.
+     * This modifies the live prompt_order and triggers UI refresh.
+     * 
+     * @param {Object} toggles - Object mapping { identifier: boolean }
+     * @returns {{matched: number, unmatched: number}}
+     */
+    applyTogglesToPromptOrder(toggles) {
+        if (!toggles || typeof toggles !== 'object') {
+            return { matched: 0, unmatched: 0 };
+        }
+
+        const orderEntry = this.getActivePromptOrderEntry();
+        if (!orderEntry?.order) {
+            console.warn('[ChatPresetService] No prompt_order entry found');
+            return { matched: 0, unmatched: 0 };
+        }
+
+        let matched = 0;
+        let unmatched = 0;
+
+        for (const [promptId, enabled] of Object.entries(toggles)) {
+            const orderItem = orderEntry.order.find(item => item.identifier === promptId);
+            if (orderItem) {
+                orderItem.enabled = enabled;
+                matched++;
+            } else {
+                unmatched++;
+            }
+        }
+
+        return { matched, unmatched };
+    }
+
+    /**
+     * Trigger UI refresh after modifying prompt_order.
+     * Since PromptManager.render() is not exposed, we use jQuery workaround.
+     */
+    refreshPromptManagerUI() {
+        if (typeof jQuery !== 'undefined') {
+            jQuery('#update_oai_preset').trigger('click');
+        }
+
+        // Also save settings
+        const ctx = getContext();
+        if (typeof ctx?.saveSettingsDebounced === 'function') {
+            ctx.saveSettingsDebounced();
+        }
+    }
+
+    /**
+     * Apply a saved toggle state to the runtime prompt_order (not to preset file).
+     * This is the correct method for applying toggle states at runtime.
+     * 
+     * @param {string} stateName - The toggle state name to apply
+     * @returns {Promise<{applied: boolean, matched: number, unmatched: number}>}
+     */
+    async applyToggleStateToRuntime(stateName) {
+        const state = await getToggleState(stateName);
+        if (!state?.toggles) {
+            return { applied: false, matched: 0, unmatched: 0 };
+        }
+
+        const result = this.applyTogglesToPromptOrder(state.toggles);
+        
+        if (result.matched > 0) {
+            this.refreshPromptManagerUI();
+            console.log(`[ChatPresetService] Applied toggle state "${stateName}" to runtime: ${result.matched} matched, ${result.unmatched} unmatched`);
+            return { applied: true, ...result };
+        }
+
+        return { applied: false, ...result };
+    }
+
+    /**
+     * Capture current prompt_order toggle states.
+     * Reads from runtime prompt_order, not from the prompts array.
+     * 
+     * @returns {Object|null} Object mapping { identifier: boolean }
+     */
+    captureCurrentToggles() {
+        const orderEntry = this.getActivePromptOrderEntry();
+        if (!orderEntry?.order) {
+            return null;
+        }
+
+        const toggles = {};
+        for (const item of orderEntry.order) {
+            if (item.identifier) {
+                toggles[item.identifier] = item.enabled !== false;
+            }
+        }
+
+        return toggles;
     }
 }
 

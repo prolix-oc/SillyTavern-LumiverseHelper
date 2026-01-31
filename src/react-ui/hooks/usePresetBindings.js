@@ -15,6 +15,7 @@ import {
     onBindingsChange,
 } from '../../lib/presetBindingService.js';
 import { chatPresetService } from '../../lib/chatPresetService.js';
+import { subscribeToCacheChanges } from '../../lib/packCache.js';
 
 /**
  * Hook for managing preset bindings
@@ -24,6 +25,10 @@ export function usePresetBindings() {
     const [bindings, setBindings] = useState(() => getPresetBindings());
     const [contextInfo, setContextInfo] = useState(() => getCurrentContextInfo());
     const [availablePresets, setAvailablePresets] = useState([]);
+    
+    // Toggle state bindings
+    const [hasChatToggleBinding, setHasChatToggleBinding] = useState(false);
+    const [hasCharacterToggleBinding, setHasCharacterToggleBinding] = useState(false);
 
     // Subscribe to binding changes
     useEffect(() => {
@@ -36,20 +41,35 @@ export function usePresetBindings() {
         // Load initial available presets
         setAvailablePresets(chatPresetService.getAvailablePresets());
 
+        // Check toggle state bindings
+        setHasChatToggleBinding(chatPresetService.hasChatToggleState());
+        setHasCharacterToggleBinding(chatPresetService.hasCharacterToggleState());
+
+        // Subscribe to cache changes for toggle bindings updates
+        const unsubscribeCache = subscribeToCacheChanges(() => {
+            setHasChatToggleBinding(chatPresetService.hasChatToggleState());
+            setHasCharacterToggleBinding(chatPresetService.hasCharacterToggleState());
+        });
+
         // Refresh context periodically (every 2 seconds) to catch changes
         const contextInterval = setInterval(() => {
             setContextInfo(getCurrentContextInfo());
+            setHasChatToggleBinding(chatPresetService.hasChatToggleState());
+            setHasCharacterToggleBinding(chatPresetService.hasCharacterToggleState());
         }, 2000);
 
         return () => {
             onBindingsChange(null);
             clearInterval(contextInterval);
+            unsubscribeCache();
         };
     }, []);
 
-    // Refresh available presets
+    // Refresh available presets and toggle state status
     const refreshPresets = useCallback(() => {
         setAvailablePresets(chatPresetService.getAvailablePresets());
+        setHasChatToggleBinding(chatPresetService.hasChatToggleState());
+        setHasCharacterToggleBinding(chatPresetService.hasCharacterToggleState());
     }, []);
 
     // Get current binding for active context
@@ -110,6 +130,65 @@ export function usePresetBindings() {
         return getChatBinding(contextInfo.chatId);
     }, [contextInfo.chatId, bindings]);
 
+    // =========================================================================
+    // PROMPT TOGGLE STATE BINDINGS
+    // =========================================================================
+
+    /**
+     * Save current prompt toggle states to the current chat.
+     * This creates a per-chat override that auto-applies when switching to this chat.
+     */
+    const saveTogglesToChat = useCallback(async () => {
+        const preset = chatPresetService.getCurrentPreset();
+        if (!preset?.settings?.prompts?.length) {
+            console.warn('[usePresetBindings] No prompts to save');
+            return false;
+        }
+        const success = await chatPresetService.saveToggleStateToChat(preset.settings.prompts);
+        if (success) {
+            setHasChatToggleBinding(true);
+        }
+        return success;
+    }, []);
+
+    /**
+     * Clear the toggle state binding from the current chat.
+     */
+    const clearChatToggleBinding = useCallback(() => {
+        const success = chatPresetService.clearChatToggleState();
+        if (success) {
+            setHasChatToggleBinding(false);
+        }
+        return success;
+    }, []);
+
+    /**
+     * Save current prompt toggle states to the current character.
+     */
+    const saveTogglesToCharacter = useCallback(async () => {
+        const preset = chatPresetService.getCurrentPreset();
+        if (!preset?.settings?.prompts?.length) {
+            console.warn('[usePresetBindings] No prompts to save');
+            return false;
+        }
+        const success = await chatPresetService.saveToggleStateToCharacter(preset.settings.prompts);
+        if (success) {
+            setHasCharacterToggleBinding(true);
+        }
+        return success;
+    }, []);
+
+    /**
+     * Clear the toggle state binding from the current character.
+     */
+    const clearCharacterToggleBinding = useCallback(() => {
+        const success = chatPresetService.clearCharacterToggleState();
+        if (success) {
+            setHasCharacterToggleBinding(false);
+        }
+        return success;
+    }, []);
+
     return {
         // State
         bindings,
@@ -119,6 +198,10 @@ export function usePresetBindings() {
         allBindings,
         currentCharacterBinding,
         currentChatBinding,
+        
+        // Toggle state bindings
+        hasChatToggleBinding,
+        hasCharacterToggleBinding,
 
         // Actions
         bindCurrentCharacter,
@@ -126,6 +209,12 @@ export function usePresetBindings() {
         removeCharacterBinding,
         removeChatBinding,
         refreshPresets,
+        
+        // Toggle state actions
+        saveTogglesToChat,
+        clearChatToggleBinding,
+        saveTogglesToCharacter,
+        clearCharacterToggleBinding,
 
         // Direct access for advanced use
         setCharacterBinding,

@@ -34,7 +34,11 @@ import {
     MoreVertical,
     FileText,
     Settings2,
-    Download
+    Download,
+    MessageSquare,
+    User,
+    Link,
+    Unlink,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { usePresetEditor } from '../../hooks/usePresetEditor';
@@ -426,6 +430,14 @@ export default function PresetEditor({ onClose }) {
         applyToggleState,
         deleteToggleState,
         isLoading,
+        // Chat/Character binding
+        hasChatBinding,
+        hasCharacterBinding,
+        currentCharacterName,
+        saveTogglesToChat,
+        clearChatToggles,
+        saveTogglesToCharacter,
+        clearCharacterToggles,
     } = usePresetEditor();
 
     const [view, setView] = useState('list'); // 'list' | 'edit'
@@ -438,6 +450,10 @@ export default function PresetEditor({ onClose }) {
     const [showToggleMenu, setShowToggleMenu] = useState(false);
     const [newStateName, setNewStateName] = useState('');
     const [toggleMsg, setToggleMsg] = useState(null);
+    
+    // Binding menu UI
+    const [showBindingMenu, setShowBindingMenu] = useState(false);
+    const [bindingMsg, setBindingMsg] = useState(null);
 
     // Helpers
     const toggleCategory = (id) => {
@@ -539,6 +555,35 @@ export default function PresetEditor({ onClose }) {
         setNewStateName('');
         setToggleMsg('Saved!');
         setTimeout(() => setToggleMsg(null), 2000);
+    };
+
+    // Binding Logic
+    const handleSaveToChat = async () => {
+        const success = await saveTogglesToChat();
+        if (success) {
+            setBindingMsg('Bound to chat!');
+            setTimeout(() => setBindingMsg(null), 2000);
+        }
+    };
+
+    const handleClearChatBinding = () => {
+        clearChatToggles();
+        setBindingMsg('Chat binding cleared');
+        setTimeout(() => setBindingMsg(null), 2000);
+    };
+
+    const handleSaveToCharacter = async () => {
+        const success = await saveTogglesToCharacter();
+        if (success) {
+            setBindingMsg('Bound to character!');
+            setTimeout(() => setBindingMsg(null), 2000);
+        }
+    };
+
+    const handleClearCharacterBinding = () => {
+        clearCharacterToggles();
+        setBindingMsg('Character binding cleared');
+        setTimeout(() => setBindingMsg(null), 2000);
     };
 
     // Drag & Drop
@@ -680,6 +725,99 @@ export default function PresetEditor({ onClose }) {
                                 </>
                             )}
                         </div>
+                        </>
+                    )}
+                </div>
+
+                {/* Binding Menu - Save toggles to Chat/Character */}
+                <div style={{ position: 'relative' }}>
+                    <button 
+                        style={{ ...styles.btn, ...(showBindingMenu ? styles.btnPrimary : {}), ...((hasChatBinding || hasCharacterBinding) ? { borderColor: 'var(--lumiverse-success)', color: 'var(--lumiverse-success)' } : {}) }}
+                        onClick={() => setShowBindingMenu(!showBindingMenu)}
+                        title="Bind toggles to Chat/Character"
+                    >
+                        {(hasChatBinding || hasCharacterBinding) ? <Link size={16} /> : <Unlink size={16} />}
+                        <span className="hidden-sm">Bind</span>
+                    </button>
+
+                    {/* Dropdown Menu for Bindings */}
+                    {showBindingMenu && (
+                        <>
+                            <div className="lumiverse-states-backdrop" onClick={() => setShowBindingMenu(false)} />
+                            <div 
+                                className="lumiverse-states-menu"
+                                style={{
+                                    position: 'absolute',
+                                    top: '100%',
+                                    bottom: 'auto',
+                                    left: '0',
+                                    marginTop: '4px',
+                                    transform: 'none',
+                                    minWidth: '220px',
+                                }}
+                            >
+                                <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--lumiverse-text-muted)', marginBottom: '8px' }}>
+                                    BIND CURRENT TOGGLES
+                                </div>
+                                <div style={{ fontSize: '11px', color: 'var(--lumiverse-text-muted)', marginBottom: '12px' }}>
+                                    Save which prompts are enabled/disabled to auto-apply when switching to this chat or character.
+                                </div>
+
+                                {/* Chat Binding */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                    <MessageSquare size={14} style={{ color: 'var(--lumiverse-text-muted)' }} />
+                                    <span style={{ flex: 1, fontSize: '13px' }}>This Chat</span>
+                                    {hasChatBinding ? (
+                                        <button 
+                                            style={{ ...styles.btn, padding: '4px 8px', fontSize: '11px', color: 'var(--lumiverse-danger)', borderColor: 'var(--lumiverse-danger)' }}
+                                            onClick={handleClearChatBinding}
+                                        >
+                                            <Unlink size={12} /> Clear
+                                        </button>
+                                    ) : (
+                                        <button 
+                                            style={{ ...styles.btn, ...styles.btnPrimary, padding: '4px 8px', fontSize: '11px' }}
+                                            onClick={handleSaveToChat}
+                                        >
+                                            <Link size={12} /> Bind
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Character Binding */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <User size={14} style={{ color: 'var(--lumiverse-text-muted)' }} />
+                                    <span style={{ flex: 1, fontSize: '13px' }}>
+                                        {currentCharacterName || 'Character'}
+                                    </span>
+                                    {hasCharacterBinding ? (
+                                        <button 
+                                            style={{ ...styles.btn, padding: '4px 8px', fontSize: '11px', color: 'var(--lumiverse-danger)', borderColor: 'var(--lumiverse-danger)' }}
+                                            onClick={handleClearCharacterBinding}
+                                        >
+                                            <Unlink size={12} /> Clear
+                                        </button>
+                                    ) : (
+                                        <button 
+                                            style={{ ...styles.btn, ...styles.btnPrimary, padding: '4px 8px', fontSize: '11px' }}
+                                            onClick={handleSaveToCharacter}
+                                        >
+                                            <Link size={12} /> Bind
+                                        </button>
+                                    )}
+                                </div>
+
+                                {bindingMsg && (
+                                    <div style={{ fontSize: '11px', color: 'var(--lumiverse-success)', marginTop: '8px' }}>
+                                        {bindingMsg}
+                                    </div>
+                                )}
+
+                                <div style={{ height: '1px', background: 'var(--lumiverse-border)', margin: '12px 0 8px' }}></div>
+                                <div style={{ fontSize: '10px', color: 'var(--lumiverse-text-dim)' }}>
+                                    Priority: Chat &gt; Character
+                                </div>
+                            </div>
                         </>
                     )}
                 </div>

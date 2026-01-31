@@ -1,12 +1,19 @@
 /**
  * Preset Binding Service
  * 
- * Manages automatic preset switching based on character/chat context.
- * Supports binding presets to:
+ * Manages automatic preset switching and prompt toggle state application
+ * based on character/chat context.
+ * 
+ * Supports binding to:
  * - Specific characters (by avatar name)
  * - Specific chats (by chat ID)
  * 
- * Priority: Chat binding > Character binding > No auto-switch
+ * Priority for preset bindings: Chat > Character > None
+ * Priority for toggle states: Chat > Character > None
+ * 
+ * Toggle states are applied AFTER preset bindings, allowing for:
+ * 1. A base preset to be loaded (via binding)
+ * 2. Then specific prompt toggles to be applied on top (via toggle state)
  */
 
 import { getContext, getEventSource, getEventTypes } from "../stContext.js";
@@ -14,6 +21,8 @@ import { chatPresetService } from "./chatPresetService.js";
 import {
     getCachedIndex,
     updateSelections,
+    getChatToggleBinding,
+    getCharacterToggleBinding,
 } from "./packCache.js";
 
 const MODULE_NAME = "PresetBindingService";
@@ -239,15 +248,19 @@ export async function applyBindingForCurrentContext() {
     
     // No binding for current context
     if (!binding.presetName) {
-        console.log(`[${MODULE_NAME}] No binding for current context`);
+        console.log(`[${MODULE_NAME}] No preset binding for current context`);
         lastAppliedBinding = null;
+        // Still check for toggle states even without preset binding
+        await applyToggleStatesForCurrentContext();
         return false;
     }
 
     // Already applied this binding
     const bindingKey = `${binding.bindingType}:${binding.bindingId}:${binding.presetName}`;
     if (lastAppliedBinding === bindingKey) {
-        console.log(`[${MODULE_NAME}] Binding already applied, skipping`);
+        console.log(`[${MODULE_NAME}] Preset binding already applied, checking toggle states...`);
+        // Still apply toggle states even if preset is same
+        await applyToggleStatesForCurrentContext();
         return false;
     }
 
@@ -282,6 +295,9 @@ export async function applyBindingForCurrentContext() {
                     preventDuplicates: true,
                 });
             }
+
+            // After preset is loaded, apply any toggle state overrides
+            await applyToggleStatesForCurrentContext();
         }
         
         return success;
@@ -291,6 +307,156 @@ export async function applyBindingForCurrentContext() {
     } finally {
         isSwitching = false;
     }
+}
+
+/**
+ * Apply prompt toggle states for the current context.
+ * Priority: Chat toggle state > Character toggle state > None
+ * 
+ * This is called after preset binding is applied, allowing for layered configuration:
+ * 1. Base preset provides the prompts and their default enabled states
+ * 2. Toggle state overrides specific prompts' enabled/disabled status
+ * 
+ * Toggle bindings are now loaded from the Lumiverse index file for persistence.
+ * 
+ * @returns {Promise<{applied: boolean, source: 'chat'|'character'|null, matched: number}>}
+ */
+export async function applyToggleStatesForCurrentContext() {
+    const chatId = getCurrentChatId();
+    const avatar = getCurrentCharacterAvatar();
+
+    // Check for chat-level toggle state first (higher priority)
+    if (chatId) {
+        const chatToggleState = getChatToggleBinding(chatId);
+        if (chatToggleState) {
+            console.log(`[${MODULE_NAME}] Found chat toggle binding for "${chatId}", applying...`);
+            const result = await applyToggleStateToCurrentPreset(chatToggleState);
+            if (result.applied) {
+                if (typeof toastr !== 'undefined') {
+                    toastr.info(`Prompt toggles applied (chat binding: ${result.matched} prompts)`, 'Lumiverse Helper', {
+                        timeOut: 2000,
+                        preventDuplicates: true,
+                    });
+                }
+                return { applied: true, source: 'chat', matched: result.matched };
+            }
+        }
+    }
+
+    // Check for character-level toggle state
+    if (avatar) {
+        const charToggleState = getCharacterToggleBinding(avatar);
+        if (charToggleState) {
+            console.log(`[${MODULE_NAME}] Found character toggle binding for "${avatar}", applying...`);
+            const result = await applyToggleStateToCurrentPreset(charToggleState);
+            if (result.applied) {
+                if (typeof toastr !== 'undefined') {
+                    toastr.info(`Prompt toggles applied (character binding: ${result.matched} prompts)`, 'Lumiverse Helper', {
+                        timeOut: 2000,
+                        preventDuplicates: true,
+                    });
+                }
+                return { applied: true, source: 'character', matched: result.matched };
+            }
+        }
+    }
+
+    console.log(`[${MODULE_NAME}] No toggle bindings to apply`);
+    return { applied: false, source: null, matched: 0 };
+}
+
+/**
+ * Apply toggle state data to the current preset's prompts.
+ * 
+ * Per SillyTavern's documentation (9_programmatic_prompt_toggling.md):
+ * - The enabled state is stored in prompt_order, not prompts
+ * - For Global Strategy, use dummy ID (100001 for OpenAI)
+ * - Must trigger UI update after changes
+ * 
+ * Access pattern (discovered via codebase analysis):
+ * - oai_settings is available via SillyTavern.getContext().chatCompletionSettings
+ * - PromptManager is NOT exposed on context, so we use jQuery workaround for UI refresh
+ * 
+ * @param {Object} toggleState - Toggle state data with { toggles: { identifier: boolean } }
+ * @returns {Promise<{applied: boolean, matched: number}>}
+ */
+async function applyToggleStateToCurrentPreset(toggleState) {
+    if (!toggleState?.toggles) {
+        console.log(`[${MODULE_NAME}] applyToggleStateToCurrentPreset: No toggles in state`);
+        return { applied: false, matched: 0 };
+    }
+
+    const toggleCount = Object.keys(toggleState.toggles).length;
+    console.log(`[${MODULE_NAME}] applyToggleStateToCurrentPreset: Applying ${toggleCount} toggles`);
+
+    // Access oai_settings via the correct path: context.chatCompletionSettings
+    const ctx = getContext();
+    const oaiSettings = ctx?.chatCompletionSettings;
+    
+    if (!oaiSettings) {
+        console.warn(`[${MODULE_NAME}] chatCompletionSettings not available on context`);
+        return { applied: false, matched: 0 };
+    }
+
+    // Get prompt_order array
+    const promptOrder = oaiSettings.prompt_order;
+    if (!Array.isArray(promptOrder)) {
+        console.warn(`[${MODULE_NAME}] prompt_order not available or not an array`);
+        return { applied: false, matched: 0 };
+    }
+
+    // Determine the active character ID
+    // Global Strategy uses dummy ID 100001 for OpenAI
+    // Character-specific uses the actual character ID
+    const OPENAI_DUMMY_ID = 100001;
+    
+    // Check if using global strategy (prompt_manager_settings.showCharacterPromptOrder)
+    const isGlobalStrategy = !oaiSettings.prompt_manager_settings?.showCharacterPromptOrder;
+    const activeCharId = isGlobalStrategy ? OPENAI_DUMMY_ID : ctx?.characterId;
+    
+    console.log(`[${MODULE_NAME}] Strategy: ${isGlobalStrategy ? 'Global' : 'Character'}, activeCharId: ${activeCharId}`);
+
+    // Find the prompt_order entry for this character
+    const orderEntry = promptOrder.find(entry => entry.character_id === activeCharId);
+    if (!orderEntry || !Array.isArray(orderEntry.order)) {
+        console.warn(`[${MODULE_NAME}] No prompt_order entry for character ${activeCharId}`);
+        return { applied: false, matched: 0 };
+    }
+
+    // Apply toggles to the order entries
+    let matched = 0;
+    let unmatched = 0;
+
+    for (const [promptId, enabled] of Object.entries(toggleState.toggles)) {
+        const orderItem = orderEntry.order.find(item => item.identifier === promptId);
+        if (orderItem) {
+            orderItem.enabled = enabled;
+            matched++;
+        } else {
+            unmatched++;
+        }
+    }
+
+    if (matched > 0) {
+        console.log(`[${MODULE_NAME}] Applied ${matched} toggles, ${unmatched} unmatched. Triggering UI update...`);
+        
+        // Trigger UI refresh via jQuery workaround
+        // Since PromptManager.render() is not accessible, use the preset update button
+        if (typeof jQuery !== 'undefined') {
+            jQuery('#update_oai_preset').trigger('click');
+        }
+        
+        // Save settings via ST's debounced save
+        if (typeof ctx?.saveSettingsDebounced === 'function') {
+            ctx.saveSettingsDebounced();
+        }
+        
+        console.log(`[${MODULE_NAME}] Toggle state applied successfully`);
+        return { applied: true, matched };
+    }
+
+    console.log(`[${MODULE_NAME}] No prompts matched toggle state (${unmatched} unmatched)`);
+    return { applied: false, matched: 0 };
 }
 
 /**

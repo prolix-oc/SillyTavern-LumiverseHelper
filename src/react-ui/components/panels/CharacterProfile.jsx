@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useSelections, useLoomSelections, usePacks, useLumiverseStore } from '../../store/LumiverseContext';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
-import { User, FileText, Zap, Heart, Sparkles, Star, X, Layers, Users, ArrowRight, Package, Link2, Link2Off, MessageSquare } from 'lucide-react';
+import { User, FileText, Zap, Heart, Sparkles, Star, X, Layers, Users, ArrowRight, Package, Link2, Link2Off, MessageSquare, ToggleLeft } from 'lucide-react';
 import { usePresetBindings } from '../../hooks/usePresetBindings';
 
 // Get store for direct state access
@@ -308,6 +308,13 @@ function ProfileBindingsModal({ onClose }) {
         removeCharacterBinding,
         removeChatBinding,
         refreshPresets,
+        // Toggle state bindings
+        hasChatToggleBinding,
+        hasCharacterToggleBinding,
+        saveTogglesToChat,
+        clearChatToggleBinding,
+        saveTogglesToCharacter,
+        clearCharacterToggleBinding,
     } = usePresetBindings();
 
     // Get currently active preset from store
@@ -379,6 +386,35 @@ function ProfileBindingsModal({ onClose }) {
             toastr?.info('Chat binding removed');
         }
     }, [contextInfo.chatId, removeChatBinding]);
+
+    // Toggle binding handlers
+    const handleBindTogglesToCharacter = useCallback(async () => {
+        const success = await saveTogglesToCharacter();
+        if (success) {
+            toastr?.success(`Bound current prompt toggles to "${contextInfo.characterName}"`);
+        } else {
+            toastr?.error('Failed to bind prompt toggles');
+        }
+    }, [saveTogglesToCharacter, contextInfo.characterName]);
+
+    const handleBindTogglesToChat = useCallback(async () => {
+        const success = await saveTogglesToChat();
+        if (success) {
+            toastr?.success('Bound current prompt toggles to chat');
+        } else {
+            toastr?.error('Failed to bind prompt toggles');
+        }
+    }, [saveTogglesToChat]);
+
+    const handleClearCharacterToggleBinding = useCallback(() => {
+        clearCharacterToggleBinding();
+        toastr?.info('Character toggle binding removed');
+    }, [clearCharacterToggleBinding]);
+
+    const handleClearChatToggleBinding = useCallback(() => {
+        clearChatToggleBinding();
+        toastr?.info('Chat toggle binding removed');
+    }, [clearChatToggleBinding]);
 
     const handleBackdropClick = useCallback((e) => {
         if (e.target === e.currentTarget) onClose();
@@ -515,6 +551,92 @@ function ProfileBindingsModal({ onClose }) {
                                 </button>
                             </div>
                         </div>
+
+                        {/* Prompt Toggle Bindings Section */}
+                        <div className="lumiverse-profile-bindings-toggles">
+                            <div className="lumiverse-profile-bindings-toggles-header">
+                                <ToggleLeft size={14} strokeWidth={1.5} />
+                                <span>Prompt Toggle Bindings</span>
+                            </div>
+                            <div className="lumiverse-profile-bindings-toggles-info">
+                                Save current prompt enabled/disabled states
+                            </div>
+                            <div className="lumiverse-profile-bindings-toggles-rows">
+                                {/* Character toggle binding */}
+                                <div className={clsx(
+                                    'lumiverse-profile-bindings-toggle-row',
+                                    hasCharacterToggleBinding && 'is-bound'
+                                )}>
+                                    <User size={14} strokeWidth={1.5} />
+                                    <span className="lumiverse-profile-bindings-toggle-label">
+                                        Character
+                                    </span>
+                                    {hasCharacterToggleBinding ? (
+                                        <>
+                                            <span className="lumiverse-profile-bindings-toggle-badge">
+                                                Bound
+                                            </span>
+                                            <button
+                                                className="lumiverse-profile-bindings-toggle-clear"
+                                                onClick={handleClearCharacterToggleBinding}
+                                                title="Clear toggle binding"
+                                                type="button"
+                                            >
+                                                <X size={12} strokeWidth={2} />
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <button
+                                            className="lumiverse-profile-bindings-toggle-bind"
+                                            onClick={handleBindTogglesToCharacter}
+                                            disabled={!contextInfo.characterAvatar}
+                                            title="Bind current prompt toggles to character"
+                                            type="button"
+                                        >
+                                            Bind Toggles
+                                        </button>
+                                    )}
+                                </div>
+                                {/* Chat toggle binding */}
+                                <div className={clsx(
+                                    'lumiverse-profile-bindings-toggle-row',
+                                    hasChatToggleBinding && 'is-bound'
+                                )}>
+                                    <MessageSquare size={14} strokeWidth={1.5} />
+                                    <span className="lumiverse-profile-bindings-toggle-label">
+                                        Chat
+                                    </span>
+                                    {hasChatToggleBinding ? (
+                                        <>
+                                            <span className="lumiverse-profile-bindings-toggle-badge">
+                                                Bound
+                                            </span>
+                                            <button
+                                                className="lumiverse-profile-bindings-toggle-clear"
+                                                onClick={handleClearChatToggleBinding}
+                                                title="Clear toggle binding"
+                                                type="button"
+                                            >
+                                                <X size={12} strokeWidth={2} />
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <button
+                                            className="lumiverse-profile-bindings-toggle-bind"
+                                            onClick={handleBindTogglesToChat}
+                                            disabled={!contextInfo.chatId}
+                                            title="Bind current prompt toggles to chat"
+                                            type="button"
+                                        >
+                                            Bind Toggles
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="lumiverse-profile-bindings-toggles-priority">
+                                Priority: Chat &gt; Character
+                            </div>
+                        </div>
                     </div>
                 ) : (
                     <div className="lumiverse-profile-bindings-empty">
@@ -531,10 +653,36 @@ function ProfileBindingsModal({ onClose }) {
 /**
  * Quick Bind Button - shows current binding status and opens modal
  */
-function QuickBindButton({ onClick, currentBinding, currentCharacterBinding, currentChatBinding }) {
-    const hasBound = !!currentBinding.presetName;
-    const boundType = currentBinding.bindingType;
-    const boundPreset = currentBinding.presetName;
+function QuickBindButton({ 
+    onClick, 
+    currentBinding, 
+    currentCharacterBinding, 
+    currentChatBinding,
+    hasChatToggleBinding,
+    hasCharacterToggleBinding,
+}) {
+    const hasPresetBound = !!currentBinding.presetName;
+    const hasToggleBound = hasChatToggleBinding || hasCharacterToggleBinding;
+    const hasBound = hasPresetBound || hasToggleBound;
+    
+    // Build tooltip text
+    const getTooltip = () => {
+        if (!hasBound) {
+            return 'Bind preset or toggles to character/chat';
+        }
+        
+        const parts = [];
+        if (hasPresetBound) {
+            parts.push(`Preset: ${currentBinding.presetName} (${currentBinding.bindingType})`);
+        }
+        if (hasChatToggleBinding) {
+            parts.push('Toggle: Chat');
+        }
+        if (hasCharacterToggleBinding) {
+            parts.push('Toggle: Character');
+        }
+        return parts.join(' | ');
+    };
 
     return (
         <button
@@ -543,9 +691,7 @@ function QuickBindButton({ onClick, currentBinding, currentCharacterBinding, cur
                 hasBound && 'lumiverse-profile-bind-btn--active'
             )}
             onClick={onClick}
-            title={hasBound 
-                ? `Bound to: ${boundPreset} (${boundType})` 
-                : 'Bind preset to character or chat'}
+            title={getTooltip()}
             type="button"
         >
             {hasBound ? (
@@ -569,11 +715,13 @@ function CharacterProfile({ onTabChange }) {
     const { allPacks } = usePacks();
     const [isBindingModalOpen, setIsBindingModalOpen] = useState(false);
     
-    // Preset binding state
+    // Preset and toggle binding state
     const {
         currentBinding,
         currentCharacterBinding,
         currentChatBinding,
+        hasChatToggleBinding,
+        hasCharacterToggleBinding,
     } = usePresetBindings();
 
     // Subscribe to Chimera mode state
@@ -667,6 +815,8 @@ function CharacterProfile({ onTabChange }) {
                     currentBinding={currentBinding}
                     currentCharacterBinding={currentCharacterBinding}
                     currentChatBinding={currentChatBinding}
+                    hasChatToggleBinding={hasChatToggleBinding}
+                    hasCharacterToggleBinding={hasCharacterToggleBinding}
                 />
             </div>
 

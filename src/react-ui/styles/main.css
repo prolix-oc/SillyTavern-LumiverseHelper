@@ -13593,6 +13593,71 @@ details.lumia-panel[open] .lumia-panel-chevron {
 }
 
 /* =============================================================================
+   PROMPT TOGGLE BINDINGS - Bind enabled/disabled states to chat/character
+   ============================================================================= */
+
+.lumiverse-bindings-toggles {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.lumiverse-bindings-toggles-info {
+    font-size: 12px;
+    color: var(--lumiverse-text-muted);
+    line-height: 1.5;
+    padding: 8px 12px;
+    background: rgba(147, 112, 219, 0.08);
+    border-radius: 8px;
+    border-left: 3px solid rgba(147, 112, 219, 0.4);
+}
+
+.lumiverse-bindings-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.lumiverse-bindings-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--lumiverse-text);
+}
+
+.lumiverse-bindings-toggle-label svg {
+    color: var(--lumiverse-text-muted);
+}
+
+.lumiverse-bindings-toggle-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    background: rgba(34, 197, 94, 0.2);
+    color: rgb(34, 197, 94);
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.lumiverse-bindings-toggle-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.lumiverse-bindings-toggles-priority {
+    font-size: 11px;
+    color: var(--lumiverse-text-dim);
+    text-align: center;
+    padding-top: 4px;
+}
+
+/* =============================================================================
    PROFILE BIND BUTTON - Quick bind button in profile header
    ============================================================================= */
 
@@ -13913,6 +13978,121 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
 .lumiverse-profile-bindings-empty svg {
     opacity: 0.4;
+}
+
+/* Toggle Bindings Section */
+.lumiverse-profile-bindings-toggles {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.lumiverse-profile-bindings-toggles-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--lumiverse-text);
+    margin-bottom: 6px;
+}
+
+.lumiverse-profile-bindings-toggles-header svg {
+    color: var(--lumiverse-primary);
+}
+
+.lumiverse-profile-bindings-toggles-info {
+    font-size: 11px;
+    color: var(--lumiverse-text-muted);
+    margin-bottom: 10px;
+}
+
+.lumiverse-profile-bindings-toggles-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.lumiverse-profile-bindings-toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    font-size: 12px;
+}
+
+.lumiverse-profile-bindings-toggle-row.is-bound {
+    background: rgba(100, 200, 100, 0.1);
+    border: 1px solid rgba(100, 200, 100, 0.2);
+}
+
+.lumiverse-profile-bindings-toggle-row svg:first-child {
+    color: var(--lumiverse-text-muted);
+    flex-shrink: 0;
+}
+
+.lumiverse-profile-bindings-toggle-label {
+    flex: 1;
+    color: var(--lumiverse-text);
+}
+
+.lumiverse-profile-bindings-toggle-badge {
+    padding: 2px 8px;
+    background: rgba(100, 200, 100, 0.2);
+    color: rgb(100, 200, 100);
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.lumiverse-profile-bindings-toggle-bind {
+    padding: 4px 10px;
+    background: var(--lumiverse-primary);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.lumiverse-profile-bindings-toggle-bind:hover:not(:disabled) {
+    background: var(--lumiverse-primary-hover);
+}
+
+.lumiverse-profile-bindings-toggle-bind:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.lumiverse-profile-bindings-toggle-clear {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: var(--lumiverse-text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.lumiverse-profile-bindings-toggle-clear:hover {
+    background: rgba(255, 100, 100, 0.2);
+    color: rgb(255, 100, 100);
+}
+
+.lumiverse-profile-bindings-toggles-priority {
+    margin-top: 10px;
+    font-size: 10px;
+    color: var(--lumiverse-text-muted);
+    font-style: italic;
+    text-align: center;
 }
 
 /* ============================================

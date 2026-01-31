@@ -26,6 +26,13 @@ const TABS = [
     { id: 'Loom Narratives', label: 'Narratives', Icon: Palette },
 ];
 
+// Maps tab IDs to their corresponding count field in the API response
+const TAB_TO_COUNT_FIELD = {
+    'Loom Utilities': 'loomUtilityCount',
+    'Loom Retrofits': 'loomRetrofitCount',
+    'Loom Narratives': 'narrativeStyleCount',
+};
+
 // Self-contained styles
 const styles = {
     layout: {
@@ -325,7 +332,12 @@ function LucidCardsModal({ onClose }) {
         if (activeTab === 'Lumia DLCs') {
             return pack.packType === 'lumia' || (pack.lumiaCount && pack.lumiaCount > 0);
         }
-        // All loom categories show loom-type packs
+        // Filter Loom packs by their specific category count
+        const countField = TAB_TO_COUNT_FIELD[activeTab];
+        if (countField) {
+            return pack[countField] && pack[countField] > 0;
+        }
+        // Fallback: show all loom-type packs
         return pack.packType === 'loom' || (pack.loomCount && pack.loomCount > 0);
     });
     

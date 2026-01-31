@@ -684,6 +684,121 @@ export async function removeToggleState(stateName) {
     notifyListeners();
 }
 
+// ============================================================================
+// TOGGLE BINDINGS (Persistent Chat/Character Toggle State Bindings)
+// ============================================================================
+
+/**
+ * Get all toggle bindings.
+ * @returns {{chats: Object, characters: Object}}
+ */
+export function getToggleBindings() {
+    if (!cachedIndex?.toggleBindings) {
+        return { chats: {}, characters: {} };
+    }
+    return cachedIndex.toggleBindings;
+}
+
+/**
+ * Get a chat-level toggle binding.
+ * @param {string} chatId - The chat ID
+ * @returns {Object|null} The toggle binding data or null
+ */
+export function getChatToggleBinding(chatId) {
+    if (!chatId || !cachedIndex?.toggleBindings?.chats) return null;
+    return cachedIndex.toggleBindings.chats[chatId] || null;
+}
+
+/**
+ * Get a character-level toggle binding.
+ * @param {string} avatar - The character avatar filename
+ * @returns {Object|null} The toggle binding data or null
+ */
+export function getCharacterToggleBinding(avatar) {
+    if (!avatar || !cachedIndex?.toggleBindings?.characters) return null;
+    return cachedIndex.toggleBindings.characters[avatar] || null;
+}
+
+/**
+ * Set a chat-level toggle binding.
+ * @param {string} chatId - The chat ID
+ * @param {Object} toggleData - The toggle data { toggles: {...}, sourcePreset: string|null }
+ */
+export function setChatToggleBinding(chatId, toggleData) {
+    if (!chatId || !cachedIndex) return;
+    
+    // Ensure toggleBindings exists
+    if (!cachedIndex.toggleBindings) {
+        cachedIndex.toggleBindings = { chats: {}, characters: {} };
+    }
+    if (!cachedIndex.toggleBindings.chats) {
+        cachedIndex.toggleBindings.chats = {};
+    }
+    
+    if (toggleData) {
+        cachedIndex.toggleBindings.chats[chatId] = {
+            toggles: toggleData.toggles || {},
+            savedAt: Date.now(),
+            sourcePreset: toggleData.sourcePreset || null,
+        };
+        console.log(`[${MODULE_NAME}] Set chat toggle binding for "${chatId}"`);
+    } else {
+        delete cachedIndex.toggleBindings.chats[chatId];
+        console.log(`[${MODULE_NAME}] Removed chat toggle binding for "${chatId}"`);
+    }
+    
+    debouncedIndexSave();
+    notifyListeners();
+}
+
+/**
+ * Set a character-level toggle binding.
+ * @param {string} avatar - The character avatar filename
+ * @param {Object} toggleData - The toggle data { toggles: {...}, sourcePreset: string|null }
+ */
+export function setCharacterToggleBinding(avatar, toggleData) {
+    if (!avatar || !cachedIndex) return;
+    
+    // Ensure toggleBindings exists
+    if (!cachedIndex.toggleBindings) {
+        cachedIndex.toggleBindings = { chats: {}, characters: {} };
+    }
+    if (!cachedIndex.toggleBindings.characters) {
+        cachedIndex.toggleBindings.characters = {};
+    }
+    
+    if (toggleData) {
+        cachedIndex.toggleBindings.characters[avatar] = {
+            toggles: toggleData.toggles || {},
+            savedAt: Date.now(),
+            sourcePreset: toggleData.sourcePreset || null,
+        };
+        console.log(`[${MODULE_NAME}] Set character toggle binding for "${avatar}"`);
+    } else {
+        delete cachedIndex.toggleBindings.characters[avatar];
+        console.log(`[${MODULE_NAME}] Removed character toggle binding for "${avatar}"`);
+    }
+    
+    debouncedIndexSave();
+    notifyListeners();
+}
+
+/**
+ * Clear a chat-level toggle binding.
+ * @param {string} chatId - The chat ID
+ */
+export function clearChatToggleBinding(chatId) {
+    setChatToggleBinding(chatId, null);
+}
+
+/**
+ * Clear a character-level toggle binding.
+ * @param {string} avatar - The character avatar filename
+ */
+export function clearCharacterToggleBinding(avatar) {
+    setCharacterToggleBinding(avatar, null);
+}
+
 /**
  * Clean up selections when a pack is removed.
  * @param {string} packId - The pack ID being removed

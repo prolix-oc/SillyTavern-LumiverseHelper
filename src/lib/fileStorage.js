@@ -179,11 +179,27 @@ async function deleteFile(filename) {
  *     lumiaOOCInterval: number | null,
  *     lumiaOOCStyle: string,
  *     // ... other settings that don't need to be in extension_settings
+ *   },
+ *   toggleBindings: {              // Prompt toggle state bindings per chat/character
+ *     chats: {                     // Chat-level toggle bindings (keyed by chat ID)
+ *       [chatId]: {
+ *         toggles: { [identifier]: boolean },
+ *         savedAt: number,
+ *         sourcePreset: string | null,
+ *       }
+ *     },
+ *     characters: {                // Character-level toggle bindings (keyed by avatar)
+ *       [avatar]: {
+ *         toggles: { [identifier]: boolean },
+ *         savedAt: number,
+ *         sourcePreset: string | null,
+ *       }
+ *     }
  *   }
  * }
  */
 
-const INDEX_SCHEMA_VERSION = 3;
+const INDEX_SCHEMA_VERSION = 4;
 
 /**
  * Create a default index structure.
@@ -216,6 +232,10 @@ function createDefaultIndex() {
         },
         presets: {}, // User-saved Lumia selection presets
         toggleStateRegistry: {}, // Registry of saved prompt toggle states
+        toggleBindings: { // Prompt toggle state bindings per chat/character
+            chats: {},
+            characters: {},
+        },
     };
 }
 
@@ -250,6 +270,29 @@ function migrateIndex(index) {
         index.version = 2;
         migrated = true;
         console.log(`[${MODULE_NAME}] Migrated index to v2 (added presets)`);
+    }
+    
+    // v2 -> v3: Add toggleStateRegistry field
+    if (index.version < 3) {
+        if (!index.toggleStateRegistry) {
+            index.toggleStateRegistry = {};
+        }
+        index.version = 3;
+        migrated = true;
+        console.log(`[${MODULE_NAME}] Migrated index to v3 (added toggleStateRegistry)`);
+    }
+    
+    // v3 -> v4: Add toggleBindings field for persistent toggle state bindings
+    if (index.version < 4) {
+        if (!index.toggleBindings) {
+            index.toggleBindings = {
+                chats: {},
+                characters: {},
+            };
+        }
+        index.version = 4;
+        migrated = true;
+        console.log(`[${MODULE_NAME}] Migrated index to v4 (added toggleBindings)`);
     }
     
     return { index, migrated };
