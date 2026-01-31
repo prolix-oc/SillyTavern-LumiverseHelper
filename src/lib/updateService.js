@@ -16,16 +16,11 @@ const LUCID_API_URL = "https://lucid.cards/api/extension-versions";
 // Current extension version - safely extract from module or use fallback
 const EXTENSION_VERSION = versionModule?.EXTENSION_VERSION || versionModule?.default || "4.0.22";
 
-// Cached local version
-let localVersion = null;
-
-// Cached update state
-let cachedExtensionUpdate = null;
-let lastExtensionCheck = 0;
-const CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
-
 // Event listeners for update state changes
 const updateListeners = new Set();
+
+// Last known update result (NOT cached - always fetched fresh, only stored for UI access)
+let lastUpdateResult = null;
 
 /**
  * Subscribe to update state changes
@@ -90,15 +85,10 @@ export function compareSemver(v1, v2) {
  * Uses the EXTENSION_VERSION constant from version.js, which is updated
  * by update.sh whenever the manifest.json version changes.
  * This avoids all manifest caching issues since the version is baked into the code.
- * @param {boolean} forceFresh - Ignored - kept for API compatibility
- * @returns {Promise<string>}
+ * @returns {string}
  */
-async function getLocalVersion(forceFresh = false) {
-    if (typeof EXTENSION_VERSION !== 'undefined' && EXTENSION_VERSION) {
-        localVersion = EXTENSION_VERSION;
-        return localVersion;
-    }
-    return "4.0.0";
+function getLocalVersion() {
+    return EXTENSION_VERSION || "4.0.0";
 }
 
 /**
@@ -130,26 +120,12 @@ export function getCurrentVersion() {
 
 /**
  * Check for extension updates
- * @param {boolean} force - Force check even if within interval
+ * Always fetches fresh data - no caching to prevent stale version issues.
+ * @param {boolean} force - Ignored, kept for API compatibility (always fetches fresh)
  * @returns {Promise<{hasUpdate: boolean, currentVersion: string, latestVersion: string}|null>}
  */
 export async function checkExtensionUpdate(force = false) {
-    const now = Date.now();
-    
-    // Invalidate cache if the local version has changed (e.g., after update + reload)
-    // This ensures we don't show stale "update available" when already up-to-date
-    if (cachedExtensionUpdate && cachedExtensionUpdate.currentVersion !== EXTENSION_VERSION) {
-        console.log(`[${MODULE_NAME}] Cache invalidated: version changed from ${cachedExtensionUpdate.currentVersion} to ${EXTENSION_VERSION}`);
-        cachedExtensionUpdate = null;
-        lastExtensionCheck = 0;
-    }
-    
-    // Return cached result if within interval
-    if (!force && cachedExtensionUpdate && (now - lastExtensionCheck) < CHECK_INTERVAL) {
-        return cachedExtensionUpdate;
-    }
-    
-    const currentVersion = await getLocalVersion(true);
+    const currentVersion = getLocalVersion();
     const remoteVersion = await fetchRemoteVersion();
 
     if (!remoteVersion) {
@@ -159,15 +135,14 @@ export async function checkExtensionUpdate(force = false) {
     const latestVersion = remoteVersion.version;
     const hasUpdate = compareSemver(currentVersion, latestVersion) < 0;
     
-    cachedExtensionUpdate = {
+    lastUpdateResult = {
         hasUpdate,
         currentVersion,
         latestVersion,
     };
-    lastExtensionCheck = now;
     
     notifyUpdateChange();
-    return cachedExtensionUpdate;
+    return lastUpdateResult;
 }
 
 /**
@@ -176,35 +151,37 @@ export async function checkExtensionUpdate(force = false) {
  */
 export function getUpdateState() {
     return {
-        extensionUpdate: cachedExtensionUpdate,
+        extensionUpdate: lastUpdateResult,
         // Preset updates are managed by presetsService, but we expose them here for convenience
         presetUpdates: [], // Will be populated by the React store
     };
 }
 
 /**
- * Get cached extension update without triggering a new check
+ * Get last extension update result (not cached - just the last fetched result)
  * @returns {{hasUpdate: boolean, currentVersion: string, latestVersion: string}|null}
  */
 export function getCachedExtensionUpdate() {
-    return cachedExtensionUpdate;
+    return lastUpdateResult;
 }
 
 /**
- * Clear cached update state (useful for testing or manual refresh)
+ * Clear update result state
+ * @deprecated No longer needed since version is never cached, kept for API compatibility
  */
 export function clearUpdateCache() {
-    cachedExtensionUpdate = null;
-    lastExtensionCheck = 0;
+    lastUpdateResult = null;
     notifyUpdateChange();
 }
 
 /**
  * Set local version (for cases where we need to override, e.g., after update)
+ * @deprecated No longer needed since version comes directly from EXTENSION_VERSION constant
  * @param {string} version 
  */
 export function setLocalVersion(version) {
-    localVersion = version;
+    // No-op: version is always read from EXTENSION_VERSION constant
+    // Kept for API compatibility
     clearUpdateCache();
 }
 
