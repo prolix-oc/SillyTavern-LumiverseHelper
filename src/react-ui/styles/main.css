@@ -13945,3 +13945,85 @@ details.lumia-panel[open] .lumia-panel-chevron {
         grid-template-columns: repeat(2, 1fr);
     }
 }
+
+/* ----------------------------------------
+   Landing Page & Utilities (Restored)
+   ---------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+    .lumiverse-landing-page,
+    .lumiverse-landing-chat-card,
+    .lumiverse-landing-chat-avatar img,
+    .lumiverse-landing-refresh svg,
+    .lumiverse-landing-chat-arrow {
+        animation: none;
+        transition: none;
+    }
+
+    .lumiverse-landing-skeleton-avatar,
+    .lumiverse-landing-skeleton-line {
+        animation: none;
+    }
+}
+
+.lumiverse-landing-page {
+    color-scheme: dark;
+}
+
+@media (max-width: 600px) {
+    .hidden-sm {
+        display: none !important;
+    }
+}
+
+/* ----------------------------------------
+   States Dropdown
+   ---------------------------------------- */
+.lumiverse-states-menu {
+    position: absolute;
+    top: calc(100% + 4px) !important;
+    bottom: auto !important;
+    left: 0;
+    margin: 0 !important;
+    width: 280px;
+    background: var(--lumiverse-bg-elevated);
+    border: 1px solid var(--lumiverse-border);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    z-index: 9999; /* Boost z-index significantly */
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transform: none !important;
+}
+
+.lumiverse-states-backdrop {
+    display: none;
+}
+
+/* Mobile Centered Modal for States */
+@media (max-width: 600px) {
+    .lumiverse-states-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.6);
+        z-index: 20000;
+        animation: lumiverseFadeIn 0.2s ease;
+    }
+
+    .lumiverse-states-menu {
+        position: fixed;
+        top: 50% !important;
+        left: 50% !important;
+        bottom: auto !important;
+        transform: translate(-50%, -50%) !important;
+        width: 90vw;
+        max-width: 350px;
+        margin: 0 !important;
+        z-index: 20001;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        border: 1px solid var(--lumiverse-border);
+        animation: lumiverseFadeIn 0.2s ease;
+    }
+}

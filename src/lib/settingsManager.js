@@ -131,6 +131,9 @@ const DEFAULT_SETTINGS = {
     xPercent: 1,      // Percentage from right edge (0-100)
     yPercent: 1,      // Percentage from top edge (0-100)
   },
+  // Landing page override setting
+  enableLandingPage: true, // When true, show custom Lumiverse landing page instead of default welcome
+  landingPageChatsDisplayed: 12,
 };
 
 // Settings state - module-level singleton
@@ -538,6 +541,10 @@ export function migrateSettings() {
   }
   if (settings.lumiaQuirks === undefined) settings.lumiaQuirks = '';
   if (!settings.stateSynthesis) settings.stateSynthesis = { enabled: false };
+
+  // Ensure landing page setting default (default to true for new feature)
+  if (settings.enableLandingPage === undefined) settings.enableLandingPage = true;
+  if (settings.landingPageChatsDisplayed === undefined) settings.landingPageChatsDisplayed = 12;
 
   return migrated;
 }

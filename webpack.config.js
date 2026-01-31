@@ -22,6 +22,7 @@ module.exports = (env, argv) => {
         "react-dom": path.resolve(__dirname, "node_modules/react-dom"),
       },
     },
+
     module: {
       rules: [
         {

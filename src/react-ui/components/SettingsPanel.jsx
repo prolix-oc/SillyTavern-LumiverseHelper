@@ -30,6 +30,8 @@ const selectCouncilMembers = () => store.getState().councilMembers || EMPTY_ARRA
 const selectSelectedDefinitions = () => store.getState().selectedDefinitions || EMPTY_ARRAY;
 const selectShowDrawer = () => store.getState().showLumiverseDrawer ?? true;
 const selectButtonPosition = () => store.getState().lumiaButtonPosition ?? DEFAULT_BUTTON_POSITION;
+const selectEnableLandingPage = () => store.getState().enableLandingPage ?? true;
+const selectLandingPageChatsDisplayed = () => store.getState().landingPageChatsDisplayed ?? 12;
 
 /**
  * SVG Icons for mode toggles
@@ -789,9 +791,32 @@ function SettingsPanel() {
         selectButtonPosition
     );
 
+    // Get landing page setting from store
+    const enableLandingPage = useSyncExternalStore(
+        store.subscribe,
+        selectEnableLandingPage,
+        selectEnableLandingPage
+    );
+    const landingPageChatsDisplayed = useSyncExternalStore(
+        store.subscribe,
+        selectLandingPageChatsDisplayed,
+        selectLandingPageChatsDisplayed
+    );
+
     // Handle drawer toggle
     const handleDrawerToggle = useCallback((enabled) => {
         store.setState({ showLumiverseDrawer: enabled });
+        saveToExtension();
+    }, []);
+
+    // Handle landing page toggle
+    const handleLandingPageToggle = useCallback((enabled) => {
+        store.setState({ enableLandingPage: enabled });
+        saveToExtension();
+    }, []);
+
+    const handleChatsDisplayedChange = useCallback((value) => {
+        store.setState({ landingPageChatsDisplayed: parseInt(value, 10) || 12 });
         saveToExtension();
     }, []);
 
@@ -937,6 +962,41 @@ function SettingsPanel() {
                     )}
                 </div>
             )}
+
+            {/* Landing Page Toggle */}
+            <div className="lumia-drawer-toggle-container">
+                <label className="lumiverse-toggle-wrapper">
+                    <div className="lumiverse-toggle-text">
+                        <span className="lumiverse-toggle-label">Custom Landing Page</span>
+                        <span className="lumiverse-toggle-description">
+                            Show Lumiverse recent chats on the home screen
+                        </span>
+                    </div>
+                    <div className={clsx('lumiverse-toggle', enableLandingPage && 'lumiverse-toggle--on')}>
+                        <input
+                            type="checkbox"
+                            className="lumiverse-toggle-input"
+                            checked={enableLandingPage}
+                            onChange={(e) => handleLandingPageToggle(e.target.checked)}
+                        />
+                        <span className="lumiverse-toggle-slider"></span>
+                    </div>
+                </label>
+                {enableLandingPage && (
+                    <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '10px', paddingLeft: '4px' }}>
+                        <span style={{ fontSize: '0.9em', opacity: 0.8 }}>Chats Displayed:</span>
+                        <input
+                            type="number"
+                            className="lumia-input lumia-input-sm"
+                            style={{ width: '60px' }}
+                            value={landingPageChatsDisplayed}
+                            onChange={(e) => handleChatsDisplayedChange(e.target.value)}
+                            min="1"
+                            max="50"
+                        />
+                    </div>
+                )}
+            </div>
 
             {/* Lumia DLC Packs Section */}
             <Panel title="Lumia DLC Packs" icon={Icons.book}>

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <g transform="rotate(-12, 32, 32)">
+    <!-- Top flange -->
+    <ellipse cx="32" cy="12" rx="18" ry="6" fill="#8B5A2B"/>
+    <ellipse cx="32" cy="12" rx="14" ry="4" fill="#A0522D"/>
+    
+    <!-- Spool body (thread area) -->
+    <rect x="14" y="12" width="36" height="40" fill="#8B5FC7"/>
+    
+    <!-- Thread wrapping lines -->
+    <line x1="14" y1="18" x2="50" y2="18" stroke="#7A4EB8" stroke-width="1.5"/>
+    <line x1="14" y1="24" x2="50" y2="24" stroke="#7A4EB8" stroke-width="1.5"/>
+    <line x1="14" y1="30" x2="50" y2="30" stroke="#7A4EB8" stroke-width="1.5"/>
+    <line x1="14" y1="36" x2="50" y2="36" stroke="#7A4EB8" stroke-width="1.5"/>
+    <line x1="14" y1="42" x2="50" y2="42" stroke="#7A4EB8" stroke-width="1.5"/>
+    <line x1="14" y1="48" x2="50" y2="48" stroke="#7A4EB8" stroke-width="1.5"/>
+    
+    <!-- Thread highlight -->
+    <rect x="14" y="12" width="8" height="40" fill="#A78BD4" opacity="0.5"/>
+    
+    <!-- Bottom flange -->
+    <ellipse cx="32" cy="52" rx="18" ry="6" fill="#8B5A2B"/>
+    <rect x="14" y="48" width="36" height="4" fill="#8B5FC7"/>
+    <ellipse cx="32" cy="52" rx="14" ry="4" fill="#A0522D"/>
+    
+    <!-- Center hole on bottom -->
+    <ellipse cx="32" cy="52" rx="5" ry="2" fill="#5D3A1A"/>
+    
+    <!-- Loose thread tail -->
+    <path d="M 48 35 Q 55 38 52 45 Q 49 52 56 58" 
+          fill="none" 
+          stroke="#8B5FC7" 
+          stroke-width="2" 
+          stroke-linecap="round"/>
+  </g>
+</svg>

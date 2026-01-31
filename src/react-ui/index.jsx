@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom/client';
 import { LumiverseProvider, useLumiverseStore } from './store/LumiverseContext';
 import App from './App';
 import ViewportApp from './components/ViewportApp';
+import LandingPage from './components/LandingPage';
 import './styles/main.css';
 
 // Reference to the drawer header for dynamic updates
@@ -304,12 +305,52 @@ function mountViewportPanel(settings = null) {
     return () => unmount(mountId);
 }
 
+/**
+ * Render the landing page into a container
+ * Used by the main extension to render the custom landing page
+ * @param {HTMLElement} container - The DOM container for the landing page
+ * @returns {Function} Cleanup function
+ */
+function renderLandingPage(container) {
+    const mountId = 'lumiverse-landing-root';
+
+    // Clean up any existing landing page
+    const existing = document.getElementById(mountId);
+    if (existing) {
+        existing.remove();
+    }
+
+    // Create wrapper element
+    const rootElement = document.createElement('div');
+    rootElement.id = mountId;
+    rootElement.className = 'lumiverse-react-root';
+    rootElement.style.width = '100%';
+    rootElement.style.height = '100%';
+    container.appendChild(rootElement);
+
+    const root = ReactDOM.createRoot(rootElement);
+    const Wrapper = isDev ? React.StrictMode : React.Fragment;
+    root.render(
+        <Wrapper>
+            <LumiverseProvider>
+                <LandingPage />
+            </LumiverseProvider>
+        </Wrapper>
+    );
+
+    mountedRoots.set(mountId, { root, element: rootElement });
+    console.log('[LumiverseUI] Landing page rendered');
+
+    return () => unmount(mountId);
+}
+
 // Export the public API
 const LumiverseUI = {
     // Mounting
     mountSettingsPanel,
     mountViewportPanel,
     mountComponent,
+    renderLandingPage,
     unmount,
     unmountAll,
 

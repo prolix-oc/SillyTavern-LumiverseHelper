@@ -17,7 +17,10 @@ import {
 } from "./stContext.js";
 
 // Import DOM utilities
-import { query, queryAll } from "./sthelpers/domUtils.js";
+import { query, queryAll, getSafeLandingPageZIndex } from "./lib/domUtils.js";
+
+// Import landing page styles for fallback
+import { landingPageStyles } from "./react-ui/components/LandingPageStyles.js";
 
 // Import lib modules
 import {
@@ -86,6 +89,12 @@ import {
 } from "./lib/reactBridge.js";
 
 import { initPresetBindingService } from "./lib/presetBindingService.js";
+
+import {
+    isLandingPageEnabled,
+    getRecentChats,
+    getCharacterPreset,
+} from "./lib/landingPageService.js";
 
 // Import React UI - this bundles it together and exposes window.LumiverseUI
 import "./react-ui/index.jsx";
@@ -416,6 +425,21 @@ jQuery(async () => {
   // Load settings from extension_settings
   loadSettings();
 
+  // OPTIMIZATION: Hide default landing page immediately if enabled
+  // This prevents a flash of the default screen before our React UI loads
+  // We do this before any async operations to be as fast as possible
+  try {
+    if (isLandingPageEnabled()) {
+      const sheld = document.querySelector('#sheld');
+      if (sheld) {
+        sheld.style.opacity = '0';
+        sheld.style.pointerEvents = 'none';
+      }
+    }
+  } catch (e) {
+    console.warn(`[${MODULE_NAME}] Failed to pre-hide sheld:`, e);
+  }
+
   // Initialize file storage for packs (migrates on first run)
   // IMPORTANT: Must await this before initializing React UI so that selections
   // from file storage are loaded into settings before React reads them
@@ -655,6 +679,340 @@ jQuery(async () => {
   // Process any existing OOC comments on initial load
   console.log(`[${MODULE_NAME}] Initial load - scheduling OOC processing`);
   scheduleOOCProcessingAfterRender();
+
+  // --- CUSTOM LANDING PAGE ---
+  // Render Lumiverse landing page when no chat is open
+  // Uses the strategy from the SillyTavern developer guide:
+  // - Hide #sheld (opacity: 0, pointer-events: none)
+  // - Inject full-screen landing page on top
+  let lumiverseLandingContainer = null;
+  let originalBodyOverflow = '';
+
+  function renderCustomLanding() {
+    console.log(`[${MODULE_NAME}] renderCustomLanding called`);
+
+    // Check if landing page is enabled
+    if (!isLandingPageEnabled()) {
+      console.log(`[${MODULE_NAME}] Landing page disabled, using default welcome screen`);
+      restoreSheld();
+      return;
+    }
+
+    // Check if a chat is currently open (using chatId from context)
+    const ctx = getContext();
+    console.log(`[${MODULE_NAME}] Context:`, { chatId: ctx?.chatId, characterId: ctx?.characterId, groupId: ctx?.groupId });
+    const isChatOpen = ctx?.chatId !== undefined && ctx?.chatId !== null && ctx?.chatId !== '';
+    console.log(`[${MODULE_NAME}] isChatOpen:`, isChatOpen);
+
+    if (isChatOpen) {
+      // Chat is open - restore sheld and remove landing page
+      console.log(`[${MODULE_NAME}] Chat is open, hiding landing page`);
+      restoreSheld();
+      removeLandingPage();
+      return;
+    }
+
+    // No chat open - show landing page
+    console.log(`[${MODULE_NAME}] No chat open, showing landing page`);
+    showLandingPage();
+  }
+
+  function showLandingPage() {
+    console.log(`[${MODULE_NAME}] showLandingPage called`);
+
+    // Lock body scroll to prevent underlying content from scrolling
+    if (!originalBodyOverflow) {
+      originalBodyOverflow = document.body.style.overflow;
+    }
+    document.body.style.overflow = 'hidden';
+
+    // Hide the default sheld per developer guide
+    const sheld = document.querySelector('#sheld');
+    if (sheld) {
+      console.log(`[${MODULE_NAME}] Hiding #sheld`);
+      sheld.style.opacity = '0';
+      sheld.style.pointerEvents = 'none';
+    } else {
+      console.warn(`[${MODULE_NAME}] #sheld not found!`);
+    }
+
+    // Check if landing page already exists
+    if (lumiverseLandingContainer) {
+      console.log(`[${MODULE_NAME}] Landing page container already exists, triggering refresh`);
+      // Trigger refresh in React component to ensure data is up to date (e.g. on APP_READY)
+      window.dispatchEvent(new Event('lumiverse:landing-refresh'));
+      return;
+    }
+
+    // Create full-screen container with explicit positioning
+    lumiverseLandingContainer = document.createElement('div');
+    lumiverseLandingContainer.id = 'lumiverse-landing-page-container';
+    
+    // Get safe z-index relative to top bar
+    const safeZ = getSafeLandingPageZIndex();
+    
+    lumiverseLandingContainer.style.cssText = `
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100dvh;
+      z-index: ${safeZ};
+      pointer-events: none;
+    `;
+    document.body.appendChild(lumiverseLandingContainer);
+    console.log(`[${MODULE_NAME}] Landing page container created and appended to body`, lumiverseLandingContainer);
+
+    // Mount the landing page React component
+    if (window.LumiverseUI?.renderLandingPage) {
+      console.log(`[${MODULE_NAME}] Calling window.LumiverseUI.renderLandingPage`);
+      window.LumiverseUI.renderLandingPage(lumiverseLandingContainer);
+      console.log(`[${MODULE_NAME}] Custom landing page rendered (full-screen)`);
+    } else {
+      console.warn(`[${MODULE_NAME}] window.LumiverseUI.renderLandingPage not found, using fallback`);
+      // Fallback: render simple HTML landing page
+      renderSimpleLandingPage(lumiverseLandingContainer);
+    }
+  }
+
+  function removeLandingPage() {
+    if (lumiverseLandingContainer) {
+      lumiverseLandingContainer.remove();
+      lumiverseLandingContainer = null;
+      console.log(`[${MODULE_NAME}] Landing page removed`);
+      
+      // Restore body scroll
+      document.body.style.overflow = originalBodyOverflow || '';
+      originalBodyOverflow = '';
+    }
+  }
+
+  function restoreSheld() {
+    const sheld = document.querySelector('#sheld');
+    if (sheld) {
+      sheld.style.opacity = '';
+      sheld.style.pointerEvents = '';
+    }
+  }
+
+  // Simple HTML fallback when React is not available
+  // Uses global characters/groups arrays (compatible with lazy loading)
+  // Implements glassmorphic card grid design matching the React version
+  async function renderSimpleLandingPage(container) {
+    try {
+      // Inject styles manually since React isn't running
+      const styleId = 'lumiverse-landing-styles-fallback';
+      if (!document.getElementById(styleId)) {
+        const styleEl = document.createElement('style');
+        styleEl.id = styleId;
+        styleEl.textContent = landingPageStyles;
+        document.head.appendChild(styleEl);
+      }
+
+      // Import global arrays and helpers from SillyTavern core
+      const { characters, selectCharacterById, getThumbnailUrl } = await import(/* webpackIgnore: true */ '../../../../../script.js');
+      const { groups, openGroupById } = await import(/* webpackIgnore: true */ '../../../../group-chats.js');
+
+      // Merge and sort by date_last_chat
+      const allItems = [
+        ...(characters || []).map((char, index) => ({
+          ...char,
+          _type: 'character',
+          _index: index,
+          _sortDate: char.date_last_chat || 0,
+        })),
+        ...(groups || []).map(group => ({
+          ...group,
+          _type: 'group',
+          _sortDate: group.date_last_chat || 0,
+        })),
+      ]
+        .filter(item => item._sortDate > 0)
+        .sort((a, b) => b._sortDate - a._sortDate)
+        .slice(0, 12);
+
+      // Format relative time helper
+      const formatTime = (timestamp) => {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffSecs = Math.floor(diffMs / 1000);
+        const diffMins = Math.floor(diffSecs / 60);
+        const diffHours = Math.floor(diffMins / 60);
+        const diffDays = Math.floor(diffHours / 24);
+
+        if (diffSecs < 60) return 'Just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        if (diffDays < 7) return `${diffDays}d ago`;
+        return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      };
+
+      let html = `
+        <div class="lumiverse-lp-container">
+          <!-- Ambient background effects -->
+          <div class="lumiverse-lp-bg">
+            <div class="lumiverse-lp-bg-glow lumiverse-lp-bg-glow-1"></div>
+            <div class="lumiverse-lp-bg-glow lumiverse-lp-bg-glow-2"></div>
+            <div class="lumiverse-lp-bg-glow lumiverse-lp-bg-glow-3"></div>
+          </div>
+          <!-- Grid pattern overlay -->
+          <div class="lumiverse-lp-grid"></div>
+
+          <div class="lumiverse-lp-content">
+            <!-- Header -->
+            <header class="lumiverse-lp-header">
+              <div class="lumiverse-lp-header-left">
+                <div class="lumiverse-lp-logo">
+                  <div class="lumiverse-lp-logo-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+                  </div>
+                  <div class="lumiverse-lp-logo-text">
+                    <h1>Lumiverse</h1>
+                    <span>Continue your story</span>
+                  </div>
+                </div>
+              </div>
+              <div class="lumiverse-lp-header-right">
+                <button class="lumiverse-lp-btn lumiverse-lp-btn-toggle" id="lumiverse-lp-toggle-sheld" type="button">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  <span>Show Sheld</span>
+                </button>
+              </div>
+            </header>
+
+            <!-- Main grid -->
+            <main class="lumiverse-lp-main">
+      `;
+
+      if (allItems.length === 0) {
+        html += `
+          <div class="lumiverse-lp-empty">
+            <div class="lumiverse-lp-empty-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+            </div>
+            <h3>Begin Your Journey</h3>
+            <p>No recent conversations found. Select a character to start a new adventure.</p>
+          </div>
+        `;
+      } else {
+        html += '<div class="lumiverse-lp-grid-cards">';
+        allItems.forEach((item, index) => {
+          const isGroup = item._type === 'group';
+          const time = formatTime(item._sortDate);
+
+          // Avatar URL: groups use avatar_url, characters use getThumbnailUrl for thumbnails
+          let avatarUrl;
+          if (isGroup) {
+            avatarUrl = item.avatar_url || '/img/fa-solid-groups.svg';
+          } else if (item.avatar && getThumbnailUrl) {
+            avatarUrl = getThumbnailUrl('avatar', item.avatar);
+          } else if (item.avatar) {
+            avatarUrl = `/characters/${encodeURIComponent(item.avatar)}`;
+          } else {
+            avatarUrl = '/img/fa-solid-user.svg';
+          }
+
+          const groupBadge = isGroup ? `<span class="lumiverse-lp-card-badge lumiverse-lp-card-badge-group"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Group</span>` : '';
+
+          html += `
+            <div class="lumiverse-lp-card" data-type="${item._type}" data-id="${isGroup ? item.id : item._index}" style="animation-delay: ${index * 60}ms">
+              <div class="lumiverse-lp-card-shimmer"></div>
+              <div class="lumiverse-lp-card-image-container">
+                <div class="lumiverse-lp-card-glow"></div>
+                ${isGroup ? `
+                  <div class="lumiverse-lp-card-avatar-group">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                  </div>
+                ` : `
+                  <img src="${avatarUrl}" alt="${item.name}" class="lumiverse-lp-card-avatar" loading="lazy" onerror="this.src='/img/fa-solid-user.svg'">
+                `}
+                <div class="lumiverse-lp-card-time-badge">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  <span>${time}</span>
+                </div>
+              </div>
+              <div class="lumiverse-lp-card-content">
+                <h3 class="lumiverse-lp-card-name">${item.name || 'Unnamed'}</h3>
+                <div class="lumiverse-lp-card-meta">
+                  ${groupBadge}
+                </div>
+              </div>
+              <div class="lumiverse-lp-card-indicator"></div>
+            </div>
+          `;
+        });
+        html += '</div>';
+      }
+
+      html += `
+            </main>
+
+            <!-- Footer -->
+            <footer class="lumiverse-lp-footer">
+              <p>Select a character to continue your journey</p>
+            </footer>
+          </div>
+        </div>
+      `;
+
+      container.innerHTML = html;
+
+      // Add click handlers to cards
+      container.querySelectorAll('.lumiverse-lp-card').forEach(card => {
+        card.addEventListener('click', async () => {
+          const type = card.dataset.type;
+          const id = card.dataset.id;
+          try {
+            if (type === 'group') {
+              if (openGroupById) await openGroupById(id);
+            } else {
+              if (selectCharacterById) await selectCharacterById(String(id));
+            }
+          } catch (err) {
+            console.error(`[${MODULE_NAME}] Error opening chat:`, err);
+          }
+        });
+      });
+
+      // Toggle sheld button handler
+      const toggleBtn = container.querySelector('#lumiverse-lp-toggle-sheld');
+      if (toggleBtn) {
+        let sheldVisible = false;
+        toggleBtn.addEventListener('click', () => {
+          const sheld = document.querySelector('#sheld');
+          if (sheld) {
+            if (sheldVisible) {
+              sheld.style.opacity = '0';
+              sheld.style.pointerEvents = 'none';
+              toggleBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>Show Sheld</span>`;
+            } else {
+              sheld.style.opacity = '';
+              sheld.style.pointerEvents = '';
+              toggleBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span>Show Landing</span>`;
+            }
+            sheldVisible = !sheldVisible;
+          }
+        });
+      }
+
+      console.log(`[${MODULE_NAME}] Simple landing page rendered with ${allItems.length} chats`);
+    } catch (err) {
+      console.error(`[${MODULE_NAME}] Error rendering simple landing page:`, err);
+    }
+  }
+
+  // Register landing page event listeners
+  if (eventSource && event_types) {
+    eventSource.on(event_types.APP_READY, () => {
+      window.lumiverseAppReady = true;
+      renderCustomLanding();
+    });
+    eventSource.on(event_types.CHAT_CHANGED, renderCustomLanding);
+    
+    // Trigger immediately in case we missed APP_READY or want to render ASAP
+    // This ensures the landing page appears as soon as the script loads
+    renderCustomLanding();
+  }
 
   // --- SLASH COMMANDS ---
   const SlashCommandParser = getSlashCommandParser();

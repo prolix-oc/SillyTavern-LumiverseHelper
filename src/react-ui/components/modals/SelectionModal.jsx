@@ -8,7 +8,7 @@ import {
 } from '../../store/LumiverseContext';
 import { useAdaptiveImagePosition } from '../../hooks/useAdaptiveImagePosition';
 import { 
-    Star, Check, Trash2, XCircle, ChevronDown, ChevronUp, 
+    Star, Check, Trash2, XCircle, ChevronDown, ChevronUp, X,
     Pencil, Folder, User, Wrench, PieChart, ArrowDownAZ, Sparkles 
 } from 'lucide-react';
 
@@ -330,6 +330,20 @@ const styles = {
     btnPrimary: {
         background: 'var(--lumiverse-primary, #9370db)',
         color: '#fff',
+    },
+    headerCloseBtn: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '32px',
+        height: '32px',
+        borderRadius: '8px',
+        border: 'none',
+        background: 'transparent',
+        color: 'var(--lumiverse-text-muted, #999)',
+        cursor: 'pointer',
+        marginLeft: '4px',
+        transition: 'all 0.15s ease',
     },
 };
 
@@ -919,6 +933,13 @@ function SelectionModal({
                 <button style={styles.clearBtn} onClick={handleClearAll} title="Clear all selections">
                     <XCircle size={14} />
                     <span>Clear</span>
+                </button>
+                <button 
+                    style={styles.headerCloseBtn} 
+                    onClick={onClose}
+                    title="Close modal"
+                >
+                    <X size={20} />
                 </button>
             </div>
 

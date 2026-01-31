@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useLumiverseStore, useLumiverseActions, saveToExtension } from '../../store/LumiverseContext';
 import { 
-    Edit3, Grid3X3, Filter, Info, ChevronDown, ChevronUp 
+    Edit3, Grid3X3, Filter, Info, ChevronDown, ChevronUp, X
 } from 'lucide-react';
 
 /**
@@ -278,6 +278,20 @@ const styles = {
         background: 'var(--lumiverse-primary)',
         color: 'white',
     },
+    headerCloseBtn: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '32px',
+        height: '32px',
+        borderRadius: '8px',
+        border: 'none',
+        background: 'transparent',
+        color: 'var(--lumiverse-text-muted)',
+        cursor: 'pointer',
+        marginLeft: '4px',
+        transition: 'all 0.15s ease',
+    },
 };
 
 function Toggle({ checked, onChange, disabled }) {
@@ -385,6 +399,13 @@ function PromptSettingsModal({ onClose }) {
                     <h3 style={styles.title}>Prompt Settings</h3>
                     <p style={styles.subtitle}>Configure advanced prompt features</p>
                 </div>
+                <button 
+                    style={styles.headerCloseBtn} 
+                    onClick={onClose}
+                    title="Close modal"
+                >
+                    <X size={20} />
+                </button>
             </div>
 
             {/* Scrollable Content */}

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { usePacks, useLumiverseActions, useLoomSelections, saveToExtension } from '../../store/LumiverseContext';
 import { 
-    Search, XCircle, ChevronDown, ChevronUp, Folder, 
+    Search, XCircle, ChevronDown, ChevronUp, Folder, X,
     Trash2, Pencil, ArrowDownAZ, Check, Plus 
 } from 'lucide-react';
 
@@ -310,6 +310,20 @@ const styles = {
     btnPrimary: {
         background: 'var(--lumiverse-primary, #9370db)',
         color: '#fff',
+    },
+    headerCloseBtn: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '32px',
+        height: '32px',
+        borderRadius: '8px',
+        border: 'none',
+        background: 'transparent',
+        color: 'var(--lumiverse-text-muted, #999)',
+        cursor: 'pointer',
+        marginLeft: '4px',
+        transition: 'all 0.15s ease',
     },
 };
 
@@ -692,6 +706,13 @@ function LoomSelectionModal({ type, onClose }) {
                         </button>
                     )}
                 </div>
+                <button 
+                    style={styles.headerCloseBtn} 
+                    onClick={onClose}
+                    title="Close modal"
+                >
+                    <X size={20} />
+                </button>
             </div>
 
             {/* Controls */}

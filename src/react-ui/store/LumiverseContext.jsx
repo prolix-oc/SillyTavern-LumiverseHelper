@@ -141,6 +141,10 @@ const initialState = {
         yPercent: 1,      // Percentage from top edge (0-100)
     },
 
+    // Landing page setting
+    enableLandingPage: true,
+    landingPageChatsDisplayed: 12,
+
     // Chat change tracking (React-only, incremented on syncFromExtension)
     // Components can subscribe to this to reload when chat changes
     chatChangeCounter: 0,
