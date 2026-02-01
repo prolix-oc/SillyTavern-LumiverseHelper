@@ -136,10 +136,9 @@ const initialState = {
     // UI preferences
     showLumiverseDrawer: true,  // Whether to show the viewport drawer
     dismissedUpdateVersion: null, // Version user dismissed update notification for
-    lumiaButtonPosition: {
-        useDefault: true, // When true, use default positioning (top-right, animates with panel)
-        xPercent: 1,      // Percentage from right edge (0-100)
-        yPercent: 1,      // Percentage from top edge (0-100)
+    drawerSettings: {
+        side: 'right',         // 'left' or 'right' - which side of screen the drawer docks to
+        verticalPosition: 15,  // Percentage from top (0-100) for tab vertical position
     },
 
     // Landing page setting

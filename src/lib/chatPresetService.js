@@ -638,6 +638,51 @@ export class ChatPresetService {
     }
 
     /**
+     * Reset prompts to the default enabled states from the current preset.
+     * This ensures a "clean slate" before applying per-chat/character toggle bindings.
+     * 
+     * IMPORTANT: This method resets the runtime prompt_order to match the preset's
+     * default toggle states, preventing "leakage" from one context to another.
+     * 
+     * @returns {boolean} Whether the reset was successful
+     */
+    resetPromptsToDefault() {
+        const current = this.getCurrentPreset();
+        if (!current?.settings?.prompts) {
+            console.warn('[ChatPresetService] Cannot reset - no current preset or prompts');
+            return false;
+        }
+
+        const orderEntry = this.getActivePromptOrderEntry();
+        if (!orderEntry?.order) {
+            console.warn('[ChatPresetService] Cannot reset - no prompt_order entry');
+            return false;
+        }
+
+        // Build a map of prompt identifier -> default enabled state from the preset
+        const defaultStates = {};
+        for (const prompt of current.settings.prompts) {
+            const key = prompt.identifier || prompt.name;
+            if (key) {
+                // Default to enabled if not explicitly set to false
+                defaultStates[key] = prompt.enabled !== false;
+            }
+        }
+
+        // Apply default states to the runtime prompt_order
+        let resetCount = 0;
+        for (const orderItem of orderEntry.order) {
+            if (orderItem.identifier && orderItem.identifier in defaultStates) {
+                orderItem.enabled = defaultStates[orderItem.identifier];
+                resetCount++;
+            }
+        }
+
+        console.log(`[ChatPresetService] Reset ${resetCount} prompts to default enabled states`);
+        return resetCount > 0;
+    }
+
+    /**
      * Apply a saved toggle state to the runtime prompt_order (not to preset file).
      * This is the correct method for applying toggle states at runtime.
      * 

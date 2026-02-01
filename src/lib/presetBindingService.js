@@ -236,6 +236,13 @@ export function resolveCurrentBinding() {
 /**
  * Apply the appropriate preset based on current bindings
  * Called on CHAT_CHANGED event
+ * 
+ * IMPORTANT: This function now implements a "clean slate" approach:
+ * 1. Always reset prompts to preset defaults FIRST
+ * 2. Then apply any context-specific toggle bindings
+ * 
+ * This prevents toggle state "leakage" between different chats/characters.
+ * 
  * @returns {Promise<boolean>} Whether a preset was switched
  */
 export async function applyBindingForCurrentContext() {
@@ -246,11 +253,15 @@ export async function applyBindingForCurrentContext() {
 
     const binding = resolveCurrentBinding();
     
+    // CRITICAL FIX: Always reset prompts to default state first
+    // This ensures no toggle state "leakage" from previous context
+    chatPresetService.resetPromptsToDefault();
+    
     // No binding for current context
     if (!binding.presetName) {
         console.log(`[${MODULE_NAME}] No preset binding for current context`);
         lastAppliedBinding = null;
-        // Still check for toggle states even without preset binding
+        // After reset, check if there are context-specific toggle states to apply
         await applyToggleStatesForCurrentContext();
         return false;
     }
@@ -259,7 +270,7 @@ export async function applyBindingForCurrentContext() {
     const bindingKey = `${binding.bindingType}:${binding.bindingId}:${binding.presetName}`;
     if (lastAppliedBinding === bindingKey) {
         console.log(`[${MODULE_NAME}] Preset binding already applied, checking toggle states...`);
-        // Still apply toggle states even if preset is same
+        // Still apply toggle states even if preset is same (they were reset above)
         await applyToggleStatesForCurrentContext();
         return false;
     }
@@ -297,6 +308,7 @@ export async function applyBindingForCurrentContext() {
             }
 
             // After preset is loaded, apply any toggle state overrides
+            // Note: selectPreset loads fresh preset state, so we apply on top of that
             await applyToggleStatesForCurrentContext();
         }
         

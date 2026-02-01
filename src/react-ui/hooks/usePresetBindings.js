@@ -65,9 +65,18 @@ export function usePresetBindings() {
         };
     }, []);
 
-    // Refresh available presets and toggle state status
+    // Refresh context info (call when modal opens to ensure fresh data)
+    const refreshContext = useCallback(() => {
+        setContextInfo(getCurrentContextInfo());
+        setHasChatToggleBinding(chatPresetService.hasChatToggleState());
+        setHasCharacterToggleBinding(chatPresetService.hasCharacterToggleState());
+    }, []);
+
+    // Refresh available presets, toggle state status, AND context
     const refreshPresets = useCallback(() => {
         setAvailablePresets(chatPresetService.getAvailablePresets());
+        // Also refresh context and toggle binding status
+        setContextInfo(getCurrentContextInfo());
         setHasChatToggleBinding(chatPresetService.hasChatToggleState());
         setHasCharacterToggleBinding(chatPresetService.hasCharacterToggleState());
     }, []);
@@ -137,18 +146,35 @@ export function usePresetBindings() {
     /**
      * Save current prompt toggle states to the current chat.
      * This creates a per-chat override that auto-applies when switching to this chat.
+     * 
+     * IMPORTANT: Uses captureCurrentToggles() to read from runtime prompt_order,
+     * NOT from the static preset prompts array. This ensures we capture the
+     * actual current enabled/disabled states.
      */
     const saveTogglesToChat = useCallback(async () => {
-        const preset = chatPresetService.getCurrentPreset();
-        if (!preset?.settings?.prompts?.length) {
-            console.warn('[usePresetBindings] No prompts to save');
+        // Capture toggles from runtime prompt_order (the correct source)
+        const toggles = chatPresetService.captureCurrentToggles();
+        if (!toggles || Object.keys(toggles).length === 0) {
+            console.warn('[usePresetBindings] No toggles to save (prompt_order empty or unavailable)');
             return false;
         }
-        const success = await chatPresetService.saveToggleStateToChat(preset.settings.prompts);
-        if (success) {
-            setHasChatToggleBinding(true);
+        
+        const chatId = chatPresetService.getCurrentChatId();
+        if (!chatId) {
+            console.warn('[usePresetBindings] No current chat to bind toggles');
+            return false;
         }
-        return success;
+        
+        // Import the setter directly since we're bypassing the prompts-based method
+        const { setChatToggleBinding } = await import('../../lib/packCache.js');
+        setChatToggleBinding(chatId, {
+            toggles,
+            sourcePreset: chatPresetService.getCurrentPreset()?.name || null,
+        });
+        
+        setHasChatToggleBinding(true);
+        console.log(`[usePresetBindings] Saved ${Object.keys(toggles).length} toggle states to chat "${chatId}"`);
+        return true;
     }, []);
 
     /**
@@ -164,18 +190,35 @@ export function usePresetBindings() {
 
     /**
      * Save current prompt toggle states to the current character.
+     * 
+     * IMPORTANT: Uses captureCurrentToggles() to read from runtime prompt_order,
+     * NOT from the static preset prompts array. This ensures we capture the
+     * actual current enabled/disabled states.
      */
     const saveTogglesToCharacter = useCallback(async () => {
-        const preset = chatPresetService.getCurrentPreset();
-        if (!preset?.settings?.prompts?.length) {
-            console.warn('[usePresetBindings] No prompts to save');
+        // Capture toggles from runtime prompt_order (the correct source)
+        const toggles = chatPresetService.captureCurrentToggles();
+        if (!toggles || Object.keys(toggles).length === 0) {
+            console.warn('[usePresetBindings] No toggles to save (prompt_order empty or unavailable)');
             return false;
         }
-        const success = await chatPresetService.saveToggleStateToCharacter(preset.settings.prompts);
-        if (success) {
-            setHasCharacterToggleBinding(true);
+        
+        const avatar = chatPresetService.getCurrentCharacterAvatar();
+        if (!avatar) {
+            console.warn('[usePresetBindings] No current character to bind toggles');
+            return false;
         }
-        return success;
+        
+        // Import the setter directly since we're bypassing the prompts-based method
+        const { setCharacterToggleBinding } = await import('../../lib/packCache.js');
+        setCharacterToggleBinding(avatar, {
+            toggles,
+            sourcePreset: chatPresetService.getCurrentPreset()?.name || null,
+        });
+        
+        setHasCharacterToggleBinding(true);
+        console.log(`[usePresetBindings] Saved ${Object.keys(toggles).length} toggle states to character "${avatar}"`);
+        return true;
     }, []);
 
     /**
@@ -209,6 +252,7 @@ export function usePresetBindings() {
         removeCharacterBinding,
         removeChatBinding,
         refreshPresets,
+        refreshContext,
         
         // Toggle state actions
         saveTogglesToChat,

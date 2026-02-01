@@ -125,11 +125,10 @@ const DEFAULT_SETTINGS = {
   trackedPresets: {}, // { [presetSlug]: { name, version: {major, minor, patch}, importedAt, versionName } }
   // Dismissed update version (to not show banner again for same version)
   dismissedUpdateVersion: null,
-  // Lumia button position (percentage from edges)
-  lumiaButtonPosition: {
-    useDefault: true, // When true, use default positioning (top-right, animates with panel)
-    xPercent: 1,      // Percentage from right edge (0-100)
-    yPercent: 1,      // Percentage from top edge (0-100)
+  // Drawer position settings
+  drawerSettings: {
+    side: 'right',         // 'left' or 'right' - which side of screen the drawer docks to
+    verticalPosition: 15,  // Percentage from top (0-100) for tab vertical position
   },
   // Landing page override setting
   enableLandingPage: true, // When true, show custom Lumiverse landing page instead of default welcome

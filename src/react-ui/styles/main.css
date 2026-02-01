@@ -1298,8 +1298,8 @@ details.lumia-panel[open] .lumia-panel-chevron {
     border-color: rgba(147, 112, 219, 0.25);
 }
 
-/* Button position settings container */
-.lumia-button-position-container {
+/* Drawer settings container */
+.lumia-drawer-settings-container {
     margin-bottom: 12px;
     padding: 12px 14px;
     background: linear-gradient(
@@ -1312,44 +1312,141 @@ details.lumia-panel[open] .lumia-panel-chevron {
     transition: border-color 0.2s ease;
 }
 
-.lumia-button-position-container:hover {
+.lumia-drawer-settings-container:hover {
     border-color: rgba(147, 112, 219, 0.2);
 }
 
-.lumia-button-position-inputs {
+.lumia-drawer-settings-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid rgba(147, 112, 219, 0.1);
+    gap: 16px;
+    align-items: flex-start;
 }
 
-.lumia-position-field {
+.lumia-drawer-setting {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
     flex: 1;
-    min-width: 100px;
+    min-width: 120px;
 }
 
-.lumia-position-field label {
+.lumia-drawer-setting-label {
     font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Side toggle button group */
+.lumia-drawer-side-toggle {
+    display: flex;
+    gap: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(147, 112, 219, 0.2);
+}
+
+.lumia-side-btn {
+    flex: 1;
+    padding: 8px 16px;
+    font-size: 0.8rem;
+    font-weight: 600;
     color: rgba(255, 255, 255, 0.6);
-    font-weight: 500;
+    background: rgba(28, 24, 38, 0.6);
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
-.lumia-input-sm {
-    padding: 6px 10px;
-    font-size: 0.85rem;
+.lumia-side-btn:first-child {
+    border-right: 1px solid rgba(147, 112, 219, 0.15);
 }
 
-.lumia-position-hint {
-    width: 100%;
-    font-size: 0.7rem;
-    color: rgba(147, 112, 219, 0.7);
-    font-style: italic;
-    margin-top: 4px;
+.lumia-side-btn:hover {
+    background: rgba(147, 112, 219, 0.15);
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.lumia-side-btn--active {
+    background: linear-gradient(
+        135deg,
+        rgba(147, 112, 219, 0.35) 0%,
+        rgba(123, 88, 195, 0.35) 100%
+    );
+    color: white;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.lumia-side-btn--active:hover {
+    background: linear-gradient(
+        135deg,
+        rgba(147, 112, 219, 0.45) 0%,
+        rgba(123, 88, 195, 0.45) 100%
+    );
+}
+
+/* Vertical position slider */
+.lumia-drawer-vpos-input {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.lumia-slider {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(147, 112, 219, 0.15);
+    outline: none;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.lumia-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: linear-gradient(
+        135deg,
+        rgba(147, 112, 219, 1) 0%,
+        rgba(123, 88, 195, 1) 100%
+    );
+    cursor: pointer;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 2px 6px rgba(147, 112, 219, 0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.lumia-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 2px 10px rgba(147, 112, 219, 0.6);
+}
+
+.lumia-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: linear-gradient(
+        135deg,
+        rgba(147, 112, 219, 1) 0%,
+        rgba(123, 88, 195, 1) 100%
+    );
+    cursor: pointer;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 2px 6px rgba(147, 112, 219, 0.4);
+}
+
+.lumia-drawer-vpos-value {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: rgba(147, 112, 219, 0.9);
+    min-width: 32px;
+    text-align: right;
 }
 
 /* Mode toggles container */
@@ -4529,24 +4626,33 @@ details.lumia-panel[open] .lumia-panel-chevron {
     /* Inline styles handle positioning, this is for any additional styling */
     margin: 0;
     padding: 0;
+    overflow: visible; /* Allow drawer tab to extend beyond container bounds */
 }
 
-/* Wrapper that slides in/out - contains both toggle and panel */
+/* Wrapper that slides in/out - contains both tab and panel as unified element */
 .lumiverse-viewport-wrapper {
     display: flex;
     flex-direction: row;
     align-items: flex-start;
     height: 100vh;
     height: 100dvh;
+    position: relative; /* For absolute positioning of drawer tab */
+    overflow: visible; /* Allow drawer tab to extend beyond wrapper bounds */
 }
 
-/* Container for the toggle button - positioned to left of panel */
+/* Visible state - drawer is open */
+.lumiverse-viewport-wrapper--visible {
+    /* Can be used for additional open-state styling */
+}
+
+/* Legacy toggle container - kept for backwards compatibility */
 .lumiverse-toggle-container {
     position: absolute;
     top: 12px;
     right: 100%; /* Position to the left of the wrapper */
     margin-right: 12px;
     pointer-events: auto;
+    display: none; /* Hidden - replaced by drawer tab */
 }
 
 /* Custom position modifier - disables default positioning, uses inline styles */
@@ -4556,6 +4662,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     top: auto;
     right: auto;
     margin: 0;
+    display: none; /* Hidden - replaced by drawer tab */
 }
 
 .lumiverse-viewport-panel {
@@ -6220,6 +6327,214 @@ details.lumia-panel[open] .lumia-panel-chevron {
     font-weight: 600;
     color: white;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Left-side toggle button positioning */
+.lumiverse-panel-toggle--left {
+    /* Mirror shadow direction for left side */
+    box-shadow: 0 4px 12px rgba(147, 112, 219, 0.4), 0 0 20px rgba(147, 112, 219, 0.2);
+}
+
+.lumiverse-toggle-container--left {
+    /* Container styles when positioned on left */
+}
+
+/* ----------------------------------------
+   Flush-Mounted Drawer Tab
+   Unified with drawer - animates as one element
+   ---------------------------------------- */
+
+.lumiverse-drawer-tab {
+    /* Part of the flex layout, not absolutely positioned */
+    flex-shrink: 0;
+    align-self: flex-start;
+    margin-top: 64px;
+    width: 48px;
+
+    /* Vertical layout */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px 8px 20px;
+
+    /* Flush-mounted appearance - rounded only on outer edge */
+    background: linear-gradient(
+        180deg,
+        rgba(28, 24, 38, 0.98) 0%,
+        rgba(20, 17, 28, 0.98) 100%
+    );
+    border: 1px solid rgba(147, 112, 219, 0.25);
+    border-right: none;
+    border-radius: 12px 0 0 12px;
+
+    /* Interactive */
+    cursor: pointer;
+    pointer-events: auto;
+
+    /* Subtle glow effect */
+    box-shadow:
+        -4px 0 16px rgba(147, 112, 219, 0.15),
+        inset 1px 0 0 rgba(147, 112, 219, 0.1);
+
+    /* Smooth interactions */
+    transition:
+        background 0.2s ease,
+        box-shadow 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.lumiverse-drawer-tab:hover {
+    background: linear-gradient(
+        180deg,
+        rgba(40, 34, 52, 0.98) 0%,
+        rgba(28, 24, 38, 0.98) 100%
+    );
+    border-color: rgba(147, 112, 219, 0.4);
+    box-shadow:
+        -6px 0 24px rgba(147, 112, 219, 0.25),
+        inset 1px 0 0 rgba(147, 112, 219, 0.2);
+}
+
+.lumiverse-drawer-tab--active {
+    background: linear-gradient(
+        180deg,
+        rgba(50, 42, 68, 0.98) 0%,
+        rgba(35, 30, 48, 0.98) 100%
+    );
+    border-color: rgba(147, 112, 219, 0.5);
+}
+
+.lumiverse-drawer-tab-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: linear-gradient(
+        135deg,
+        rgba(147, 112, 219, 0.9) 0%,
+        rgba(123, 88, 195, 0.9) 100%
+    );
+    border-radius: 8px;
+    color: white;
+    box-shadow:
+        0 2px 8px rgba(147, 112, 219, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.lumiverse-drawer-tab:hover .lumiverse-drawer-tab-icon {
+    box-shadow:
+        0 2px 12px rgba(147, 112, 219, 0.6),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.lumiverse-drawer-tab-label {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: rgba(255, 255, 255, 0.85);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.lumiverse-drawer-tab:hover .lumiverse-drawer-tab-label {
+    color: white;
+}
+
+/* Update indicator positioning for drawer tab */
+.lumiverse-drawer-tab .lumiverse-update-dot {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+}
+
+.lumiverse-drawer-tab--has-updates {
+    border-color: rgba(255, 180, 100, 0.4);
+}
+
+.lumiverse-drawer-tab--has-updates::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 12px 0 0 12px;
+    background: linear-gradient(
+        90deg,
+        rgba(255, 180, 100, 0.15) 0%,
+        transparent 60%
+    );
+    pointer-events: none;
+}
+
+/* ----------------------------------------
+   Left-Side Panel Positioning
+   Mirror layout when drawer docks to left side
+   ---------------------------------------- */
+
+/* Wrapper positioned on left */
+.lumiverse-viewport-wrapper--left {
+    flex-direction: row-reverse; /* Flip the order: panel first, then tab */
+}
+
+/* Panel layout flipped for left side */
+.lumiverse-viewport-panel--left {
+    flex-direction: row-reverse; /* Tab -> Tabs -> Main becomes Main -> Tabs -> Tab */
+}
+
+/* Tab sidebar border flipped for left side */
+.lumiverse-viewport-panel--left .lumiverse-vp-tabs {
+    border-left: none;
+    border-right: 1px solid rgba(147, 112, 219, 0.2);
+}
+
+/* Active tab indicator on opposite side */
+.lumiverse-viewport-panel--left .lumiverse-vp-tab--active {
+    box-shadow: inset -2px 0 0 var(--lumiverse-primary);
+}
+
+/* Main content border flipped */
+.lumiverse-viewport-panel--left .lumiverse-vp-main {
+    border-left: none;
+    border-right: 1px solid rgba(147, 112, 219, 0.15);
+}
+
+/* Drawer tab for left-side panel - rounded on right, flat on left */
+.lumiverse-drawer-tab--left {
+    /* With row-reverse on parent, first DOM element (drawer tab) goes rightmost - which is correct */
+    /* No order change needed - we want it on the right edge */
+    border-radius: 0 12px 12px 0;
+    border-left: none;
+    border-right: 1px solid rgba(147, 112, 219, 0.25);
+    
+    /* Flip shadow direction */
+    box-shadow:
+        4px 0 16px rgba(147, 112, 219, 0.15),
+        inset -1px 0 0 rgba(147, 112, 219, 0.1);
+}
+
+.lumiverse-drawer-tab--left:hover {
+    box-shadow:
+        6px 0 24px rgba(147, 112, 219, 0.25),
+        inset -1px 0 0 rgba(147, 112, 219, 0.2);
+}
+
+/* Update indicator position for left-side tab */
+.lumiverse-drawer-tab--left .lumiverse-update-dot {
+    left: auto;
+    right: 8px;
+}
+
+/* Left-side update glow gradient flipped */
+.lumiverse-drawer-tab--left.lumiverse-drawer-tab--has-updates::before {
+    border-radius: 0 12px 12px 0;
+    background: linear-gradient(
+        -90deg,
+        rgba(255, 180, 100, 0.15) 0%,
+        transparent 60%
+    );
 }
 
 /* ----------------------------------------
@@ -8061,10 +8376,25 @@ details.lumia-panel[open] .lumia-panel-chevron {
         font-size: 9px;
     }
 
-    /* Toggle button - shift down to avoid SillyTavern's top bar */
-    /* Only apply to default positioning, not custom */
+    /* Drawer tab - adjust for mobile */
+    .lumiverse-drawer-tab {
+        margin-top: 56px;
+        width: 40px;
+        padding: 14px 6px 18px;
+    }
+
+    .lumiverse-drawer-tab-icon {
+        width: 24px;
+        height: 24px;
+    }
+
+    .lumiverse-drawer-tab-label {
+        font-size: 10px;
+    }
+
+    /* Legacy toggle container hidden on mobile */
     .lumiverse-toggle-container:not(.lumiverse-toggle-container--custom) {
-        top: 44px !important;
+        display: none !important;
     }
 
     /* Summary textarea - ensure proper height on mobile */

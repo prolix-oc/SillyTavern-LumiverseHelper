@@ -19,7 +19,7 @@ const store = useLumiverseStore;
 // Using inline `|| []` or `|| {}` creates new references each render
 const EMPTY_ARRAY = [];
 const EMPTY_OBJECT = {};
-const DEFAULT_BUTTON_POSITION = { useDefault: true, xPercent: 1, yPercent: 1 };
+const DEFAULT_DRAWER_SETTINGS = { side: 'right', verticalPosition: 15 };
 
 // Stable selector functions for useSyncExternalStore
 const selectPresets = () => store.getState().presets || EMPTY_OBJECT;
@@ -29,7 +29,7 @@ const selectCouncilMode = () => store.getState().councilMode || false;
 const selectCouncilMembers = () => store.getState().councilMembers || EMPTY_ARRAY;
 const selectSelectedDefinitions = () => store.getState().selectedDefinitions || EMPTY_ARRAY;
 const selectShowDrawer = () => store.getState().showLumiverseDrawer ?? true;
-const selectButtonPosition = () => store.getState().lumiaButtonPosition ?? DEFAULT_BUTTON_POSITION;
+const selectDrawerSettings = () => store.getState().drawerSettings ?? DEFAULT_DRAWER_SETTINGS;
 const selectEnableLandingPage = () => store.getState().enableLandingPage ?? true;
 const selectLandingPageChatsDisplayed = () => store.getState().landingPageChatsDisplayed ?? 12;
 
@@ -784,11 +784,11 @@ function SettingsPanel() {
         selectShowDrawer
     );
 
-    // Get button position settings from store
-    const buttonPosition = useSyncExternalStore(
+    // Get drawer settings from store
+    const drawerSettings = useSyncExternalStore(
         store.subscribe,
-        selectButtonPosition,
-        selectButtonPosition
+        selectDrawerSettings,
+        selectDrawerSettings
     );
 
     // Get landing page setting from store
@@ -849,36 +849,24 @@ function SettingsPanel() {
         }
     }, []);
 
-    // Handle button position toggle
-    const handleButtonPositionToggle = useCallback((useDefault) => {
+    // Handle drawer side change
+    const handleDrawerSideChange = useCallback((side) => {
         store.setState({
-            lumiaButtonPosition: {
-                ...store.getState().lumiaButtonPosition,
-                useDefault,
+            drawerSettings: {
+                ...store.getState().drawerSettings,
+                side,
             }
         });
         saveToExtension();
     }, []);
 
-    // Handle X position change
-    const handleXPositionChange = useCallback((value) => {
-        const xPercent = Math.max(0, Math.min(100, parseInt(value, 10) || 0));
+    // Handle vertical position change
+    const handleVerticalPositionChange = useCallback((value) => {
+        const verticalPosition = Math.max(0, Math.min(100, parseInt(value, 10) || 0));
         store.setState({
-            lumiaButtonPosition: {
-                ...store.getState().lumiaButtonPosition,
-                xPercent,
-            }
-        });
-        saveToExtension();
-    }, []);
-
-    // Handle Y position change
-    const handleYPositionChange = useCallback((value) => {
-        const yPercent = Math.max(0, Math.min(100, parseInt(value, 10) || 0));
-        store.setState({
-            lumiaButtonPosition: {
-                ...store.getState().lumiaButtonPosition,
-                yPercent,
+            drawerSettings: {
+                ...store.getState().drawerSettings,
+                verticalPosition,
             }
         });
         saveToExtension();
@@ -907,59 +895,53 @@ function SettingsPanel() {
                 </label>
             </div>
 
-            {/* Button Position Settings - only show when drawer is enabled */}
+            {/* Drawer Position Settings - only show when drawer is enabled */}
             {showDrawer && (
-                <div className="lumia-button-position-container">
-                    <label className="lumiverse-toggle-wrapper">
-                        <div className="lumiverse-toggle-text">
-                            <span className="lumiverse-toggle-label">Custom Button Position</span>
-                            <span className="lumiverse-toggle-description">
-                                Position the Lumia button anywhere on screen
-                            </span>
-                        </div>
-                        <div className={clsx('lumiverse-toggle', !buttonPosition.useDefault && 'lumiverse-toggle--on')}>
-                            <input
-                                type="checkbox"
-                                className="lumiverse-toggle-input"
-                                checked={!buttonPosition.useDefault}
-                                onChange={(e) => handleButtonPositionToggle(!e.target.checked)}
-                            />
-                            <span className="lumiverse-toggle-slider"></span>
-                        </div>
-                    </label>
-
-                    {/* Position inputs - only show when custom position is enabled */}
-                    {!buttonPosition.useDefault && (
-                        <div className="lumia-button-position-inputs">
-                            <div className="lumia-position-field">
-                                <label htmlFor="lumia-btn-x">X (% from right)</label>
-                                <input
-                                    type="number"
-                                    id="lumia-btn-x"
-                                    className="lumia-input lumia-input-sm"
-                                    value={buttonPosition.xPercent}
-                                    onChange={(e) => handleXPositionChange(e.target.value)}
-                                    min="0"
-                                    max="100"
-                                />
+                <div className="lumia-drawer-settings-container">
+                    <div className="lumia-drawer-settings-row">
+                        <div className="lumia-drawer-setting">
+                            <label className="lumia-drawer-setting-label">Drawer Side</label>
+                            <div className="lumia-drawer-side-toggle">
+                                <button
+                                    type="button"
+                                    className={clsx(
+                                        'lumia-side-btn',
+                                        drawerSettings.side === 'left' && 'lumia-side-btn--active'
+                                    )}
+                                    onClick={() => handleDrawerSideChange('left')}
+                                >
+                                    Left
+                                </button>
+                                <button
+                                    type="button"
+                                    className={clsx(
+                                        'lumia-side-btn',
+                                        drawerSettings.side === 'right' && 'lumia-side-btn--active'
+                                    )}
+                                    onClick={() => handleDrawerSideChange('right')}
+                                >
+                                    Right
+                                </button>
                             </div>
-                            <div className="lumia-position-field">
-                                <label htmlFor="lumia-btn-y">Y (% from top)</label>
-                                <input
-                                    type="number"
-                                    id="lumia-btn-y"
-                                    className="lumia-input lumia-input-sm"
-                                    value={buttonPosition.yPercent}
-                                    onChange={(e) => handleYPositionChange(e.target.value)}
-                                    min="0"
-                                    max="100"
-                                />
-                            </div>
-                            <span className="lumia-position-hint">
-                                Slide-out animation is disabled with custom positioning
-                            </span>
                         </div>
-                    )}
+                        <div className="lumia-drawer-setting">
+                            <label htmlFor="lumia-drawer-vpos" className="lumia-drawer-setting-label">
+                                Tab Position
+                            </label>
+                            <div className="lumia-drawer-vpos-input">
+                                <input
+                                    type="range"
+                                    id="lumia-drawer-vpos"
+                                    className="lumia-slider"
+                                    value={drawerSettings.verticalPosition}
+                                    onChange={(e) => handleVerticalPositionChange(e.target.value)}
+                                    min="8"
+                                    max="80"
+                                />
+                                <span className="lumia-drawer-vpos-value">{drawerSettings.verticalPosition}%</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
 

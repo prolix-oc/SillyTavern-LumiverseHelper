@@ -14,6 +14,9 @@ import { useLumiverseStore } from '../store/LumiverseContext';
 // Get the store for direct access
 const store = useLumiverseStore;
 
+// Default drawer settings
+const DEFAULT_DRAWER_SETTINGS = { side: 'right', verticalPosition: 15 };
+
 /**
  * Main viewport application component
  * Contains the toggle button and panel as one unified sliding unit
@@ -27,6 +30,13 @@ function ViewportApp() {
         store.subscribe,
         () => store.getState().showLumiverseDrawer ?? true,
         () => store.getState().showLumiverseDrawer ?? true
+    );
+
+    // Get drawer settings for positioning
+    const drawerSettings = useSyncExternalStore(
+        store.subscribe,
+        () => store.getState().drawerSettings ?? DEFAULT_DRAWER_SETTINGS,
+        () => store.getState().drawerSettings ?? DEFAULT_DRAWER_SETTINGS
     );
 
     const handleToggle = useCallback(() => {
@@ -49,6 +59,7 @@ function ViewportApp() {
                 onToggle={handleToggle}
                 onClose={handleClose}
                 defaultTab="profile"
+                drawerSettings={drawerSettings}
                 ProfileContent={CharacterProfile}
                 PresetsContent={PresetManager}
                 BrowserContent={PackBrowser}

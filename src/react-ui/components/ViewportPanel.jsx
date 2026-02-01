@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 import clsx from 'clsx';
-import { User, Package, MessageSquare, Sliders, FileText, ChevronRight, X, Sparkles, Bookmark, Users } from 'lucide-react';
+import { User, Package, MessageSquare, Sliders, FileText, ChevronRight, ChevronLeft, X, Sparkles, Bookmark, Users } from 'lucide-react';
 import { useLumiverseStore, useUpdates } from '../store/LumiverseContext';
 import { UpdateDot } from './UpdateBanner';
 import UpdateBanner from './UpdateBanner';
@@ -9,14 +9,14 @@ import UpdateBanner from './UpdateBanner';
 const store = useLumiverseStore;
 
 // Stable fallback constants for useSyncExternalStore
-const DEFAULT_BUTTON_POSITION = { useDefault: true, xPercent: 1, yPercent: 1 };
+const DEFAULT_DRAWER_SETTINGS = { side: 'right', verticalPosition: 15 };
 
 // Stable selector functions
-const selectButtonPosition = () => store.getState().lumiaButtonPosition ?? DEFAULT_BUTTON_POSITION;
+const selectDrawerSettings = () => store.getState().drawerSettings ?? DEFAULT_DRAWER_SETTINGS;
 
 // Panel dimensions
 const DESKTOP_PANEL_WIDTH = 376; // 56px tabs + 320px content
-const TAB_BAR_WIDTH = 56;
+const DRAWER_TAB_WIDTH = 48; // Width of the flush-mounted tab
 const MOBILE_BREAKPOINT = 600;
 
 /**
@@ -42,24 +42,34 @@ function useIsMobile(breakpoint = MOBILE_BREAKPOINT) {
 }
 
 /**
- * Toggle button - now part of the sliding container
+ * Flush-mounted drawer tab - integrated into the drawer's edge
+ * Animates together with the drawer as a unified element
+ * Supports left or right positioning with adjustable vertical position
  */
-function ToggleButton({ isVisible, onClick, hasUpdates }) {
+function DrawerTab({ isVisible, onClick, hasUpdates, side = 'right', verticalPosition = 15 }) {
+    const isLeft = side === 'left';
+    
     return (
         <button
             className={clsx(
-                'lumiverse-panel-toggle',
-                isVisible && 'lumiverse-panel-toggle--active',
-                hasUpdates && 'lumiverse-panel-toggle--has-updates'
+                'lumiverse-drawer-tab',
+                isVisible && 'lumiverse-drawer-tab--active',
+                hasUpdates && 'lumiverse-drawer-tab--has-updates',
+                isLeft && 'lumiverse-drawer-tab--left'
             )}
             onClick={onClick}
             title={isVisible ? 'Hide Lumiverse Panel' : 'Show Lumiverse Panel'}
             type="button"
+            aria-expanded={isVisible}
+            aria-label="Toggle Lumiverse drawer"
+            style={{
+                marginTop: `${Math.max(8, Math.min(80, verticalPosition))}%`,
+            }}
         >
-            <span className="lumiverse-panel-toggle-icon">
-                <Sparkles size={18} strokeWidth={2} />
+            <span className="lumiverse-drawer-tab-icon">
+                <Sparkles size={16} strokeWidth={2.5} />
             </span>
-            <span className="lumiverse-panel-toggle-label">Lumia</span>
+            <span className="lumiverse-drawer-tab-label">Lumia</span>
             <UpdateDot />
         </button>
     );
@@ -86,8 +96,15 @@ function TabButton({ id, Icon, label, isActive, onClick }) {
 
 /**
  * Collapse/expand toggle button
+ * Arrow direction changes based on panel side and collapsed state
  */
-function CollapseButton({ isCollapsed, onClick }) {
+function CollapseButton({ isCollapsed, onClick, side = 'right' }) {
+    const isLeft = side === 'left';
+    // When on right: collapsed arrow points left (to expand), expanded points right (to collapse)
+    // When on left: collapsed arrow points right (to expand), expanded points left (to collapse)
+    const showLeftArrow = isLeft ? !isCollapsed : isCollapsed;
+    const Icon = showLeftArrow ? ChevronLeft : ChevronRight;
+    
     return (
         <button
             className="lumiverse-vp-collapse-btn"
@@ -95,13 +112,8 @@ function CollapseButton({ isCollapsed, onClick }) {
             title={isCollapsed ? 'Expand panel' : 'Collapse panel'}
             type="button"
         >
-            <span
-                className={clsx(
-                    'lumiverse-vp-collapse-icon',
-                    isCollapsed && 'lumiverse-vp-collapse-icon--rotated'
-                )}
-            >
-                <ChevronRight size={18} strokeWidth={2} />
+            <span className="lumiverse-vp-collapse-icon">
+                <Icon size={18} strokeWidth={2} />
             </span>
         </button>
     );
@@ -181,12 +193,14 @@ const PANEL_TABS = [
  * Main Viewport Panel component
  * A collapsible sidebar that docks alongside the chat
  * Toggle button and panel move together as one unit
+ * Supports docking to left or right side of screen
  */
 function ViewportPanel({
     isVisible,
     onToggle,
     onClose,
     defaultTab = 'profile',
+    drawerSettings: drawerSettingsProp,
     // Tab content components passed as props
     ProfileContent,
     PresetsContent,
@@ -201,19 +215,32 @@ function ViewportPanel({
     const isMobile = useIsMobile();
     const { hasAnyUpdate } = useUpdates();
 
-    // Subscribe to button position settings
-    const buttonPosition = useSyncExternalStore(
+    // Subscribe to drawer settings from store (fallback if not passed as prop)
+    const drawerSettingsFromStore = useSyncExternalStore(
         store.subscribe,
-        selectButtonPosition,
-        selectButtonPosition
+        selectDrawerSettings,
+        selectDrawerSettings
     );
 
-    // Determine if using custom position (disables slide-out animation)
-    const useCustomPosition = !buttonPosition.useDefault;
+    // Use prop if provided, otherwise use store value
+    const drawerSettings = drawerSettingsProp || drawerSettingsFromStore;
+    
+    // Extract settings with defaults
+    const side = drawerSettings?.side || 'right';
+    const verticalPosition = drawerSettings?.verticalPosition ?? 15;
+    const isLeft = side === 'left';
 
     // Calculate panel width based on viewport
     const panelWidth = isMobile ? window.innerWidth : DESKTOP_PANEL_WIDTH;
     const mainContentWidth = isMobile ? window.innerWidth - 56 : 320;
+    
+    // Total wrapper width includes the tab (desktop only)
+    const wrapperWidth = isMobile ? panelWidth : panelWidth + DRAWER_TAB_WIDTH;
+    
+    // Collapse offset depends on side
+    // Right side: positive translateX to slide content off-screen right
+    // Left side: negative translateX to slide content off-screen left
+    const collapseOffset = isLeft ? -mainContentWidth : mainContentWidth;
 
     const handleTabClick = useCallback((tabId) => {
         if (isCollapsed) {
@@ -240,81 +267,72 @@ function ViewportPanel({
         summary: SummaryContent ? <SummaryContent /> : <PlaceholderContent tab="summary" />,
     }), [ProfileContent, PresetsContent, BrowserContent, OOCContent, PromptContent, CouncilContent, SummaryContent, handleTabClick]);
 
-    // Calculate custom button position styles
-    const getButtonPositionStyle = () => {
-        if (useCustomPosition) {
-            // Custom position: use margin for Y-axis positioning instead of top
-            // This avoids CSS specificity issues with !important rules
+    // Calculate wrapper positioning based on side
+    const getWrapperStyle = () => {
+        const baseStyle = {
+            position: 'fixed',
+            top: 0,
+            bottom: 0,
+            width: wrapperWidth,
+            zIndex: 9998,
+            transition: 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)',
+            pointerEvents: 'none',
+        };
+
+        if (isLeft) {
+            // Left side: anchor to left edge, slide left when closed (hide panel, show tab)
             return {
-                position: 'fixed',
-                top: 0,
-                right: `${buttonPosition.xPercent}%`,
-                marginTop: `${buttonPosition.yPercent}vh`,
-                marginRight: 0,
-                zIndex: 9997,
-                pointerEvents: 'auto',
-                display: isMobile && isVisible ? 'none' : 'block',
+                ...baseStyle,
+                left: 0,
+                transform: `translateX(${isVisible ? 0 : -panelWidth}px)`,
+            };
+        } else {
+            // Right side: anchor to right edge, slide right when closed (hide panel, show tab)
+            return {
+                ...baseStyle,
+                right: 0,
+                transform: `translateX(${isVisible ? 0 : panelWidth}px)`,
             };
         }
-
-        // Default position: animates with panel
-        return {
-            position: 'fixed',
-            top: 12,
-            right: isVisible
-                ? (isCollapsed ? TAB_BAR_WIDTH + 12 : panelWidth + 12)
-                : 12,
-            zIndex: 9997,
-            pointerEvents: 'auto',
-            transition: 'right 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-            display: isMobile && isVisible ? 'none' : 'block',
-        };
     };
 
     // Use transform for smooth GPU-accelerated animation
     return (
         <>
-            {/* Toggle button - animates alongside panel when default position, static when custom */}
-            {/* Hide toggle when panel is visible on mobile - use close button instead */}
+            {/* Unified drawer wrapper - tab and panel animate together */}
             <div
                 className={clsx(
-                    'lumiverse-toggle-container',
-                    useCustomPosition && 'lumiverse-toggle-container--custom'
+                    'lumiverse-viewport-wrapper',
+                    isVisible && 'lumiverse-viewport-wrapper--visible',
+                    isLeft && 'lumiverse-viewport-wrapper--left'
                 )}
-                style={getButtonPositionStyle()}
+                style={getWrapperStyle()}
             >
-                <ToggleButton isVisible={isVisible} onClick={onToggle} hasUpdates={hasAnyUpdate} />
-            </div>
-
-            {/* Panel wrapper - slides via transform */}
-            <div
-                className="lumiverse-viewport-wrapper"
-                style={{
-                    position: 'fixed',
-                    top: 0,
-                    right: 0,
-                    bottom: 0,
-                    width: panelWidth,
-                    zIndex: 9998,
-                    transform: `translateX(${isVisible ? 0 : panelWidth}px)`,
-                    transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                    pointerEvents: 'none',
-                }}
-            >
-                {/* Main panel - slides together when collapsed */}
+                {/* Main panel container - includes tab, slides together when collapsed */}
             <div
                 className={clsx(
                     'lumiverse-viewport-panel',
-                    isCollapsed && 'lumiverse-viewport-panel--collapsed'
+                    isCollapsed && 'lumiverse-viewport-panel--collapsed',
+                    isLeft && 'lumiverse-viewport-panel--left'
                 )}
                 style={{
-                    transform: isCollapsed ? `translateX(${mainContentWidth}px)` : 'translateX(0)',
+                    transform: isCollapsed ? `translateX(${collapseOffset}px)` : 'translateX(0)',
                     transition: 'transform 0.2s ease',
                     // Explicit pointer-events for Android WebView compatibility
                     // Some Android browsers don't properly inherit through nested pointer-events containers
                     pointerEvents: 'auto',
                 }}
             >
+                {/* Flush-mounted drawer tab - inside panel, collapses with it */}
+                {!(isMobile && isVisible) && (
+                    <DrawerTab
+                        isVisible={isVisible}
+                        onClick={onToggle}
+                        hasUpdates={hasAnyUpdate}
+                        side={side}
+                        verticalPosition={verticalPosition}
+                    />
+                )}
                 {/* Tab sidebar */}
                 <div className="lumiverse-vp-tabs">
                     {PANEL_TABS.map(tab => (
@@ -331,6 +349,7 @@ function ViewportPanel({
                     <CollapseButton
                         isCollapsed={isCollapsed}
                         onClick={toggleCollapse}
+                        side={side}
                     />
                 </div>
 
