@@ -623,14 +623,16 @@ export class ChatPresetService {
 
     /**
      * Trigger UI refresh after modifying prompt_order.
-     * Since PromptManager.render() is not exposed, we use jQuery workaround.
+     * 
+     * IMPORTANT: We do NOT trigger #update_oai_preset as that saves the ENTIRE preset
+     * to file, which would overwrite the preset's reasoning/CoT/Start Reply With settings.
+     * We only want to persist runtime prompt_order changes.
+     * 
+     * The Prompt Manager UI may not immediately reflect changes, but the actual
+     * toggle state in prompt_order will take effect on the next generation.
      */
     refreshPromptManagerUI() {
-        if (typeof jQuery !== 'undefined') {
-            jQuery('#update_oai_preset').trigger('click');
-        }
-
-        // Also save settings
+        // Save runtime settings only - this persists prompt_order without touching preset files
         const ctx = getContext();
         if (typeof ctx?.saveSettingsDebounced === 'function') {
             ctx.saveSettingsDebounced();

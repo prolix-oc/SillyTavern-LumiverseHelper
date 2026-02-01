@@ -234,14 +234,51 @@ export function resolveCurrentBinding() {
 }
 
 /**
+ * Check if the current context has ANY bindings (preset or toggle)
+ * @returns {{hasPresetBinding: boolean, hasToggleBinding: boolean, chatId: string|null, avatar: string|null}}
+ */
+function checkCurrentContextBindings() {
+    const chatId = getCurrentChatId();
+    const avatar = getCurrentCharacterAvatar();
+    
+    // Check preset bindings
+    const presetBinding = resolveCurrentBinding();
+    const hasPresetBinding = !!presetBinding.presetName;
+    
+    // Check toggle bindings
+    let hasToggleBinding = false;
+    if (chatId) {
+        const chatToggles = getChatToggleBinding(chatId);
+        if (chatToggles?.toggles && Object.keys(chatToggles.toggles).length > 0) {
+            hasToggleBinding = true;
+        }
+    }
+    if (!hasToggleBinding && avatar) {
+        const charToggles = getCharacterToggleBinding(avatar);
+        if (charToggles?.toggles && Object.keys(charToggles.toggles).length > 0) {
+            hasToggleBinding = true;
+        }
+    }
+    
+    return { hasPresetBinding, hasToggleBinding, chatId, avatar };
+}
+
+/**
  * Apply the appropriate preset based on current bindings
  * Called on CHAT_CHANGED event
  * 
- * IMPORTANT: This function now implements a "clean slate" approach:
- * 1. Always reset prompts to preset defaults FIRST
- * 2. Then apply any context-specific toggle bindings
+ * IMPORTANT: This function ONLY operates when there are actual bindings.
+ * If no preset binding AND no toggle binding exists for the current context,
+ * we do NOTHING - no preset switching, no prompt_order manipulation, no
+ * touching of Reasoning/CoT settings.
  * 
- * This prevents toggle state "leakage" between different chats/characters.
+ * When bindings DO exist:
+ * 1. Reset prompts to preset defaults FIRST (clean slate)
+ * 2. Apply preset binding if one exists
+ * 3. Apply toggle binding on top if one exists
+ * 
+ * This prevents toggle state "leakage" between different chats/characters
+ * while also ensuring we don't modify anything when there are no bindings.
  * 
  * @returns {Promise<boolean>} Whether a preset was switched
  */
@@ -251,17 +288,27 @@ export async function applyBindingForCurrentContext() {
         return false;
     }
 
+    // CRITICAL: Check if there are ANY bindings for this context FIRST
+    const bindingCheck = checkCurrentContextBindings();
+    
+    // If no bindings of any kind, do NOTHING - leave preset/toggles untouched
+    if (!bindingCheck.hasPresetBinding && !bindingCheck.hasToggleBinding) {
+        console.log(`[${MODULE_NAME}] No bindings for current context - leaving preset state untouched`);
+        lastAppliedBinding = null;
+        return false;
+    }
+
     const binding = resolveCurrentBinding();
     
-    // CRITICAL FIX: Always reset prompts to default state first
-    // This ensures no toggle state "leakage" from previous context
+    // We have at least one type of binding - reset to defaults first for clean slate
+    // This only happens when we KNOW we're going to apply bindings
+    console.log(`[${MODULE_NAME}] Bindings detected (preset: ${bindingCheck.hasPresetBinding}, toggle: ${bindingCheck.hasToggleBinding}) - resetting to defaults`);
     chatPresetService.resetPromptsToDefault();
     
-    // No binding for current context
+    // No preset binding but we have toggle binding
     if (!binding.presetName) {
-        console.log(`[${MODULE_NAME}] No preset binding for current context`);
+        console.log(`[${MODULE_NAME}] No preset binding, but toggle binding exists - applying toggles only`);
         lastAppliedBinding = null;
-        // After reset, check if there are context-specific toggle states to apply
         await applyToggleStatesForCurrentContext();
         return false;
     }
@@ -450,20 +497,19 @@ async function applyToggleStateToCurrentPreset(toggleState) {
     }
 
     if (matched > 0) {
-        console.log(`[${MODULE_NAME}] Applied ${matched} toggles, ${unmatched} unmatched. Triggering UI update...`);
+        console.log(`[${MODULE_NAME}] Applied ${matched} toggles, ${unmatched} unmatched.`);
         
-        // Trigger UI refresh via jQuery workaround
-        // Since PromptManager.render() is not accessible, use the preset update button
-        if (typeof jQuery !== 'undefined') {
-            jQuery('#update_oai_preset').trigger('click');
-        }
+        // IMPORTANT: Do NOT trigger #update_oai_preset - that saves the ENTIRE preset to file,
+        // which would overwrite the preset's reasoning/CoT settings with current values.
+        // We only want to persist the runtime prompt_order changes, not modify the preset file.
         
-        // Save settings via ST's debounced save
+        // Save runtime settings via ST's debounced save
+        // This persists prompt_order changes without touching preset files or reasoning settings
         if (typeof ctx?.saveSettingsDebounced === 'function') {
             ctx.saveSettingsDebounced();
         }
         
-        console.log(`[${MODULE_NAME}] Toggle state applied successfully`);
+        console.log(`[${MODULE_NAME}] Toggle state applied successfully (runtime only, preset file unchanged)`);
         return { applied: true, matched };
     }
 
