@@ -4682,6 +4682,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     display: flex;
     flex-direction: column;
     width: 56px;
+    box-sizing: border-box; /* Ensure width includes border */
     background: linear-gradient(180deg, rgba(28, 24, 38, 0.98) 0%, rgba(20, 17, 28, 0.98) 100%);
     border-left: 1px solid rgba(147, 112, 219, 0.2);
     padding: 8px 0; /* Minimal padding - panel is at top of screen */
@@ -4769,6 +4770,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
 .lumiverse-vp-main {
     display: flex;
     flex-direction: column;
+    box-sizing: border-box; /* Ensure width includes border */
     background: linear-gradient(180deg, rgba(28, 24, 38, 0.98) 0%, rgba(20, 17, 28, 0.98) 100%);
     border-left: 1px solid rgba(147, 112, 219, 0.15);
     overflow: hidden;
@@ -6350,6 +6352,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     align-self: flex-start;
     margin-top: 64px;
     width: 48px;
+    box-sizing: border-box; /* Ensure width includes border */
 
     /* Vertical layout */
     display: flex;
@@ -6535,6 +6538,126 @@ details.lumia-panel[open] .lumia-panel-chevron {
         rgba(255, 180, 100, 0.15) 0%,
         transparent 60%
     );
+}
+
+/* ----------------------------------------
+   Compact Tab Style
+   Smaller, minimal drawer tab option
+   ---------------------------------------- */
+
+.lumiverse-drawer-tab--compact {
+    padding: 8px 6px;
+    width: 32px;
+    gap: 0;
+}
+
+.lumiverse-drawer-tab--compact .lumiverse-drawer-tab-label {
+    display: none;
+}
+
+.lumiverse-drawer-tab--compact .lumiverse-drawer-tab-icon {
+    box-shadow: none;
+    background: none;
+    width: 20px;
+    height: 20px;
+}
+
+.lumiverse-drawer-tab--compact:hover .lumiverse-drawer-tab-icon {
+    box-shadow: none;
+}
+
+.lumiverse-drawer-tab--compact .lumiverse-update-dot {
+    top: 4px;
+    left: 4px;
+    width: 6px;
+    height: 6px;
+}
+
+/* ----------------------------------------
+   Viewport Panel - Mobile Styles
+   Adjusts sizes for better mobile experience
+   Note: Wrapper width is controlled by JS inline styles
+   ---------------------------------------- */
+
+@media (max-width: 600px) {
+    /* Drawer tab: smaller and tighter on mobile */
+    .lumiverse-drawer-tab {
+        width: 40px;
+        padding: 12px 6px 16px;
+        gap: 6px;
+        margin-top: 48px;
+        border-radius: 10px 0 0 10px;
+    }
+
+    .lumiverse-drawer-tab--left {
+        border-radius: 0 10px 10px 0;
+    }
+
+    .lumiverse-drawer-tab-icon {
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+    }
+
+    .lumiverse-drawer-tab-label {
+        font-size: 10px;
+        letter-spacing: 0.3px;
+    }
+
+    /* Tab sidebar narrower on mobile */
+    .lumiverse-vp-tabs {
+        width: 48px;
+        padding: 6px 0;
+    }
+
+    .lumiverse-vp-tab {
+        width: 44px;
+        height: 44px;
+    }
+
+    .lumiverse-vp-tab-icon {
+        font-size: 16px;
+    }
+
+    .lumiverse-vp-tab-label {
+        font-size: 9px;
+        margin-top: 2px;
+    }
+
+    /* Header adjustments */
+    .lumiverse-vp-header {
+        padding: 12px 14px;
+    }
+
+    .lumiverse-vp-header-title {
+        font-size: 14px;
+    }
+
+    /* Content area adjustments */
+    .lumiverse-vp-content {
+        padding: 12px;
+    }
+}
+
+/* Extra small screens */
+@media (max-width: 380px) {
+    .lumiverse-drawer-tab {
+        width: 36px;
+        padding: 10px 5px 14px;
+    }
+
+    .lumiverse-drawer-tab-label {
+        display: none;
+    }
+
+    .lumiverse-vp-tabs {
+        width: 44px;
+    }
+
+    .lumiverse-vp-tab {
+        width: 40px;
+        height: 40px;
+    }
 }
 
 /* ----------------------------------------
@@ -8354,9 +8477,28 @@ details.lumia-panel[open] .lumia-panel-chevron {
         transform: none;
     }
 
-    /* Viewport Panel Mobile */
+    /* Viewport Panel Mobile - width is set by inline JS to account for tab size */
     .lumiverse-viewport-wrapper {
-        width: 100vw !important;
+        /* Width set dynamically via inline style to include tab width */
+    }
+
+    .lumiverse-viewport-panel {
+        width: 100%;
+    }
+
+    .lumiverse-vp-tabs {
+        width: 48px;
+        flex-shrink: 0; /* Don't shrink the tab sidebar */
+    }
+
+    .lumiverse-vp-main {
+        flex: 1; /* Fill remaining space instead of fixed width */
+        min-width: 0; /* Allow flex item to shrink below content size */
+    }
+
+    .lumiverse-vp-tab {
+        width: 44px;
+        height: 44px;
     }
 
     .lumiverse-viewport-panel {

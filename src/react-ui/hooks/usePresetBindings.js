@@ -167,7 +167,9 @@ export function usePresetBindings() {
         
         // Import the setter directly since we're bypassing the prompts-based method
         const { setChatToggleBinding } = await import('../../lib/packCache.js');
-        setChatToggleBinding(chatId, {
+        // CRITICAL: Await the async setter to ensure immediate persistence
+        // This prevents race conditions when switching chats before save completes
+        await setChatToggleBinding(chatId, {
             toggles,
             sourcePreset: chatPresetService.getCurrentPreset()?.name || null,
         });
@@ -180,8 +182,8 @@ export function usePresetBindings() {
     /**
      * Clear the toggle state binding from the current chat.
      */
-    const clearChatToggleBinding = useCallback(() => {
-        const success = chatPresetService.clearChatToggleState();
+    const clearChatToggleBinding = useCallback(async () => {
+        const success = await chatPresetService.clearChatToggleState();
         if (success) {
             setHasChatToggleBinding(false);
         }
@@ -211,7 +213,9 @@ export function usePresetBindings() {
         
         // Import the setter directly since we're bypassing the prompts-based method
         const { setCharacterToggleBinding } = await import('../../lib/packCache.js');
-        setCharacterToggleBinding(avatar, {
+        // CRITICAL: Await the async setter to ensure immediate persistence
+        // This prevents race conditions when switching characters before save completes
+        await setCharacterToggleBinding(avatar, {
             toggles,
             sourcePreset: chatPresetService.getCurrentPreset()?.name || null,
         });
@@ -224,8 +228,8 @@ export function usePresetBindings() {
     /**
      * Clear the toggle state binding from the current character.
      */
-    const clearCharacterToggleBinding = useCallback(() => {
-        const success = chatPresetService.clearCharacterToggleState();
+    const clearCharacterToggleBinding = useCallback(async () => {
+        const success = await chatPresetService.clearCharacterToggleState();
         if (success) {
             setHasCharacterToggleBinding(false);
         }

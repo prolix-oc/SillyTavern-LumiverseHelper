@@ -253,8 +253,8 @@ export function usePresetEditor() {
     /**
      * Clear the toggle state binding from the current chat.
      */
-    const clearChatToggles = useCallback(() => {
-        const success = chatPresetService.clearChatToggleState();
+    const clearChatToggles = useCallback(async () => {
+        const success = await chatPresetService.clearChatToggleState();
         if (success) {
             setHasChatBinding(false);
         }
@@ -282,8 +282,8 @@ export function usePresetEditor() {
     /**
      * Clear the toggle state binding from the current character.
      */
-    const clearCharacterToggles = useCallback(() => {
-        const success = chatPresetService.clearCharacterToggleState();
+    const clearCharacterToggles = useCallback(async () => {
+        const success = await chatPresetService.clearCharacterToggleState();
         if (success) {
             setHasCharacterBinding(false);
         }

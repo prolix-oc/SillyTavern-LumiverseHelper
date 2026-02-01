@@ -9,14 +9,17 @@ import UpdateBanner from './UpdateBanner';
 const store = useLumiverseStore;
 
 // Stable fallback constants for useSyncExternalStore
-const DEFAULT_DRAWER_SETTINGS = { side: 'right', verticalPosition: 15 };
+const DEFAULT_DRAWER_SETTINGS = { side: 'right', verticalPosition: 15, tabSize: 'large' };
 
 // Stable selector functions
 const selectDrawerSettings = () => store.getState().drawerSettings ?? DEFAULT_DRAWER_SETTINGS;
 
 // Panel dimensions
 const DESKTOP_PANEL_WIDTH = 376; // 56px tabs + 320px content
-const DRAWER_TAB_WIDTH = 48; // Width of the flush-mounted tab
+const DRAWER_TAB_WIDTH = 48; // Width of the flush-mounted tab (desktop)
+const DRAWER_TAB_WIDTH_COMPACT = 32; // Width of the compact tab
+const MOBILE_DRAWER_TAB_WIDTH = 40; // Width of the flush-mounted tab (mobile)
+const MOBILE_DRAWER_TAB_WIDTH_COMPACT = 32; // Width of the compact tab (mobile)
 const MOBILE_BREAKPOINT = 600;
 
 /**
@@ -46,8 +49,9 @@ function useIsMobile(breakpoint = MOBILE_BREAKPOINT) {
  * Animates together with the drawer as a unified element
  * Supports left or right positioning with adjustable vertical position
  */
-function DrawerTab({ isVisible, onClick, hasUpdates, side = 'right', verticalPosition = 15 }) {
+function DrawerTab({ isVisible, onClick, hasUpdates, side = 'right', verticalPosition = 15, tabSize = 'large' }) {
     const isLeft = side === 'left';
+    const isCompact = tabSize === 'compact';
     
     return (
         <button
@@ -55,7 +59,8 @@ function DrawerTab({ isVisible, onClick, hasUpdates, side = 'right', verticalPos
                 'lumiverse-drawer-tab',
                 isVisible && 'lumiverse-drawer-tab--active',
                 hasUpdates && 'lumiverse-drawer-tab--has-updates',
-                isLeft && 'lumiverse-drawer-tab--left'
+                isLeft && 'lumiverse-drawer-tab--left',
+                isCompact && 'lumiverse-drawer-tab--compact'
             )}
             onClick={onClick}
             title={isVisible ? 'Hide Lumiverse Panel' : 'Show Lumiverse Panel'}
@@ -67,7 +72,7 @@ function DrawerTab({ isVisible, onClick, hasUpdates, side = 'right', verticalPos
             }}
         >
             <span className="lumiverse-drawer-tab-icon">
-                <Sparkles size={16} strokeWidth={2.5} />
+                <Sparkles size={isCompact ? 14 : 16} strokeWidth={2.5} />
             </span>
             <span className="lumiverse-drawer-tab-label">Lumia</span>
             <UpdateDot />
@@ -228,19 +233,31 @@ function ViewportPanel({
     // Extract settings with defaults
     const side = drawerSettings?.side || 'right';
     const verticalPosition = drawerSettings?.verticalPosition ?? 15;
+    const tabSize = drawerSettings?.tabSize || 'large';
     const isLeft = side === 'left';
 
-    // Calculate panel width based on viewport
+    // Panel dimensions based on viewport
+    // On mobile, we use CSS calc() for fluid sizing; on desktop, fixed pixel values
     const panelWidth = isMobile ? window.innerWidth : DESKTOP_PANEL_WIDTH;
-    const mainContentWidth = isMobile ? window.innerWidth - 56 : 320;
+
+    // Tab width (the drawer handle)
+    const isCompact = tabSize === 'compact';
+    const tabWidth = isMobile 
+        ? (isCompact ? MOBILE_DRAWER_TAB_WIDTH_COMPACT : MOBILE_DRAWER_TAB_WIDTH)
+        : (isCompact ? DRAWER_TAB_WIDTH_COMPACT : DRAWER_TAB_WIDTH);
+
+    // Desktop: fixed width for main content. Mobile: CSS flex handles it
+    const mainContentWidth = 320;
+
+    // Wrapper width: on mobile use calc(100vw + tab), on desktop use fixed pixels
+    const wrapperWidth = isMobile 
+        ? `calc(100vw + ${tabWidth}px)`
+        : (DESKTOP_PANEL_WIDTH + tabWidth);
     
-    // Total wrapper width includes the tab (desktop only)
-    const wrapperWidth = isMobile ? panelWidth : panelWidth + DRAWER_TAB_WIDTH;
-    
-    // Collapse offset depends on side
+    // Collapse only applies to desktop (mobile has no collapse button)
     // Right side: positive translateX to slide content off-screen right
     // Left side: negative translateX to slide content off-screen left
-    const collapseOffset = isLeft ? -mainContentWidth : mainContentWidth;
+    const collapseOffset = isMobile ? 0 : (isLeft ? -mainContentWidth : mainContentWidth);
 
     const handleTabClick = useCallback((tabId) => {
         if (isCollapsed) {
@@ -279,19 +296,23 @@ function ViewportPanel({
             pointerEvents: 'none',
         };
 
+        // On mobile, use 100vw for transform to stay fluid
+        // On desktop, use fixed pixel value
+        const slideAmount = isMobile ? '100vw' : `${panelWidth}px`;
+
         if (isLeft) {
             // Left side: anchor to left edge, slide left when closed (hide panel, show tab)
             return {
                 ...baseStyle,
                 left: 0,
-                transform: `translateX(${isVisible ? 0 : -panelWidth}px)`,
+                transform: isVisible ? 'translateX(0)' : `translateX(calc(-${slideAmount}))`,
             };
         } else {
             // Right side: anchor to right edge, slide right when closed (hide panel, show tab)
             return {
                 ...baseStyle,
                 right: 0,
-                transform: `translateX(${isVisible ? 0 : panelWidth}px)`,
+                transform: isVisible ? 'translateX(0)' : `translateX(${slideAmount})`,
             };
         }
     };
@@ -324,15 +345,14 @@ function ViewportPanel({
                 }}
             >
                 {/* Flush-mounted drawer tab - inside panel, collapses with it */}
-                {!(isMobile && isVisible) && (
-                    <DrawerTab
-                        isVisible={isVisible}
-                        onClick={onToggle}
-                        hasUpdates={hasAnyUpdate}
-                        side={side}
-                        verticalPosition={verticalPosition}
-                    />
-                )}
+                <DrawerTab
+                    isVisible={isVisible}
+                    onClick={onToggle}
+                    hasUpdates={hasAnyUpdate}
+                    side={side}
+                    verticalPosition={verticalPosition}
+                    tabSize={tabSize}
+                />
                 {/* Tab sidebar */}
                 <div className="lumiverse-vp-tabs">
                     {PANEL_TABS.map(tab => (
@@ -346,18 +366,21 @@ function ViewportPanel({
                         />
                     ))}
                     <div className="lumiverse-vp-tabs-spacer" />
-                    <CollapseButton
-                        isCollapsed={isCollapsed}
-                        onClick={toggleCollapse}
-                        side={side}
-                    />
+                    {!isMobile && (
+                        <CollapseButton
+                            isCollapsed={isCollapsed}
+                            onClick={toggleCollapse}
+                            side={side}
+                        />
+                    )}
                 </div>
 
                 {/* Main panel content */}
                 <div
                     className="lumiverse-vp-main"
                     style={{
-                        width: mainContentWidth,
+                        // On desktop, use fixed width. On mobile, flex handles it via CSS
+                        width: isMobile ? undefined : mainContentWidth,
                         opacity: isCollapsed ? 0 : 1,
                         transition: 'opacity 0.2s ease',
                     }}

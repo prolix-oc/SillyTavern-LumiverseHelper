@@ -19,7 +19,7 @@ const store = useLumiverseStore;
 // Using inline `|| []` or `|| {}` creates new references each render
 const EMPTY_ARRAY = [];
 const EMPTY_OBJECT = {};
-const DEFAULT_DRAWER_SETTINGS = { side: 'right', verticalPosition: 15 };
+const DEFAULT_DRAWER_SETTINGS = { side: 'right', verticalPosition: 15, tabSize: 'large' };
 
 // Stable selector functions for useSyncExternalStore
 const selectPresets = () => store.getState().presets || EMPTY_OBJECT;
@@ -872,6 +872,17 @@ function SettingsPanel() {
         saveToExtension();
     }, []);
 
+    // Handle tab size change
+    const handleTabSizeChange = useCallback((tabSize) => {
+        store.setState({
+            drawerSettings: {
+                ...store.getState().drawerSettings,
+                tabSize,
+            }
+        });
+        saveToExtension();
+    }, []);
+
     return (
         <div className="lumia-injector-settings">
             {/* Drawer Toggle */}
@@ -939,6 +950,33 @@ function SettingsPanel() {
                                     max="80"
                                 />
                                 <span className="lumia-drawer-vpos-value">{drawerSettings.verticalPosition}%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="lumia-drawer-settings-row">
+                        <div className="lumia-drawer-setting">
+                            <label className="lumia-drawer-setting-label">Tab Size</label>
+                            <div className="lumia-drawer-side-toggle">
+                                <button
+                                    type="button"
+                                    className={clsx(
+                                        'lumia-side-btn',
+                                        drawerSettings.tabSize === 'large' && 'lumia-side-btn--active'
+                                    )}
+                                    onClick={() => handleTabSizeChange('large')}
+                                >
+                                    Large
+                                </button>
+                                <button
+                                    type="button"
+                                    className={clsx(
+                                        'lumia-side-btn',
+                                        drawerSettings.tabSize === 'compact' && 'lumia-side-btn--active'
+                                    )}
+                                    onClick={() => handleTabSizeChange('compact')}
+                                >
+                                    Compact
+                                </button>
                             </div>
                         </div>
                     </div>

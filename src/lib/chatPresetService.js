@@ -361,7 +361,8 @@ export class ChatPresetService {
         }
 
         // Store in packCache (persisted to index file)
-        setChatToggleBinding(chatId, {
+        // CRITICAL: Await to ensure immediate persistence before any context switch
+        await setChatToggleBinding(chatId, {
             toggles,
             sourcePreset: this.getCurrentPreset()?.name || null,
         });
@@ -382,13 +383,13 @@ export class ChatPresetService {
 
     /**
      * Clear the toggle state from the current chat.
-     * @returns {boolean} Success status
+     * @returns {Promise<boolean>} Success status
      */
-    clearChatToggleState() {
+    async clearChatToggleState() {
         const chatId = this.getCurrentChatId();
         if (!chatId) return false;
 
-        clearChatToggleBindingCache(chatId);
+        await clearChatToggleBindingCache(chatId);
         console.log(`[ChatPresetService] Cleared toggle state for chat "${chatId}"`);
         return true;
     }
@@ -441,7 +442,8 @@ export class ChatPresetService {
         }
 
         // Store in packCache (persisted to index file)
-        setCharacterToggleBinding(avatar, {
+        // CRITICAL: Await to ensure immediate persistence before any context switch
+        await setCharacterToggleBinding(avatar, {
             toggles,
             sourcePreset: this.getCurrentPreset()?.name || null,
         });
@@ -472,13 +474,13 @@ export class ChatPresetService {
 
     /**
      * Clear the toggle state for the current character.
-     * @returns {boolean} Success status
+     * @returns {Promise<boolean>} Success status
      */
-    clearCharacterToggleState() {
+    async clearCharacterToggleState() {
         const avatar = this.getCurrentCharacterAvatar();
         if (!avatar) return false;
 
-        clearCharacterToggleBindingCache(avatar);
+        await clearCharacterToggleBindingCache(avatar);
         console.log(`[ChatPresetService] Cleared toggle state for character "${avatar}"`);
         return true;
     }

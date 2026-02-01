@@ -1036,6 +1036,11 @@ export const landingPageStyles = `
     font-size: 10px;
     padding: 3px 8px;
   }
+
+  /* Tablet: ensure overflow bubble matches avatar size */
+  .lumiverse-lp-group-avatar-overflow {
+    font-size: 13px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1062,16 +1067,20 @@ export const landingPageStyles = `
     padding: 2px 6px;
   }
 
-  /* Smaller group avatars on mobile */
-  .lumiverse-lp-group-avatar-wrapper {
-    width: 45%;
-    height: 45%;
+  /* Group avatar sizing on mobile - keep proportions consistent */
+  .lumiverse-lp-group-stack-avatars[data-count="5+"] .lumiverse-lp-group-avatar-wrapper,
+  .lumiverse-lp-group-stack-avatars[data-count="4"] .lumiverse-lp-group-avatar-wrapper {
+    width: 44%;
+    height: 44%;
   }
 
+  /* Overflow bubble (+N) matches avatar size for visual consistency */
   .lumiverse-lp-group-avatar-overflow {
-    width: 32%;
-    height: 32%;
-    font-size: 10px;
+    width: 44%;
+    height: 44%;
+    font-size: 12px;
+    /* Slightly boost visibility on smaller screens */
+    border-width: 2px;
   }
 }
 

@@ -15,7 +15,7 @@ import { useLumiverseStore } from '../store/LumiverseContext';
 const store = useLumiverseStore;
 
 // Default drawer settings
-const DEFAULT_DRAWER_SETTINGS = { side: 'right', verticalPosition: 15 };
+const DEFAULT_DRAWER_SETTINGS = { side: 'right', verticalPosition: 15, tabSize: 'large' };
 
 /**
  * Main viewport application component

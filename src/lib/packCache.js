@@ -721,10 +721,17 @@ export function getCharacterToggleBinding(avatar) {
 
 /**
  * Set a chat-level toggle binding.
+ * 
+ * IMPORTANT: Uses immediate save (not debounced) to prevent race conditions
+ * when switching chats. The debounced save was causing toggle bindings to
+ * be saved AFTER context switch, leading to cross-contamination of toggle
+ * states between characters/chats.
+ * 
  * @param {string} chatId - The chat ID
  * @param {Object} toggleData - The toggle data { toggles: {...}, sourcePreset: string|null }
+ * @returns {Promise<void>}
  */
-export function setChatToggleBinding(chatId, toggleData) {
+export async function setChatToggleBinding(chatId, toggleData) {
     if (!chatId || !cachedIndex) return;
     
     // Ensure toggleBindings exists
@@ -747,16 +754,26 @@ export function setChatToggleBinding(chatId, toggleData) {
         console.log(`[${MODULE_NAME}] Removed chat toggle binding for "${chatId}"`);
     }
     
-    debouncedIndexSave();
+    // CRITICAL: Use immediate flush instead of debounced save to prevent
+    // race condition where chat switch happens before save completes.
+    // This ensures the binding is persisted before any context switch can occur.
+    await flushIndexSave();
     notifyListeners();
 }
 
 /**
  * Set a character-level toggle binding.
+ * 
+ * IMPORTANT: Uses immediate save (not debounced) to prevent race conditions
+ * when switching chats/characters. The debounced save was causing toggle bindings
+ * to be saved AFTER context switch, leading to cross-contamination of toggle
+ * states between characters/chats.
+ * 
  * @param {string} avatar - The character avatar filename
  * @param {Object} toggleData - The toggle data { toggles: {...}, sourcePreset: string|null }
+ * @returns {Promise<void>}
  */
-export function setCharacterToggleBinding(avatar, toggleData) {
+export async function setCharacterToggleBinding(avatar, toggleData) {
     if (!avatar || !cachedIndex) return;
     
     // Ensure toggleBindings exists
@@ -779,24 +796,29 @@ export function setCharacterToggleBinding(avatar, toggleData) {
         console.log(`[${MODULE_NAME}] Removed character toggle binding for "${avatar}"`);
     }
     
-    debouncedIndexSave();
+    // CRITICAL: Use immediate flush instead of debounced save to prevent
+    // race condition where chat/character switch happens before save completes.
+    // This ensures the binding is persisted before any context switch can occur.
+    await flushIndexSave();
     notifyListeners();
 }
 
 /**
  * Clear a chat-level toggle binding.
  * @param {string} chatId - The chat ID
+ * @returns {Promise<void>}
  */
-export function clearChatToggleBinding(chatId) {
-    setChatToggleBinding(chatId, null);
+export async function clearChatToggleBinding(chatId) {
+    await setChatToggleBinding(chatId, null);
 }
 
 /**
  * Clear a character-level toggle binding.
  * @param {string} avatar - The character avatar filename
+ * @returns {Promise<void>}
  */
-export function clearCharacterToggleBinding(avatar) {
-    setCharacterToggleBinding(avatar, null);
+export async function clearCharacterToggleBinding(avatar) {
+    await setCharacterToggleBinding(avatar, null);
 }
 
 /**

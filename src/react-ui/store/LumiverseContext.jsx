@@ -139,6 +139,7 @@ const initialState = {
     drawerSettings: {
         side: 'right',         // 'left' or 'right' - which side of screen the drawer docks to
         verticalPosition: 15,  // Percentage from top (0-100) for tab vertical position
+        tabSize: 'large',      // 'large' or 'compact' - size of the drawer tab
     },
 
     // Landing page setting
