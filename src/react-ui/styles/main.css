@@ -8558,6 +8558,74 @@ details.lumia-panel[open] .lumia-panel-chevron {
 }
 
 /* ============================================
+   MOBILE TOUCH INTERACTION FIX
+   Ensures collapsed sidebar doesn't block touch events
+   
+   Problem: When the sidebar is hidden (slid off-screen), the wrapper
+   container still occupies space and can block touch events on mobile
+   WebViews that don't properly respect pointer-events: none inheritance.
+   
+   Solution: When NOT visible, disable pointer-events on ALL children
+   EXCEPT the drawer tab which must remain tappable.
+   ============================================ */
+
+/* Wrapper always allows pointer passthrough */
+.lumiverse-viewport-wrapper {
+    pointer-events: none;
+}
+
+/* When hidden: aggressively disable interaction on all panel contents */
+.lumiverse-viewport-wrapper:not(.lumiverse-viewport-wrapper--visible) .lumiverse-viewport-panel {
+    pointer-events: none !important;
+}
+
+.lumiverse-viewport-wrapper:not(.lumiverse-viewport-wrapper--visible) .lumiverse-vp-tabs,
+.lumiverse-viewport-wrapper:not(.lumiverse-viewport-wrapper--visible) .lumiverse-vp-main {
+    pointer-events: none !important;
+    visibility: hidden; /* Also hide visually since they're off-screen anyway */
+}
+
+/* Drawer tab MUST remain interactive regardless of panel state */
+.lumiverse-drawer-tab {
+    pointer-events: auto !important;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    /* Ensure tab is always visible even when other panel parts are hidden */
+    visibility: visible !important;
+}
+
+/* When panel IS visible, restore normal pointer events */
+.lumiverse-viewport-wrapper--visible .lumiverse-viewport-panel {
+    pointer-events: auto;
+}
+
+.lumiverse-viewport-wrapper--visible .lumiverse-vp-tabs,
+.lumiverse-viewport-wrapper--visible .lumiverse-vp-main {
+    pointer-events: auto;
+    visibility: visible;
+}
+
+/* Mobile-specific enhancements */
+@media (max-width: 600px) {
+    /* Extra mobile safety: ensure wrapper never captures touch */
+    .lumiverse-viewport-wrapper {
+        touch-action: none;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+    
+    .lumiverse-viewport-wrapper--visible {
+        touch-action: auto;
+    }
+    
+    /* Ensure drawer tab has adequate touch target on mobile */
+    .lumiverse-drawer-tab {
+        min-width: 40px;
+        min-height: 80px;
+    }
+}
+
+/* ============================================
    MODAL CONTROLS - Collapse/Expand & Sort
    Shared styling for Lumia Selection modals
    ============================================ */

@@ -1,7 +1,12 @@
 import React, { useState, useMemo, useSyncExternalStore, useCallback } from 'react';
 import clsx from 'clsx';
-import { Bookmark, Trash2, RefreshCw, Plus, Check, X, Clock, FileText, Zap, Heart, Users } from 'lucide-react';
+import { Bookmark, Trash2, RefreshCw, Plus, Check, X, Clock, FileText, Zap, Heart, Users, Brain, Link2, Edit3 } from 'lucide-react';
 import { useLumiverseStore, useLumiverseActions, saveToExtension } from '../../store/LumiverseContext';
+import { CollapsibleSection } from '../shared/CollapsibleSection';
+import { ReasoningSettingsContent } from '../shared/ReasoningSettings';
+import { ToggleBindingsContent } from '../shared/ToggleBindingsContent';
+import { useChatPresetSettings } from '../../hooks/useChatPresetSettings';
+import { usePresetEditor } from '../../hooks/usePresetEditor';
 
 // Get store for direct state access
 const store = useLumiverseStore;
@@ -183,50 +188,19 @@ function EmptyState() {
 }
 
 /**
- * Main Preset Manager component
+ * Saved Presets Section Content
  */
-function PresetManager() {
-    const actions = useLumiverseActions();
+function SavedPresetsContent({ presetList, activePresetName, onLoad, onUpdate, onDelete }) {
     const [newPresetName, setNewPresetName] = useState('');
     const [isCreating, setIsCreating] = useState(false);
-
-    // Subscribe to presets and activePresetName
+    const actions = useLumiverseActions();
+    
+    // Get current presets from store for duplicate check
     const presets = useSyncExternalStore(
         store.subscribe,
         selectPresets,
         selectPresets
     );
-
-    const activePresetName = useSyncExternalStore(
-        store.subscribe,
-        selectActivePresetName,
-        selectActivePresetName
-    );
-
-    // Convert presets object to sorted array
-    const presetList = useMemo(() => {
-        return Object.values(presets).sort((a, b) => {
-            // Sort by most recently updated/created
-            const timeA = a.updatedAt || a.createdAt || 0;
-            const timeB = b.updatedAt || b.createdAt || 0;
-            return timeB - timeA;
-        });
-    }, [presets]);
-
-    const handleLoad = useCallback((presetName) => {
-        actions.loadPreset(presetName);
-        saveToExtension();
-    }, [actions]);
-
-    const handleUpdate = useCallback((presetName) => {
-        actions.updatePreset(presetName);
-        saveToExtension();
-    }, [actions]);
-
-    const handleDelete = useCallback((presetName) => {
-        actions.deletePreset(presetName);
-        saveToExtension();
-    }, [actions]);
 
     const handleCreate = useCallback(() => {
         const trimmedName = newPresetName.trim();
@@ -234,7 +208,6 @@ function PresetManager() {
 
         // Check for duplicate names
         if (presets[trimmedName]) {
-            // Could show a toast/error here
             return;
         }
 
@@ -254,10 +227,9 @@ function PresetManager() {
     };
 
     return (
-        <div className="lumiverse-preset-manager">
-            {/* Header with create button */}
-            <div className="lumiverse-preset-header">
-                <h3 className="lumiverse-preset-title">Lumia Presets</h3>
+        <div className="lumiverse-presets-section-content">
+            {/* Create new preset */}
+            <div className="lumiverse-preset-create-area" style={{ marginBottom: '12px' }}>
                 {!isCreating ? (
                     <button
                         className="lumiverse-preset-create-btn"
@@ -311,20 +283,155 @@ function PresetManager() {
                             key={preset.name}
                             preset={preset}
                             isActive={activePresetName === preset.name}
-                            onLoad={handleLoad}
-                            onUpdate={handleUpdate}
-                            onDelete={handleDelete}
+                            onLoad={onLoad}
+                            onUpdate={onUpdate}
+                            onDelete={onDelete}
                         />
                     ))
                 )}
             </div>
+        </div>
+    );
+}
 
-            {/* Help text */}
-            {presetList.length > 0 && (
-                <div className="lumiverse-preset-help">
-                    <p>Presets save your Lumia selections (definition, behaviors, personalities) and mode settings.</p>
-                </div>
-            )}
+/**
+ * Main Preset Manager component
+ */
+function PresetManager() {
+    const actions = useLumiverseActions();
+
+    // Subscribe to presets and activePresetName
+    const presets = useSyncExternalStore(
+        store.subscribe,
+        selectPresets,
+        selectPresets
+    );
+
+    const activePresetName = useSyncExternalStore(
+        store.subscribe,
+        selectActivePresetName,
+        selectActivePresetName
+    );
+
+    // Shared reasoning settings (synced with modal)
+    const {
+        reasoningSettings,
+        startReplyWith,
+        apiReasoning,
+        postProcessing,
+        handleApplyReasoningPreset,
+        handleStartReplyWithChange,
+        handleReasoningToggle,
+        handleAPIReasoningToggle,
+        handleReasoningEffortChange,
+        handlePostProcessingChange,
+        REASONING_EFFORT_LEVELS,
+        POST_PROCESSING_OPTIONS
+    } = useChatPresetSettings();
+
+    // Preset editor hook
+    const { openPresetEditor } = usePresetEditor();
+
+    // Convert presets object to sorted array
+    const presetList = useMemo(() => {
+        return Object.values(presets).sort((a, b) => {
+            // Sort by most recently updated/created
+            const timeA = a.updatedAt || a.createdAt || 0;
+            const timeB = b.updatedAt || b.createdAt || 0;
+            return timeB - timeA;
+        });
+    }, [presets]);
+
+    const handleLoad = useCallback((presetName) => {
+        actions.loadPreset(presetName);
+        saveToExtension();
+    }, [actions]);
+
+    const handleUpdate = useCallback((presetName) => {
+        actions.updatePreset(presetName);
+        saveToExtension();
+    }, [actions]);
+
+    const handleDelete = useCallback((presetName) => {
+        actions.deletePreset(presetName);
+        saveToExtension();
+    }, [actions]);
+
+    // Determine status for sections
+    const hasPresets = presetList.length > 0;
+    const reasoningActive = reasoningSettings?.auto_parse || apiReasoning.enabled;
+
+    return (
+        <div className="lumiverse-preset-manager">
+            {/* Lumia Presets Section */}
+            <CollapsibleSection
+                Icon={Bookmark}
+                title="Lumia Presets"
+                status={hasPresets ? undefined : undefined}
+                defaultOpen={true}
+            >
+                <SavedPresetsContent
+                    presetList={presetList}
+                    activePresetName={activePresetName}
+                    onLoad={handleLoad}
+                    onUpdate={handleUpdate}
+                    onDelete={handleDelete}
+                />
+            </CollapsibleSection>
+
+            {/* Reasoning / CoT Section */}
+            <CollapsibleSection
+                Icon={Brain}
+                title="Reasoning / CoT"
+                status={reasoningActive}
+                defaultOpen={false}
+            >
+                <p className="lumiverse-vp-settings-desc">
+                    Configure reasoning/chain-of-thought settings. Changes sync with the Chat Presets modal.
+                </p>
+                <ReasoningSettingsContent
+                    reasoningSettings={reasoningSettings}
+                    startReplyWith={startReplyWith}
+                    apiReasoning={apiReasoning}
+                    postProcessing={postProcessing}
+                    onApplyReasoningPreset={handleApplyReasoningPreset}
+                    onStartReplyWithChange={handleStartReplyWithChange}
+                    onReasoningToggle={handleReasoningToggle}
+                    onAPIReasoningToggle={handleAPIReasoningToggle}
+                    onReasoningEffortChange={handleReasoningEffortChange}
+                    onPostProcessingChange={handlePostProcessingChange}
+                    effortLevels={REASONING_EFFORT_LEVELS}
+                    postProcessingOptions={POST_PROCESSING_OPTIONS}
+                    compact={true}
+                />
+            </CollapsibleSection>
+
+            {/* Toggle Bindings Section */}
+            <CollapsibleSection
+                Icon={Link2}
+                title="Toggle Bindings"
+                defaultOpen={false}
+            >
+                <p className="lumiverse-vp-settings-desc">
+                    Save which prompts are enabled/disabled and restore them when switching chats or characters.
+                </p>
+                <ToggleBindingsContent compact={true} />
+            </CollapsibleSection>
+
+            {/* Preset Editor Trigger */}
+            <div className="lumiverse-preset-editor-trigger">
+                <button
+                    className="lumia-btn lumia-btn-secondary lumia-btn-full"
+                    onClick={openPresetEditor}
+                    type="button"
+                >
+                    <Edit3 size={14} strokeWidth={2} />
+                    Open Chat Preset Editor
+                </button>
+                <p className="lumiverse-preset-editor-hint">
+                    Edit the full SillyTavern chat preset with all available options.
+                </p>
+            </div>
         </div>
     );
 }

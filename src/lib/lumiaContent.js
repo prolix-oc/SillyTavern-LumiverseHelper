@@ -1113,8 +1113,24 @@ export function registerLumiaMacros(MacrosParser) {
         return "";
       }
       console.log("[LumiverseHelper] lumiaCouncilInst: Council mode active, returning instruction");
+
+      // Build list of council member names
+      const memberNames = currentSettings.councilMembers
+        .map((member) => {
+          const item = getItemFromLibrary(member.packName, member.itemName);
+          return getLumiaField(item, "name") || member.itemName || "Unknown";
+        })
+        .filter(Boolean);
+
+      // Format member names as bold, comma-separated list
+      let result = COUNCIL_INST_PROMPT;
+      if (memberNames.length > 0) {
+        const formattedNames = memberNames.map((name) => `**${name}**`).join(", ");
+        result += `\n\nThe current sitting members of the council are: ${formattedNames}`;
+      }
+
       // Resolve any nested macros in the content (e.g., {{char}}, {{user}})
-      return resolve ? resolve(COUNCIL_INST_PROMPT) : COUNCIL_INST_PROMPT;
+      return resolve ? resolve(result) : result;
     },
     description: "Returns Council mode instruction prompt. Empty when Council mode is disabled or has no members.",
     returns: "Council instruction text or empty string",

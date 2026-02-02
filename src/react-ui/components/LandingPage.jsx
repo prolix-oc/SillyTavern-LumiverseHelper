@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useLayoutEffect, useSyncExternalStore, useMemo, useRef } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
-import { Clock, Sparkles, Users, Package, RefreshCw, Compass, Loader2 } from 'lucide-react';
+import { Clock, Sparkles, Users, Package, RefreshCw, Compass, Loader2, Trash2, X, MessageSquarePlus } from 'lucide-react';
 import { landingPageStyles } from './LandingPageStyles.js';
 import { useLumiverseStore } from '../store/LumiverseContext';
 import { getTopBarHeight } from '../../lib/domUtils.js';
+import ConfirmationModal from './shared/ConfirmationModal.jsx';
 
 /* global toastr */
 
@@ -199,12 +200,49 @@ const cardVariants = {
 /**
  * Character/Group Card Component
  */
-const ChatCard = React.memo(({ item, presetName, onClick, index }) => {
+const ChatCard = React.memo(({ item, presetName, onClick, onDelete, index }) => {
     const isGroup = item._type === 'group' || item.is_group || (Array.isArray(item.members) && item.members.length > 0);
     const [avatarUrl, setAvatarUrl] = useState('/img/fa-solid-user.svg');
     const [isHovered, setIsHovered] = useState(false);
     const [imageLoaded, setImageLoaded] = useState(false);
+    const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+    const confirmTimeoutRef = useRef(null);
     const shouldReduceMotion = useReducedMotion();
+
+    // Clear timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (confirmTimeoutRef.current) clearTimeout(confirmTimeoutRef.current);
+        };
+    }, []);
+
+    // Handle delete button click with two-click confirmation
+    const handleDeleteClick = useCallback((e) => {
+        e.stopPropagation(); // Prevent card click
+        
+        if (isConfirmingDelete) {
+            // Second click - execute delete
+            if (confirmTimeoutRef.current) clearTimeout(confirmTimeoutRef.current);
+            setIsConfirmingDelete(false);
+            onDelete?.(item);
+        } else {
+            // First click - enter confirmation mode
+            setIsConfirmingDelete(true);
+            // Auto-cancel after 3 seconds
+            confirmTimeoutRef.current = setTimeout(() => {
+                setIsConfirmingDelete(false);
+            }, 3000);
+        }
+    }, [isConfirmingDelete, item, onDelete]);
+
+    // Reset confirmation when mouse leaves
+    const handleMouseLeave = useCallback(() => {
+        setIsHovered(false);
+        if (isConfirmingDelete) {
+            if (confirmTimeoutRef.current) clearTimeout(confirmTimeoutRef.current);
+            setIsConfirmingDelete(false);
+        }
+    }, [isConfirmingDelete]);
 
     // Derive stable keys for effect dependency to prevent unnecessary loading state resets
     // This prevents the spinner from flashing when the parent re-fetches identical data
@@ -227,7 +265,7 @@ const ChatCard = React.memo(({ item, presetName, onClick, index }) => {
             className="lumiverse-lp-card"
             onClick={onClick}
             onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
+            onMouseLeave={handleMouseLeave}
             variants={cardVariants}
             whileHover={shouldReduceMotion ? {} : { y: -8, scale: 1.02, transition: { duration: 0.2 } }}
             whileTap={shouldReduceMotion ? {} : { scale: 0.98 }}
@@ -241,6 +279,19 @@ const ChatCard = React.memo(({ item, presetName, onClick, index }) => {
                     animate={{ opacity: isHovered ? 1 : 0 }}
                     transition={{ duration: 0.3 }}
                 />
+            )}
+
+            {/* Delete button - top-right corner of card, appears on hover */}
+            {onDelete && (isHovered || isConfirmingDelete) && (
+                <button
+                    className={`lumiverse-lp-card-delete-btn ${isConfirmingDelete ? 'lumiverse-lp-card-delete-btn--confirming' : ''}`}
+                    onClick={handleDeleteClick}
+                    title={isConfirmingDelete ? 'Click again to confirm deletion' : 'Delete this chat'}
+                    type="button"
+                    style={{ position: 'absolute', top: 10, right: 10, zIndex: 20 }}
+                >
+                    {isConfirmingDelete ? <X size={16} strokeWidth={2.5} /> : <Trash2 size={16} strokeWidth={2} />}
+                </button>
             )}
 
             {/* Avatar Container */}
@@ -378,6 +429,10 @@ function LandingPage() {
     const [paddingTop, setPaddingTop] = useState(50);
     const [isAppReady, setIsAppReady] = useState(!!window.lumiverseAppReady);
     const mountTimeRef = React.useRef(Date.now());
+    
+    // Delete confirmation modal state
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [pendingDeleteItem, setPendingDeleteItem] = useState(null);
 
     // Get setting from store
 
@@ -627,6 +682,107 @@ function LandingPage() {
         }
     }, []);
 
+    // Handle delete button click - opens confirmation modal
+    const handleDeleteChat = useCallback((item) => {
+        setPendingDeleteItem(item);
+        setDeleteModalOpen(true);
+    }, []);
+
+    // Cancel delete - closes modal
+    const cancelDeleteChat = useCallback(() => {
+        setDeleteModalOpen(false);
+        setPendingDeleteItem(null);
+    }, []);
+
+    // Confirm delete - performs the actual deletion
+    const confirmDeleteChat = useCallback(async () => {
+        const item = pendingDeleteItem;
+        if (!item) return;
+        
+        // Close modal immediately
+        setDeleteModalOpen(false);
+        setPendingDeleteItem(null);
+        
+        try {
+            if (item._type === 'group' || item.members) {
+                // Group chat deletion
+                const { deleteGroupChatByName, groups } = await import(/* webpackIgnore: true */ '../../../../group-chats.js');
+                
+                // Find the group to get the current chat name
+                const group = groups.find(g => g.id === item.id);
+                if (!group) {
+                    toastr?.error('Group not found');
+                    return;
+                }
+                
+                // Get the current/most recent chat file name (without .jsonl extension)
+                const chatFileName = group.chat_id || (group.chats && group.chats[group.chats.length - 1]);
+                if (!chatFileName) {
+                    toastr?.error('No chat file found for this group');
+                    return;
+                }
+                
+                await deleteGroupChatByName(item.id, chatFileName);
+                toastr?.success(`Chat deleted successfully`);
+            } else {
+                // Character chat deletion
+                const { characters, deleteCharacterChatByName } = await import(/* webpackIgnore: true */ '../../../../../script.js');
+                
+                // Get character ID (index in characters array)
+                const characterId = item._index !== undefined 
+                    ? item._index 
+                    : characters.findIndex(c => c.avatar === item.avatar);
+                    
+                if (characterId === -1) {
+                    toastr?.error('Character not found');
+                    return;
+                }
+                
+                // Get the current chat file name from the character (without .jsonl extension)
+                const character = characters[characterId];
+                const chatFileName = character?.chat;
+                if (!chatFileName) {
+                    toastr?.error('No chat file found for this character');
+                    return;
+                }
+                
+                await deleteCharacterChatByName(String(characterId), chatFileName);
+                toastr?.success(`Chat deleted successfully`);
+            }
+            
+            // Refresh the landing page
+            fetchChats();
+            
+        } catch (err) {
+            console.error('[Lumiverse] Error deleting chat:', err);
+            toastr?.error('Failed to delete chat');
+        }
+    }, [pendingDeleteItem, fetchChats]);
+
+    // Handle starting a temporary chat (scratchpad mode)
+    const handleTemporaryChat = useCallback(async () => {
+        try {
+            const { newAssistantChat, chat } = await import(/* webpackIgnore: true */ '../../../../../script.js');
+            const { callGenericPopup, POPUP_TYPE } = await import(/* webpackIgnore: true */ '../../../../popup.js');
+            
+            // If there's an existing chat, confirm before clearing
+            if (chat && chat.length > 0) {
+                const confirmed = await callGenericPopup(
+                    'Start a new temporary chat? Any unsaved conversation will be cleared.',
+                    POPUP_TYPE.CONFIRM
+                );
+                if (!confirmed) return;
+            }
+            
+            // Start the temporary chat using ST's built-in function
+            await newAssistantChat({ temporary: true });
+            
+        } catch (err) {
+            console.error('[Lumiverse] Error starting temporary chat:', err);
+            toastr?.error('Failed to start temporary chat');
+        }
+    }, []);
+
     return (
         <div className="lumiverse-lp-container" style={{ paddingTop: `${paddingTop}px`, pointerEvents: 'none' }}>
             {/* Ambient background effects */}
@@ -685,6 +841,16 @@ function LandingPage() {
                     </div>
 
                     <div className="lumiverse-lp-header-right">
+                        <motion.button
+                            className="lumiverse-lp-btn lumiverse-lp-btn-temp-chat"
+                            onClick={handleTemporaryChat}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            type="button"
+                            title="Start a temporary chat (scratchpad)"
+                        >
+                            <MessageSquarePlus size={16} strokeWidth={1.5} />
+                        </motion.button>
                         <motion.button
                             className="lumiverse-lp-btn lumiverse-lp-btn-refresh"
                             onClick={fetchChats}
@@ -756,6 +922,7 @@ function LandingPage() {
                                             item={item}
                                             presetName={item._type === 'character' ? getCharacterPreset(item.name) : null}
                                             onClick={() => handleItemClick(item)}
+                                            onDelete={handleDeleteChat}
                                             index={index}
                                         />
                                     ))}
@@ -775,6 +942,28 @@ function LandingPage() {
                     <p>Select a character to continue your journey</p>
                 </motion.footer>
             </motion.div>
+
+            {/* Delete Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={deleteModalOpen}
+                onConfirm={confirmDeleteChat}
+                onCancel={cancelDeleteChat}
+                title="Delete Chat"
+                message={
+                    pendingDeleteItem ? (
+                        <>
+                            Are you sure you want to delete the most recent chat with <strong>"{pendingDeleteItem.name || 'this character'}"</strong>?
+                            <br /><br />
+                            <span style={{ fontSize: '12px', opacity: 0.7 }}>
+                                This action cannot be undone.
+                            </span>
+                        </>
+                    ) : 'Are you sure you want to delete this chat?'
+                }
+                variant="danger"
+                confirmText="Delete"
+                cancelText="Cancel"
+            />
         </div>
     );
 }

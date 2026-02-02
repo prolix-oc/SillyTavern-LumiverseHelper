@@ -293,6 +293,7 @@ function ViewportPanel({
             width: wrapperWidth,
             zIndex: 9998,
             transition: 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)',
+            // Wrapper itself doesn't capture events - children opt-in via pointer-events: auto
             pointerEvents: 'none',
         };
 

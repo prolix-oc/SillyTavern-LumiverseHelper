@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useSyncExternalStore } from 'react';
 import { CollapsibleContent } from '../Collapsible';
+import { CollapsibleSection } from '../shared/CollapsibleSection';
 import clsx from 'clsx';
-import { Hand, Filter, ChevronDown, Info, Layers, Users, Edit2, Check, X, Brain } from 'lucide-react';
+import { Hand, Filter, Info, Layers, Users, Edit2, Check, X, Brain } from 'lucide-react';
 import { useLumiverseStore, useLumiverseActions, saveToExtension } from '../../store/LumiverseContext';
 import { useChatPresetSettings } from '../../hooks/useChatPresetSettings';
 import { ReasoningSettingsContent } from '../shared/ReasoningSettings';
@@ -77,44 +78,7 @@ function NumberField({ id, label, hint, value, onChange, min = 0, max = 100 }) {
     );
 }
 
-/**
- * Collapsible section - uses CSS grid for smooth, performant animation
- */
-function CollapsibleSection({ Icon, title, status, children, defaultOpen = false }) {
-    const [isOpen, setIsOpen] = useState(defaultOpen);
 
-    return (
-        <div className={clsx('lumiverse-vp-collapsible', isOpen && 'lumiverse-vp-collapsible--open')}>
-            <button
-                className="lumiverse-vp-collapsible-header"
-                onClick={() => setIsOpen(!isOpen)}
-                type="button"
-            >
-                <span className={clsx('lumiverse-vp-collapsible-chevron', isOpen && 'lumiverse-vp-collapsible-chevron--open')}>
-                    <ChevronDown size={14} strokeWidth={2} />
-                </span>
-                <span className="lumiverse-vp-collapsible-icon">
-                    <Icon size={16} strokeWidth={1.5} />
-                </span>
-                <span className="lumiverse-vp-collapsible-title">{title}</span>
-                {status !== undefined && (
-                    <span className={clsx('lumiverse-vp-collapsible-status', status && 'lumiverse-vp-collapsible-status--active')}>
-                        {status ? 'Active' : 'Inactive'}
-                    </span>
-                )}
-            </button>
-            <CollapsibleContent
-                isOpen={isOpen}
-                className="lumiverse-vp-collapsible-content"
-                duration={200}
-            >
-                <div className="lumiverse-vp-collapsible-inner">
-                    {children}
-                </div>
-            </CollapsibleContent>
-        </div>
-    );
-}
 
 /**
  * Info box component

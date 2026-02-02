@@ -10,7 +10,7 @@
  * Updated automatically during deployment
  * @type {string}
  */
-export const EXTENSION_VERSION = "4.1.7";
+export const EXTENSION_VERSION = "4.1.8";
 
 /**
  * Export as default for convenience

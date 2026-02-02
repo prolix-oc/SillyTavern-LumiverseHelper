@@ -141,6 +141,12 @@ export const landingPageStyles = `
   align-items: center;
 }
 
+.lumiverse-lp-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .lumiverse-lp-logo {
   display: flex;
   align-items: center;
@@ -246,6 +252,22 @@ export const landingPageStyles = `
   background: rgba(147, 112, 219, 0.15);
   border-color: rgba(147, 112, 219, 0.4);
   color: rgba(186, 135, 255, 0.95);
+}
+
+/* Temporary chat button */
+.lumiverse-lp-btn-temp-chat {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.lumiverse-lp-btn-temp-chat:hover {
+  background: rgba(100, 200, 150, 0.15);
+  border-color: rgba(100, 200, 150, 0.4);
+  color: rgba(150, 230, 180, 0.95);
 }
 
 .lumiverse-lp-btn-toggle {
@@ -761,6 +783,77 @@ export const landingPageStyles = `
   stroke: rgba(255, 255, 255, 0.6);
 }
 
+/* Delete button - positioned top-right corner of card */
+.lumiverse-lp-card-delete-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 12px;
+  background: rgba(30, 30, 40, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  /* Only transition color properties - let Framer Motion handle transform/opacity */
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+.lumiverse-lp-card-delete-btn:hover {
+  background: rgba(220, 53, 69, 0.9);
+  border-color: rgba(255, 100, 100, 0.5);
+  color: white;
+  box-shadow:
+    0 6px 20px rgba(220, 53, 69, 0.4),
+    0 0 30px rgba(220, 53, 69, 0.2);
+}
+
+.lumiverse-lp-card-delete-btn svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* Confirming state - pulsing warning appearance */
+.lumiverse-lp-card-delete-btn--confirming {
+  background: rgba(220, 53, 69, 0.9);
+  border-color: rgba(255, 100, 100, 0.6);
+  color: white;
+  animation: lumiverse-lp-delete-pulse 0.6s ease-in-out infinite alternate;
+  box-shadow:
+    0 4px 16px rgba(220, 53, 69, 0.4),
+    0 0 24px rgba(220, 53, 69, 0.2);
+}
+
+.lumiverse-lp-card-delete-btn--confirming:hover {
+  background: rgba(200, 35, 51, 0.95);
+  animation: none;
+}
+
+/* Pulse animation - only animates box-shadow to avoid transform conflicts */
+@keyframes lumiverse-lp-delete-pulse {
+  0% {
+    box-shadow:
+      0 4px 16px rgba(220, 53, 69, 0.4),
+      0 0 24px rgba(220, 53, 69, 0.2);
+  }
+  100% {
+    box-shadow:
+      0 6px 24px rgba(220, 53, 69, 0.6),
+      0 0 40px rgba(220, 53, 69, 0.35);
+  }
+}
+
 /* Card content */
 .lumiverse-lp-card-content {
   padding: 16px;
@@ -1037,6 +1130,18 @@ export const landingPageStyles = `
     padding: 3px 8px;
   }
 
+  /* Delete button on tablet */
+  .lumiverse-lp-card-delete-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+  }
+
+  .lumiverse-lp-card-delete-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+
   /* Tablet: ensure overflow bubble matches avatar size */
   .lumiverse-lp-group-avatar-overflow {
     font-size: 13px;
@@ -1067,6 +1172,20 @@ export const landingPageStyles = `
     padding: 2px 6px;
   }
 
+  /* Delete button on mobile */
+  .lumiverse-lp-card-delete-btn {
+    width: 30px;
+    height: 30px;
+    top: 8px;
+    right: 8px;
+    border-radius: 10px;
+  }
+
+  .lumiverse-lp-card-delete-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+
   /* Group avatar sizing on mobile - keep proportions consistent */
   .lumiverse-lp-group-stack-avatars[data-count="5+"] .lumiverse-lp-group-avatar-wrapper,
   .lumiverse-lp-group-stack-avatars[data-count="4"] .lumiverse-lp-group-avatar-wrapper {
@@ -1094,7 +1213,8 @@ export const landingPageStyles = `
   .lumiverse-lp-card-avatar,
   .lumiverse-lp-card-glow,
   .lumiverse-lp-btn,
-  .lumiverse-lp-group-avatar-wrapper {
+  .lumiverse-lp-group-avatar-wrapper,
+  .lumiverse-lp-card-delete-btn {
     transition: none;
   }
 
@@ -1110,6 +1230,11 @@ export const landingPageStyles = `
   /* Disable hover transforms for group avatars */
   .lumiverse-lp-card:hover .lumiverse-lp-group-avatar-wrapper {
     transform: none;
+  }
+
+  /* Disable delete button pulse animation */
+  .lumiverse-lp-card-delete-btn--confirming {
+    animation: none;
   }
 }
 `;

@@ -34,6 +34,12 @@ let isSwitching = false;
 // Callback for when bindings change (for React UI updates)
 let bindingsChangeCallback = null;
 
+// --- DEFAULT TOGGLE STATE CAPTURE ---
+// Captured on first load to restore when switching to unbound chats
+let capturedDefaultToggles = null;
+// Track whether we're currently "on defaults" to avoid redundant reapplication
+let isCurrentlyOnDefaults = false;
+
 /**
  * Get all preset bindings from the cache
  * @returns {{characters: Object, chats: Object}}
@@ -264,21 +270,139 @@ function checkCurrentContextBindings() {
 }
 
 /**
+ * Capture the current preset's toggle states as the "defaults".
+ * Called once on initialization to establish baseline state.
+ * These defaults are restored when switching to chats without bindings.
+ * 
+ * @returns {boolean} Whether defaults were successfully captured
+ */
+export function captureDefaultToggleState() {
+    const toggles = chatPresetService.captureCurrentToggles();
+    if (!toggles || Object.keys(toggles).length === 0) {
+        console.warn(`[${MODULE_NAME}] Failed to capture default toggle state - no toggles available`);
+        return false;
+    }
+
+    capturedDefaultToggles = toggles;
+    isCurrentlyOnDefaults = true;
+    console.log(`[${MODULE_NAME}] Captured default toggle state with ${Object.keys(toggles).length} toggles`);
+    return true;
+}
+
+/**
+ * Check if there are captured default toggles available.
+ * @returns {boolean}
+ */
+export function hasDefaultToggleState() {
+    return capturedDefaultToggles !== null && Object.keys(capturedDefaultToggles).length > 0;
+}
+
+/**
+ * Get the captured default toggle state.
+ * @returns {Object|null} The default toggles or null if not captured
+ */
+export function getDefaultToggleState() {
+    return capturedDefaultToggles;
+}
+
+/**
+ * Check if current toggles match the captured defaults.
+ * Used to avoid redundant reapplication when already on defaults.
+ * 
+ * @returns {boolean} True if current toggles match defaults
+ */
+function areCurrentTogglesMatchingDefaults() {
+    if (!capturedDefaultToggles) return false;
+
+    const currentToggles = chatPresetService.captureCurrentToggles();
+    if (!currentToggles) return false;
+
+    // Compare toggle states
+    const defaultKeys = Object.keys(capturedDefaultToggles);
+    const currentKeys = Object.keys(currentToggles);
+
+    // Quick length check
+    if (defaultKeys.length !== currentKeys.length) return false;
+
+    // Deep compare
+    for (const key of defaultKeys) {
+        if (currentToggles[key] !== capturedDefaultToggles[key]) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
+ * Restore toggle states to captured defaults.
+ * This applies the initially captured toggle configuration.
+ * 
+ * @returns {{applied: boolean, matched: number}} Result of applying defaults
+ */
+function restoreDefaultToggleState() {
+    if (!capturedDefaultToggles) {
+        console.warn(`[${MODULE_NAME}] No default toggle state captured - cannot restore`);
+        return { applied: false, matched: 0 };
+    }
+
+    const ctx = getContext();
+    const oaiSettings = ctx?.chatCompletionSettings;
+    
+    if (!oaiSettings?.prompt_order) {
+        console.warn(`[${MODULE_NAME}] Cannot restore defaults - prompt_order not available`);
+        return { applied: false, matched: 0 };
+    }
+
+    // Determine active character ID (same logic as applyToggleStateToCurrentPreset)
+    const OPENAI_DUMMY_ID = 100001;
+    const isGlobalStrategy = !oaiSettings.prompt_manager_settings?.showCharacterPromptOrder;
+    const activeCharId = isGlobalStrategy ? OPENAI_DUMMY_ID : ctx?.characterId;
+
+    const orderEntry = oaiSettings.prompt_order.find(entry => entry.character_id === activeCharId);
+    if (!orderEntry?.order) {
+        console.warn(`[${MODULE_NAME}] Cannot restore defaults - no prompt_order entry for character ${activeCharId}`);
+        return { applied: false, matched: 0 };
+    }
+
+    // Apply default toggles
+    let matched = 0;
+    for (const [promptId, enabled] of Object.entries(capturedDefaultToggles)) {
+        const orderItem = orderEntry.order.find(item => item.identifier === promptId);
+        if (orderItem) {
+            orderItem.enabled = enabled;
+            matched++;
+        }
+    }
+
+    if (matched > 0) {
+        // Save runtime settings
+        if (typeof ctx?.saveSettingsDebounced === 'function') {
+            ctx.saveSettingsDebounced();
+        }
+        
+        isCurrentlyOnDefaults = true;
+        console.log(`[${MODULE_NAME}] Restored ${matched} toggles to default state`);
+    }
+
+    return { applied: matched > 0, matched };
+}
+
+/**
  * Apply the appropriate preset based on current bindings
  * Called on CHAT_CHANGED event
  * 
- * IMPORTANT: This function ONLY operates when there are actual bindings.
- * If no preset binding AND no toggle binding exists for the current context,
- * we do NOTHING - no preset switching, no prompt_order manipulation, no
- * touching of Reasoning/CoT settings.
- * 
- * When bindings DO exist:
- * 1. Reset prompts to preset defaults FIRST (clean slate)
- * 2. Apply preset binding if one exists
- * 3. Apply toggle binding on top if one exists
+ * Behavior:
+ * - If NO bindings exist for the current context AND we have captured defaults:
+ *   - If already on defaults, do nothing (optimization)
+ *   - Otherwise, restore the captured default toggle state
+ * - If bindings DO exist:
+ *   1. Reset prompts to preset defaults FIRST (clean slate)
+ *   2. Apply preset binding if one exists
+ *   3. Apply toggle binding on top if one exists
  * 
  * This prevents toggle state "leakage" between different chats/characters
- * while also ensuring we don't modify anything when there are no bindings.
+ * by restoring defaults when switching to unbound contexts.
  * 
  * @returns {Promise<boolean>} Whether a preset was switched
  */
@@ -291,14 +415,40 @@ export async function applyBindingForCurrentContext() {
     // CRITICAL: Check if there are ANY bindings for this context FIRST
     const bindingCheck = checkCurrentContextBindings();
     
-    // If no bindings of any kind, do NOTHING - leave preset/toggles untouched
+    // If no bindings of any kind, restore defaults (if we have them)
     if (!bindingCheck.hasPresetBinding && !bindingCheck.hasToggleBinding) {
-        console.log(`[${MODULE_NAME}] No bindings for current context - leaving preset state untouched`);
         lastAppliedBinding = null;
+        
+        // If we don't have captured defaults, nothing to restore
+        if (!hasDefaultToggleState()) {
+            console.log(`[${MODULE_NAME}] No bindings for current context and no defaults captured - leaving preset state untouched`);
+            return false;
+        }
+        
+        // If already on defaults, skip redundant reapplication
+        if (isCurrentlyOnDefaults && areCurrentTogglesMatchingDefaults()) {
+            console.log(`[${MODULE_NAME}] No bindings for current context - already on defaults, skipping`);
+            return false;
+        }
+        
+        // Restore defaults
+        console.log(`[${MODULE_NAME}] No bindings for current context - restoring default toggle state`);
+        const result = restoreDefaultToggleState();
+        
+        if (result.applied && typeof toastr !== 'undefined') {
+            toastr.info(`Restored default toggles (${result.matched} prompts)`, 'Lumiverse Helper', {
+                timeOut: 2000,
+                preventDuplicates: true,
+            });
+        }
+        
         return false;
     }
 
     const binding = resolveCurrentBinding();
+    
+    // We have at least one type of binding - mark that we're NOT on defaults anymore
+    isCurrentlyOnDefaults = false;
     
     // We have at least one type of binding - reset to defaults first for clean slate
     // This only happens when we KNOW we're going to apply bindings
@@ -589,6 +739,7 @@ export function onBindingsChange(callback) {
 
 /**
  * Initialize the binding service - subscribe to CHAT_CHANGED events
+ * and capture default toggle state for restoration on unbound chats.
  */
 export function initPresetBindingService() {
     const eventSource = getEventSource();
@@ -598,6 +749,18 @@ export function initPresetBindingService() {
         console.warn(`[${MODULE_NAME}] Cannot initialize: ST event system not available`);
         return false;
     }
+
+    // Capture default toggle state on initialization
+    // This runs after ST is ready, so toggles should be available
+    // Use a small delay to ensure chatCompletionSettings is fully loaded
+    setTimeout(() => {
+        const captured = captureDefaultToggleState();
+        if (captured) {
+            console.log(`[${MODULE_NAME}] Default toggle state captured on initialization`);
+        } else {
+            console.warn(`[${MODULE_NAME}] Could not capture default toggle state on init - may retry later`);
+        }
+    }, 500);
 
     eventSource.on(event_types.CHAT_CHANGED, () => {
         console.log(`[${MODULE_NAME}] CHAT_CHANGED detected, checking bindings...`);
@@ -618,4 +781,24 @@ export function clearAllBindings() {
     savePresetBindings({ characters: {}, chats: {} });
     lastAppliedBinding = null;
     console.log(`[${MODULE_NAME}] All bindings cleared`);
+}
+
+/**
+ * Reset the default toggle state capture.
+ * Useful when user changes their base preset and wants to recapture.
+ * 
+ * @returns {boolean} Whether defaults were successfully recaptured
+ */
+export function recaptureDefaultToggleState() {
+    capturedDefaultToggles = null;
+    isCurrentlyOnDefaults = false;
+    return captureDefaultToggleState();
+}
+
+/**
+ * Check if we're currently on the default toggle state.
+ * @returns {boolean}
+ */
+export function isOnDefaultToggles() {
+    return isCurrentlyOnDefaults;
 }

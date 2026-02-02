@@ -6,19 +6,17 @@ import {
     Link2Off,
     User,
     MessageSquare,
-    ChevronDown,
     X,
     Plus,
     Trash2,
     Settings2,
     FileJson,
     AlertTriangle,
-    ToggleLeft,
-    ToggleRight,
     Zap,
 } from 'lucide-react';
 import { usePresetBindings } from '../../hooks/usePresetBindings';
 import { useLumiverseStore } from '../../store/LumiverseContext';
+import { ToggleBindingsContent } from '../shared/ToggleBindingsContent';
 
 // Get store for direct state access
 const store = useLumiverseStore;
@@ -157,13 +155,6 @@ function PresetBindingsModal({ onClose }) {
         removeCharacterBinding,
         removeChatBinding,
         refreshPresets,
-        // Toggle state bindings
-        hasChatToggleBinding,
-        hasCharacterToggleBinding,
-        saveTogglesToChat,
-        clearChatToggleBinding,
-        saveTogglesToCharacter,
-        clearCharacterToggleBinding,
     } = usePresetBindings();
 
     // Get currently active preset from store
@@ -234,35 +225,6 @@ function PresetBindingsModal({ onClose }) {
             toastr?.info('Chat binding removed');
         }
     }, [removeCharacterBinding, removeChatBinding]);
-
-    // Toggle state binding handlers
-    const handleSaveTogglesToChat = useCallback(async () => {
-        const success = await saveTogglesToChat();
-        if (success) {
-            toastr?.success('Prompt toggles bound to current chat');
-        } else {
-            toastr?.error('Failed to save prompt toggles');
-        }
-    }, [saveTogglesToChat]);
-
-    const handleClearChatToggleBinding = useCallback(() => {
-        clearChatToggleBinding();
-        toastr?.info('Chat toggle binding cleared');
-    }, [clearChatToggleBinding]);
-
-    const handleSaveTogglesToCharacter = useCallback(async () => {
-        const success = await saveTogglesToCharacter();
-        if (success) {
-            toastr?.success(`Prompt toggles bound to ${contextInfo.characterName || 'character'}`);
-        } else {
-            toastr?.error('Failed to save prompt toggles');
-        }
-    }, [saveTogglesToCharacter, contextInfo.characterName]);
-
-    const handleClearCharacterToggleBinding = useCallback(() => {
-        clearCharacterToggleBinding();
-        toastr?.info('Character toggle binding cleared');
-    }, [clearCharacterToggleBinding]);
 
     const handleBackdropClick = useCallback((e) => {
         if (e.target === e.currentTarget) onClose();
@@ -425,88 +387,7 @@ function PresetBindingsModal({ onClose }) {
                             <span>Prompt Toggle Bindings</span>
                         </div>
 
-                        {hasContext ? (
-                            <div className="lumiverse-bindings-toggles">
-                                <div className="lumiverse-bindings-toggles-info">
-                                    <span>Save which prompts are enabled/disabled to auto-apply when switching to this chat or character.</span>
-                                </div>
-
-                                {/* Chat Toggle Binding */}
-                                <div className="lumiverse-bindings-toggle-row">
-                                    <div className="lumiverse-bindings-toggle-label">
-                                        <MessageSquare size={14} strokeWidth={1.5} />
-                                        <span>This Chat</span>
-                                        {hasChatToggleBinding && (
-                                            <span className="lumiverse-bindings-toggle-badge">Bound</span>
-                                        )}
-                                    </div>
-                                    <div className="lumiverse-bindings-toggle-actions">
-                                        {hasChatToggleBinding ? (
-                                            <button
-                                                className="lumia-btn lumia-btn-danger lumia-btn-sm"
-                                                onClick={handleClearChatToggleBinding}
-                                                type="button"
-                                            >
-                                                <Trash2 size={12} strokeWidth={2} />
-                                                Clear
-                                            </button>
-                                        ) : (
-                                            <button
-                                                className="lumia-btn lumia-btn-primary lumia-btn-sm"
-                                                onClick={handleSaveTogglesToChat}
-                                                disabled={!contextInfo.chatId}
-                                                type="button"
-                                            >
-                                                <ToggleRight size={12} strokeWidth={2} />
-                                                Bind Toggles
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Character Toggle Binding */}
-                                <div className="lumiverse-bindings-toggle-row">
-                                    <div className="lumiverse-bindings-toggle-label">
-                                        <User size={14} strokeWidth={1.5} />
-                                        <span>{contextInfo.characterName || 'Character'}</span>
-                                        {hasCharacterToggleBinding && (
-                                            <span className="lumiverse-bindings-toggle-badge">Bound</span>
-                                        )}
-                                    </div>
-                                    <div className="lumiverse-bindings-toggle-actions">
-                                        {hasCharacterToggleBinding ? (
-                                            <button
-                                                className="lumia-btn lumia-btn-danger lumia-btn-sm"
-                                                onClick={handleClearCharacterToggleBinding}
-                                                type="button"
-                                            >
-                                                <Trash2 size={12} strokeWidth={2} />
-                                                Clear
-                                            </button>
-                                        ) : (
-                                            <button
-                                                className="lumia-btn lumia-btn-primary lumia-btn-sm"
-                                                onClick={handleSaveTogglesToCharacter}
-                                                disabled={!contextInfo.characterAvatar}
-                                                type="button"
-                                            >
-                                                <ToggleRight size={12} strokeWidth={2} />
-                                                Bind Toggles
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="lumiverse-bindings-toggles-priority">
-                                    <span>Priority: Chat &gt; Character (chat binding applied first)</span>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="lumiverse-bindings-no-context">
-                                <ToggleLeft size={20} strokeWidth={1.5} />
-                                <span>Select a character to bind prompt toggles</span>
-                            </div>
-                        )}
+                        <ToggleBindingsContent />
                     </div>
 
                     {/* Existing Bindings List */}
