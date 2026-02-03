@@ -5,6 +5,7 @@ import { landingPageStyles } from './LandingPageStyles.js';
 import { useLumiverseStore } from '../store/LumiverseContext';
 import { getTopBarHeight } from '../../lib/domUtils.js';
 import ConfirmationModal from './shared/ConfirmationModal.jsx';
+import { getLumiverseVersion, getSillyTavernVersion, isPrerelease } from '../../lib/version.js';
 
 /* global toastr */
 
@@ -399,6 +400,106 @@ function EmptyState() {
 }
 
 /**
+ * Version Info Component
+ * Displays Lumiverse and SillyTavern versions in the bottom-right corner
+ * Click to copy version info to clipboard
+ */
+function VersionInfo() {
+    const [stVersionInfo, setStVersionInfo] = useState(null);
+    const [copied, setCopied] = useState(false);
+    const lumiverseVersion = getLumiverseVersion();
+    const isBeta = isPrerelease(lumiverseVersion);
+
+    useEffect(() => {
+        getSillyTavernVersion().then(info => {
+            if (info) {
+                setStVersionInfo(info);
+            }
+        });
+    }, []);
+
+    // Build the version text for clipboard
+    const getVersionText = useCallback(() => {
+        let text = `Lumiverse: v${lumiverseVersion}`;
+        if (stVersionInfo) {
+            text += `\nSillyTavern: v${stVersionInfo.pkgVersion}`;
+            if (stVersionInfo.gitBranch) {
+                text += ` (${stVersionInfo.gitBranch}`;
+                if (stVersionInfo.gitRevision) {
+                    text += ` @${stVersionInfo.gitRevision}`;
+                }
+                text += ')';
+            }
+        }
+        return text;
+    }, [lumiverseVersion, stVersionInfo]);
+
+    // Handle click to copy
+    const handleCopy = useCallback(async () => {
+        try {
+            await navigator.clipboard.writeText(getVersionText());
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1500);
+        } catch (err) {
+            console.error('[Lumiverse] Failed to copy version info:', err);
+        }
+    }, [getVersionText]);
+
+    return (
+        <motion.div
+            className={`lumiverse-lp-version-info ${copied ? 'lumiverse-lp-version-info--copied' : ''}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.8 }}
+            onClick={handleCopy}
+            title="Click to copy version info"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleCopy(); }}
+        >
+            <div className="lumiverse-lp-version-row">
+                <span className="lumiverse-lp-version-label">Lumiverse</span>
+                <span className={`lumiverse-lp-version-value ${isBeta ? 'lumiverse-lp-version-beta' : ''}`}>
+                    v{lumiverseVersion}
+                </span>
+            </div>
+            {stVersionInfo && (
+                <div className="lumiverse-lp-version-row">
+                    <span className="lumiverse-lp-version-label">SillyTavern</span>
+                    <span className="lumiverse-lp-version-value">
+                        v{stVersionInfo.pkgVersion}
+                        {stVersionInfo.gitBranch && (
+                            <span className="lumiverse-lp-version-git">
+                                {stVersionInfo.gitBranch}
+                                {stVersionInfo.gitRevision && (
+                                    <span className="lumiverse-lp-version-commit">
+                                        @{stVersionInfo.gitRevision}
+                                    </span>
+                                )}
+                            </span>
+                        )}
+                    </span>
+                </div>
+            )}
+            {/* Copied feedback indicator */}
+            <AnimatePresence>
+                {copied && (
+                    <motion.div
+                        className="lumiverse-lp-version-copied"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        transition={{ duration: 0.15 }}
+                    >
+                        Copied!
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </motion.div>
+    );
+}
+
+/**
  * Loading Skeleton Card
  */
 function SkeletonCard({ index }) {
@@ -761,6 +862,14 @@ function LandingPage() {
 
     // Handle starting a temporary chat (scratchpad mode)
     const handleTemporaryChat = useCallback(async () => {
+        // Defensive check: ensure system messages are loaded (APP_READY has fired)
+        // See: developer_guides/12_troubleshoot_temp_chat.md - Race Condition section
+        if (!window.lumiverseAppReady) {
+            console.warn('[Lumiverse] Temporary chat blocked: APP_READY has not fired yet');
+            toastr?.warning('Please wait for the app to finish loading');
+            return;
+        }
+        
         try {
             const { newAssistantChat, chat } = await import(/* webpackIgnore: true */ '../../../../../script.js');
             const { callGenericPopup, POPUP_TYPE } = await import(/* webpackIgnore: true */ '../../../../popup.js');
@@ -844,10 +953,11 @@ function LandingPage() {
                         <motion.button
                             className="lumiverse-lp-btn lumiverse-lp-btn-temp-chat"
                             onClick={handleTemporaryChat}
+                            disabled={!isAppReady}
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             type="button"
-                            title="Start a temporary chat (scratchpad)"
+                            title={isAppReady ? "Start a temporary chat (scratchpad)" : "Waiting for app to initialize..."}
                         >
                             <MessageSquarePlus size={16} strokeWidth={1.5} />
                         </motion.button>
@@ -942,6 +1052,9 @@ function LandingPage() {
                     <p>Select a character to continue your journey</p>
                 </motion.footer>
             </motion.div>
+
+            {/* Version Info - Bottom Right Corner */}
+            <VersionInfo />
 
             {/* Delete Confirmation Modal */}
             <ConfirmationModal

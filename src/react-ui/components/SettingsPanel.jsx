@@ -947,7 +947,7 @@ function SettingsPanel() {
                                     value={drawerSettings.verticalPosition}
                                     onChange={(e) => handleVerticalPositionChange(e.target.value)}
                                     min="8"
-                                    max="80"
+                                    max="85"
                                 />
                                 <span className="lumia-drawer-vpos-value">{drawerSettings.verticalPosition}%</span>
                             </div>

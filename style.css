@@ -4651,3 +4651,168 @@ details.lumia-panel[open] .lumia-panel-chevron {
   }
 }
 
+/* ============================================
+   IRC CHAT ROOM STYLE - Council OOC
+   Classic internet chatroom aesthetic (ICQ/AIM/mIRC inspired)
+   ============================================ */
+
+/* Main IRC Container */
+.lumia-irc-container {
+  display: block !important;
+  position: relative !important;
+  font-family: 'Courier New', 'Lucida Console', 'Monaco', monospace !important;
+  background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%) !important;
+  border: 1px solid #333 !important;
+  border-left: 3px solid #9370DB !important;
+  border-radius: 4px !important;
+  margin: 12px 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.02) !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Channel Header */
+.lumia-irc-container .lumia-irc-header {
+  display: block !important;
+  background: linear-gradient(180deg, #252540 0%, #1e1e35 100%) !important;
+  color: #888 !important;
+  font-size: 10px !important;
+  font-weight: bold !important;
+  letter-spacing: 0.5px !important;
+  padding: 4px 10px !important;
+  border-bottom: 1px solid #333 !important;
+  text-transform: uppercase !important;
+}
+
+.lumia-irc-header::before {
+  content: "● ";
+  color: #00ff00;
+  font-size: 8px;
+}
+
+/* Individual Message Line */
+.lumia-irc-container .lumia-irc-msg {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 4px 10px !important;
+  line-height: 1.5 !important;
+  border-bottom: 1px solid rgba(26, 26, 46, 0.5) !important;
+  transition: background-color 0.15s ease !important;
+  background: transparent !important;
+}
+
+.lumia-irc-msg:last-child {
+  border-bottom: none;
+}
+
+.lumia-irc-msg:hover {
+  background: rgba(147, 112, 219, 0.08);
+}
+
+/* Alternating row colors */
+.lumia-irc-msg.lumia-irc-alt {
+  background: rgba(147, 112, 219, 0.03);
+}
+
+.lumia-irc-msg.lumia-irc-alt:hover {
+  background: rgba(147, 112, 219, 0.1);
+}
+
+/* Timestamp */
+.lumia-irc-time {
+  color: #555;
+  font-size: 10px;
+  flex-shrink: 0;
+  min-width: 42px;
+}
+
+/* Small Avatar (optional) */
+.lumia-irc-container .lumia-irc-avatar {
+  width: 16px !important;
+  height: 16px !important;
+  min-width: 16px !important;
+  min-height: 16px !important;
+  max-width: 16px !important;
+  max-height: 16px !important;
+  border-radius: 2px !important;
+  object-fit: cover !important;
+  flex-shrink: 0 !important;
+  image-rendering: pixelated !important;
+  border: 1px solid #444 !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+}
+
+/* Handle/Nick */
+.lumia-irc-handle {
+  color: #9370DB;
+  font-weight: bold;
+  font-size: 12px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* Message Content */
+.lumia-irc-content {
+  color: #00ff00;
+  font-size: 12px;
+  word-break: break-word;
+  flex-grow: 1;
+}
+
+/* @Mention Highlighting */
+.lumia-irc-mention {
+  color: #ff6b6b;
+  font-weight: bold;
+  background: rgba(255, 107, 107, 0.1);
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+/* Compact mode for longer chats */
+.lumia-irc-container.lumia-irc-compact .lumia-irc-msg {
+  padding: 2px 10px;
+}
+
+.lumia-irc-container.lumia-irc-compact .lumia-irc-time,
+.lumia-irc-container.lumia-irc-compact .lumia-irc-handle,
+.lumia-irc-container.lumia-irc-compact .lumia-irc-content {
+  font-size: 11px;
+}
+
+/* Scanline effect for extra retro feel */
+.lumia-irc-container::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+  opacity: 0.5;
+}
+
+/* Ensure container is positioned for scanline overlay */
+.lumia-irc-container {
+  position: relative;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .lumia-irc-msg {
+    transition: none;
+  }
+}
+

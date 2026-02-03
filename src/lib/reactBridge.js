@@ -177,6 +177,7 @@ export async function reactFormatToSettings(reactState, immediate = false) {
       const preferenceFields = [
         'chimeraMode',
         'councilMode',
+        'councilChatStyle',
         'lumiaQuirks',
         'lumiaQuirksEnabled',
         'lumiaOOCInterval',

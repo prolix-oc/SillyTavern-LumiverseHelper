@@ -117,6 +117,10 @@ const initialState = {
     oocEnabled: true,
     lumiaOOCStyle: 'social',
     lumiaOOCInterval: null,
+    councilChatStyle: {
+        enabled: false,        // When true, council OOC uses IRC chatroom format
+        showTimestamps: true,  // Show [HH:MM] timestamps in IRC messages
+    },
 
     // Message truncation
     messageTruncation: {

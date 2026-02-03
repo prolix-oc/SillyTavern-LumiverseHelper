@@ -1237,4 +1237,163 @@ export const landingPageStyles = `
     animation: none;
   }
 }
+
+/* Version Info - Subtle bottom-right corner display */
+.lumiverse-lp-version-info {
+  position: fixed;
+  bottom: 16px;
+  right: 20px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  padding: 10px 14px;
+  background: rgba(15, 12, 22, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  box-shadow:
+    0 2px 12px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.lumiverse-lp-version-info:hover {
+  border-color: rgba(147, 112, 219, 0.25);
+  background: rgba(20, 16, 28, 0.75);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.lumiverse-lp-version-info:active {
+  transform: scale(0.98);
+}
+
+/* Copied state - brief flash */
+.lumiverse-lp-version-info--copied {
+  border-color: rgba(147, 112, 219, 0.5) !important;
+  box-shadow:
+    0 4px 20px rgba(147, 112, 219, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Copied overlay indicator */
+.lumiverse-lp-version-copied {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(147, 112, 219, 0.15);
+  border-radius: 9px;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(186, 135, 255, 0.95);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.lumiverse-lp-version-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+}
+
+.lumiverse-lp-version-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.35);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.lumiverse-lp-version-value {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Git branch and commit info */
+.lumiverse-lp-version-git {
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.3);
+  padding-left: 6px;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.lumiverse-lp-version-commit {
+  color: rgba(147, 112, 219, 0.5);
+  font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+  font-size: 9px;
+  margin-left: 3px;
+}
+
+/* Beta/prerelease version styling - subtle accent */
+.lumiverse-lp-version-beta {
+  color: rgba(186, 135, 255, 0.7);
+  position: relative;
+}
+
+.lumiverse-lp-version-beta::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(186, 135, 255, 0.4) 50%,
+    transparent 100%
+  );
+}
+
+/* Mobile responsiveness for version info */
+@media (max-width: 768px) {
+  .lumiverse-lp-version-info {
+    bottom: 12px;
+    right: 12px;
+    padding: 8px 12px;
+    gap: 3px;
+  }
+
+  .lumiverse-lp-version-label {
+    font-size: 9px;
+  }
+
+  .lumiverse-lp-version-value {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .lumiverse-lp-version-info {
+    bottom: 10px;
+    right: 10px;
+    padding: 6px 10px;
+  }
+}
+
+/* Reduced motion - disable version fade-in animation */
+@media (prefers-reduced-motion: reduce) {
+  .lumiverse-lp-version-info {
+    opacity: 1 !important;
+  }
+}
 `;

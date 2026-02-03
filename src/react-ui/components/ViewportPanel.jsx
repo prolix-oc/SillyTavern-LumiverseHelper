@@ -68,7 +68,7 @@ function DrawerTab({ isVisible, onClick, hasUpdates, side = 'right', verticalPos
             aria-expanded={isVisible}
             aria-label="Toggle Lumiverse drawer"
             style={{
-                marginTop: `${Math.max(8, Math.min(80, verticalPosition))}%`,
+                marginTop: `${Math.max(8, Math.min(85, verticalPosition))}vh`,
             }}
         >
             <span className="lumiverse-drawer-tab-icon">

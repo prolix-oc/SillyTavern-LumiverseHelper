@@ -1,6 +1,6 @@
 import React, { useCallback, useSyncExternalStore } from 'react';
 import clsx from 'clsx';
-import { Clock, LayoutGrid, MessageCircle, FileText, Quote, Type } from 'lucide-react';
+import { Clock, LayoutGrid, MessageCircle, FileText, Quote, Type, Hash, Users } from 'lucide-react';
 import { useLumiverseActions, saveToExtensionImmediate, useLumiverseStore } from '../../store/LumiverseContext';
 
 /* global LumiverseBridge */
@@ -89,6 +89,7 @@ function NumberField({ id, label, hint, value, onChange, placeholder, min = 1 })
  * OLD CODE FIELD NAMES (root level, not nested):
  * - lumiaOOCInterval: number | null
  * - lumiaOOCStyle: 'social' | 'margin' | 'whisper'
+ * - councilChatStyle: { enabled: boolean, showTimestamps: boolean }
  */
 function OOCSettings() {
     const actions = useLumiverseActions();
@@ -104,6 +105,27 @@ function OOCSettings() {
         () => store.getState().lumiaOOCStyle || 'social',
         () => store.getState().lumiaOOCStyle || 'social'
     );
+
+    // Council mode state
+    const councilMode = useSyncExternalStore(
+        store.subscribe,
+        () => store.getState().councilMode || false,
+        () => store.getState().councilMode || false
+    );
+    const councilMembers = useSyncExternalStore(
+        store.subscribe,
+        () => store.getState().councilMembers || [],
+        () => store.getState().councilMembers || []
+    );
+
+    // IRC chat style settings for council mode
+    const councilChatStyle = useSyncExternalStore(
+        store.subscribe,
+        () => store.getState().councilChatStyle || { enabled: false, showTimestamps: true },
+        () => store.getState().councilChatStyle || { enabled: false, showTimestamps: true }
+    );
+
+    const isCouncilActive = councilMode && councilMembers.length > 0;
 
     const handleIntervalChange = useCallback((value) => {
         const intervalNum = value ? parseInt(value, 10) : null;
@@ -124,6 +146,34 @@ function OOCSettings() {
             }
         }
     }, []);
+
+    const handleIRCStyleToggle = useCallback((enabled) => {
+        const newStyle = { ...councilChatStyle, enabled };
+        store.setState({ councilChatStyle: newStyle });
+        saveToExtensionImmediate();
+
+        // Re-render existing OOC comments with the new style
+        if (typeof LumiverseBridge !== 'undefined') {
+            const callbacks = LumiverseBridge.getCallbacks();
+            if (callbacks?.refreshOOCComments) {
+                callbacks.refreshOOCComments(true);
+            }
+        }
+    }, [councilChatStyle]);
+
+    const handleIRCTimestampToggle = useCallback((showTimestamps) => {
+        const newStyle = { ...councilChatStyle, showTimestamps };
+        store.setState({ councilChatStyle: newStyle });
+        saveToExtensionImmediate();
+
+        // Re-render existing OOC comments with the new style
+        if (typeof LumiverseBridge !== 'undefined') {
+            const callbacks = LumiverseBridge.getCallbacks();
+            if (callbacks?.refreshOOCComments) {
+                callbacks.refreshOOCComments(true);
+            }
+        }
+    }, [councilChatStyle]);
 
     const styleOptions = [
         {
@@ -193,6 +243,36 @@ function OOCSettings() {
                     ))}
                 </div>
             </div>
+
+            {/* Council IRC Chat Style Section */}
+            {isCouncilActive && (
+                <div className="lumiverse-vp-settings-section">
+                    <div className="lumiverse-vp-settings-section-header">
+                        <Hash size={16} strokeWidth={1.5} />
+                        <span>Council IRC Mode</span>
+                        <Users size={14} strokeWidth={1.5} style={{ marginLeft: 'auto', opacity: 0.5 }} />
+                    </div>
+                    <p className="lumiverse-vp-settings-desc">
+                        Display council OOC as a retro internet chatroom. Members get l33tspeak handles and can @mention each other.
+                    </p>
+                    <Toggle
+                        id="irc-style-enabled"
+                        checked={councilChatStyle.enabled}
+                        onChange={handleIRCStyleToggle}
+                        label="Enable IRC Chat Style"
+                        hint="Council members appear in a shared #LumiaCouncil channel"
+                    />
+                    {councilChatStyle.enabled && (
+                        <Toggle
+                            id="irc-timestamps"
+                            checked={councilChatStyle.showTimestamps}
+                            onChange={handleIRCTimestampToggle}
+                            label="Show Timestamps"
+                            hint="Display [HH:MM] before each message"
+                        />
+                    )}
+                </div>
+            )}
         </div>
     );
 }

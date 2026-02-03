@@ -15,6 +15,8 @@ import { query, queryAll, createElement } from "../sthelpers/domUtils.js";
 import { getSettings, MODULE_NAME } from "./settingsManager.js";
 import { getItemFromLibrary } from "./dataProcessor.js";
 import { hideLoomSumBlocks } from "./loomSystem.js";
+import { generateCouncilHandles } from "./lumiaContent.js";
+import { toLeetSpeak, fromLeetSpeak } from "../sthelpers/stringUtils.js";
 import {
   setOOCProcessingCallbacks,
   setStreamingState,
@@ -693,15 +695,45 @@ function namesMatch(searchName, targetName) {
  * Get avatar image URL for a Lumia by name
  * Works in both council mode and normal mode
  * Uses score-based matching to find the best match and avoid similar name collisions
- * @param {string} lumiaName - The Lumia's name from the OOC tag
+ * Also supports l33t handle lookup for IRC chat style
+ * @param {string} lumiaName - The Lumia's name from the OOC tag (can be regular name or l33t handle)
  * @returns {string|null} Avatar image URL or null
  */
 function getLumiaAvatarByName(lumiaName) {
   if (!lumiaName) return null;
 
+  const settings = getSettings();
+
+  // If IRC chat style is enabled, try to resolve l33t handle first
+  if (settings.councilChatStyle?.enabled && settings.councilMode && settings.councilMembers?.length) {
+    // Build list of council member names for reverse lookup
+    const memberNames = settings.councilMembers.map((member) => {
+      const item = getItemFromLibrary(member.packName, member.itemName);
+      return item?.lumiaName || item?.lumiaDefName || member.itemName || "Unknown";
+    });
+
+    // Try to find original name from l33t handle
+    const originalName = fromLeetSpeak(lumiaName, memberNames);
+    if (originalName) {
+      // Found a match - use the original name for avatar lookup
+      return getLumiaAvatarByOriginalName(originalName);
+    }
+  }
+
   // Sanitize the input name to handle "Lumia Serena" → "Serena" variations
   const sanitizedName = sanitizeLumiaName(lumiaName);
   if (!sanitizedName) return null;
+
+  return getLumiaAvatarByOriginalName(sanitizedName);
+}
+
+/**
+ * Internal: Get avatar by original (non-l33t) name
+ * @param {string} name - The original Lumia name
+ * @returns {string|null} Avatar image URL or null
+ */
+function getLumiaAvatarByOriginalName(name) {
+  if (!name) return null;
 
   const settings = getSettings();
   let bestMatch = { score: 0, avatar: null };
@@ -714,7 +746,7 @@ function getLumiaAvatarByName(lumiaName) {
     // Support both new (avatarUrl) and legacy (lumia_img) field names
     const avatarUrl = item?.avatarUrl || item?.lumia_img;
     if (!avatarUrl) return;
-    const score = getNameMatchScore(sanitizedName, nameToCheck);
+    const score = getNameMatchScore(name, nameToCheck);
     if (score > bestMatch.score) {
       bestMatch = { score, avatar: avatarUrl };
     }
@@ -1062,6 +1094,128 @@ function createOOCWhisperBubble(content, avatarImg, isAlt = false, memberName = 
 }
 
 /**
+ * Create IRC Chat Room style OOC container
+ * All council OOC comments are batched into a single chatroom-style container
+ * Styled after classic IRC message format: [HH:MM] <nick> message
+ * No avatars - pure text-based IRC aesthetic
+ * @param {Array<{handle: string, content: string, avatarUrl: string|null}>} oocEntries - Array of OOC entries
+ * @returns {HTMLElement} The IRC chat room container element
+ */
+function createIRCChatRoom(oocEntries) {
+  const settings = getSettings();
+  const showTimestamps = settings.councilChatStyle?.showTimestamps !== false;
+
+  // Generate a fake timestamp for chat messages (current time)
+  const now = new Date();
+  const baseMinute = now.getMinutes();
+
+  // Create the channel header
+  const header = createElement("div", {
+    attrs: { class: "lumia-irc-header" },
+    text: "#LumiaCouncil",
+    style: {
+      display: "block",
+      background: "linear-gradient(180deg, #252540 0%, #1e1e35 100%)",
+      color: "#666",
+      fontSize: "11px",
+      fontWeight: "bold",
+      letterSpacing: "0.5px",
+      padding: "4px 10px",
+      borderBottom: "1px solid #333",
+      textTransform: "uppercase",
+      fontFamily: "'Courier New', Consolas, monospace",
+    },
+  });
+
+  // Create chat lines for each OOC entry - classic IRC format
+  const chatLines = oocEntries.map((entry, index) => {
+    // Stagger timestamps by 1 minute each for realism
+    const msgMinute = (baseMinute + index) % 60;
+    const msgHour = now.getHours() + Math.floor((baseMinute + index) / 60);
+    const timestamp = `${String(msgHour % 24).padStart(2, "0")}:${String(msgMinute).padStart(2, "0")}`;
+
+    // Build the message as inline text: [HH:MM] <nick> message
+    // This is classic IRC format - everything flows inline
+    const contentHtml = highlightIRCMentions(entry.content);
+
+    // Create a single line div with all elements inline
+    const lineDiv = createElement("div", {
+      attrs: {
+        class: index % 2 === 1 ? "lumia-irc-msg lumia-irc-alt" : "lumia-irc-msg",
+        "data-lumia-speaker": entry.handle,
+      },
+      style: {
+        display: "block",
+        padding: "2px 10px",
+        lineHeight: "1.4",
+        fontSize: "12px",
+        fontFamily: "'Courier New', Consolas, monospace",
+        background: index % 2 === 1 ? "rgba(147, 112, 219, 0.03)" : "transparent",
+        wordWrap: "break-word",
+        overflowWrap: "break-word",
+      },
+    });
+
+    // Build content as inline HTML string for true inline flow
+    let lineHtml = "";
+
+    // Optional timestamp
+    if (showTimestamps) {
+      lineHtml += `<span style="color:#555;font-size:11px;">[${timestamp}]</span> `;
+    }
+
+    // Handle/nick in classic <nick> format
+    lineHtml += `<span style="color:#9370DB;font-weight:bold;">&lt;${entry.handle}&gt;</span> `;
+
+    // Message content
+    lineHtml += `<span style="color:#00ff00;">${contentHtml}</span>`;
+
+    lineDiv.innerHTML = lineHtml;
+
+    return lineDiv;
+  });
+
+  // Create the main IRC container
+  const container = createElement("div", {
+    attrs: {
+      class: "lumia-irc-container",
+      "data-lumia-ooc": "true",
+      "data-lumia-irc": "true",
+    },
+    children: [header, ...chatLines],
+    style: {
+      display: "block",
+      position: "relative",
+      fontFamily: "'Courier New', Consolas, 'Lucida Console', monospace",
+      background: "linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%)",
+      border: "1px solid #333",
+      borderLeft: "3px solid #9370DB",
+      borderRadius: "4px",
+      margin: "12px 0",
+      padding: "0",
+      overflow: "hidden",
+      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.4)",
+      width: "100%",
+      maxWidth: "100%",
+    },
+  });
+
+  return container;
+}
+
+/**
+ * Highlight @mentions in IRC message content
+ * Wraps @Handle patterns in a styled span
+ * @param {string} content - The message content
+ * @returns {string} Content with highlighted mentions
+ */
+function highlightIRCMentions(content) {
+  if (!content) return "";
+  // Match @Handle patterns (alphanumeric, underscore, numbers from l33t)
+  return content.replace(/@([A-Za-z0-9_]+)/g, '<span class="lumia-irc-mention">@$1</span>');
+}
+
+/**
  * Clean up DOM structure surrounding an OOC comment box after insertion
  *
  * When the Range API extracts and replaces content, it can leave behind:
@@ -1181,6 +1335,10 @@ function cleanupOOCBoxSurroundings(commentBox) {
  * 2. Use Range API to surgically locate and wrap text content in the rendered DOM
  * 3. Replace matched text with styled OOC comment box
  *
+ * IRC MODE (Council Chat Style):
+ * When councilChatStyle.enabled is true and in council mode, all OOC comments
+ * are batched into a single IRC chatroom-style container.
+ *
  * NOTE: Legacy font-based detection has been removed. Only <lumiaooc>/<lumia_ooc> tags
  * are processed. Any font tags inside OOC content are stripped during cleaning.
  *
@@ -1215,6 +1373,20 @@ function performOOCProcessing(mesId, force = false) {
       return; // All OOCs already processed
     }
 
+    // Check if IRC chat style mode should be used
+    const settings = getSettings();
+    const useIRCMode = settings.councilChatStyle?.enabled &&
+                       settings.councilMode &&
+                       settings.councilMembers?.length > 0 &&
+                       oocMatches.length > 0;
+
+    if (useIRCMode) {
+      // IRC MODE: Batch all OOC comments into a single chatroom container
+      performIRCOOCProcessing(mesId, messageElement, oocMatches);
+      return;
+    }
+
+    // STANDARD MODE: Process OOC comments individually
     let processedCount = 0;
 
     // Process <lumia_ooc> tags found in raw content
@@ -1314,6 +1486,305 @@ function performOOCProcessing(mesId, force = false) {
   } catch (error) {
     console.error(`[${MODULE_NAME}] Error processing OOC comments:`, error);
   }
+}
+
+/**
+ * Find OOC content in DOM and return info for removal without modifying DOM
+ * Used for IRC mode to collect all locations first before any modifications
+ * @param {HTMLElement} container - Container element to search within
+ * @param {string} searchText - Text to find (will be normalized)
+ * @returns {{startNode: Node, startOffset: number, endNode: Node, endOffset: number}|null}
+ */
+function findOOCContentLocation(container, searchText) {
+  if (!container || !searchText) return null;
+
+  // Normalize search text - collapse whitespace for matching
+  const normalizedSearch = searchText.replace(/\s+/g, " ").trim();
+  if (!normalizedSearch) return null;
+
+  // Get a substantial prefix for initial matching
+  const searchPrefix = normalizedSearch.substring(0, Math.min(40, normalizedSearch.length)).toLowerCase();
+
+  // Walk through all text nodes to find where the OOC content starts
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+  let node;
+  let accumulatedText = "";
+  const textNodes = [];
+  let lastBlockElement = null;
+
+  while ((node = walker.nextNode())) {
+    // Skip nodes inside already-wrapped OOC boxes
+    if (node.parentElement?.closest("[data-lumia-ooc]")) {
+      continue;
+    }
+
+    const currentBlock = node.parentElement?.closest("p, div, li, blockquote, h1, h2, h3, h4, h5, h6");
+    if (lastBlockElement && currentBlock && currentBlock !== lastBlockElement) {
+      if (accumulatedText.length > 0 && !/\s$/.test(accumulatedText)) {
+        accumulatedText += " ";
+      }
+    }
+    lastBlockElement = currentBlock;
+
+    textNodes.push({
+      node: node,
+      start: accumulatedText.length,
+      text: node.nodeValue || "",
+    });
+    accumulatedText += node.nodeValue || "";
+  }
+
+  // Normalize accumulated text for matching
+  const normalizedAccumulated = accumulatedText
+    .replace(/\s+/g, " ")
+    .replace(/…/g, "...")
+    .replace(/[""]/g, '"')
+    .replace(/['']/g, "'");
+  const normalizedAccumulatedLower = normalizedAccumulated.toLowerCase();
+
+  // Find where the OOC content starts
+  const matchStart = normalizedAccumulatedLower.indexOf(searchPrefix);
+  if (matchStart === -1) {
+    return null;
+  }
+
+  const potentialEnd = matchStart + normalizedSearch.length;
+
+  // Build position map
+  const positionMap = [];
+  let prevWasWhitespace = false;
+
+  for (let i = 0; i < accumulatedText.length; i++) {
+    const char = accumulatedText[i];
+    if (/\s/.test(char)) {
+      if (!prevWasWhitespace) {
+        positionMap.push(i);
+        prevWasWhitespace = true;
+      }
+    } else if (char === "\u2026") {
+      positionMap.push(i);
+      positionMap.push(i);
+      positionMap.push(i);
+      prevWasWhitespace = false;
+    } else if (char === "\u201C" || char === "\u201D" || char === "\u2018" || char === "\u2019") {
+      positionMap.push(i);
+      prevWasWhitespace = false;
+    } else {
+      positionMap.push(i);
+      prevWasWhitespace = false;
+    }
+  }
+
+  let originalMatchStart = matchStart < positionMap.length ? positionMap[matchStart] : 0;
+  let originalMatchEnd = potentialEnd <= positionMap.length
+    ? positionMap[potentialEnd - 1] + 1
+    : accumulatedText.length;
+
+  // Find which text nodes contain our match
+  let startNode = null;
+  let startOffset = 0;
+  let endNode = null;
+  let endOffset = 0;
+
+  for (const tn of textNodes) {
+    const tnEnd = tn.start + tn.text.length;
+
+    if (!startNode && tn.start <= originalMatchStart && tnEnd > originalMatchStart) {
+      startNode = tn.node;
+      startOffset = originalMatchStart - tn.start;
+    }
+
+    if (tn.start < originalMatchEnd && tnEnd >= originalMatchEnd) {
+      endNode = tn.node;
+      endOffset = originalMatchEnd - tn.start;
+      break;
+    }
+  }
+
+  if (!startNode || !endNode) {
+    return null;
+  }
+
+  return { startNode, startOffset, endNode, endOffset };
+}
+
+/**
+ * Find elements containing escaped OOC tags in the DOM
+ * When SillyTavern escapes <lumiaooc> tags, they appear as literal text
+ * @param {HTMLElement} container - Container to search
+ * @param {Array} oocMatches - OOC matches to look for
+ * @returns {Array<{element: Element, oocIndices: number[]}>} Elements containing OOC content
+ */
+function findEscapedOOCElements(container, oocMatches) {
+  const results = [];
+  if (!container || !oocMatches.length) return results;
+
+  // Get all paragraphs and direct text containers
+  const candidates = Array.from(container.querySelectorAll("p, div:not([data-lumia-ooc])"));
+  if (candidates.length === 0) {
+    // Try the container itself
+    candidates.push(container);
+  }
+
+  for (const element of candidates) {
+    // Skip if already processed
+    if (element.closest("[data-lumia-ooc]")) continue;
+
+    const textContent = element.textContent || "";
+
+    // Check if this element contains escaped OOC tags
+    // Match patterns like: <lumiaooc name="..."> or &lt;lumiaooc
+    const hasEscapedTags = /<lumi[ao]_?ooc[^>]*>/i.test(textContent) ||
+                          /&lt;lumi[ao]_?ooc/i.test(element.innerHTML);
+
+    if (hasEscapedTags) {
+      // Find which OOC matches are in this element
+      const oocIndices = [];
+      oocMatches.forEach((ooc, idx) => {
+        const plainText = htmlToPlainText(ooc.content);
+        if (plainText && textContent.includes(plainText.substring(0, Math.min(30, plainText.length)))) {
+          oocIndices.push(idx);
+        }
+      });
+
+      if (oocIndices.length > 0) {
+        results.push({ element, oocIndices });
+      }
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Perform IRC-style OOC processing - batches all OOC comments into single chatroom container
+ *
+ * SIMPLIFIED APPROACH - mirrors the working social/whisper flow:
+ * 1. Collect all OOC entries first
+ * 2. Use the SAME findAndWrapOOCContent that works for other styles
+ * 3. Insert IRC container at first match position, delete others
+ *
+ * @param {number} mesId - The message ID
+ * @param {HTMLElement} messageElement - The message element
+ * @param {Array} oocMatches - Array of OOC matches from extractOOCFromRawMessage
+ */
+function performIRCOOCProcessing(mesId, messageElement, oocMatches) {
+  console.log(
+    `[${MODULE_NAME}] IRC MODE: Processing ${oocMatches.length} OOC comments as chatroom for message ${mesId}`,
+  );
+
+  // Check if already processed (look for IRC container)
+  const existingIRC = messageElement.querySelector("[data-lumia-irc]");
+  if (existingIRC) {
+    console.log(`[${MODULE_NAME}] IRC container already exists for message ${mesId}`);
+    return;
+  }
+
+  // PHASE 1: Collect all OOC entries and find their DOM positions
+  const ircEntries = [];
+  let firstInsertionRange = null;
+
+  for (let index = 0; index < oocMatches.length; index++) {
+    const ooc = oocMatches[index];
+    const plainText = htmlToPlainText(ooc.content);
+    if (!plainText) continue;
+
+    // Check if already processed in a previous render
+    if (isTextProcessed(mesId, plainText)) continue;
+
+    // Get the handle (name from tag, which should be l33t format in IRC mode)
+    const handle = ooc.name || "Unknown";
+
+    // Get avatar by looking up the l33t handle
+    const avatarUrl = getLumiaAvatarByName(handle) || getLumiaAvatarImg();
+
+    // Clean the content
+    const cleanContent = cleanOOCContent(ooc.content) || plainText;
+
+    // Use the SAME method that works for social/whisper styles
+    // This finds the content, deletes it, and returns the range for insertion
+    const surgicalMatch = findAndWrapOOCContent(messageElement, plainText, ooc.content);
+
+    if (surgicalMatch && surgicalMatch.wrapperCreated) {
+      console.log(`[${MODULE_NAME}] IRC MODE: Found and removed OOC #${index + 1} from DOM`);
+
+      // Save the first range for IRC container insertion
+      if (!firstInsertionRange) {
+        firstInsertionRange = surgicalMatch.range;
+      }
+
+      ircEntries.push({
+        handle: handle,
+        content: cleanContent,
+        avatarUrl: avatarUrl,
+      });
+
+      markTextProcessed(mesId, plainText);
+    } else {
+      // Try element-based fallback
+      const match = findMatchingElement(messageElement, plainText);
+      if (match && match.element) {
+        console.log(`[${MODULE_NAME}] IRC MODE: Found OOC #${index + 1} via element match`);
+
+        // Save element for first insertion point if we don't have one yet
+        if (!firstInsertionRange) {
+          // Create a marker for insertion
+          const marker = document.createTextNode("");
+          match.element.parentNode.insertBefore(marker, match.element);
+          match.element.remove();
+
+          // Create a range at the marker position
+          firstInsertionRange = document.createRange();
+          firstInsertionRange.setStartBefore(marker);
+          firstInsertionRange.setEndAfter(marker);
+          marker.remove();
+        } else {
+          // Just remove this element
+          match.element.remove();
+        }
+
+        ircEntries.push({
+          handle: handle,
+          content: cleanContent,
+          avatarUrl: avatarUrl,
+        });
+
+        markTextProcessed(mesId, plainText);
+      } else {
+        console.log(`[${MODULE_NAME}] IRC MODE: Could not find OOC #${index + 1} in DOM`);
+      }
+    }
+  }
+
+  if (ircEntries.length === 0) {
+    console.log(`[${MODULE_NAME}] No valid IRC entries to display for message ${mesId}`);
+    return;
+  }
+
+  // PHASE 2: Create the IRC chat room container with all entries
+  const ircContainer = createIRCChatRoom(ircEntries);
+
+  // PHASE 3: Insert the IRC container at the first OOC position
+  if (firstInsertionRange) {
+    try {
+      firstInsertionRange.insertNode(ircContainer);
+      console.log(`[${MODULE_NAME}] IRC MODE: Inserted container at first OOC position`);
+    } catch (err) {
+      console.error(`[${MODULE_NAME}] IRC MODE: Range insertion failed, using fallback:`, err);
+      messageElement.appendChild(ircContainer);
+    }
+  } else {
+    // Fallback: append to message element
+    console.log(`[${MODULE_NAME}] IRC MODE: Using fallback append for message ${mesId}`);
+    messageElement.appendChild(ircContainer);
+  }
+
+  // Clean up surrounding DOM structure
+  cleanupOOCBoxSurroundings(ircContainer);
+
+  console.log(
+    `[${MODULE_NAME}] IRC MODE: Created chatroom with ${ircEntries.length} messages for message ${mesId}`,
+  );
 }
 
 /**

@@ -76,6 +76,11 @@ const DEFAULT_SETTINGS = {
   },
   lumiaOOCInterval: null,
   lumiaOOCStyle: "social",
+  // Council IRC chat style settings
+  councilChatStyle: {
+    enabled: false, // When true, council OOC uses IRC chatroom format
+    showTimestamps: true, // Show [HH:MM] timestamps in IRC messages
+  },
   sovereignHand: {
     enabled: false,
     excludeLastMessage: true, // Whether to remove last user message from context
@@ -541,6 +546,17 @@ export function migrateSettings() {
   if (settings.lumiaQuirks === undefined) settings.lumiaQuirks = '';
   if (!settings.stateSynthesis) settings.stateSynthesis = { enabled: false };
 
+  // Ensure councilChatStyle defaults (IRC-style council OOC)
+  if (!settings.councilChatStyle) {
+    settings.councilChatStyle = { enabled: false, showTimestamps: true };
+  }
+  if (settings.councilChatStyle.enabled === undefined) {
+    settings.councilChatStyle.enabled = false;
+  }
+  if (settings.councilChatStyle.showTimestamps === undefined) {
+    settings.councilChatStyle.showTimestamps = true;
+  }
+
   // Ensure landing page setting default (default to true for new feature)
   if (settings.enableLandingPage === undefined) settings.enableLandingPage = true;
   if (settings.landingPageChatsDisplayed === undefined) settings.landingPageChatsDisplayed = 12;
@@ -702,6 +718,7 @@ export function saveSettings() {
     // Remove preferences that are in index.preferences
     delete settingsToSave.chimeraMode;
     delete settingsToSave.councilMode;
+    delete settingsToSave.councilChatStyle;
     delete settingsToSave.lumiaQuirks;
     delete settingsToSave.lumiaQuirksEnabled;
     delete settingsToSave.lumiaOOCInterval;

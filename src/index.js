@@ -698,11 +698,31 @@ jQuery(async () => {
       return;
     }
 
-    // Check if a chat is currently open (using chatId from context)
+    // Check if a chat is currently open
+    // IMPORTANT: Temporary chats don't have a chatId, but can be detected via:
+    //   - characterId is undefined AND name2 equals neutralCharacterName
+    // See: developer_guides/12_troubleshoot_temp_chat.md - Section 2: Custom Landing Pages
     const ctx = getContext();
-    console.log(`[${MODULE_NAME}] Context:`, { chatId: ctx?.chatId, characterId: ctx?.characterId, groupId: ctx?.groupId });
-    const isChatOpen = ctx?.chatId !== undefined && ctx?.chatId !== null && ctx?.chatId !== '';
-    console.log(`[${MODULE_NAME}] isChatOpen:`, isChatOpen);
+    
+    // Regular chat detection: has a chatId
+    const hasChatId = ctx?.chatId !== undefined && ctx?.chatId !== null && ctx?.chatId !== '';
+    
+    // Temporary chat detection: no character selected but name2 is the neutral assistant name
+    // This indicates the user started a temporary/scratchpad chat
+    const isTempChat = ctx?.characterId === undefined && 
+                       ctx?.name2 && 
+                       ctx?.name2 === ctx?.neutralCharacterName;
+    
+    const isChatOpen = hasChatId || isTempChat;
+    console.log(`[${MODULE_NAME}] Context:`, { 
+      chatId: ctx?.chatId, 
+      characterId: ctx?.characterId, 
+      groupId: ctx?.groupId, 
+      name2: ctx?.name2,
+      neutralCharacterName: ctx?.neutralCharacterName,
+      chatLength: ctx?.chat?.length 
+    });
+    console.log(`[${MODULE_NAME}] isChatOpen:`, isChatOpen, `(hasChatId: ${hasChatId}, isTempChat: ${isTempChat})`);
 
     if (isChatOpen) {
       // Chat is open - restore sheld and remove landing page

@@ -532,6 +532,77 @@ const StringUtils = {
   },
 
   /**
+   * Convert a name to a deterministic L33tspeak handle for IRC-style display
+   * Replaces spaces with underscores and applies classic l33t letter substitutions
+   *
+   * @param {string} name - The original name to convert
+   * @returns {string} The generated handle (e.g., "Sarah Connor" -> "S4r4h_C0nn0r")
+   *
+   * @example
+   * StringUtils.toLeetSpeak('Sarah Connor'); // 'S4r4h_C0nn0r'
+   * StringUtils.toLeetSpeak('Elite Hacker'); // '3l1t3_H4ck3r'
+   */
+  toLeetSpeak(name) {
+    if (!name || typeof name !== "string") return "";
+
+    // L33t substitution map (preserves case by checking both)
+    const leetMap = {
+      a: "4",
+      A: "4",
+      e: "3",
+      E: "3",
+      i: "1",
+      I: "1",
+      o: "0",
+      O: "0",
+      s: "5",
+      S: "5",
+      t: "7",
+      T: "7",
+      z: "2",
+      Z: "2",
+    };
+
+    // Trim and normalize spaces to underscores
+    let handle = name.trim().replace(/\s+/g, "_");
+
+    // Apply l33t substitutions
+    handle = handle
+      .split("")
+      .map((char) => leetMap[char] || char)
+      .join("");
+
+    // Sanitize to IRC-safe characters (alphanumeric, underscore, hyphen, pipe, caret)
+    handle = handle.replace(/[^a-zA-Z0-9_\-|^]/g, "");
+
+    return handle;
+  },
+
+  /**
+   * Reverse lookup: find the original name from a l33t handle
+   * Given a list of candidate names, finds the one that would produce the given handle
+   *
+   * @param {string} handle - The l33t handle to reverse lookup
+   * @param {string[]} candidateNames - Array of possible original names
+   * @returns {string|null} The matching original name, or null if no match
+   *
+   * @example
+   * StringUtils.fromLeetSpeak('S4r4h_C0nn0r', ['Sarah Connor', 'John Smith']); // 'Sarah Connor'
+   */
+  fromLeetSpeak(handle, candidateNames) {
+    if (!handle || !candidateNames || !Array.isArray(candidateNames)) return null;
+
+    for (const name of candidateNames) {
+      // Use StringUtils.toLeetSpeak instead of this.toLeetSpeak
+      // so the function works when destructured from the object
+      if (StringUtils.toLeetSpeak(name) === handle) {
+        return name;
+      }
+    }
+    return null;
+  },
+
+  /**
    * Generate random string
    *
    * @param {number} length - Length of string
@@ -598,6 +669,8 @@ export const {
   extractEmails,
   isAlphanumeric,
   random,
+  toLeetSpeak,
+  fromLeetSpeak,
 } = StringUtils;
 
 // Export module (ES6) - keep default export for backward compatibility

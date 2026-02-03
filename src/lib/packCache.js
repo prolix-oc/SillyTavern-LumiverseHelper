@@ -1071,6 +1071,7 @@ export function migrateSelectionsFromSettings(legacySettings) {
     const preferenceFields = [
         'chimeraMode',
         'councilMode',
+        'councilChatStyle',
         'lumiaQuirks',
         'lumiaQuirksEnabled',
         'lumiaOOCInterval',

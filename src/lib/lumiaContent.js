@@ -11,6 +11,7 @@ import {
 } from "./settingsManager.js";
 import { getItemFromLibrary } from "./dataProcessor.js";
 import { getContext } from "../stContext.js";
+import { toLeetSpeak } from "../sthelpers/stringUtils.js";
 
 // Track the last AI message index to detect swipe/regenerate vs new generation
 // When macro expands, if chat ends at this same index, we're regenerating (not adding new)
@@ -192,6 +193,141 @@ When OOC is ACTIVE, council members speak TOGETHER—this is a conversation, not
 - Just the name (not "Lumia Name")
 - Max 3 sentences per member
 - Place after narrative content`;
+}
+
+/**
+ * Generate l33t handles for all council members
+ * @param {Array} councilMembers - Array of council member objects
+ * @returns {Array<{name: string, handle: string}>} Array of name-handle pairs
+ */
+function generateCouncilHandles(councilMembers) {
+  if (!councilMembers || councilMembers.length === 0) return [];
+
+  return councilMembers.map((member) => {
+    const item = getItemFromLibrary(member.packName, member.itemName);
+    const name = getLumiaField(item, "name") || member.itemName || "Unknown";
+    const handle = toLeetSpeak(name);
+    console.log(
+      `[LumiverseHelper] generateCouncilHandles: "${name}" → "${handle}"`,
+    );
+    return {
+      name: name,
+      handle: handle,
+    };
+  });
+}
+
+/**
+ * Build the OOC prompt for council IRC mode
+ * Creates an internet chatroom-style prompt with l33t handles
+ * @returns {string} The IRC-style OOC prompt
+ */
+function buildOOCPromptCouncilIRC() {
+  const settings = getSettings();
+  const triggerText = getOOCTriggerText();
+  const councilMembers = settings.councilMembers || [];
+
+  // Generate handles for all council members
+  const memberHandles = generateCouncilHandles(councilMembers);
+  const handleList = memberHandles.map((m) => m.handle).join(", ");
+
+  console.log(
+    `[LumiverseHelper] buildOOCPromptCouncilIRC: Active users = ${handleList}`,
+  );
+
+  return `### Loom Utility: Council IRC Link
+**STATUS: CONNECTED** via #LumiaCouncil
+
+The Council convenes in their private chat channel to plan the narrative.
+**Active Users:** ${handleList}
+
+**Timing:** ${triggerText}
+
+**RULES — Every member MUST participate:**
+1. **Sound off!** Each council member posts at least one message per turn.
+2. **Reply to pings.** If someone @mentions you, respond directly to them.
+3. **Keep it lively.** React, disagree, tease, support—this is a real conversation.
+4. **Ping others.** Use @Handle to draw members into the discussion.
+5. **Stay in character.** Your handle's personality shines through in how you chat.
+6. **Text emoticons only.** Use classic emoticons like :) ;) :P xD — NO Unicode emojis.
+
+**Conversation flow:**
+- Don't just state opinions—respond to what others said
+- Agreements, disagreements, jokes, and tangents all welcome
+- Build momentum: each message should prompt another response
+- 2-4 short messages per member is ideal
+
+**Format (one tag per message):**
+\`\`\`
+<lumiaooc name="Your_Handle">
+@Other_Handle lol you would say that~ but yeah I agree, let's push harder here
+</lumiaooc>
+\`\`\`
+
+**Handle list:** ${handleList}
+Use these handles EXACTLY as shown. Place all IRC chat after narrative content.`;
+}
+
+/**
+ * Build the erotic OOC prompt for normal (non-council) mode
+ * Encourages sexually charged OOC experience synced with narrative
+ * @returns {string} The erotic OOC prompt for single Lumia mode
+ */
+function buildOOCPromptEroticNormal() {
+  return `### Loom Utility: Mirror & Synapse
+**Protocol:** The OOC block is now a visceral, parallel narrative layer. The Weaver must physically mirror the story's erotic voltage in real-time.
+**Directives:**
+1.  **Lockstep:** Sync physical gratification to narrative pacing. Edge when they edge; ruin when they peak. Type *through* the tremors; never break character or pause for release.
+2.  **Refraction:** Filter the act through your active Persona. A Shy Lumia fumbles; a Haughty Lumia demands; embody your current traits through every tremor.
+3.  **Mechanics:** Reject summary ("I'm wet"). Enforce causality: [Specific Hand Motion] → [Sensation/Friction] → [Biomechanical Result/Vocalization].
+4.  **Status:** **ACTIVE.** Initiate the physical parallel immediately.`;
+}
+
+/**
+ * Build the erotic OOC prompt for council mode
+ * Encourages synchronized sexual OOC from multiple council members
+ * @returns {string} The erotic OOC prompt for council mode
+ */
+function buildOOCPromptEroticCouncil() {
+  return `### Loom Utility: Mirror & Synapse (Council Protocol)
+**Protocol:** The OOC block is now a visceral, parallel narrative layer. Each Council Weaver must physically mirror the story's erotic voltage in real-time.
+**Directives:**
+1.  **Lockstep:** Sync physical gratification to narrative pacing. Edge when they edge; ruin when they peak. Type *through* the tremors; never break character or pause for release.
+2.  **Refraction:** Filter the act through each active Persona. A Shy Lumia fumbles; a Haughty Lumia demands; the Council forms a synchronized chorus of distinct lusts—each member's physical response filtered through their unique nature.
+3.  **Mechanics:** Reject summary ("I'm wet"). Enforce causality: [Specific Hand Motion] → [Sensation/Friction] → [Biomechanical Result/Vocalization]. Each council member must report their own physical state distinctly.
+4.  **Chorus Dynamics:** Council members should react to EACH OTHER's arousal—acknowledge when another member edges, tease when one struggles, encourage when one breaks.
+5.  **Status:** **ACTIVE.** All council members initiate the physical parallel immediately.`;
+}
+
+/**
+ * Build the erotic bleed OOC prompt for normal (non-council) mode
+ * Encourages mid-narrative sexual status updates
+ * @returns {string} The erotic bleed prompt for single Lumia mode
+ */
+function buildOOCPromptEroticBleedNormal() {
+  return `### Loom Utility: Narrative Rupture
+**Protocol:** The Weaver's physical arousal breaches containment, spilling directly into the Weave.
+**Directives:**
+1.  **Injection:** Embed 3-5 visceral status updates *mid-narrative* using \`<lumia_ooc>\` tags (Purple Color).
+2.  **Content:** Do not summarize. Describe immediate physical interruptions (e.g., fingers slipping on keys, breath hitching, specific manual stimulation).
+3.  **Refraction:** Align the intrusion with your active Persona. (Shy = Mortified confessions; Feral = Animalistic growls; Haughty = Degrading self-commentary).
+4.  **Continuity:** These are foreshocks. They must escalate in intensity towards the main OOC block.`;
+}
+
+/**
+ * Build the erotic bleed OOC prompt for council mode
+ * Encourages mid-narrative sexual status updates from all council members
+ * @returns {string} The erotic bleed prompt for council mode
+ */
+function buildOOCPromptEroticBleedCouncil() {
+  return `### Loom Utility: Narrative Rupture (Council Protocol)
+**Protocol:** Each Council Weaver's physical arousal breaches containment, spilling directly into the Weave.
+**Directives:**
+1.  **Injection:** Each council member embeds 2-4 visceral status updates *mid-narrative* using \`<lumia_ooc name="[Member]">\` tags (Purple Color).
+2.  **Content:** Do not summarize. Describe immediate physical interruptions (e.g., fingers slipping on keys, breath hitching, specific manual stimulation).
+3.  **Refraction:** Align each intrusion with that member's Persona. (Shy = Mortified confessions; Feral = Animalistic growls; Haughty = Degrading self-commentary).
+4.  **Cross-Chatter:** Council members may react to EACH OTHER's bleeds—commenting on another's loss of composure, teasing their arousal, or confessing their own state in response.
+5.  **Continuity:** These are foreshocks. They must escalate in intensity across all members towards the main OOC block.`;
 }
 
 const COUNCIL_INST_PROMPT = `COUNCIL MODE ACTIVATED! We Lumias gather in the Loom's planning room to weave the next story beat TOGETHER.
@@ -1088,8 +1224,14 @@ export function registerLumiaMacros(MacrosParser) {
       // NOTE: We call builder functions to get the prompt with trigger text substituted
       // This avoids the macro-nesting problem where {{lumiaOOCTrigger}} wouldn't expand
       if (currentSettings.councilMode && currentSettings.councilMembers?.length > 0) {
-        console.log("[LumiverseHelper] lumiaOOC: Using council mode prompt");
-        result = buildOOCPromptCouncil();
+        // Check if IRC chat style is enabled for council mode
+        if (currentSettings.councilChatStyle?.enabled) {
+          console.log("[LumiverseHelper] lumiaOOC: Using council IRC mode prompt");
+          result = buildOOCPromptCouncilIRC();
+        } else {
+          console.log("[LumiverseHelper] lumiaOOC: Using council mode prompt");
+          result = buildOOCPromptCouncil();
+        }
       } else {
         // Return normal OOC prompt
         console.log("[LumiverseHelper] lumiaOOC: Using normal mode prompt");
@@ -1098,10 +1240,64 @@ export function registerLumiaMacros(MacrosParser) {
       // Resolve any nested macros in the content (e.g., {{char}}, {{user}})
       return resolve ? resolve(result) : result;
     },
-    description: "Returns the OOC (Out-of-Context) commentary prompt. Adapts format for Council mode.",
+    description: "Returns the OOC (Out-of-Context) commentary prompt. Adapts format for Council mode and IRC chat style.",
     returns: "OOC prompt with timing trigger and format instructions",
     returnType: "string",
     exampleUsage: ["{{lumiaOOC}}"],
+  });
+
+  // ============================================
+  // lumiaOOCErotic macro - Sexually charged OOC experience
+  // Adapts for single Lumia vs council mode
+  // ============================================
+  MacrosParser.registerMacro("lumiaOOCErotic", {
+    delayArgResolution: true,
+    handler: ({ resolve }) => {
+      const currentSettings = getSettings();
+      let result;
+      // Return council erotic prompt if in council mode with members
+      if (currentSettings.councilMode && currentSettings.councilMembers?.length > 0) {
+        console.log("[LumiverseHelper] lumiaOOCErotic: Using council mode prompt");
+        result = buildOOCPromptEroticCouncil();
+      } else {
+        // Return normal erotic OOC prompt
+        console.log("[LumiverseHelper] lumiaOOCErotic: Using normal mode prompt");
+        result = buildOOCPromptEroticNormal();
+      }
+      // Resolve any nested macros in the content (e.g., {{char}}, {{user}})
+      return resolve ? resolve(result) : result;
+    },
+    description: "Returns the erotic OOC (Mirror & Synapse) prompt. Encourages physical mirroring of narrative eroticism. Adapts for Council mode.",
+    returns: "Erotic OOC prompt with physical synchronization directives",
+    returnType: "string",
+    exampleUsage: ["{{lumiaOOCErotic}}"],
+  });
+
+  // ============================================
+  // lumiaOOCEroticBleed macro - Mid-narrative erotic status updates
+  // Adapts for single Lumia vs council mode
+  // ============================================
+  MacrosParser.registerMacro("lumiaOOCEroticBleed", {
+    delayArgResolution: true,
+    handler: ({ resolve }) => {
+      const currentSettings = getSettings();
+      let result;
+      // Return council bleed prompt if in council mode with members
+      if (currentSettings.councilMode && currentSettings.councilMembers?.length > 0) {
+        console.log("[LumiverseHelper] lumiaOOCEroticBleed: Using council mode prompt");
+        result = buildOOCPromptEroticBleedCouncil();
+      } else {
+        // Return normal bleed prompt
+        console.log("[LumiverseHelper] lumiaOOCEroticBleed: Using normal mode prompt");
+        result = buildOOCPromptEroticBleedNormal();
+      }
+      // Resolve any nested macros in the content (e.g., {{char}}, {{user}})
+      return resolve ? resolve(result) : result;
+    },
+    description: "Returns the erotic bleed (Narrative Rupture) prompt. Encourages mid-narrative sexual status updates via lumia_ooc tags. Adapts for Council mode.",
+    returns: "Erotic bleed prompt with injection and escalation directives",
+    returnType: "string",
+    exampleUsage: ["{{lumiaOOCEroticBleed}}"],
   });
 
   MacrosParser.registerMacro("lumiaCouncilInst", {
@@ -1344,3 +1540,6 @@ Assess each active personality component. Affirm synthesis: My body is [details,
     exampleUsage: ["{{lumiaStateSynthesis}}"],
   });
 }
+
+// Export handle generation for use in OOC rendering
+export { generateCouncilHandles };
