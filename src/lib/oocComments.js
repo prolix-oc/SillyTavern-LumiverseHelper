@@ -1327,6 +1327,100 @@ function cleanupOOCBoxSurroundings(commentBox) {
 }
 
 /**
+ * Clean up <br> tags and empty elements around a Range position after content deletion.
+ * Used in IRC mode where OOC content is deleted but no replacement is inserted at each position.
+ * 
+ * @param {Range} range - The Range where content was deleted
+ */
+function cleanupRangeSurroundings(range) {
+  if (!range) return;
+
+  try {
+    // Get the container node where the range is positioned
+    const container = range.commonAncestorContainer;
+    if (!container) return;
+
+    // Get the parent element (if container is a text node, get its parent)
+    const parent = container.nodeType === Node.TEXT_NODE 
+      ? container.parentElement 
+      : container;
+    
+    if (!parent) return;
+
+    // Clean up adjacent <br> tags and empty elements
+    const cleanSiblings = (node) => {
+      if (!node) return;
+      
+      // Check previous siblings
+      let prev = node.previousSibling;
+      while (prev) {
+        const toCheck = prev;
+        prev = prev.previousSibling;
+        
+        if (toCheck.nodeType === Node.ELEMENT_NODE && toCheck.tagName === "BR") {
+          toCheck.remove();
+        } else if (toCheck.nodeType === Node.TEXT_NODE && !toCheck.textContent?.trim()) {
+          toCheck.remove();
+        } else if (toCheck.nodeType === Node.ELEMENT_NODE && 
+                   toCheck.matches?.("p, div, font") && 
+                   !toCheck.textContent?.trim() &&
+                   !toCheck.querySelector?.("img, [data-lumia-ooc]")) {
+          toCheck.remove();
+        } else {
+          break; // Stop when we hit actual content
+        }
+      }
+
+      // Check next siblings
+      let next = node.nextSibling;
+      while (next) {
+        const toCheck = next;
+        next = next.nextSibling;
+        
+        if (toCheck.nodeType === Node.ELEMENT_NODE && toCheck.tagName === "BR") {
+          toCheck.remove();
+        } else if (toCheck.nodeType === Node.TEXT_NODE && !toCheck.textContent?.trim()) {
+          toCheck.remove();
+        } else if (toCheck.nodeType === Node.ELEMENT_NODE && 
+                   toCheck.matches?.("p, div, font") && 
+                   !toCheck.textContent?.trim() &&
+                   !toCheck.querySelector?.("img, [data-lumia-ooc]")) {
+          toCheck.remove();
+        } else {
+          break; // Stop when we hit actual content
+        }
+      }
+    };
+
+    // Clean siblings around the range position
+    if (container.nodeType === Node.TEXT_NODE) {
+      cleanSiblings(container);
+    } else {
+      // If range is inside an element, check children at range position
+      const childNodes = Array.from(parent.childNodes);
+      childNodes.forEach((child, idx) => {
+        if (child.nodeType === Node.ELEMENT_NODE && child.tagName === "BR") {
+          // Check if this BR is isolated (no text content before/after within parent)
+          const prevHasContent = childNodes.slice(0, idx).some(n => n.textContent?.trim());
+          const nextHasContent = childNodes.slice(idx + 1).some(n => n.textContent?.trim());
+          if (!prevHasContent || !nextHasContent) {
+            child.remove();
+          }
+        }
+      });
+    }
+
+    // Also check if parent is now empty and should be cleaned
+    if (parent.matches?.("p, div") && !parent.textContent?.trim() && 
+        !parent.querySelector?.("img, [data-lumia-ooc]")) {
+      parent.remove();
+    }
+  } catch (err) {
+    console.warn(`[${MODULE_NAME}] cleanupRangeSurroundings: Error during cleanup:`, err);
+  }
+}
+
+/**
  * Internal: Perform the actual DOM updates for OOC comments in a message
  * Called by the RAF batch renderer - does not handle scroll preservation
  *
@@ -1708,6 +1802,9 @@ function performIRCOOCProcessing(mesId, messageElement, oocMatches) {
     if (surgicalMatch && surgicalMatch.wrapperCreated) {
       console.log(`[${MODULE_NAME}] IRC MODE: Found and removed OOC #${index + 1} from DOM`);
 
+      // Clean up <br> tags and empty elements around the deleted content
+      cleanupRangeSurroundings(surgicalMatch.range);
+
       // Save the first range for IRC container insertion
       if (!firstInsertionRange) {
         firstInsertionRange = surgicalMatch.range;
@@ -1726,6 +1823,9 @@ function performIRCOOCProcessing(mesId, messageElement, oocMatches) {
       if (match && match.element) {
         console.log(`[${MODULE_NAME}] IRC MODE: Found OOC #${index + 1} via element match`);
 
+        // Get the parent to clean up after removal
+        const parentToClean = match.element.parentNode;
+
         // Save element for first insertion point if we don't have one yet
         if (!firstInsertionRange) {
           // Create a marker for insertion
@@ -1737,10 +1837,29 @@ function performIRCOOCProcessing(mesId, messageElement, oocMatches) {
           firstInsertionRange = document.createRange();
           firstInsertionRange.setStartBefore(marker);
           firstInsertionRange.setEndAfter(marker);
+          
+          // Clean up <br> tags around the marker before removing it
+          cleanupRangeSurroundings(firstInsertionRange);
+          
           marker.remove();
         } else {
           // Just remove this element
           match.element.remove();
+          
+          // Clean up surrounding <br> tags and empty elements in the parent
+          if (parentToClean) {
+            const children = Array.from(parentToClean.childNodes);
+            children.forEach(child => {
+              if (child.nodeType === Node.ELEMENT_NODE && child.tagName === "BR") {
+                // Remove isolated <br> tags
+                const prevHasContent = child.previousSibling?.textContent?.trim();
+                const nextHasContent = child.nextSibling?.textContent?.trim();
+                if (!prevHasContent || !nextHasContent) {
+                  child.remove();
+                }
+              }
+            });
+          }
         }
 
         ircEntries.push({
