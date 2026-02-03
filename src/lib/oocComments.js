@@ -598,12 +598,118 @@ function findMatchingElement(container, searchText) {
 const processedOOCTexts = new Map();
 
 /**
- * Clear processed texts for a message (used when reprocessing)
- * Call this before reprocessing a message to avoid stuck states
- * @param {number} mesId - Message ID
+ * Create an IRC-style chat room display for council OOC comments
+ * Uses inline styles with !important to guarantee layout regardless of external CSS
+ * @param {Array<{handle: string, content: string, avatarUrl: string|null}>} oocEntries - Array of OOC entries
+ * @returns {HTMLElement} The IRC chat room container element
  */
-export function clearProcessedTexts(mesId) {
-  processedOOCTexts.delete(mesId);
+function createIRCChatRoom(oocEntries) {
+  const settings = getSettings();
+  const showTimestamps = settings.councilChatStyle?.showTimestamps !== false;
+
+  // Generate a fake timestamp for chat messages (current time)
+  const now = new Date();
+  const baseMinute = now.getMinutes();
+
+  // Create the channel header
+  const header = document.createElement("div");
+  header.className = "lumia-irc-header";
+  header.textContent = "#LumiaCouncil";
+  // Apply styles with !important priority
+  const headerStyles = {
+    display: "block",
+    background: "linear-gradient(180deg, #252540 0%, #1e1e35 100%)",
+    color: "#888",
+    fontSize: "10px",
+    fontWeight: "bold",
+    letterSpacing: "0.5px",
+    padding: "4px 10px",
+    borderBottom: "1px solid #333",
+    textTransform: "uppercase",
+    fontFamily: "'Courier New', Consolas, monospace",
+  };
+  Object.entries(headerStyles).forEach(([prop, val]) => {
+    header.style.setProperty(prop.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`), val, "important");
+  });
+
+  // Create chat lines for each OOC entry - classic IRC format
+  const chatLines = oocEntries.map((entry, index) => {
+    // Stagger timestamps by 1 minute each for realism
+    const msgMinute = (baseMinute + index) % 60;
+    const msgHour = now.getHours() + Math.floor((baseMinute + index) / 60);
+    const timestamp = `${String(msgHour % 24).padStart(2, "0")}:${String(msgMinute).padStart(2, "0")}`;
+
+    // Create the line container - NO FLEX, just inline text flow
+    const lineDiv = document.createElement("div");
+    lineDiv.className = index % 2 === 1 ? "lumia-irc-msg lumia-irc-alt" : "lumia-irc-msg";
+    lineDiv.setAttribute("data-lumia-speaker", entry.handle);
+
+    // Apply line styles with !important - use BLOCK display, not flex
+    const lineStyles = {
+      display: "block",
+      padding: "3px 10px",
+      lineHeight: "1.5",
+      fontSize: "12px",
+      fontFamily: "'Courier New', Consolas, monospace",
+      background: index % 2 === 1 ? "rgba(147, 112, 219, 0.03)" : "transparent",
+      borderBottom: "1px solid rgba(26, 26, 46, 0.5)",
+    };
+    Object.entries(lineStyles).forEach(([prop, val]) => {
+      lineDiv.style.setProperty(prop.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`), val, "important");
+    });
+
+    // Build content as pure inline HTML - everything on one line
+    // Format: [HH:MM] <nick> message text here
+    const contentHtml = highlightIRCMentions(entry.content);
+    let lineHtml = "";
+
+    // Timestamp (inline span)
+    if (showTimestamps) {
+      lineHtml += `<span style="color:#555 !important;font-size:11px !important;margin-right:6px !important;">[${timestamp}]</span>`;
+    }
+
+    // Handle/nick in <nick> format (inline span)
+    lineHtml += `<span style="color:#9370DB !important;font-weight:bold !important;margin-right:6px !important;white-space:nowrap !important;">&lt;${entry.handle}&gt;</span>`;
+
+    // Message content (inline span that wraps naturally)
+    lineHtml += `<span style="color:#00ff00 !important;word-break:break-word !important;">${contentHtml}</span>`;
+
+    lineDiv.innerHTML = lineHtml;
+
+    return lineDiv;
+  });
+
+  // Create the main IRC container
+  const container = document.createElement("div");
+  container.className = "lumia-irc-container";
+  container.setAttribute("data-lumia-ooc", "true");
+  container.setAttribute("data-lumia-irc", "true");
+
+  // Apply container styles with !important
+  const containerStyles = {
+    display: "block",
+    position: "relative",
+    fontFamily: "'Courier New', Consolas, 'Lucida Console', monospace",
+    background: "linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%)",
+    border: "1px solid #333",
+    borderLeft: "3px solid #9370DB",
+    borderRadius: "4px",
+    margin: "12px 0",
+    padding: "0",
+    overflow: "hidden",
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.4)",
+    width: "100%",
+    maxWidth: "100%",
+  };
+  Object.entries(containerStyles).forEach(([prop, val]) => {
+    container.style.setProperty(prop.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`), val, "important");
+  });
+
+  // Append header and chat lines
+  container.appendChild(header);
+  chatLines.forEach(line => container.appendChild(line));
+
+  return container;
 }
 
 /**
@@ -1088,116 +1194,6 @@ function createOOCWhisperBubble(content, avatarImg, isAlt = false, memberName = 
   const container = createElement("div", {
     attrs: { class: containerClass, "data-lumia-ooc": "true" },
     children: [avatarWrap, bubble],
-  });
-
-  return container;
-}
-
-/**
- * Create IRC Chat Room style OOC container
- * All council OOC comments are batched into a single chatroom-style container
- * Styled after classic IRC message format: [HH:MM] <nick> message
- * No avatars - pure text-based IRC aesthetic
- * @param {Array<{handle: string, content: string, avatarUrl: string|null}>} oocEntries - Array of OOC entries
- * @returns {HTMLElement} The IRC chat room container element
- */
-function createIRCChatRoom(oocEntries) {
-  const settings = getSettings();
-  const showTimestamps = settings.councilChatStyle?.showTimestamps !== false;
-
-  // Generate a fake timestamp for chat messages (current time)
-  const now = new Date();
-  const baseMinute = now.getMinutes();
-
-  // Create the channel header
-  const header = createElement("div", {
-    attrs: { class: "lumia-irc-header" },
-    text: "#LumiaCouncil",
-    style: {
-      display: "block",
-      background: "linear-gradient(180deg, #252540 0%, #1e1e35 100%)",
-      color: "#666",
-      fontSize: "11px",
-      fontWeight: "bold",
-      letterSpacing: "0.5px",
-      padding: "4px 10px",
-      borderBottom: "1px solid #333",
-      textTransform: "uppercase",
-      fontFamily: "'Courier New', Consolas, monospace",
-    },
-  });
-
-  // Create chat lines for each OOC entry - classic IRC format
-  const chatLines = oocEntries.map((entry, index) => {
-    // Stagger timestamps by 1 minute each for realism
-    const msgMinute = (baseMinute + index) % 60;
-    const msgHour = now.getHours() + Math.floor((baseMinute + index) / 60);
-    const timestamp = `${String(msgHour % 24).padStart(2, "0")}:${String(msgMinute).padStart(2, "0")}`;
-
-    // Build the message as inline text: [HH:MM] <nick> message
-    // This is classic IRC format - everything flows inline
-    const contentHtml = highlightIRCMentions(entry.content);
-
-    // Create a single line div with all elements inline
-    const lineDiv = createElement("div", {
-      attrs: {
-        class: index % 2 === 1 ? "lumia-irc-msg lumia-irc-alt" : "lumia-irc-msg",
-        "data-lumia-speaker": entry.handle,
-      },
-      style: {
-        display: "block",
-        padding: "2px 10px",
-        lineHeight: "1.4",
-        fontSize: "12px",
-        fontFamily: "'Courier New', Consolas, monospace",
-        background: index % 2 === 1 ? "rgba(147, 112, 219, 0.03)" : "transparent",
-        wordWrap: "break-word",
-        overflowWrap: "break-word",
-      },
-    });
-
-    // Build content as inline HTML string for true inline flow
-    let lineHtml = "";
-
-    // Optional timestamp
-    if (showTimestamps) {
-      lineHtml += `<span style="color:#555;font-size:11px;">[${timestamp}]</span> `;
-    }
-
-    // Handle/nick in classic <nick> format
-    lineHtml += `<span style="color:#9370DB;font-weight:bold;">&lt;${entry.handle}&gt;</span> `;
-
-    // Message content
-    lineHtml += `<span style="color:#00ff00;">${contentHtml}</span>`;
-
-    lineDiv.innerHTML = lineHtml;
-
-    return lineDiv;
-  });
-
-  // Create the main IRC container
-  const container = createElement("div", {
-    attrs: {
-      class: "lumia-irc-container",
-      "data-lumia-ooc": "true",
-      "data-lumia-irc": "true",
-    },
-    children: [header, ...chatLines],
-    style: {
-      display: "block",
-      position: "relative",
-      fontFamily: "'Courier New', Consolas, 'Lucida Console', monospace",
-      background: "linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%)",
-      border: "1px solid #333",
-      borderLeft: "3px solid #9370DB",
-      borderRadius: "4px",
-      margin: "12px 0",
-      padding: "0",
-      overflow: "hidden",
-      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.4)",
-      width: "100%",
-      maxWidth: "100%",
-    },
   });
 
   return container;
