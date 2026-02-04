@@ -80,6 +80,7 @@ const DEFAULT_SETTINGS = {
   councilChatStyle: {
     enabled: false, // When true, council OOC uses IRC chatroom format
     showTimestamps: true, // Show [HH:MM] timestamps in IRC messages
+    useLeetHandles: true, // Convert names to l33tspeak handles (e.g., "Sarah" -> "S4r4h")
   },
   sovereignHand: {
     enabled: false,
@@ -548,13 +549,16 @@ export function migrateSettings() {
 
   // Ensure councilChatStyle defaults (IRC-style council OOC)
   if (!settings.councilChatStyle) {
-    settings.councilChatStyle = { enabled: false, showTimestamps: true };
+    settings.councilChatStyle = { enabled: false, showTimestamps: true, useLeetHandles: true };
   }
   if (settings.councilChatStyle.enabled === undefined) {
     settings.councilChatStyle.enabled = false;
   }
   if (settings.councilChatStyle.showTimestamps === undefined) {
     settings.councilChatStyle.showTimestamps = true;
+  }
+  if (settings.councilChatStyle.useLeetHandles === undefined) {
+    settings.councilChatStyle.useLeetHandles = true;
   }
 
   // Ensure landing page setting default (default to true for new feature)

@@ -120,6 +120,7 @@ const initialState = {
     councilChatStyle: {
         enabled: false,        // When true, council OOC uses IRC chatroom format
         showTimestamps: true,  // Show [HH:MM] timestamps in IRC messages
+        useLeetHandles: true,  // Convert names to l33tspeak handles
     },
 
     // Message truncation

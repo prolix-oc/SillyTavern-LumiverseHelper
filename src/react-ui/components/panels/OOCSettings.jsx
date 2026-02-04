@@ -175,6 +175,20 @@ function OOCSettings() {
         }
     }, [councilChatStyle]);
 
+    const handleLeetHandlesToggle = useCallback((useLeetHandles) => {
+        const newStyle = { ...councilChatStyle, useLeetHandles };
+        store.setState({ councilChatStyle: newStyle });
+        saveToExtensionImmediate();
+
+        // Re-render existing OOC comments with the new style
+        if (typeof LumiverseBridge !== 'undefined') {
+            const callbacks = LumiverseBridge.getCallbacks();
+            if (callbacks?.refreshOOCComments) {
+                callbacks.refreshOOCComments(true);
+            }
+        }
+    }, [councilChatStyle]);
+
     const styleOptions = [
         {
             id: 'none',
@@ -253,7 +267,7 @@ function OOCSettings() {
                         <Users size={14} strokeWidth={1.5} style={{ marginLeft: 'auto', opacity: 0.5 }} />
                     </div>
                     <p className="lumiverse-vp-settings-desc">
-                        Display council OOC as a retro internet chatroom. Members get l33tspeak handles and can @mention each other.
+                        Display council OOC as a retro internet chatroom. Members can @mention each other.
                     </p>
                     <Toggle
                         id="irc-style-enabled"
@@ -263,13 +277,22 @@ function OOCSettings() {
                         hint="Council members appear in a shared #LumiaCouncil channel"
                     />
                     {councilChatStyle.enabled && (
-                        <Toggle
-                            id="irc-timestamps"
-                            checked={councilChatStyle.showTimestamps}
-                            onChange={handleIRCTimestampToggle}
-                            label="Show Timestamps"
-                            hint="Display [HH:MM] before each message"
-                        />
+                        <>
+                            <Toggle
+                                id="irc-timestamps"
+                                checked={councilChatStyle.showTimestamps}
+                                onChange={handleIRCTimestampToggle}
+                                label="Show Timestamps"
+                                hint="Display [HH:MM] before each message"
+                            />
+                            <Toggle
+                                id="irc-leet-handles"
+                                checked={councilChatStyle.useLeetHandles !== false}
+                                onChange={handleLeetHandlesToggle}
+                                label="L33tspeak Handles"
+                                hint="Convert names like 'Sarah' → 'S4r4h'"
+                            />
+                        </>
                     )}
                 </div>
             )}

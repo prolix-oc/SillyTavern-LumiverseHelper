@@ -196,19 +196,22 @@ When OOC is ACTIVE, council members speak TOGETHER—this is a conversation, not
 }
 
 /**
- * Generate l33t handles for all council members
+ * Generate handles for all council members
+ * Optionally applies l33tspeak transformation based on settings
  * @param {Array} councilMembers - Array of council member objects
+ * @param {boolean} useLeet - Whether to use l33tspeak transformation (default: true)
  * @returns {Array<{name: string, handle: string}>} Array of name-handle pairs
  */
-function generateCouncilHandles(councilMembers) {
+function generateCouncilHandles(councilMembers, useLeet = true) {
   if (!councilMembers || councilMembers.length === 0) return [];
 
   return councilMembers.map((member) => {
     const item = getItemFromLibrary(member.packName, member.itemName);
     const name = getLumiaField(item, "name") || member.itemName || "Unknown";
-    const handle = toLeetSpeak(name);
+    // If useLeet is true, apply l33tspeak; otherwise just replace spaces with underscores
+    const handle = useLeet ? toLeetSpeak(name) : name.trim().replace(/\s+/g, "_");
     console.log(
-      `[LumiverseHelper] generateCouncilHandles: "${name}" → "${handle}"`,
+      `[LumiverseHelper] generateCouncilHandles: "${name}" → "${handle}" (leet=${useLeet})`,
     );
     return {
       name: name,
@@ -219,20 +222,21 @@ function generateCouncilHandles(councilMembers) {
 
 /**
  * Build the OOC prompt for council IRC mode
- * Creates an internet chatroom-style prompt with l33t handles
+ * Creates an internet chatroom-style prompt with optional l33t handles
  * @returns {string} The IRC-style OOC prompt
  */
 function buildOOCPromptCouncilIRC() {
   const settings = getSettings();
   const triggerText = getOOCTriggerText();
   const councilMembers = settings.councilMembers || [];
+  const useLeet = settings.councilChatStyle?.useLeetHandles !== false;
 
   // Generate handles for all council members
-  const memberHandles = generateCouncilHandles(councilMembers);
+  const memberHandles = generateCouncilHandles(councilMembers, useLeet);
   const handleList = memberHandles.map((m) => m.handle).join(", ");
 
   console.log(
-    `[LumiverseHelper] buildOOCPromptCouncilIRC: Active users = ${handleList}`,
+    `[LumiverseHelper] buildOOCPromptCouncilIRC: Active users = ${handleList} (leet=${useLeet})`,
   );
 
   return `### Loom Utility: Council IRC Link

@@ -346,12 +346,13 @@ function htmlToPlainText(html) {
  * @param {HTMLElement} container - Container element to search within
  * @param {string} searchText - Text to find (will be normalized)
  * @param {string} rawOOCContent - The raw OOC content (may contain HTML) for innerHTML extraction
- * @returns {{wrapperCreated: boolean, innerHTML: string}|null} Result or null if not found
+ * @returns {{wrapperCreated: boolean, innerHTML: string, range?: Range}|null} Result or null if not found
  */
 function findAndWrapOOCContent(container, searchText, rawOOCContent) {
   if (!container || !searchText) return null;
 
   // Normalize search text - collapse whitespace for matching
+  // NOTE: We normalize but preserve the original for length calculation
   const normalizedSearch = searchText.replace(/\s+/g, " ").trim();
   if (!normalizedSearch) return null;
 
@@ -374,6 +375,9 @@ function findAndWrapOOCContent(container, searchText, rawOOCContent) {
   const textNodes = [];
   let lastBlockElement = null;
 
+  // Track virtual space positions (spaces added between blocks that don't exist in DOM)
+  const virtualSpacePositions = new Set();
+
   while ((node = walker.nextNode())) {
     // Skip nodes inside already-wrapped OOC boxes
     if (node.parentElement?.closest("[data-lumia-ooc]")) {
@@ -386,6 +390,8 @@ function findAndWrapOOCContent(container, searchText, rawOOCContent) {
     if (lastBlockElement && currentBlock && currentBlock !== lastBlockElement) {
       // Add a space if accumulated text doesn't end with whitespace
       if (accumulatedText.length > 0 && !/\s$/.test(accumulatedText)) {
+        // Track this as a virtual space position (doesn't exist in actual DOM)
+        virtualSpacePositions.add(accumulatedText.length);
         accumulatedText += " ";
       }
     }
@@ -401,6 +407,7 @@ function findAndWrapOOCContent(container, searchText, rawOOCContent) {
 
   // Normalize accumulated text for matching
   // Also normalize ellipses and quotes to match search text normalization
+  // IMPORTANT: Apply same normalizations as stripMarkdownFormatting for consistency
   const normalizedAccumulated = accumulatedText
     .replace(/\s+/g, " ")
     .replace(/…/g, "...")
@@ -415,12 +422,18 @@ function findAndWrapOOCContent(container, searchText, rawOOCContent) {
     return null;
   }
 
-  // Verify this is the right match by checking the suffix too
+  // Calculate potential end position
   const potentialEnd = matchStart + normalizedSearch.length;
+  
+  // Clamp potentialEnd to the actual DOM text length to prevent over-running
+  // This handles cases where search text might be slightly longer than DOM text
+  const clampedPotentialEnd = Math.min(potentialEnd, normalizedAccumulated.length);
+
+  // Verify this is the right match by checking the suffix too
   if (normalizedSearch.length > 40) {
     const actualSuffix = normalizedAccumulatedLower.substring(
-      Math.max(matchStart, potentialEnd - 20),
-      potentialEnd
+      Math.max(matchStart, clampedPotentialEnd - 20),
+      clampedPotentialEnd
     );
     if (!actualSuffix.includes(searchSuffix.substring(0, 10))) {
       console.log(`[${MODULE_NAME}] findAndWrapOOCContent: Suffix mismatch, skipping false positive`);
@@ -471,12 +484,25 @@ function findAndWrapOOCContent(container, searchText, rawOOCContent) {
   // Handle edge cases where positions may be at or beyond the map bounds
   let originalMatchStart =
     matchStart < positionMap.length ? positionMap[matchStart] : 0;
-  let originalMatchEnd =
-    potentialEnd <= positionMap.length
-      ? positionMap[potentialEnd - 1] + 1
-      : accumulatedText.length;
+  
+  // For end position, use clamped value and handle edge cases carefully
+  // The -1 is because we want the position OF the last character, then +1 for AFTER it
+  let originalMatchEnd;
+  if (clampedPotentialEnd <= 0) {
+    originalMatchEnd = 0;
+  } else if (clampedPotentialEnd > positionMap.length) {
+    // If beyond the map, use the full accumulated text length
+    originalMatchEnd = accumulatedText.length;
+  } else {
+    // Normal case: get position of last matched character, then add 1 for end
+    originalMatchEnd = positionMap[clampedPotentialEnd - 1] + 1;
+  }
 
   // Find which text nodes contain our match
+  // Also track the last text node that ends before our target end position
+  // This is needed to handle virtual spaces between blocks
+  let lastNodeBeforeEnd = null;
+  
   for (const tn of textNodes) {
     const tnEnd = tn.start + tn.text.length;
 
@@ -492,18 +518,39 @@ function findAndWrapOOCContent(container, searchText, rawOOCContent) {
       endOffset = originalMatchEnd - tn.start;
       break;
     }
+    
+    // Track the last text node that ends before our target
+    // This is our fallback if the end position falls in a virtual space
+    if (tnEnd <= originalMatchEnd) {
+      lastNodeBeforeEnd = tn;
+    }
+  }
+
+  // FALLBACK: If endNode is null but we found the start, the match end might be
+  // falling in a virtual space between text nodes. Use the last text node before that position.
+  if (startNode && !endNode && lastNodeBeforeEnd) {
+    console.log(`[${MODULE_NAME}] findAndWrapOOCContent: End position in virtual space, using fallback to last text node`);
+    endNode = lastNodeBeforeEnd.node;
+    endOffset = lastNodeBeforeEnd.text.length; // End at the end of this node
   }
 
   if (!startNode || !endNode) {
-    console.log(`[${MODULE_NAME}] findAndWrapOOCContent: Could not map match to text nodes`);
+    console.log(`[${MODULE_NAME}] findAndWrapOOCContent: Could not map match to text nodes (start: ${!!startNode}, end: ${!!endNode})`);
     return null;
   }
 
   // Create a Range to select exactly the OOC content
   try {
     const range = document.createRange();
-    range.setStart(startNode, Math.min(startOffset, startNode.length));
-    range.setEnd(endNode, Math.min(endOffset, endNode.length));
+    
+    // Safely clamp offsets to node lengths (Text nodes have nodeValue.length for character count)
+    const startNodeLength = startNode.nodeValue?.length || 0;
+    const endNodeLength = endNode.nodeValue?.length || 0;
+    const safeStartOffset = Math.max(0, Math.min(startOffset, startNodeLength));
+    const safeEndOffset = Math.max(0, Math.min(endOffset, endNodeLength));
+    
+    range.setStart(startNode, safeStartOffset);
+    range.setEnd(endNode, safeEndOffset);
 
     // Extract the HTML content from the range for formatting preservation
     const fragment = range.cloneContents();
@@ -720,6 +767,14 @@ function clearAllProcessedTexts() {
 }
 
 /**
+ * Clear processed texts for a specific message (used when message is edited/swiped)
+ * @param {number} mesId - Message ID to clear
+ */
+export function clearProcessedTexts(mesId) {
+  processedOOCTexts.delete(mesId);
+}
+
+/**
  * Check if text has already been processed for a message
  * @param {number} mesId - Message ID
  * @param {string} text - Text to check
@@ -801,8 +856,8 @@ function namesMatch(searchName, targetName) {
  * Get avatar image URL for a Lumia by name
  * Works in both council mode and normal mode
  * Uses score-based matching to find the best match and avoid similar name collisions
- * Also supports l33t handle lookup for IRC chat style
- * @param {string} lumiaName - The Lumia's name from the OOC tag (can be regular name or l33t handle)
+ * Also supports l33t handle lookup for IRC chat style (when enabled)
+ * @param {string} lumiaName - The Lumia's name from the OOC tag (can be regular name, l33t handle, or underscore handle)
  * @returns {string|null} Avatar image URL or null
  */
 function getLumiaAvatarByName(lumiaName) {
@@ -810,7 +865,7 @@ function getLumiaAvatarByName(lumiaName) {
 
   const settings = getSettings();
 
-  // If IRC chat style is enabled, try to resolve l33t handle first
+  // If IRC chat style is enabled, try to resolve handle to original name
   if (settings.councilChatStyle?.enabled && settings.councilMode && settings.councilMembers?.length) {
     // Build list of council member names for reverse lookup
     const memberNames = settings.councilMembers.map((member) => {
@@ -818,11 +873,25 @@ function getLumiaAvatarByName(lumiaName) {
       return item?.lumiaName || item?.lumiaDefName || member.itemName || "Unknown";
     });
 
-    // Try to find original name from l33t handle
-    const originalName = fromLeetSpeak(lumiaName, memberNames);
-    if (originalName) {
-      // Found a match - use the original name for avatar lookup
-      return getLumiaAvatarByOriginalName(originalName);
+    const useLeet = settings.councilChatStyle?.useLeetHandles !== false;
+    
+    if (useLeet) {
+      // Try to find original name from l33t handle
+      const originalName = fromLeetSpeak(lumiaName, memberNames);
+      if (originalName) {
+        // Found a match - use the original name for avatar lookup
+        return getLumiaAvatarByOriginalName(originalName);
+      }
+    } else {
+      // Non-leet mode: handle is just name with underscores for spaces
+      // Try to find matching name by replacing underscores back to spaces
+      const nameWithSpaces = lumiaName.replace(/_/g, " ");
+      for (const name of memberNames) {
+        if (name.toLowerCase() === nameWithSpaces.toLowerCase() ||
+            name.replace(/\s+/g, "_").toLowerCase() === lumiaName.toLowerCase()) {
+          return getLumiaAvatarByOriginalName(name);
+        }
+      }
     }
   }
 
@@ -1638,7 +1707,9 @@ function findOOCContentLocation(container, searchText) {
     return null;
   }
 
+  // Calculate potential end position, clamped to actual DOM text length
   const potentialEnd = matchStart + normalizedSearch.length;
+  const clampedPotentialEnd = Math.min(potentialEnd, normalizedAccumulated.length);
 
   // Build position map
   const positionMap = [];
@@ -1666,15 +1737,23 @@ function findOOCContentLocation(container, searchText) {
   }
 
   let originalMatchStart = matchStart < positionMap.length ? positionMap[matchStart] : 0;
-  let originalMatchEnd = potentialEnd <= positionMap.length
-    ? positionMap[potentialEnd - 1] + 1
-    : accumulatedText.length;
+  
+  // For end position, use clamped value and handle edge cases
+  let originalMatchEnd;
+  if (clampedPotentialEnd <= 0) {
+    originalMatchEnd = 0;
+  } else if (clampedPotentialEnd > positionMap.length) {
+    originalMatchEnd = accumulatedText.length;
+  } else {
+    originalMatchEnd = positionMap[clampedPotentialEnd - 1] + 1;
+  }
 
   // Find which text nodes contain our match
   let startNode = null;
   let startOffset = 0;
   let endNode = null;
   let endOffset = 0;
+  let lastNodeBeforeEnd = null;
 
   for (const tn of textNodes) {
     const tnEnd = tn.start + tn.text.length;
@@ -1689,6 +1768,17 @@ function findOOCContentLocation(container, searchText) {
       endOffset = originalMatchEnd - tn.start;
       break;
     }
+    
+    // Track last node before end position for fallback
+    if (tnEnd <= originalMatchEnd) {
+      lastNodeBeforeEnd = tn;
+    }
+  }
+
+  // FALLBACK: If endNode is null but we found the start, use the last text node before the end position
+  if (startNode && !endNode && lastNodeBeforeEnd) {
+    endNode = lastNodeBeforeEnd.node;
+    endOffset = lastNodeBeforeEnd.text.length;
   }
 
   if (!startNode || !endNode) {
