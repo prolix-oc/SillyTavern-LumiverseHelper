@@ -9,6 +9,8 @@ import {
     Trash2,
     ToggleLeft,
     ToggleRight,
+    RefreshCw,
+    Settings,
 } from 'lucide-react';
 import { usePresetBindings } from '../../hooks/usePresetBindings';
 
@@ -30,6 +32,11 @@ export function ToggleBindingsContent({ compact = false }) {
         clearChatToggleBinding,
         saveTogglesToCharacter,
         clearCharacterToggleBinding,
+        // New: default state restoration settings
+        disableDefaultStateRestore,
+        hasDefaultToggles,
+        setDisableDefaultStateRestore,
+        recaptureDefaultToggleState,
     } = usePresetBindings();
 
     const hasContext = contextInfo.characterAvatar || contextInfo.chatId;
@@ -63,11 +70,100 @@ export function ToggleBindingsContent({ compact = false }) {
         toastr?.info('Character toggle binding cleared');
     }, [clearCharacterToggleBinding]);
 
+    // Handler for toggling auto-restore defaults
+    const handleToggleAutoRestore = useCallback(() => {
+        const newValue = !disableDefaultStateRestore;
+        setDisableDefaultStateRestore(newValue);
+        if (newValue) {
+            toastr?.info('Auto-restore defaults disabled');
+        } else {
+            toastr?.success('Auto-restore defaults enabled');
+        }
+    }, [disableDefaultStateRestore, setDisableDefaultStateRestore]);
+
+    // Handler for recapturing default toggle state
+    const handleRecaptureDefaults = useCallback(() => {
+        const success = recaptureDefaultToggleState();
+        if (success) {
+            toastr?.success('Current toggle states captured as defaults');
+        } else {
+            toastr?.error('Failed to capture toggle states - no toggles available');
+        }
+    }, [recaptureDefaultToggleState]);
+
+    // Default State Settings - always shown, doesn't require chat context
+    const defaultStateSettingsSection = (
+        <div className="lumiverse-bindings-defaults-section">
+            <div className="lumiverse-bindings-defaults-header">
+                <Settings size={14} strokeWidth={1.5} />
+                <span>Default State Settings</span>
+            </div>
+            
+            {/* Auto-restore toggle */}
+            <div className="lumiverse-bindings-toggle-row">
+                <div className="lumiverse-bindings-toggle-label">
+                    <span>Restore defaults automatically</span>
+                </div>
+                <div className="lumiverse-bindings-toggle-actions">
+                    <button
+                        className={`lumia-btn lumia-btn-sm ${disableDefaultStateRestore ? 'lumia-btn-secondary' : 'lumia-btn-primary'}`}
+                        onClick={handleToggleAutoRestore}
+                        type="button"
+                        title={disableDefaultStateRestore 
+                            ? 'Defaults will NOT be restored when switching to unbound chats' 
+                            : 'Defaults will be restored when switching to unbound chats'}
+                    >
+                        {disableDefaultStateRestore ? (
+                            <>
+                                <ToggleLeft size={12} strokeWidth={2} />
+                                Off
+                            </>
+                        ) : (
+                            <>
+                                <ToggleRight size={12} strokeWidth={2} />
+                                On
+                            </>
+                        )}
+                    </button>
+                </div>
+            </div>
+
+            {/* Capture current as defaults button */}
+            <div className="lumiverse-bindings-toggle-row">
+                <div className="lumiverse-bindings-toggle-label">
+                    <span>Capture current as defaults</span>
+                    {hasDefaultToggles && (
+                        <span className="lumiverse-bindings-toggle-badge">Captured</span>
+                    )}
+                </div>
+                <div className="lumiverse-bindings-toggle-actions">
+                    <button
+                        className="lumia-btn lumia-btn-secondary lumia-btn-sm"
+                        onClick={handleRecaptureDefaults}
+                        type="button"
+                        title="Save current toggle states as the defaults to restore for unbound chats"
+                    >
+                        <RefreshCw size={12} strokeWidth={2} />
+                        {compact ? 'Capture' : 'Capture Now'}
+                    </button>
+                </div>
+            </div>
+
+            <div className="lumiverse-bindings-defaults-info">
+                <span>When auto-restore is on, unbound chats will revert to captured default toggles.</span>
+            </div>
+        </div>
+    );
+
+    // If no chat context, only show default state settings
     if (!hasContext) {
         return (
-            <div className="lumiverse-bindings-no-context">
-                <ToggleLeft size={20} strokeWidth={1.5} />
-                <span>Select a character to bind prompt toggles</span>
+            <div className="lumiverse-bindings-toggles">
+                <div className="lumiverse-bindings-no-context">
+                    <ToggleLeft size={20} strokeWidth={1.5} />
+                    <span>Select a character to bind prompt toggles</span>
+                </div>
+                {defaultStateSettingsSection}
             </div>
         );
     }
@@ -147,6 +243,8 @@ export function ToggleBindingsContent({ compact = false }) {
             <div className="lumiverse-bindings-toggles-priority">
                 <span>Priority: Chat &gt; Character (chat binding applied first)</span>
             </div>
+
+            {defaultStateSettingsSection}
         </div>
     );
 }

@@ -13,9 +13,15 @@ import {
     getCurrentContextInfo,
     resolveCurrentBinding,
     onBindingsChange,
+    recaptureDefaultToggleState,
+    hasDefaultToggleState,
 } from '../../lib/presetBindingService.js';
 import { chatPresetService } from '../../lib/chatPresetService.js';
 import { subscribeToCacheChanges } from '../../lib/packCache.js';
+import { useLumiverse, useLumiverseActions } from '../store/LumiverseContext.jsx';
+
+// Stable selector for disableDefaultStateRestore (defined outside component)
+const selectDisableDefaultStateRestore = state => state.disableDefaultStateRestore ?? false;
 
 /**
  * Hook for managing preset bindings
@@ -29,6 +35,10 @@ export function usePresetBindings() {
     // Toggle state bindings
     const [hasChatToggleBinding, setHasChatToggleBinding] = useState(false);
     const [hasCharacterToggleBinding, setHasCharacterToggleBinding] = useState(false);
+
+    // Get disableDefaultStateRestore from store
+    const disableDefaultStateRestore = useLumiverse(selectDisableDefaultStateRestore);
+    const actions = useLumiverseActions();
 
     // Subscribe to binding changes
     useEffect(() => {
@@ -249,6 +259,10 @@ export function usePresetBindings() {
         // Toggle state bindings
         hasChatToggleBinding,
         hasCharacterToggleBinding,
+        
+        // Default state restoration settings
+        disableDefaultStateRestore,
+        hasDefaultToggles: hasDefaultToggleState(),
 
         // Actions
         bindCurrentCharacter,
@@ -263,6 +277,10 @@ export function usePresetBindings() {
         clearChatToggleBinding,
         saveTogglesToCharacter,
         clearCharacterToggleBinding,
+        
+        // Default state restoration actions
+        setDisableDefaultStateRestore: actions.setDisableDefaultStateRestore,
+        recaptureDefaultToggleState,
 
         // Direct access for advanced use
         setCharacterBinding,

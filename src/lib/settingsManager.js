@@ -139,6 +139,8 @@ const DEFAULT_SETTINGS = {
   // Landing page override setting
   enableLandingPage: true, // When true, show custom Lumiverse landing page instead of default welcome
   landingPageChatsDisplayed: 12,
+  // Toggle binding default state restoration
+  disableDefaultStateRestore: true, // When true, skip restoring default toggle states for unbound chats (opt-in feature)
 };
 
 // Settings state - module-level singleton
@@ -564,6 +566,9 @@ export function migrateSettings() {
   // Ensure landing page setting default (default to true for new feature)
   if (settings.enableLandingPage === undefined) settings.enableLandingPage = true;
   if (settings.landingPageChatsDisplayed === undefined) settings.landingPageChatsDisplayed = 12;
+
+  // Ensure toggle binding default state restoration setting
+  if (settings.disableDefaultStateRestore === undefined) settings.disableDefaultStateRestore = true;
 
   return migrated;
 }

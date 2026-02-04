@@ -151,6 +151,9 @@ const initialState = {
     enableLandingPage: true,
     landingPageChatsDisplayed: 12,
 
+    // Toggle binding default state restoration
+    disableDefaultStateRestore: true, // When true, skip restoring default toggle states for unbound chats (opt-in feature)
+
     // Chat change tracking (React-only, incremented on syncFromExtension)
     // Components can subscribe to this to reload when chat changes
     chatChangeCounter: 0,
@@ -1284,6 +1287,17 @@ const actions = {
             });
             return { success: false, message: `Error: ${error.message}` };
         }
+    },
+
+    /**
+     * Set whether default state restoration is disabled for unbound chats/characters.
+     * When true, the system will NOT auto-restore default toggle states when switching
+     * to chats/characters that don't have toggle bindings.
+     * @param {boolean} disabled - Whether to disable default state restoration
+     */
+    setDisableDefaultStateRestore: (disabled) => {
+        store.setState({ disableDefaultStateRestore: disabled });
+        saveToExtension();
     },
 };
 

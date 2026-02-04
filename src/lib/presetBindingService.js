@@ -18,6 +18,7 @@
 
 import { getContext, getEventSource, getEventTypes } from "../stContext.js";
 import { chatPresetService } from "./chatPresetService.js";
+import { getSettings } from "./settingsManager.js";
 import {
     getCachedIndex,
     updateSelections,
@@ -419,6 +420,13 @@ export async function applyBindingForCurrentContext() {
     if (!bindingCheck.hasPresetBinding && !bindingCheck.hasToggleBinding) {
         lastAppliedBinding = null;
         
+        // Check if default state restoration is disabled
+        const settings = getSettings();
+        if (settings.disableDefaultStateRestore) {
+            console.log(`[${MODULE_NAME}] No bindings for current context - default state restoration is disabled, skipping`);
+            return false;
+        }
+        
         // If we don't have captured defaults, nothing to restore
         if (!hasDefaultToggleState()) {
             console.log(`[${MODULE_NAME}] No bindings for current context and no defaults captured - leaving preset state untouched`);
@@ -738,8 +746,9 @@ export function onBindingsChange(callback) {
 }
 
 /**
- * Initialize the binding service - subscribe to CHAT_CHANGED events
- * and capture default toggle state for restoration on unbound chats.
+ * Initialize the binding service - subscribe to CHAT_CHANGED events.
+ * Note: Default toggle state capture is now manual via the UI button,
+ * not automatic on page load.
  */
 export function initPresetBindingService() {
     const eventSource = getEventSource();
@@ -749,18 +758,6 @@ export function initPresetBindingService() {
         console.warn(`[${MODULE_NAME}] Cannot initialize: ST event system not available`);
         return false;
     }
-
-    // Capture default toggle state on initialization
-    // This runs after ST is ready, so toggles should be available
-    // Use a small delay to ensure chatCompletionSettings is fully loaded
-    setTimeout(() => {
-        const captured = captureDefaultToggleState();
-        if (captured) {
-            console.log(`[${MODULE_NAME}] Default toggle state captured on initialization`);
-        } else {
-            console.warn(`[${MODULE_NAME}] Could not capture default toggle state on init - may retry later`);
-        }
-    }, 500);
 
     eventSource.on(event_types.CHAT_CHANGED, () => {
         console.log(`[${MODULE_NAME}] CHAT_CHANGED detected, checking bindings...`);

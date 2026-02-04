@@ -304,6 +304,10 @@ function stripMarkdownFormatting(text) {
   // Normalize ellipses: convert Unicode ellipsis to three periods
   result = result.replace(/…/g, "...");
 
+  // Strip invisible Unicode characters that browsers may add to emojis
+  result = result.replace(/[\uFE00-\uFE0F]/g, "");  // Variation selectors
+  result = result.replace(/\u200D/g, "");          // Zero-width joiners
+
   return result;
 }
 
@@ -330,6 +334,107 @@ function htmlToPlainText(html) {
   text = text.replace(/\s+/g, " ").trim();
 
   return text;
+}
+
+/**
+ * Detect and calculate expanded bounds to include OOC tag fragments in the DOM
+ *
+ * When SillyTavern partially renders or escapes OOC tags, fragments like:
+ * - Opening: `<lumiaooc name="...">`, `<lumia_ooc>`, etc.
+ * - Closing: `</lumiaooc>`, `</lumia_ooc>`, etc.
+ * may appear as literal text in the DOM surrounding the actual OOC content.
+ *
+ * This function detects these fragments and returns expanded positions that
+ * include them, so the Range deletion captures the ENTIRE tag, not just the content.
+ *
+ * SAFETY: This function only expands when it finds DEFINITE tag patterns.
+ * It will NOT expand for ambiguous or partial matches that could be legitimate content.
+ *
+ * @param {string} accumulatedText - The full accumulated text from DOM walking
+ * @param {number} contentStart - Start position of the OOC content match (in original text)
+ * @param {number} contentEnd - End position of the OOC content match (in original text)
+ * @returns {{expandedStart: number, expandedEnd: number}} Expanded positions including tag fragments
+ */
+function expandRangeForTagFragments(accumulatedText, contentStart, contentEnd) {
+  let expandedStart = contentStart;
+  let expandedEnd = contentEnd;
+
+  // Safety: validate inputs
+  if (!accumulatedText || contentStart < 0 || contentEnd < 0) {
+    return { expandedStart, expandedEnd };
+  }
+
+  // PART 1: Look backwards from contentStart for opening tag fragments
+  // Pattern: `<lumiaooc...>` or `<lumia_ooc...>` or `<lumioooc...>` or `<lumio_ooc...>`
+  // The `>` would be right before our content, so look for `<lumi...>` pattern before that
+  if (contentStart > 0) {
+    // Get up to 100 chars before content start to search for opening tag
+    const lookBehindStart = Math.max(0, contentStart - 100);
+    const textBefore = accumulatedText.substring(lookBehindStart, contentStart);
+
+    // Find the last occurrence of an opening OOC tag pattern ending at or near contentStart
+    // Match: <lumiaooc...>, <lumia_ooc...>, <lumioooc...>, <lumio_ooc...>
+    const openTagRegex = /<lumi[ao]_?ooc(?:\s+[^>]*)?>$/i;
+    const openTagMatch = textBefore.match(openTagRegex);
+
+    if (openTagMatch) {
+      // Found opening tag fragment - expand start to include it
+      const tagLength = openTagMatch[0].length;
+      const proposedStart = contentStart - tagLength;
+      // Safety: ensure we don't go negative
+      if (proposedStart >= 0) {
+        expandedStart = proposedStart;
+        console.log(`[${MODULE_NAME}] expandRangeForTagFragments: Found opening tag "${openTagMatch[0]}", expanding start by ${tagLength}`);
+      }
+    }
+  }
+
+  // PART 2: Look forwards from contentEnd for closing tag fragments
+  // Pattern: `</lumiaooc>` or `</lumia_ooc>` or `</lumioooc>` or `</lumio_ooc>`
+  if (contentEnd < accumulatedText.length) {
+    // Get up to 30 chars after content end to search for closing tag
+    const lookAheadEnd = Math.min(accumulatedText.length, contentEnd + 30);
+    const textAfter = accumulatedText.substring(contentEnd, lookAheadEnd);
+
+    // Find closing OOC tag pattern starting at contentEnd
+    // Match: </lumiaooc>, </lumia_ooc>, </lumioooc>, </lumio_ooc>
+    const closeTagRegex = /^<\/lumi[ao]_?ooc\s*>/i;
+    const closeTagMatch = textAfter.match(closeTagRegex);
+
+    if (closeTagMatch) {
+      // Found closing tag fragment - expand end to include it
+      const tagLength = closeTagMatch[0].length;
+      const proposedEnd = contentEnd + tagLength;
+      // Safety: ensure we don't exceed text length
+      if (proposedEnd <= accumulatedText.length) {
+        expandedEnd = proposedEnd;
+        console.log(`[${MODULE_NAME}] expandRangeForTagFragments: Found closing tag "${closeTagMatch[0]}", expanding end by ${tagLength}`);
+      }
+    } else {
+      // Also check for PARTIAL closing tag fragments that might be left
+      // These are remnants from ST's partial tag rendering
+      // IMPORTANT: Be specific - don't match standalone ">" as that's too aggressive
+      // Only match patterns that are DEFINITELY closing tag remnants
+      const partialCloseRegex = /^(?:lumiaooc>|lumia_ooc>|lumioooc>|lumio_ooc>|miaooc>|mia_ooc>|iaooc>|ia_ooc>|aooc>|a_ooc>|_ooc>|ooc>|oc>|c>)/i;
+      const partialMatch = textAfter.match(partialCloseRegex);
+
+      if (partialMatch) {
+        const tagLength = partialMatch[0].length;
+        const proposedEnd = contentEnd + tagLength;
+        // Safety: ensure we don't exceed text length
+        if (proposedEnd <= accumulatedText.length) {
+          expandedEnd = proposedEnd;
+          console.log(`[${MODULE_NAME}] expandRangeForTagFragments: Found PARTIAL closing tag "${partialMatch[0]}", expanding end by ${tagLength}`);
+        }
+      }
+    }
+  }
+
+  // Final safety: clamp to valid range
+  expandedStart = Math.max(0, expandedStart);
+  expandedEnd = Math.min(accumulatedText.length, expandedEnd);
+
+  return { expandedStart, expandedEnd };
 }
 
 /**
@@ -408,17 +513,21 @@ function findAndWrapOOCContent(container, searchText, rawOOCContent) {
   // Normalize accumulated text for matching
   // Also normalize ellipses and quotes to match search text normalization
   // IMPORTANT: Apply same normalizations as stripMarkdownFormatting for consistency
+  // Also strip invisible Unicode characters that browsers may add (variation selectors, ZWJ, etc.)
   const normalizedAccumulated = accumulatedText
     .replace(/\s+/g, " ")
     .replace(/…/g, "...")
     .replace(/[""]/g, '"')
-    .replace(/['']/g, "'");
+    .replace(/['']/g, "'")
+    .replace(/[\uFE00-\uFE0F]/g, "")  // Strip variation selectors
+    .replace(/\u200D/g, "");          // Strip zero-width joiners
   const normalizedAccumulatedLower = normalizedAccumulated.toLowerCase();
 
   // Find where the OOC content starts in the accumulated text
   const matchStart = normalizedAccumulatedLower.indexOf(searchPrefix);
   if (matchStart === -1) {
-    console.log(`[${MODULE_NAME}] findAndWrapOOCContent: Could not find prefix "${searchPrefix.substring(0, 30)}..." in DOM text`);
+    // Prefix not found - this is expected when using DOM-first matching as primary method
+    // The surgical method is now a fallback, so silent return is appropriate
     return null;
   }
 
@@ -436,7 +545,8 @@ function findAndWrapOOCContent(container, searchText, rawOOCContent) {
       clampedPotentialEnd
     );
     if (!actualSuffix.includes(searchSuffix.substring(0, 10))) {
-      console.log(`[${MODULE_NAME}] findAndWrapOOCContent: Suffix mismatch, skipping false positive`);
+      // Suffix mismatch - likely a false positive match, skip silently
+      // The DOM-first matching approach should handle these cases
       return null;
     }
   }
@@ -450,6 +560,7 @@ function findAndWrapOOCContent(container, searchText, rawOOCContent) {
 
   for (let i = 0; i < accumulatedText.length; i++) {
     const char = accumulatedText[i];
+    const charCode = char.charCodeAt(0);
 
     // Apply same normalization rules as the regex-based normalization above
     if (/\s/.test(char)) {
@@ -473,6 +584,12 @@ function findAndWrapOOCContent(container, searchText, rawOOCContent) {
       // Smart single quotes ('') normalize to regular apostrophe (1:1 mapping)
       positionMap.push(i);
       prevWasWhitespace = false;
+    } else if (charCode >= 0xFE00 && charCode <= 0xFE0F) {
+      // Variation selectors - skip (they're stripped from normalized text)
+      // Don't add to map, don't change prevWasWhitespace
+    } else if (char === "\u200D") {
+      // Zero-width joiner - skip (stripped from normalized text)
+      // Don't add to map, don't change prevWasWhitespace
     } else {
       // Regular character (1:1 mapping)
       positionMap.push(i);
@@ -497,6 +614,19 @@ function findAndWrapOOCContent(container, searchText, rawOOCContent) {
     // Normal case: get position of last matched character, then add 1 for end
     originalMatchEnd = positionMap[clampedPotentialEnd - 1] + 1;
   }
+
+  // CRITICAL FIX: Expand match range to include any OOC tag fragments
+  // When SillyTavern partially renders/escapes OOC tags, fragments like
+  // "<lumiaooc...>" or "</lumiaooc>" may appear as literal text in the DOM.
+  // If we only delete the content and not the tag fragments, we get orphan
+  // characters left behind (the "random 2 characters" bug in IRC mode).
+  const { expandedStart, expandedEnd } = expandRangeForTagFragments(
+    accumulatedText,
+    originalMatchStart,
+    originalMatchEnd
+  );
+  originalMatchStart = expandedStart;
+  originalMatchEnd = expandedEnd;
 
   // Find which text nodes contain our match
   // Also track the last text node that ends before our target end position
@@ -548,6 +678,24 @@ function findAndWrapOOCContent(container, searchText, rawOOCContent) {
     const endNodeLength = endNode.nodeValue?.length || 0;
     const safeStartOffset = Math.max(0, Math.min(startOffset, startNodeLength));
     const safeEndOffset = Math.max(0, Math.min(endOffset, endNodeLength));
+    
+    // DEBUG: Log detailed match info to help diagnose orphan punctuation issues
+    console.log(`[${MODULE_NAME}] findAndWrapOOCContent DEBUG:`, {
+      searchTextLength: searchText.length,
+      normalizedSearchLength: normalizedSearch.length,
+      matchStart,
+      potentialEnd,
+      clampedPotentialEnd,
+      originalMatchStart,
+      originalMatchEnd,
+      accumulatedTextLength: accumulatedText.length,
+      positionMapLength: positionMap.length,
+      startNodeText: startNode.nodeValue?.substring(0, 50),
+      startOffset: safeStartOffset,
+      endNodeText: endNode.nodeValue?.substring(Math.max(0, safeEndOffset - 20)),
+      endOffset: safeEndOffset,
+      endNodeLength,
+    });
     
     range.setStart(startNode, safeStartOffset);
     range.setEnd(endNode, safeEndOffset);
@@ -635,6 +783,109 @@ function findMatchingElement(container, searchText) {
   }
 
   return null;
+}
+
+/**
+ * Normalize text for OOC fingerprint matching
+ * Applies consistent normalization for both DOM text and OOC content
+ * @param {string} text - Text to normalize
+ * @returns {string} Normalized lowercase text
+ */
+function normalizeForMatching(text) {
+  if (!text) return "";
+  return stripMarkdownFormatting(
+    text
+      .replace(/\s+/g, " ")
+      .replace(/…/g, "...")
+      .replace(/[""]/g, '"')
+      .replace(/['']/g, "'")
+      .trim()
+  ).toLowerCase();
+}
+
+/**
+ * DOM-first OOC matching: Find paragraph elements that contain OOC content
+ * This approach iterates through DOM paragraphs and matches them to OOC patterns,
+ * rather than searching for OOC patterns in the DOM (which can fail due to mesId mismatches)
+ * 
+ * @param {HTMLElement} container - The message container (.mes_text)
+ * @param {Array<{name: string|null, content: string}>} oocMatches - Extracted OOC matches from raw content
+ * @returns {Array<{element: HTMLElement, oocMatch: {name: string|null, content: string}, plainText: string}>}
+ */
+function findOOCParagraphs(container, oocMatches) {
+  if (!container || !oocMatches || oocMatches.length === 0) return [];
+
+  const results = [];
+  
+  // Pre-compute normalized fingerprints for all OOC matches (first 50 chars for matching)
+  const oocFingerprints = oocMatches.map(ooc => {
+    const plainText = htmlToPlainText(ooc.content);
+    const normalized = normalizeForMatching(plainText);
+    const fingerprint = normalized.substring(0, Math.min(50, normalized.length));
+    return {
+      ooc,
+      plainText,
+      normalized,
+      fingerprint,
+      matched: false, // Track which OOCs have been matched
+    };
+  });
+
+  // Get all paragraph elements in the container
+  const paragraphs = queryAll("p", container);
+  
+  console.log(`[${MODULE_NAME}] findOOCParagraphs: Scanning ${paragraphs.length} paragraphs for ${oocFingerprints.length} OOC patterns`);
+
+  for (let pIdx = 0; pIdx < paragraphs.length; pIdx++) {
+    const p = paragraphs[pIdx];
+    
+    // Skip paragraphs already inside a wrapped OOC box
+    if (p.closest("[data-lumia-ooc]")) {
+      continue;
+    }
+
+    // Normalize paragraph text
+    const pText = normalizeForMatching(p.textContent || "");
+    if (!pText) continue;
+
+    // Try to match against unmatched OOC fingerprints
+    for (let fpIdx = 0; fpIdx < oocFingerprints.length; fpIdx++) {
+      const fp = oocFingerprints[fpIdx];
+      if (fp.matched) continue; // Already matched to another paragraph
+      
+      // Check if paragraph starts with or contains the OOC fingerprint
+      const hasFingerprint = pText.startsWith(fp.fingerprint) || pText.includes(fp.fingerprint);
+      
+      if (hasFingerprint) {
+        // Calculate overlap ratio - OOC should be at least 50% of paragraph (lowered from 60%)
+        const oocRatio = fp.normalized.length / pText.length;
+        
+        console.log(`[${MODULE_NAME}] findOOCParagraphs: Para ${pIdx} matches OOC ${fpIdx} (${fp.ooc.name || "unnamed"}), ratio=${(oocRatio * 100).toFixed(0)}%`);
+        
+        if (oocRatio >= 0.5) {
+          results.push({
+            element: p,
+            oocMatch: fp.ooc,
+            plainText: fp.plainText,
+          });
+          fp.matched = true;
+          break; // This paragraph matched, move to next paragraph
+        } else {
+          console.log(`[${MODULE_NAME}] findOOCParagraphs: Skipped - ratio too low (need 50%)`);
+        }
+      }
+    }
+  }
+  
+  // Log unmatched OOCs for debugging
+  const unmatchedOOCs = oocFingerprints.filter(fp => !fp.matched);
+  if (unmatchedOOCs.length > 0) {
+    console.log(`[${MODULE_NAME}] findOOCParagraphs: ${unmatchedOOCs.length} OOCs could not be matched to paragraphs:`,
+      unmatchedOOCs.map(fp => ({ name: fp.ooc.name, fingerprint: fp.fingerprint.substring(0, 30) }))
+    );
+  }
+
+  return results;
 }
 
 /**
@@ -1392,8 +1643,8 @@ function cleanupOOCBoxSurroundings(commentBox) {
 }
 
 /**
- * Clean up <br> tags and empty elements around a Range position after content deletion.
- * Used in IRC mode where OOC content is deleted but no replacement is inserted at each position.
+ * Clean up DOM artifacts after OOC content extraction
+ * Handles empty elements, orphaned <br> tags, and orphaned punctuation
  * 
  * @param {Range} range - The Range where content was deleted
  */
@@ -1412,7 +1663,11 @@ function cleanupRangeSurroundings(range) {
     
     if (!parent) return;
 
-    // Clean up adjacent <br> tags and empty elements
+    // Regex to identify "orphan" text nodes - only punctuation, symbols, or whitespace
+    // These are likely leftover artifacts from imperfect OOC matching
+    const orphanPunctuationRegex = /^[\s\p{P}\p{S}]*$/u;
+
+    // Clean up adjacent <br> tags, empty elements, and orphan punctuation
     const cleanSiblings = (node) => {
       if (!node) return;
       
@@ -1425,6 +1680,12 @@ function cleanupRangeSurroundings(range) {
         if (toCheck.nodeType === Node.ELEMENT_NODE && toCheck.tagName === "BR") {
           toCheck.remove();
         } else if (toCheck.nodeType === Node.TEXT_NODE && !toCheck.textContent?.trim()) {
+          // Empty or whitespace-only text node
+          toCheck.remove();
+        } else if (toCheck.nodeType === Node.TEXT_NODE && 
+                   orphanPunctuationRegex.test(toCheck.textContent)) {
+          // Orphan punctuation-only text node (like "!!" or "..." left behind)
+          console.log(`[${MODULE_NAME}] cleanupRangeSurroundings: Removing orphan punctuation: "${toCheck.textContent}"`);
           toCheck.remove();
         } else if (toCheck.nodeType === Node.ELEMENT_NODE && 
                    toCheck.matches?.("p, div, font") && 
@@ -1445,6 +1706,12 @@ function cleanupRangeSurroundings(range) {
         if (toCheck.nodeType === Node.ELEMENT_NODE && toCheck.tagName === "BR") {
           toCheck.remove();
         } else if (toCheck.nodeType === Node.TEXT_NODE && !toCheck.textContent?.trim()) {
+          // Empty or whitespace-only text node
+          toCheck.remove();
+        } else if (toCheck.nodeType === Node.TEXT_NODE && 
+                   orphanPunctuationRegex.test(toCheck.textContent)) {
+          // Orphan punctuation-only text node (like "!!" or "..." left behind)
+          console.log(`[${MODULE_NAME}] cleanupRangeSurroundings: Removing orphan punctuation: "${toCheck.textContent}"`);
           toCheck.remove();
         } else if (toCheck.nodeType === Node.ELEMENT_NODE && 
                    toCheck.matches?.("p, div, font") && 
@@ -1554,85 +1821,97 @@ function performOOCProcessing(mesId, force = false) {
         `[${MODULE_NAME}] Found ${oocMatches.length} <lumia_ooc> tag(s) in raw content for message ${mesId}`,
       );
 
-      oocMatches.forEach((ooc, index) => {
-        // Get plain text version for matching in DOM
-        const plainText = htmlToPlainText(ooc.content);
+      // DOM-FIRST MATCHING: Scan DOM paragraphs and match to OOC patterns
+      // This is more robust than searching for OOC content in DOM, as it avoids
+      // mesId/array index mismatches that can occur in SillyTavern
+      const matchedParagraphs = findOOCParagraphs(messageElement, oocMatches);
+      
+      console.log(
+        `[${MODULE_NAME}] DOM-first matching found ${matchedParagraphs.length} paragraph(s) matching OOC patterns`,
+      );
 
-        if (!plainText) {
-          console.log(
-            `[${MODULE_NAME}] Skipping OOC #${index + 1}: empty after text extraction`,
-          );
-          return;
-        }
-
+      for (const { element, oocMatch, plainText } of matchedParagraphs) {
         // Check if this text was already processed
         if (isTextProcessed(mesId, plainText)) {
           console.log(
-            `[${MODULE_NAME}] Skipping OOC #${index + 1}: already processed`,
+            `[${MODULE_NAME}] Skipping OOC (${oocMatch.name || "unnamed"}): already processed`,
           );
-          return;
+          continue;
         }
 
         console.log(
-          `[${MODULE_NAME}] Processing OOC #${index + 1}${ooc.name ? ` (${ooc.name})` : ""}: "${plainText.substring(0, 60)}..."`,
+          `[${MODULE_NAME}] Processing OOC${oocMatch.name ? ` (${oocMatch.name})` : ""}: "${plainText.substring(0, 60)}..."`,
         );
 
         // Get avatar: look up by name if provided, fallback to default Lumia avatar
-        // Uses fuzzy matching to handle name variations (e.g., "Lumia Serena" → "Serena")
-        const avatarImg = ooc.name
-          ? (getLumiaAvatarByName(ooc.name) || getLumiaAvatarImg())
+        const avatarImg = oocMatch.name
+          ? (getLumiaAvatarByName(oocMatch.name) || getLumiaAvatarImg())
           : getLumiaAvatarImg();
 
-        // TRY 1: Use surgical Range-based wrapping to isolate ONLY the OOC content
-        // This prevents grabbing surrounding non-OOC text in the same paragraph
-        const surgicalMatch = findAndWrapOOCContent(messageElement, plainText, ooc.content);
-
-        if (surgicalMatch && surgicalMatch.wrapperCreated) {
-          // Create styled box and insert at the range position
-          const commentBox = createOOCCommentBox(surgicalMatch.innerHTML, avatarImg, processedCount, ooc.name);
-          surgicalMatch.range.insertNode(commentBox);
-
-          // Clean up surrounding DOM structure left behind after content extraction
-          // This handles: empty elements, legacy font tags, stray <br> tags
-          cleanupOOCBoxSurroundings(commentBox);
-
-          markTextProcessed(mesId, plainText);
-          processedCount++;
-          console.log(
-            `[${MODULE_NAME}] Replaced OOC #${index + 1} with styled box (surgical Range method)`,
-          );
-          return;
-        }
-
-        // TRY 2: Fallback to element replacement if surgical method fails
-        // Only matches paragraphs that are >70% OOC content
-        const match = findMatchingElement(messageElement, plainText);
-
-        if (!match) {
-          console.log(
-            `[${MODULE_NAME}] Could not find OOC #${index + 1} text in DOM (tried surgical and element methods)`,
-          );
-          return;
-        }
-
         // Use the DOM's innerHTML (preserves ST's formatting like <em>, <strong>, etc.)
-        // but clean out any lumia-specific tags
-        const formattedContent = cleanOOCContent(match.innerHTML);
-        if (!formattedContent) return;
+        const formattedContent = cleanOOCContent(element.innerHTML);
+        if (!formattedContent) continue;
 
         // Create styled box with member name and formatted content
-        const commentBox = createOOCCommentBox(formattedContent, avatarImg, processedCount, ooc.name);
+        const commentBox = createOOCCommentBox(formattedContent, avatarImg, processedCount, oocMatch.name);
 
-        // Replace the matched element with our styled box
-        if (match.element.parentNode) {
-          match.element.parentNode.replaceChild(commentBox, match.element);
+        // Replace the matched paragraph element with our styled box
+        if (element.parentNode) {
+          element.parentNode.replaceChild(commentBox, element);
           markTextProcessed(mesId, plainText);
           processedCount++;
           console.log(
-            `[${MODULE_NAME}] Replaced OOC #${index + 1} with styled box (element fallback method)`,
+            `[${MODULE_NAME}] Replaced OOC with styled box (DOM-first method)`,
           );
         }
-      });
+      }
+
+      // FALLBACK: If DOM-first matching found nothing, try the legacy surgical method
+      // This handles edge cases where OOC content is not in a clean <p> element
+      if (matchedParagraphs.length === 0) {
+        console.log(
+          `[${MODULE_NAME}] DOM-first matching found no matches, falling back to surgical method`,
+        );
+        
+        oocMatches.forEach((ooc, index) => {
+          const plainText = htmlToPlainText(ooc.content);
+          if (!plainText) return;
+          if (isTextProcessed(mesId, plainText)) return;
+
+          const avatarImg = ooc.name
+            ? (getLumiaAvatarByName(ooc.name) || getLumiaAvatarImg())
+            : getLumiaAvatarImg();
+
+          // Try surgical Range-based wrapping
+          const surgicalMatch = findAndWrapOOCContent(messageElement, plainText, ooc.content);
+
+          if (surgicalMatch && surgicalMatch.wrapperCreated) {
+            const commentBox = createOOCCommentBox(surgicalMatch.innerHTML, avatarImg, processedCount, ooc.name);
+            surgicalMatch.range.insertNode(commentBox);
+            cleanupOOCBoxSurroundings(commentBox);
+            markTextProcessed(mesId, plainText);
+            processedCount++;
+            console.log(
+              `[${MODULE_NAME}] Replaced OOC #${index + 1} with styled box (surgical fallback)`,
+            );
+            return;
+          }
+
+          // Try element replacement fallback
+          const match = findMatchingElement(messageElement, plainText);
+          if (match && match.element.parentNode) {
+            const formattedContent = cleanOOCContent(match.innerHTML);
+            if (!formattedContent) return;
+            const commentBox = createOOCCommentBox(formattedContent, avatarImg, processedCount, ooc.name);
+            match.element.parentNode.replaceChild(commentBox, match.element);
+            markTextProcessed(mesId, plainText);
+            processedCount++;
+            console.log(
+              `[${MODULE_NAME}] Replaced OOC #${index + 1} with styled box (element fallback)`,
+            );
+          }
+        });
+      }
     }
 
     if (processedCount > 0) {
@@ -1747,6 +2026,19 @@ function findOOCContentLocation(container, searchText) {
   } else {
     originalMatchEnd = positionMap[clampedPotentialEnd - 1] + 1;
   }
+
+  // CRITICAL FIX: Expand match range to include any OOC tag fragments
+  // When SillyTavern partially renders/escapes OOC tags, fragments like
+  // "<lumiaooc...>" or "</lumiaooc>" may appear as literal text in the DOM.
+  // If we only delete the content and not the tag fragments, we get orphan
+  // characters left behind (the "random 2 characters" bug in IRC mode).
+  const { expandedStart, expandedEnd } = expandRangeForTagFragments(
+    accumulatedText,
+    originalMatchStart,
+    originalMatchEnd
+  );
+  originalMatchStart = expandedStart;
+  originalMatchEnd = expandedEnd;
 
   // Find which text nodes contain our match
   let startNode = null;
