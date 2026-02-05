@@ -1061,6 +1061,78 @@ details.lumia-panel[open] .lumia-panel-chevron {
     font-style: italic;
 }
 
+/* Section header within expanded pack list */
+.lumia-pack-section-header {
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(147, 112, 219, 0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 6px 4px 4px 4px;
+    margin-bottom: 2px;
+}
+
+/* Pack counts container for multiple badges */
+.lumia-pack-counts {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+    margin-right: 8px;
+}
+
+/* Loom count badge styling */
+.lumia-pack-count-loom {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(100, 130, 180, 0.2) !important;
+    border-color: rgba(100, 130, 180, 0.3) !important;
+}
+
+/* Individual Loom item in expanded list */
+.lumia-pack-loom-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    margin-top: 4px;
+    background: rgba(100, 130, 180, 0.08);
+    border: 1px solid rgba(100, 130, 180, 0.15);
+    border-radius: 6px;
+    transition: all 0.15s ease;
+}
+
+.lumia-pack-loom-item:hover {
+    background: rgba(100, 130, 180, 0.15);
+    border-color: rgba(100, 130, 180, 0.3);
+}
+
+/* Loom icon in expanded list */
+.lumia-pack-loom-icon {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(100, 130, 180, 0.15);
+    border: 1px solid rgba(100, 130, 180, 0.2);
+    flex-shrink: 0;
+    color: rgba(150, 180, 220, 0.9);
+}
+
+/* Loom name in expanded list */
+.lumia-pack-loom-name {
+    flex: 1;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.8);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 /* ----------------------------------------
    Base App Container
    ---------------------------------------- */

@@ -384,6 +384,54 @@ const actions = {
         store.setState({ packs: packsObj });
     },
 
+    // Update loomItems array in a pack
+    updatePackLoomItems: (packName, newLoomItems) => {
+        const state = store.getState();
+        const packsObj = state.packs && typeof state.packs === 'object' ? { ...state.packs } : {};
+
+        // Find pack by key or name
+        let packKey = null;
+        if (packsObj[packName]) {
+            packKey = packName;
+        } else {
+            for (const [key, pack] of Object.entries(packsObj)) {
+                if (pack.name === packName || pack.packName === packName) {
+                    packKey = key;
+                    break;
+                }
+            }
+        }
+
+        if (packKey && packsObj[packKey]) {
+            packsObj[packKey] = { ...packsObj[packKey], loomItems: newLoomItems };
+            store.setState({ packs: packsObj });
+        }
+    },
+
+    // Update any field in a pack
+    updatePackField: (packName, fieldName, value) => {
+        const state = store.getState();
+        const packsObj = state.packs && typeof state.packs === 'object' ? { ...state.packs } : {};
+
+        // Find pack by key or name
+        let packKey = null;
+        if (packsObj[packName]) {
+            packKey = packName;
+        } else {
+            for (const [key, pack] of Object.entries(packsObj)) {
+                if (pack.name === packName || pack.packName === packName) {
+                    packKey = key;
+                    break;
+                }
+            }
+        }
+
+        if (packKey && packsObj[packKey]) {
+            packsObj[packKey] = { ...packsObj[packKey], [fieldName]: value };
+            store.setState({ packs: packsObj });
+        }
+    },
+
     /**
      * Selection actions
      *

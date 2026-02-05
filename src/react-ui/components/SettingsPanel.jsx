@@ -8,6 +8,7 @@ import { PresetBindingsPanel } from './panels/PresetBindings';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
 import { Eye, Sparkles, Wrench, Layers, Trash2, Users, Bookmark, Plus, ChevronDown, Check, X, AlertTriangle, Download, Settings2 } from 'lucide-react';
+import ConfirmationModal from './shared/ConfirmationModal';
 
 /* global LumiverseBridge, toastr */
 
@@ -154,7 +155,7 @@ const Icons = {
 /**
  * Individual Lumia item in the pack list with adaptive image positioning
  */
-function LumiaPackItem({ item, packName, onEdit, editIcon }) {
+function LumiaPackItem({ item, packName, onEdit, onDelete, editIcon }) {
     // Support both new schema (avatarUrl, lumiaName) and legacy (lumia_img, lumiaDefName)
     const avatarUrl = item.avatarUrl || item.lumia_img;
     const displayName = item.lumiaName || item.lumiaDefName;
@@ -182,8 +183,98 @@ function LumiaPackItem({ item, packName, onEdit, editIcon }) {
             >
                 {editIcon}
             </button>
+            <button
+                className="lumia-btn lumia-btn-icon lumia-btn-icon-sm lumia-btn-icon-danger"
+                onClick={() => onDelete(packName, item, displayName)}
+                title="Delete Lumia"
+                type="button"
+            >
+                <Trash2 size={12} strokeWidth={1.5} />
+            </button>
         </div>
     );
+}
+
+/**
+ * Single Loom item row for custom packs - inline display with category icon
+ */
+function LoomPackItem({ item, packName, onEdit, onDelete, editIcon }) {
+    const itemName = item.loomName || item.itemName || item.name || 'Unknown';
+    const category = item.loomCategory || item.category || 'Narrative Style';
+    
+    // Get icon based on category
+    const getCategoryIcon = () => {
+        if (category === 'Narrative Style' || category === 'loomStyles') {
+            return <Sparkles size={14} strokeWidth={1.5} />;
+        } else if (category === 'Loom Utilities' || category === 'loomUtils') {
+            return <Wrench size={14} strokeWidth={1.5} />;
+        } else if (category === 'Retrofits' || category === 'loomRetrofits') {
+            return <Layers size={14} strokeWidth={1.5} />;
+        }
+        return <Sparkles size={14} strokeWidth={1.5} />;
+    };
+
+    return (
+        <div className="lumia-pack-loom-item">
+            <span className="lumia-pack-loom-icon">
+                {getCategoryIcon()}
+            </span>
+            <span className="lumia-pack-loom-name">
+                {itemName}
+            </span>
+            <button
+                className="lumia-btn lumia-btn-icon lumia-btn-icon-sm"
+                onClick={() => onEdit(packName, item)}
+                title="Edit Loom item"
+                type="button"
+            >
+                {editIcon}
+            </button>
+            <button
+                className="lumia-btn lumia-btn-icon lumia-btn-icon-sm lumia-btn-icon-danger"
+                onClick={() => onDelete(packName, item, itemName)}
+                title="Delete Loom item"
+                type="button"
+            >
+                <Trash2 size={12} strokeWidth={1.5} />
+            </button>
+        </div>
+    );
+}
+
+/**
+ * Helper to get all Loom items from a pack as a flat array
+ * Supports multiple schema formats
+ */
+function getLoomItemsFromPack(pack) {
+    const items = [];
+
+    // v2 schema: separate loomItems array
+    if (pack.loomItems && Array.isArray(pack.loomItems)) {
+        items.push(...pack.loomItems);
+    }
+
+    // Legacy separate arrays
+    if (pack.loomStyles && Array.isArray(pack.loomStyles)) {
+        pack.loomStyles.forEach(item => items.push({ ...item, loomCategory: 'Narrative Style' }));
+    }
+    if (pack.loomUtils && Array.isArray(pack.loomUtils)) {
+        pack.loomUtils.forEach(item => items.push({ ...item, loomCategory: 'Loom Utilities' }));
+    }
+    if (pack.loomRetrofits && Array.isArray(pack.loomRetrofits)) {
+        pack.loomRetrofits.forEach(item => items.push({ ...item, loomCategory: 'Retrofits' }));
+    }
+
+    // Legacy mixed items array (check for loomCategory to identify loom items)
+    if (pack.items && Array.isArray(pack.items)) {
+        pack.items.forEach(item => {
+            if (item.loomCategory || item.category) {
+                items.push(item);
+            }
+        });
+    }
+
+    return items;
 }
 
 /**
@@ -611,6 +702,22 @@ function SettingsPanel() {
         loomPacks: false,
     });
 
+    // State for Loom item delete confirmation modal
+    const [loomDeleteConfirm, setLoomDeleteConfirm] = useState({
+        isOpen: false,
+        packName: null,
+        item: null,
+        itemName: null,
+    });
+
+    // State for Lumia item delete confirmation modal
+    const [lumiaDeleteConfirm, setLumiaDeleteConfirm] = useState({
+        isOpen: false,
+        packName: null,
+        item: null,
+        itemName: null,
+    });
+
     const toggleSection = useCallback((section) => {
         setSectionsCollapsed(prev => ({
             ...prev,
@@ -674,6 +781,151 @@ function SettingsPanel() {
             toastr.success(`Pack "${packName}" deleted`);
         }
     }, [actions]);
+
+    // Open Loom item delete confirmation
+    const openLoomDeleteConfirm = useCallback((packName, item, itemName) => {
+        setLoomDeleteConfirm({
+            isOpen: true,
+            packName,
+            item,
+            itemName,
+        });
+    }, []);
+
+    // Handle Loom item deletion after confirmation
+    const handleDeleteLoomItem = useCallback(() => {
+        const { packName, item, itemName } = loomDeleteConfirm;
+        if (!packName || !item) return;
+
+        // Find the pack and remove the item
+        const packIndex = allPacks.findIndex(p => (p.name || p.packName) === packName);
+        if (packIndex === -1) {
+            console.error('[SettingsPanel] Pack not found:', packName);
+            setLoomDeleteConfirm({ isOpen: false, packName: null, item: null, itemName: null });
+            return;
+        }
+
+        const pack = allPacks[packIndex];
+        const loomItemName = item.loomName || item.itemName || item.name;
+
+        // Remove from loomItems array (v2 schema)
+        if (pack.loomItems && Array.isArray(pack.loomItems)) {
+            const newLoomItems = pack.loomItems.filter(li => 
+                (li.loomName || li.itemName || li.name) !== loomItemName
+            );
+            actions.updatePackLoomItems(packName, newLoomItems);
+        }
+
+        // Also remove from legacy arrays if present
+        if (pack.loomStyles && Array.isArray(pack.loomStyles)) {
+            const filtered = pack.loomStyles.filter(li => 
+                (li.loomName || li.itemName || li.name) !== loomItemName
+            );
+            if (filtered.length !== pack.loomStyles.length) {
+                actions.updatePackField(packName, 'loomStyles', filtered);
+            }
+        }
+        if (pack.loomUtils && Array.isArray(pack.loomUtils)) {
+            const filtered = pack.loomUtils.filter(li => 
+                (li.loomName || li.itemName || li.name) !== loomItemName
+            );
+            if (filtered.length !== pack.loomUtils.length) {
+                actions.updatePackField(packName, 'loomUtils', filtered);
+            }
+        }
+        if (pack.loomRetrofits && Array.isArray(pack.loomRetrofits)) {
+            const filtered = pack.loomRetrofits.filter(li => 
+                (li.loomName || li.itemName || li.name) !== loomItemName
+            );
+            if (filtered.length !== pack.loomRetrofits.length) {
+                actions.updatePackField(packName, 'loomRetrofits', filtered);
+            }
+        }
+
+        // Remove from legacy mixed items array
+        if (pack.items && Array.isArray(pack.items)) {
+            const filtered = pack.items.filter(li => {
+                if (!li.loomCategory && !li.category) return true; // Keep non-loom items
+                return (li.loomName || li.itemName || li.name) !== loomItemName;
+            });
+            if (filtered.length !== pack.items.length) {
+                actions.updatePackField(packName, 'items', filtered);
+            }
+        }
+
+        saveToExtension();
+        if (typeof toastr !== 'undefined') {
+            toastr.success(`Deleted "${itemName}"`);
+        }
+
+        // Close the modal
+        setLoomDeleteConfirm({ isOpen: false, packName: null, item: null, itemName: null });
+    }, [loomDeleteConfirm, allPacks, actions]);
+
+    // Cancel Loom item deletion
+    const cancelLoomDelete = useCallback(() => {
+        setLoomDeleteConfirm({ isOpen: false, packName: null, item: null, itemName: null });
+    }, []);
+
+    // Open Lumia item delete confirmation
+    const openLumiaDeleteConfirm = useCallback((packName, item, itemName) => {
+        setLumiaDeleteConfirm({
+            isOpen: true,
+            packName,
+            item,
+            itemName,
+        });
+    }, []);
+
+    // Handle Lumia item deletion after confirmation
+    const handleDeleteLumiaItem = useCallback(() => {
+        const { packName, item, itemName } = lumiaDeleteConfirm;
+        if (!packName || !item) return;
+
+        // Find the pack and remove the item
+        const packIndex = allPacks.findIndex(p => (p.name || p.packName) === packName);
+        if (packIndex === -1) {
+            console.error('[SettingsPanel] Pack not found:', packName);
+            setLumiaDeleteConfirm({ isOpen: false, packName: null, item: null, itemName: null });
+            return;
+        }
+
+        const pack = allPacks[packIndex];
+        const lumiaItemName = item.lumiaName || item.lumiaDefName;
+
+        // Remove from lumiaItems array (v2 schema)
+        if (pack.lumiaItems && Array.isArray(pack.lumiaItems)) {
+            const newLumiaItems = pack.lumiaItems.filter(li => 
+                (li.lumiaName || li.lumiaDefName) !== lumiaItemName
+            );
+            actions.updatePackField(packName, 'lumiaItems', newLumiaItems);
+        }
+
+        // Also remove from legacy items array if present
+        if (pack.items && Array.isArray(pack.items)) {
+            const filtered = pack.items.filter(li => {
+                // Only filter out lumia items (those with lumiaDefName), not loom items
+                if (!li.lumiaDefName && !li.lumiaName) return true; // Keep non-lumia items
+                return (li.lumiaName || li.lumiaDefName) !== lumiaItemName;
+            });
+            if (filtered.length !== pack.items.length) {
+                actions.updatePackField(packName, 'items', filtered);
+            }
+        }
+
+        saveToExtension();
+        if (typeof toastr !== 'undefined') {
+            toastr.success(`Deleted "${itemName}"`);
+        }
+
+        // Close the modal
+        setLumiaDeleteConfirm({ isOpen: false, packName: null, item: null, itemName: null });
+    }, [lumiaDeleteConfirm, allPacks, actions]);
+
+    // Cancel Lumia item deletion
+    const cancelLumiaDelete = useCallback(() => {
+        setLumiaDeleteConfirm({ isOpen: false, packName: null, item: null, itemName: null });
+    }, []);
 
     // Toggle pack expansion
     const togglePackExpansion = useCallback((packId) => {
@@ -1292,6 +1544,9 @@ function SettingsPanel() {
                             const lumiaItems = pack.lumiaItems?.length > 0
                                 ? pack.lumiaItems
                                 : (pack.items?.filter(item => item.lumiaDefName) || []);
+                            // Get Loom items using the helper function
+                            const loomItems = getLoomItemsFromPack(pack);
+                            const hasAnyItems = lumiaItems.length > 0 || loomItems.length > 0;
 
                             return (
                                 <motion.div
@@ -1306,7 +1561,7 @@ function SettingsPanel() {
                                             className="lumia-pack-expand-btn"
                                             onClick={() => togglePackExpansion(packKey)}
                                             type="button"
-                                            title={isExpanded ? 'Collapse' : 'Expand to see Lumias'}
+                                            title={isExpanded ? 'Collapse' : 'Expand to see items'}
                                         >
                                             <span className={clsx('lumia-pack-chevron', isExpanded && 'lumia-pack-chevron--expanded')}>
                                                 {Icons.chevronDown}
@@ -1319,9 +1574,17 @@ function SettingsPanel() {
                                         >
                                             {pack.name}
                                         </span>
-                                        <span className="lumia-pack-count">
-                                            {lumiaItems.length} Lumia{lumiaItems.length !== 1 ? 's' : ''}
-                                        </span>
+                                        <div className="lumia-pack-counts">
+                                            <span className="lumia-pack-count">
+                                                {lumiaItems.length} Lumia{lumiaItems.length !== 1 ? 's' : ''}
+                                            </span>
+                                            {loomItems.length > 0 && (
+                                                <span className="lumia-pack-count lumia-pack-count-loom">
+                                                    <Layers size={12} strokeWidth={1.5} />
+                                                    {loomItems.length} Loom
+                                                </span>
+                                            )}
+                                        </div>
                                         <button
                                             className="lumia-btn lumia-btn-icon"
                                             onClick={() => exportPack(pack)}
@@ -1340,31 +1603,57 @@ function SettingsPanel() {
                                         </button>
                                     </div>
 
-                                    {/* Expanded Lumia items list - uses CSS grid for smooth, performant animation */}
+                                    {/* Expanded Lumia items list */}
                                     <CollapsibleContent
                                         isOpen={isExpanded && lumiaItems.length > 0}
                                         className="lumia-pack-items-list"
                                         duration={200}
                                     >
+                                        <div className="lumia-pack-section-header">Lumia Characters</div>
                                         {lumiaItems.map((item, index) => (
                                             <LumiaPackItem
-                                                key={item.lumiaDefName || index}
+                                                key={item.lumiaDefName || item.lumiaName || index}
                                                 item={item}
                                                 packName={pack.name}
                                                 onEdit={(pn, it) => actions.openModal('lumiaEditor', {
                                                     packName: pn,
                                                     editingItem: it
                                                 })}
+                                                onDelete={openLumiaDeleteConfirm}
                                                 editIcon={Icons.edit}
                                             />
                                         ))}
                                     </CollapsibleContent>
+
+                                    {/* Expanded Loom items list */}
                                     <CollapsibleContent
-                                        isOpen={isExpanded && lumiaItems.length === 0}
+                                        isOpen={isExpanded && loomItems.length > 0}
+                                        className="lumia-pack-items-list"
+                                        duration={200}
+                                    >
+                                        <div className="lumia-pack-section-header">Loom Items</div>
+                                        {loomItems.map((item, index) => (
+                                            <LoomPackItem
+                                                key={item.loomName || item.itemName || item.name || index}
+                                                item={item}
+                                                packName={pack.name}
+                                                onEdit={(pn, it) => actions.openModal('loomEditor', {
+                                                    packName: pn,
+                                                    editingItem: it
+                                                })}
+                                                onDelete={openLoomDeleteConfirm}
+                                                editIcon={Icons.edit}
+                                            />
+                                        ))}
+                                    </CollapsibleContent>
+
+                                    {/* Empty state when no items at all */}
+                                    <CollapsibleContent
+                                        isOpen={isExpanded && !hasAnyItems}
                                         className="lumia-pack-items-empty"
                                         duration={200}
                                     >
-                                        <span>No Lumias in this pack yet</span>
+                                        <span>No items in this pack yet</span>
                                     </CollapsibleContent>
                                 </motion.div>
                             );
@@ -1547,6 +1836,30 @@ function SettingsPanel() {
                     </button>
                 </div>
             </CollapsiblePanel>
+
+            {/* Loom Item Delete Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={loomDeleteConfirm.isOpen}
+                onConfirm={handleDeleteLoomItem}
+                onCancel={cancelLoomDelete}
+                title="Delete Loom Item"
+                message={`Are you sure you want to delete "${loomDeleteConfirm.itemName}"? This action cannot be undone.`}
+                variant="danger"
+                confirmText="Delete"
+                cancelText="Cancel"
+            />
+
+            {/* Lumia Item Delete Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={lumiaDeleteConfirm.isOpen}
+                onConfirm={handleDeleteLumiaItem}
+                onCancel={cancelLumiaDelete}
+                title="Delete Lumia Character"
+                message={`Are you sure you want to delete "${lumiaDeleteConfirm.itemName}"? This action cannot be undone.`}
+                variant="danger"
+                confirmText="Delete"
+                cancelText="Cancel"
+            />
         </div>
     );
 }
