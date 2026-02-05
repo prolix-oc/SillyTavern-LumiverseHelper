@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { usePacks, useLumiverseActions, saveToExtension } from '../../store/LumiverseContext';
 import { useAdaptiveImagePosition } from '../../hooks/useAdaptiveImagePosition';
 import clsx from 'clsx';
-import { Folder, FolderPlus, Check, ChevronRight, ChevronDown, Plus, Edit2, User, ScrollText } from 'lucide-react';
+import { Folder, FolderPlus, Check, ChevronRight, ChevronDown, Plus, Edit2, User, ScrollText, ChevronUp } from 'lucide-react';
 import {
     EditorLayout,
     EditorContent,
@@ -46,6 +46,21 @@ function getLoomName(item) {
 }
 
 /**
+ * Get Loom content with fallback for different formats
+ */
+function getLoomContent(item) {
+    return item.loomContent || item.content || null;
+}
+
+/**
+ * Truncate text to a maximum length with ellipsis
+ */
+function truncateText(text, maxLength = 150) {
+    if (!text || text.length <= maxLength) return text;
+    return text.slice(0, maxLength) + '...';
+}
+
+/**
  * Individual Lumia item row with adaptive image positioning
  */
 function LumiaItemRow({ item, packName, onEdit }) {
@@ -83,10 +98,12 @@ function LumiaItemRow({ item, packName, onEdit }) {
 }
 
 /**
- * Individual Loom item row
+ * Individual Loom item row with collapsible content preview
  */
 function LoomItemRow({ item, packName, onEdit }) {
+    const [showContent, setShowContent] = useState(false);
     const name = getLoomName(item);
+    const content = getLoomContent(item);
     const category = item.loomCategory || item.category || 'Unknown';
 
     // Shorten category for display
@@ -95,23 +112,42 @@ function LoomItemRow({ item, packName, onEdit }) {
         : category === 'Retrofits' ? 'Retrofit'
         : category;
 
+    const hasContent = content && content.trim().length > 0;
+
     return (
-        <div className="lumiverse-pack-selector-item-row lumiverse-pack-selector-item-row--loom">
-            <div className="lumiverse-pack-selector-item-icon-sm lumiverse-pack-selector-item-icon--loom">
-                <ScrollText size={14} strokeWidth={1.5} />
+        <div className="lumiverse-pack-selector-item-row-wrapper">
+            <div className="lumiverse-pack-selector-item-row lumiverse-pack-selector-item-row--loom">
+                <div className="lumiverse-pack-selector-item-icon-sm lumiverse-pack-selector-item-icon--loom">
+                    <ScrollText size={14} strokeWidth={1.5} />
+                </div>
+                <span className="lumiverse-pack-selector-item-name">{name}</span>
+                <span className="lumiverse-pack-selector-item-type lumiverse-pack-selector-item-type--loom">
+                    {shortCategory}
+                </span>
+                {hasContent && (
+                    <button
+                        className="lumiverse-pack-selector-item-preview-btn"
+                        onClick={() => setShowContent(!showContent)}
+                        title={showContent ? 'Hide content preview' : 'Show content preview'}
+                        type="button"
+                    >
+                        {showContent ? <ChevronUp size={14} strokeWidth={1.5} /> : <ChevronDown size={14} strokeWidth={1.5} />}
+                    </button>
+                )}
+                <button
+                    className="lumiverse-pack-selector-item-edit"
+                    onClick={() => onEdit(packName, item, 'loom')}
+                    title="Edit this Loom item"
+                    type="button"
+                >
+                    <Edit2 size={14} strokeWidth={1.5} />
+                </button>
             </div>
-            <span className="lumiverse-pack-selector-item-name">{name}</span>
-            <span className="lumiverse-pack-selector-item-type lumiverse-pack-selector-item-type--loom">
-                {shortCategory}
-            </span>
-            <button
-                className="lumiverse-pack-selector-item-edit"
-                onClick={() => onEdit(packName, item, 'loom')}
-                title="Edit this Loom item"
-                type="button"
-            >
-                <Edit2 size={14} strokeWidth={1.5} />
-            </button>
+            {showContent && hasContent && (
+                <div className="lumiverse-pack-selector-item-content-preview">
+                    {truncateText(content, 300)}
+                </div>
+            )}
         </div>
     );
 }
@@ -219,12 +255,68 @@ function PackSelectorModal({ onSelect, onClose }) {
         return pack.items.filter(item => item.lumiaDefName || item.lumiaName);
     };
 
-    // Get Loom items from a pack
+    // Get Loom items from a pack - supports both new and legacy formats
     const getLoomItems = (pack) => {
-        if (pack.loomItems && pack.loomItems.length > 0) {
-            return pack.loomItems;
+        const items = [];
+
+        // New format (v2): separate loomItems array
+        if (pack.loomItems && Array.isArray(pack.loomItems)) {
+            pack.loomItems.forEach(item => {
+                items.push({
+                    ...item,
+                    loomName: item.loomName || item.itemName || item.name,
+                });
+            });
         }
-        return [];
+
+        // Legacy structure (pack.loomStyles, pack.loomUtils, pack.loomRetrofits)
+        if (pack.loomStyles && Array.isArray(pack.loomStyles)) {
+            pack.loomStyles.forEach(item => {
+                items.push({
+                    ...item,
+                    loomName: item.loomName || item.itemName || item.name,
+                    loomCategory: item.loomCategory || 'Narrative Style',
+                });
+            });
+        }
+        if (pack.loomUtils && Array.isArray(pack.loomUtils)) {
+            pack.loomUtils.forEach(item => {
+                items.push({
+                    ...item,
+                    loomName: item.loomName || item.itemName || item.name,
+                    loomCategory: item.loomCategory || 'Loom Utilities',
+                });
+            });
+        }
+        if (pack.loomRetrofits && Array.isArray(pack.loomRetrofits)) {
+            pack.loomRetrofits.forEach(item => {
+                items.push({
+                    ...item,
+                    loomName: item.loomName || item.itemName || item.name,
+                    loomCategory: item.loomCategory || 'Retrofits',
+                });
+            });
+        }
+
+        // Legacy: pack.items with loomCategory field
+        if (pack.items && Array.isArray(pack.items)) {
+            pack.items.forEach(item => {
+                const itemCategory = item.loomCategory || item.category;
+                // Only process items that have a loomCategory (i.e., are loom items, not lumia items)
+                if (itemCategory === 'Narrative Style' || itemCategory === 'Loom Utilities' || itemCategory === 'Retrofits' ||
+                    itemCategory === 'loomStyles' || itemCategory === 'loomUtils' || itemCategory === 'loomRetrofits') {
+                    items.push({
+                        ...item,
+                        loomName: item.loomName || item.itemName || item.name,
+                        loomCategory: itemCategory === 'loomStyles' ? 'Narrative Style' :
+                                      itemCategory === 'loomUtils' ? 'Loom Utilities' :
+                                      itemCategory === 'loomRetrofits' ? 'Retrofits' : itemCategory,
+                    });
+                }
+            });
+        }
+
+        return items;
     };
 
     // Count total items in a pack

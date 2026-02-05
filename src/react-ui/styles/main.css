@@ -3835,6 +3835,54 @@ details.lumia-panel[open] .lumia-panel-chevron {
     text-overflow: ellipsis;
 }
 
+/* Loom item row wrapper for content preview */
+.lumiverse-pack-selector-item-row-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+/* Preview toggle button for Loom items */
+.lumiverse-pack-selector-item-preview-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    background: rgba(100, 149, 237, 0.1);
+    border: 1px solid rgba(100, 149, 237, 0.15);
+    border-radius: var(--lumiverse-radius-sm);
+    color: var(--lumiverse-text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+}
+
+.lumiverse-pack-selector-item-preview-btn:hover {
+    background: rgba(100, 149, 237, 0.2);
+    border-color: rgba(100, 149, 237, 0.3);
+    color: rgba(130, 179, 255, 0.95);
+}
+
+/* Content preview for Loom items */
+.lumiverse-pack-selector-item-content-preview {
+    margin-left: 38px;
+    margin-top: 6px;
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--lumiverse-text-muted);
+    background: rgba(0, 0, 0, 0.12);
+    border: 1px solid rgba(100, 149, 237, 0.1);
+    border-radius: var(--lumiverse-radius-sm);
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 120px;
+    overflow-y: auto;
+    animation: lumiverseFadeIn 0.15s ease;
+}
+
 /* ----------------------------------------
    Lumia Editor Modal
    ---------------------------------------- */

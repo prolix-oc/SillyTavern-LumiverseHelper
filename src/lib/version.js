@@ -16,7 +16,7 @@
  * Supports formats: "X.Y.Z" or "X.Y.Z-beta.N"
  * @type {string}
  */
-export const EXTENSION_VERSION = "4.1.13";
+export const EXTENSION_VERSION = "4.1.14";
 
 /**
  * Parsed version object type

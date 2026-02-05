@@ -1,6 +1,6 @@
-import React, { useMemo, useSyncExternalStore, useCallback, useEffect } from 'react';
+import React, { useMemo, useSyncExternalStore, useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Package, FileText, Zap, Heart, Check, Plus, User } from 'lucide-react';
+import { X, Package, FileText, Zap, Heart, Check, Plus, User, Eye, EyeOff } from 'lucide-react';
 import { useLumiverseStore, useLumiverseActions, useSelections, saveToExtension } from '../../store/LumiverseContext';
 import { useAdaptiveImagePosition } from '../../hooks/useAdaptiveImagePosition';
 import LazyImage from '../shared/LazyImage';
@@ -119,6 +119,94 @@ const styles = {
         borderColor: 'var(--lumiverse-primary, #9370db)',
         color: 'var(--lumiverse-primary, #9370db)',
     },
+    // Preview panel styles
+    previewBtn: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '28px',
+        height: '28px',
+        padding: 0,
+        borderRadius: '6px',
+        border: '1px solid rgba(147, 112, 219, 0.2)',
+        background: 'rgba(147, 112, 219, 0.1)',
+        color: 'var(--lumiverse-primary, #9370db)',
+        cursor: 'pointer',
+        transition: 'all 0.15s ease',
+        marginLeft: 'auto',
+        flexShrink: 0,
+    },
+    previewBtnActive: {
+        background: 'rgba(147, 112, 219, 0.25)',
+        borderColor: 'var(--lumiverse-primary, #9370db)',
+    },
+    previewPanel: {
+        background: 'rgba(0, 0, 0, 0.25)',
+        borderTop: '1px solid rgba(147, 112, 219, 0.12)',
+        overflow: 'hidden',
+        transition: 'max-height 0.25s ease, opacity 0.2s ease',
+    },
+    previewPanelCollapsed: {
+        maxHeight: '0',
+        opacity: 0,
+    },
+    previewPanelExpanded: {
+        maxHeight: '280px',
+        opacity: 1,
+    },
+    previewTabs: {
+        display: 'flex',
+        gap: '6px',
+        padding: '10px 12px',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+    },
+    previewTab: {
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '6px',
+        padding: '8px 12px',
+        fontSize: '11px',
+        fontWeight: 600,
+        letterSpacing: '0.5px',
+        borderRadius: '6px',
+        border: '1px solid rgba(255, 255, 255, 0.06)',
+        background: 'rgba(0, 0, 0, 0.15)',
+        color: 'var(--lumiverse-text-muted, #888)',
+        cursor: 'pointer',
+        transition: 'all 0.15s ease',
+    },
+    previewTabActive: {
+        background: 'rgba(147, 112, 219, 0.2)',
+        borderColor: 'rgba(147, 112, 219, 0.35)',
+        color: 'var(--lumiverse-primary, #9370db)',
+    },
+    previewTabDisabled: {
+        opacity: 0.4,
+        cursor: 'not-allowed',
+    },
+    previewContent: {
+        padding: '10px 12px 12px',
+        maxHeight: '200px',
+        overflowY: 'auto',
+    },
+    previewText: {
+        margin: 0,
+        fontSize: '12px',
+        lineHeight: 1.6,
+        color: 'var(--lumiverse-text-muted, #aaa)',
+        whiteSpace: 'pre-wrap',
+        wordBreak: 'break-word',
+        fontFamily: 'inherit',
+    },
+    previewEmpty: {
+        fontSize: '12px',
+        color: 'var(--lumiverse-text-dim, #666)',
+        fontStyle: 'italic',
+        textAlign: 'center',
+        padding: '16px 0',
+    },
 };
 
 /**
@@ -189,9 +277,74 @@ function QuickAddButton({ label, Icon, isSelected, onClick, disabled }) {
 }
 
 /**
+ * Content preview panel with tabs for Definition/Personality/Behavior
+ */
+function ContentPreviewPanel({ isOpen, definition, personality, behavior }) {
+    const [activeTab, setActiveTab] = useState('def');
+
+    // Determine which tabs are available
+    const tabs = useMemo(() => {
+        const available = [];
+        if (definition) available.push({ id: 'def', label: 'DEF', Icon: FileText, content: definition });
+        if (personality) available.push({ id: 'pers', label: 'PER', Icon: Heart, content: personality });
+        if (behavior) available.push({ id: 'behav', label: 'BEH', Icon: Zap, content: behavior });
+        return available;
+    }, [definition, personality, behavior]);
+
+    // Auto-select first available tab if current selection is invalid
+    useEffect(() => {
+        if (tabs.length > 0 && !tabs.find(t => t.id === activeTab)) {
+            setActiveTab(tabs[0].id);
+        }
+    }, [tabs, activeTab]);
+
+    const currentContent = tabs.find(t => t.id === activeTab)?.content || null;
+
+    if (tabs.length === 0) return null;
+
+    return (
+        <div
+            style={{
+                ...styles.previewPanel,
+                ...(isOpen ? styles.previewPanelExpanded : styles.previewPanelCollapsed),
+            }}
+        >
+            {/* Tabs */}
+            <div style={styles.previewTabs}>
+                {tabs.map(tab => (
+                    <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setActiveTab(tab.id)}
+                        style={{
+                            ...styles.previewTab,
+                            ...(activeTab === tab.id ? styles.previewTabActive : {}),
+                        }}
+                    >
+                        <tab.Icon size={11} />
+                        <span>{tab.label}</span>
+                    </button>
+                ))}
+            </div>
+
+            {/* Content */}
+            <div style={styles.previewContent}>
+                {currentContent ? (
+                    <p style={styles.previewText}>{currentContent}</p>
+                ) : (
+                    <p style={styles.previewEmpty}>No content available</p>
+                )}
+            </div>
+        </div>
+    );
+}
+
+/**
  * Lumia detail card within the pack viewer
  */
 function LumiaDetailCard({ item, packName, selections, actions }) {
+    const [showPreview, setShowPreview] = useState(false);
+
     // Get field values with fallback for old/new format
     const itemName = getLumiaField(item, 'name');
     const itemImg = getLumiaField(item, 'img');
@@ -251,6 +404,7 @@ function LumiaDetailCard({ item, packName, selections, actions }) {
     const hasDefinition = !!itemDef;
     const hasBehavior = !!itemBehavior;
     const hasPersonality = !!itemPersonality;
+    const hasAnyContent = hasDefinition || hasBehavior || hasPersonality;
 
     // Check if all traits are enabled (for toggle behavior)
     const hasMultipleContentTypes = [hasDefinition, hasBehavior, hasPersonality].filter(Boolean).length > 1;
@@ -267,6 +421,10 @@ function LumiaDetailCard({ item, packName, selections, actions }) {
             }
         }
     }, [actions, packName, itemName]);
+
+    const handleTogglePreview = useCallback(() => {
+        setShowPreview(prev => !prev);
+    }, []);
 
     return (
         <div style={styles.lumiaCard}>
@@ -286,7 +444,22 @@ function LumiaDetailCard({ item, packName, selections, actions }) {
             
             {/* Info section */}
             <div style={styles.lumiaInfo}>
-                <h4 style={styles.lumiaName}>{itemName}</h4>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <h4 style={{ ...styles.lumiaName, flex: 1 }}>{itemName}</h4>
+                    {hasAnyContent && (
+                        <button
+                            type="button"
+                            style={{
+                                ...styles.previewBtn,
+                                ...(showPreview ? styles.previewBtnActive : {}),
+                            }}
+                            onClick={handleTogglePreview}
+                            title={showPreview ? 'Hide content preview' : 'Preview content'}
+                        >
+                            {showPreview ? <EyeOff size={14} /> : <Eye size={14} />}
+                        </button>
+                    )}
+                </div>
                 {itemAuthor && (
                     <span style={styles.lumiaAuthor}>by {itemAuthor}</span>
                 )}
@@ -311,6 +484,14 @@ function LumiaDetailCard({ item, packName, selections, actions }) {
                 </div>
             </div>
 
+            {/* Content Preview Panel */}
+            <ContentPreviewPanel
+                isOpen={showPreview}
+                definition={itemDef}
+                personality={itemPersonality}
+                behavior={itemBehavior}
+            />
+
             {/* Quick-add actions */}
             <div style={styles.actions}>
                 {hasDefinition && (
@@ -319,6 +500,7 @@ function LumiaDetailCard({ item, packName, selections, actions }) {
                         Icon={FileText}
                         isSelected={isDefSelected}
                         onClick={handleSetDefinition}
+                        disabled={false}
                     />
                 )}
                 {hasBehavior && (
@@ -327,6 +509,7 @@ function LumiaDetailCard({ item, packName, selections, actions }) {
                         Icon={Zap}
                         isSelected={isBehaviorSelected}
                         onClick={handleAddBehavior}
+                        disabled={false}
                     />
                 )}
                 {hasPersonality && (
@@ -335,6 +518,7 @@ function LumiaDetailCard({ item, packName, selections, actions }) {
                         Icon={Heart}
                         isSelected={isPersonalitySelected}
                         onClick={handleAddPersonality}
+                        disabled={false}
                     />
                 )}
                 {hasMultipleContentTypes && (
