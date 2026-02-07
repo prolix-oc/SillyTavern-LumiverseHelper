@@ -374,17 +374,28 @@ function expandRangeForTagFragments(accumulatedText, contentStart, contentEnd) {
 
     // Find the last occurrence of an opening OOC tag pattern ending at or near contentStart
     // Match: <lumiaooc...>, <lumia_ooc...>, <lumioooc...>, <lumio_ooc...>
-    const openTagRegex = /<lumi[ao]_?ooc(?:\s+[^>]*)?>$/i;
+    // CRITICAL FIX: Allow up to 5 characters gap after the opening tag
+    // This handles cases where content start position is off by 1-2 chars
+    // Group 1: The actual opening tag
+    // Group 2: Gap characters (0-5 chars, non-greedy)
+    const openTagRegex = /(<lumi[ao]_?ooc(?:\s+[^>]*)?>)(.{0,5}?)$/i;
     const openTagMatch = textBefore.match(openTagRegex);
 
     if (openTagMatch) {
-      // Found opening tag fragment - expand start to include it
-      const tagLength = openTagMatch[0].length;
-      const proposedStart = contentStart - tagLength;
+      // Found opening tag fragment - expand start to include BOTH the tag AND any gap
+      // openTagMatch[0] = full match (tag + gap)
+      // openTagMatch[1] = the actual opening tag
+      // openTagMatch[2] = gap characters (may be empty)
+      const fullMatchLength = openTagMatch[0].length;
+      const proposedStart = contentStart - fullMatchLength;
       // Safety: ensure we don't go negative
       if (proposedStart >= 0) {
         expandedStart = proposedStart;
-        console.log(`[${MODULE_NAME}] expandRangeForTagFragments: Found opening tag "${openTagMatch[0]}", expanding start by ${tagLength}`);
+        if (openTagMatch[2]) {
+          console.log(`[${MODULE_NAME}] expandRangeForTagFragments: Found opening tag "${openTagMatch[1]}" with ${openTagMatch[2].length} gap chars "${openTagMatch[2]}", expanding start by ${fullMatchLength}`);
+        } else {
+          console.log(`[${MODULE_NAME}] expandRangeForTagFragments: Found opening tag "${openTagMatch[1]}", expanding start by ${fullMatchLength}`);
+        }
       }
     }
   }
@@ -396,19 +407,30 @@ function expandRangeForTagFragments(accumulatedText, contentStart, contentEnd) {
     const lookAheadEnd = Math.min(accumulatedText.length, contentEnd + 30);
     const textAfter = accumulatedText.substring(contentEnd, lookAheadEnd);
 
-    // Find closing OOC tag pattern starting at contentEnd
+    // Find closing OOC tag pattern starting at or near contentEnd
     // Match: </lumiaooc>, </lumia_ooc>, </lumioooc>, </lumio_ooc>
-    const closeTagRegex = /^<\/lumi[ao]_?ooc\s*>/i;
+    // CRITICAL FIX: Allow up to 5 characters gap before the closing tag
+    // This handles cases where content end position is off by 1-2 chars (e.g., "e." left behind)
+    // Group 1: Gap characters (0-5 chars, non-greedy)
+    // Group 2: The actual closing tag
+    const closeTagRegex = /^(.{0,5}?)(<\/lumi[ao]_?ooc\s*>)/i;
     const closeTagMatch = textAfter.match(closeTagRegex);
 
     if (closeTagMatch) {
-      // Found closing tag fragment - expand end to include it
-      const tagLength = closeTagMatch[0].length;
-      const proposedEnd = contentEnd + tagLength;
+      // Found closing tag fragment - expand end to include BOTH the gap AND the tag
+      // closeTagMatch[0] = full match (gap + tag)
+      // closeTagMatch[1] = gap characters (may be empty)
+      // closeTagMatch[2] = the actual closing tag
+      const fullMatchLength = closeTagMatch[0].length;
+      const proposedEnd = contentEnd + fullMatchLength;
       // Safety: ensure we don't exceed text length
       if (proposedEnd <= accumulatedText.length) {
         expandedEnd = proposedEnd;
-        console.log(`[${MODULE_NAME}] expandRangeForTagFragments: Found closing tag "${closeTagMatch[0]}", expanding end by ${tagLength}`);
+        if (closeTagMatch[1]) {
+          console.log(`[${MODULE_NAME}] expandRangeForTagFragments: Found closing tag "${closeTagMatch[2]}" with ${closeTagMatch[1].length} gap chars "${closeTagMatch[1]}", expanding end by ${fullMatchLength}`);
+        } else {
+          console.log(`[${MODULE_NAME}] expandRangeForTagFragments: Found closing tag "${closeTagMatch[2]}", expanding end by ${fullMatchLength}`);
+        }
       }
     } else {
       // Also check for PARTIAL closing tag fragments that might be left
