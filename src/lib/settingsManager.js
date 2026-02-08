@@ -141,6 +141,7 @@ const DEFAULT_SETTINGS = {
   landingPageChatsDisplayed: 12,
   // Toggle binding default state restoration
   disableDefaultStateRestore: true, // When true, skip restoring default toggle states for unbound chats (opt-in feature)
+  capturedDefaultToggles: null, // Persisted default toggle state (survives page refresh)
 };
 
 // Settings state - module-level singleton

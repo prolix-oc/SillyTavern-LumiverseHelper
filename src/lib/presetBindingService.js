@@ -18,7 +18,7 @@
 
 import { getContext, getEventSource, getEventTypes } from "../stContext.js";
 import { chatPresetService } from "./chatPresetService.js";
-import { getSettings } from "./settingsManager.js";
+import { getSettings, saveSettings } from "./settingsManager.js";
 import {
     getCachedIndex,
     updateSelections,
@@ -36,8 +36,7 @@ let isSwitching = false;
 let bindingsChangeCallback = null;
 
 // --- DEFAULT TOGGLE STATE CAPTURE ---
-// Captured on first load to restore when switching to unbound chats
-let capturedDefaultToggles = null;
+// Captured state is now persisted in settingsManager for page refresh survival
 // Track whether we're currently "on defaults" to avoid redundant reapplication
 let isCurrentlyOnDefaults = false;
 
@@ -284,7 +283,11 @@ export function captureDefaultToggleState() {
         return false;
     }
 
-    capturedDefaultToggles = toggles;
+    // Persist to settings so it survives page refresh
+    const settings = getSettings();
+    settings.capturedDefaultToggles = toggles;
+    saveSettings();
+
     isCurrentlyOnDefaults = true;
     console.log(`[${MODULE_NAME}] Captured default toggle state with ${Object.keys(toggles).length} toggles`);
     return true;
@@ -295,7 +298,8 @@ export function captureDefaultToggleState() {
  * @returns {boolean}
  */
 export function hasDefaultToggleState() {
-    return capturedDefaultToggles !== null && Object.keys(capturedDefaultToggles).length > 0;
+    const settings = getSettings();
+    return settings.capturedDefaultToggles !== null && Object.keys(settings.capturedDefaultToggles).length > 0;
 }
 
 /**
@@ -303,7 +307,7 @@ export function hasDefaultToggleState() {
  * @returns {Object|null} The default toggles or null if not captured
  */
 export function getDefaultToggleState() {
-    return capturedDefaultToggles;
+    return getSettings().capturedDefaultToggles;
 }
 
 /**
@@ -313,6 +317,8 @@ export function getDefaultToggleState() {
  * @returns {boolean} True if current toggles match defaults
  */
 function areCurrentTogglesMatchingDefaults() {
+    const settings = getSettings();
+    const capturedDefaultToggles = settings.capturedDefaultToggles;
     if (!capturedDefaultToggles) return false;
 
     const currentToggles = chatPresetService.captureCurrentToggles();
@@ -342,6 +348,9 @@ function areCurrentTogglesMatchingDefaults() {
  * @returns {{applied: boolean, matched: number}} Result of applying defaults
  */
 function restoreDefaultToggleState() {
+    const settings = getSettings();
+    const capturedDefaultToggles = settings.capturedDefaultToggles;
+
     if (!capturedDefaultToggles) {
         console.warn(`[${MODULE_NAME}] No default toggle state captured - cannot restore`);
         return { applied: false, matched: 0 };
@@ -761,10 +770,11 @@ export function initPresetBindingService() {
 
     eventSource.on(event_types.CHAT_CHANGED, () => {
         console.log(`[${MODULE_NAME}] CHAT_CHANGED detected, checking bindings...`);
-        // Small delay to ensure ST context is updated
+        // Delay to ensure ST context is fully updated before reading chatId/characterId
+        // 500ms provides reliable context stabilization after chat switch
         setTimeout(() => {
             applyBindingForCurrentContext();
-        }, 100);
+        }, 500);
     });
 
     console.log(`[${MODULE_NAME}] Preset binding service initialized`);
@@ -787,7 +797,6 @@ export function clearAllBindings() {
  * @returns {boolean} Whether defaults were successfully recaptured
  */
 export function recaptureDefaultToggleState() {
-    capturedDefaultToggles = null;
     isCurrentlyOnDefaults = false;
     return captureDefaultToggleState();
 }
