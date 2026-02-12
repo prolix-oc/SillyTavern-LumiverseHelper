@@ -187,9 +187,20 @@ function hydratePresetWithConnectionSettings(importData, currentSettings) {
 // --- Version Tracking ---
 
 /**
+ * Check if a version name indicates a prerelease (beta, alpha, rc)
+ * @param {string} versionName - Version name like "Lucid Loom v3.4 Beta 1"
+ * @returns {boolean} True if prerelease
+ */
+function isPrereleaseVersion(versionName) {
+    if (!versionName) return false;
+    const prereleasePattern = /\b(beta|alpha|rc|pre|preview)\b/i;
+    return prereleasePattern.test(versionName);
+}
+
+/**
  * Compare two semantic versions
- * @param {Object} v1 - Version object { major, minor, patch }
- * @param {Object} v2 - Version object { major, minor, patch }
+ * @param {Object} v1 - Version object { major, minor, patch, isPrerelease? }
+ * @param {Object} v2 - Version object { major, minor, patch, isPrerelease? }
  * @returns {number} -1 if v1 < v2, 0 if equal, 1 if v1 > v2
  */
 function compareVersions(v1, v2) {
@@ -198,6 +209,12 @@ function compareVersions(v1, v2) {
     if (v1.major !== v2.major) return v1.major < v2.major ? -1 : 1;
     if (v1.minor !== v2.minor) return v1.minor < v2.minor ? -1 : 1;
     if (v1.patch !== v2.patch) return v1.patch < v2.patch ? -1 : 1;
+    
+    // Same version number - check prerelease status
+    // Release > Prerelease (e.g., v3.4 > v3.4 Beta 1)
+    if (v1.isPrerelease && !v2.isPrerelease) return -1;
+    if (!v1.isPrerelease && v2.isPrerelease) return 1;
+    
     return 0;
 }
 
@@ -224,9 +241,12 @@ export function trackPresetVersion(presetSlug, presetInfo, versionInfo) {
         settings.trackedPresets = {};
     }
     
+    // Determine if this is a prerelease version from the name
+    const isPrerelease = isPrereleaseVersion(versionInfo?.name);
+    
     settings.trackedPresets[presetSlug] = {
         name: presetInfo?.name || presetSlug,
-        version: versionInfo?.version || null,
+        version: versionInfo?.version ? { ...versionInfo.version, isPrerelease } : null,
         versionName: versionInfo?.name || "unknown",
         importedAt: Date.now(),
     };
@@ -262,7 +282,12 @@ async function fetchLatestVersionInfo(presetSlug) {
         if (!data.success) {
             return null;
         }
-        return data.version || null;
+        // API returns version info in 'latest' field for /latest endpoint
+        const versionInfo = data.latest || data.version || null;
+        if (versionInfo?.version) {
+            versionInfo.version.isPrerelease = isPrereleaseVersion(versionInfo.name);
+        }
+        return versionInfo;
     } catch {
         return null;
     }
@@ -627,12 +652,24 @@ export async function downloadAndImportPreset(presetSlug, versionSlug = "latest"
         }
 
         // Extract version info from response
-        // API returns: { preset: { latestVersion: { name, version: {major,minor,patch} }, version: {...} } }, data: {...} }
-        // When downloading a specific version (not "latest"), use response.preset.version
-        // which contains the metadata for the requested version, not latestVersion
-        const versionInfo = versionSlug === "latest" 
-            ? (response.preset?.latestVersion || response.preset?.version || null)
-            : (response.preset?.version || response.preset?.latestVersion || null);
+        // API returns: { preset: { versions: { standard: [...], prolix: [...] }, latestVersion: {...} } }, data: {...} }
+        // When downloading "latest", use latestVersion. For specific versions, find in versions arrays.
+        let versionInfo = null;
+        if (versionSlug === "latest") {
+            versionInfo = response.preset?.latestVersion || null;
+        } else {
+            // Search for the specific version in both standard and prolix arrays
+            const allVersions = [
+                ...(response.preset?.versions?.standard || []),
+                ...(response.preset?.versions?.prolix || [])
+            ];
+            versionInfo = allVersions.find(v => v.slug === versionSlug) || null;
+        }
+        
+        // Add prerelease flag to version info for comparison
+        if (versionInfo?.version) {
+            versionInfo.version.isPrerelease = isPrereleaseVersion(versionInfo.name);
+        }
         
         // Build preset name from response metadata
         const presetName = versionInfo?.name || `${presetSlug} ${versionSlug}`;

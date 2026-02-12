@@ -321,7 +321,35 @@ function ViewportPanel({
     // Use transform for smooth GPU-accelerated animation
     return (
         <>
-            {/* Unified drawer wrapper - tab and panel animate together */}
+            {/* Drawer tab is OUTSIDE the sliding wrapper so it's always accessible */}
+            {/* It has its own positioning and does not move with the panel */}
+            {!isVisible && (
+                <div
+                    className={clsx(
+                        'lumiverse-drawer-tab-standalone',
+                        isLeft && 'lumiverse-drawer-tab-standalone--left'
+                    )}
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        [isLeft ? 'left' : 'right']: 0,
+                        height: '100vh',
+                        zIndex: 9999,
+                        pointerEvents: 'none', // Container doesn't capture events
+                    }}
+                >
+                    <DrawerTab
+                        isVisible={isVisible}
+                        onClick={onToggle}
+                        hasUpdates={hasAnyUpdate}
+                        side={side}
+                        verticalPosition={verticalPosition}
+                        tabSize={tabSize}
+                    />
+                </div>
+            )}
+
+            {/* Unified drawer wrapper - panel slides in/out */}
             <div
                 className={clsx(
                     'lumiverse-viewport-wrapper',
@@ -330,7 +358,7 @@ function ViewportPanel({
                 )}
                 style={getWrapperStyle()}
             >
-                {/* Main panel container - includes tab, slides together when collapsed */}
+                {/* Main panel container - slides when collapsed */}
             <div
                 className={clsx(
                     'lumiverse-viewport-panel',
@@ -345,7 +373,7 @@ function ViewportPanel({
                     pointerEvents: 'auto',
                 }}
             >
-                {/* Flush-mounted drawer tab - inside panel, collapses with it */}
+                {/* Drawer tab inside panel - only visible when panel is open */}
                 <DrawerTab
                     isVisible={isVisible}
                     onClick={onToggle}
