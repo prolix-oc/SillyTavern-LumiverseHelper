@@ -627,8 +627,12 @@ export async function downloadAndImportPreset(presetSlug, versionSlug = "latest"
         }
 
         // Extract version info from response
-        // API returns: { preset: { latestVersion: { name, version: {major,minor,patch} } }, data: {...} }
-        const versionInfo = response.preset?.latestVersion || null;
+        // API returns: { preset: { latestVersion: { name, version: {major,minor,patch} }, version: {...} } }, data: {...} }
+        // When downloading a specific version (not "latest"), use response.preset.version
+        // which contains the metadata for the requested version, not latestVersion
+        const versionInfo = versionSlug === "latest" 
+            ? (response.preset?.latestVersion || response.preset?.version || null)
+            : (response.preset?.version || response.preset?.latestVersion || null);
         
         // Build preset name from response metadata
         const presetName = versionInfo?.name || `${presetSlug} ${versionSlug}`;
