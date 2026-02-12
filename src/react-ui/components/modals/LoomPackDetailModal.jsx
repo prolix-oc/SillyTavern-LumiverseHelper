@@ -182,20 +182,32 @@ const styles = {
 };
 
 /**
- * Truncate text to a maximum length with ellipsis
- */
-function truncateText(text, maxLength = 200) {
-    if (!text || text.length <= maxLength) return text;
-    return text.slice(0, maxLength) + '...';
-}
-
-/**
- * Collapsible content preview component
+ * Collapsible content preview component with scrollable textarea
  */
 function ContentPreview({ content, defaultOpen = false }) {
     const [isOpen, setIsOpen] = useState(defaultOpen);
 
     if (!content) return null;
+
+    const textareaStyles = {
+        width: '100%',
+        minHeight: '80px',
+        maxHeight: '200px',
+        padding: '10px 12px',
+        fontSize: '12px',
+        lineHeight: '1.6',
+        color: 'var(--lumiverse-text-muted, #999)',
+        background: 'rgba(0, 0, 0, 0.2)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        borderRadius: '6px',
+        resize: 'vertical',
+        overflowY: 'auto',
+        whiteSpace: 'pre-wrap',
+        wordBreak: 'break-word',
+        fontFamily: 'inherit',
+        marginTop: '8px',
+        cursor: 'text',
+    };
 
     return (
         <>
@@ -210,7 +222,12 @@ function ContentPreview({ content, defaultOpen = false }) {
                 </span>
             </button>
             {isOpen && (
-                <p style={styles.contentText}>{truncateText(content, 500)}</p>
+                <textarea
+                    style={textareaStyles}
+                    value={content}
+                    readOnly
+                    rows={Math.min(10, content.split('\n').length + 1)}
+                />
             )}
         </>
     );

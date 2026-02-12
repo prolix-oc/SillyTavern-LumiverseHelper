@@ -4816,3 +4816,115 @@ details.lumia-panel[open] .lumia-panel-chevron {
   }
 }
 
+/* ============================================
+   IRC CHAT COLLAPSE - CSS Radio Hack
+   No-JS collapsible IRC panel with smooth transitions
+   ============================================ */
+
+/* Hidden checkbox for radio hack state management */
+.lumia-irc-collapse-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+}
+
+/* Toggle button in header */
+.lumia-irc-toggle-btn {
+  cursor: pointer;
+  font-size: 10px;
+  color: #9370DB;
+  padding: 2px 6px;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+  user-select: none;
+  font-family: inherit;
+}
+
+.lumia-irc-toggle-btn:hover {
+  background: rgba(147, 112, 219, 0.15);
+  color: #a78bfa;
+}
+
+/* Body wrapper - grid container for smooth collapse via grid-template-rows */
+.lumia-irc-body-wrapper {
+  display: grid !important;
+  grid-template-rows: 1fr !important;
+  transition: grid-template-rows 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+  will-change: grid-template-rows !important;
+}
+
+/* Messages container - grid inner with overflow:hidden (critical for grid transition) */
+.lumia-irc-messages {
+  overflow: hidden !important;
+  opacity: 1 !important;
+  transition: opacity 0.3s ease, transform 0.3s ease !important;
+  transform: translate3d(0, 0, 0) !important;
+}
+
+/* Collapsed state - when checkbox is checked or .collapsed class on wrapper */
+.lumia-irc-collapse-input:checked ~ .lumia-irc-body-wrapper,
+.lumia-irc-body-wrapper.collapsed {
+  grid-template-rows: 0fr !important;
+}
+
+/* Fade out inner content when collapsed (staggered after grid starts closing) */
+.lumia-irc-collapse-input:checked ~ .lumia-irc-body-wrapper .lumia-irc-messages,
+.lumia-irc-body-wrapper.collapsed .lumia-irc-messages {
+  opacity: 0 !important;
+  transform: translate3d(0, -10px, 0) !important;
+}
+
+/* Toggle button arrow rotation when collapsed */
+.lumia-irc-collapse-input:checked ~ .lumia-irc-header .lumia-irc-toggle-btn,
+.lumia-irc-container:has(.lumia-irc-collapse-input:checked) .lumia-irc-toggle-btn {
+  transform: rotate(-90deg);
+}
+
+/* Ensure smooth layout without content crunch */
+.lumia-irc-container {
+  will-change: auto;
+}
+
+/* Header layout for toggle button */
+.lumia-irc-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+}
+
+.lumia-irc-header > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+/* Mobile adjustments for collapse */
+@media (max-width: 600px) {
+  .lumia-irc-toggle-btn {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+  
+  .lumia-irc-body-wrapper {
+    transition: grid-template-rows 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+  }
+}
+
+/* Reduced motion for collapse */
+@media (prefers-reduced-motion: reduce) {
+  .lumia-irc-messages {
+    transition: none;
+  }
+  
+  .lumia-irc-body-wrapper {
+    transition: none;
+  }
+  
+  .lumia-irc-toggle-btn {
+    transition: none;
+  }
+}
+

@@ -931,11 +931,60 @@ function createIRCChatRoom(oocEntries) {
   const now = new Date();
   const baseMinute = now.getMinutes();
 
-  // Create the channel header
+  // Generate unique ID for this IRC container (for radio hack)
+  const uniqueId = `lumia-irc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+  // CSS RADIO HACK: Create hidden checkbox for collapse toggle (no JS required)
+  const collapseCheckbox = document.createElement("input");
+  collapseCheckbox.type = "checkbox";
+  collapseCheckbox.id = uniqueId;
+  collapseCheckbox.className = "lumia-irc-collapse-input";
+  collapseCheckbox.style.cssText = "position:absolute;opacity:0;pointer-events:none;width:0;height:0;";
+  // Default to unchecked (expanded)
+
+  // Create the channel header with collapse toggle
   const header = document.createElement("div");
   header.className = "lumia-irc-header";
-  header.textContent = "#LumiaCouncil";
-  // Apply styles with !important priority
+  
+  // Create header content with toggle button
+  const headerContent = document.createElement("div");
+  headerContent.style.cssText = "display:flex;justify-content:space-between;align-items:center;width:100%;";
+  
+  const titleSpan = document.createElement("span");
+  titleSpan.textContent = "#LumiaCouncil";
+  titleSpan.style.cssText = "color:#888;font-family:'Courier New', Consolas, monospace;font-size:10px;font-weight:bold;letter-spacing:0.5px;text-transform:uppercase;";
+  
+  // Toggle button (acts as button using CSS radio hack + JS fallback)
+  const toggleLabel = document.createElement("button");
+  toggleLabel.type = "button";
+  toggleLabel.className = "lumia-irc-toggle-btn";
+  toggleLabel.innerHTML = "▼";
+  toggleLabel.style.cssText = "cursor:pointer;font-size:10px;color:#9370DB;padding:2px 6px;border-radius:3px;transition:transform 0.2s ease;user-select:none;background:transparent;border:none;display:inline-block;";
+  toggleLabel.setAttribute("title", "Click to collapse/expand");
+  toggleLabel.setAttribute("aria-expanded", "true");
+  toggleLabel.setAttribute("aria-controls", uniqueId + "-messages");
+  
+   // JS fallback to toggle checkbox and collapse state
+  toggleLabel.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    collapseCheckbox.checked = !collapseCheckbox.checked;
+    const isCollapsed = collapseCheckbox.checked;
+    toggleLabel.setAttribute("aria-expanded", String(!isCollapsed));
+    // Toggle collapsed class on the WRAPPER (grid container) for CSS-based collapse
+    bodyWrapper.classList.toggle("collapsed", isCollapsed);
+    // Drive the grid collapse directly via inline style (survives ST CSS overrides)
+    bodyWrapper.style.setProperty("grid-template-rows", isCollapsed ? "0fr" : "1fr", "important");
+    // Rotate button manually for immediate visual feedback
+    toggleLabel.style.transform = isCollapsed ? "rotate(-90deg)" : "rotate(0deg)";
+    console.log(`[${MODULE_NAME}] IRC panel ${isCollapsed ? "collapsed" : "expanded"}`);
+  });
+  
+  headerContent.appendChild(titleSpan);
+  headerContent.appendChild(toggleLabel);
+  header.appendChild(headerContent);
+  
+  // Apply header styles with !important priority
   const headerStyles = {
     display: "block",
     background: "linear-gradient(180deg, #252540 0%, #1e1e35 100%)",
@@ -951,6 +1000,21 @@ function createIRCChatRoom(oocEntries) {
   Object.entries(headerStyles).forEach(([prop, val]) => {
     header.style.setProperty(prop.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`), val, "important");
   });
+
+  // Create the messages container (inner element for grid collapse)
+  // Note: overflow:hidden is CRITICAL for grid-template-rows transition to work
+  const messagesContainer = document.createElement("div");
+  messagesContainer.className = "lumia-irc-messages";
+  messagesContainer.id = uniqueId + "-messages";
+  messagesContainer.style.setProperty("overflow", "hidden", "important");
+
+  // Create the body wrapper (grid container for smooth collapse via grid-template-rows)
+  const bodyWrapper = document.createElement("div");
+  bodyWrapper.className = "lumia-irc-body-wrapper";
+  // Apply grid styles inline with !important to survive ST's CSS overrides
+  bodyWrapper.style.setProperty("display", "grid", "important");
+  bodyWrapper.style.setProperty("grid-template-rows", "1fr", "important");
+  bodyWrapper.style.setProperty("transition", "grid-template-rows 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)", "important");
 
   // Create chat lines for each OOC entry - classic IRC format
   const chatLines = oocEntries.map((entry, index) => {
@@ -1025,9 +1089,14 @@ function createIRCChatRoom(oocEntries) {
     container.style.setProperty(prop.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`), val, "important");
   });
 
-  // Append header and chat lines
+  // Append chat lines to messages container
+  chatLines.forEach(line => messagesContainer.appendChild(line));
+
+  // Assemble the IRC container: checkbox (hidden) -> header -> bodyWrapper(messages)
+  container.appendChild(collapseCheckbox);
   container.appendChild(header);
-  chatLines.forEach(line => container.appendChild(line));
+  bodyWrapper.appendChild(messagesContainer);
+  container.appendChild(bodyWrapper);
 
   return container;
 }
@@ -2176,7 +2245,7 @@ function performIRCOOCProcessing(mesId, messageElement, oocMatches) {
 
   // PHASE 1: Collect all OOC entries and find their DOM positions
   const ircEntries = [];
-  let firstInsertionRange = null;
+  let lastInsertionRange = null;
 
   for (let index = 0; index < oocMatches.length; index++) {
     const ooc = oocMatches[index];
@@ -2205,10 +2274,8 @@ function performIRCOOCProcessing(mesId, messageElement, oocMatches) {
       // Clean up <br> tags and empty elements around the deleted content
       cleanupRangeSurroundings(surgicalMatch.range);
 
-      // Save the first range for IRC container insertion
-      if (!firstInsertionRange) {
-        firstInsertionRange = surgicalMatch.range;
-      }
+      // Always update to the current range - we want the LAST one
+      lastInsertionRange = surgicalMatch.range;
 
       ircEntries.push({
         handle: handle,
@@ -2226,40 +2293,37 @@ function performIRCOOCProcessing(mesId, messageElement, oocMatches) {
         // Get the parent to clean up after removal
         const parentToClean = match.element.parentNode;
 
-        // Save element for first insertion point if we don't have one yet
-        if (!firstInsertionRange) {
-          // Create a marker for insertion
-          const marker = document.createTextNode("");
-          match.element.parentNode.insertBefore(marker, match.element);
-          match.element.remove();
+        // Create a marker for insertion and capture range
+        const marker = document.createTextNode("");
+        match.element.parentNode.insertBefore(marker, match.element);
+        match.element.remove();
 
-          // Create a range at the marker position
-          firstInsertionRange = document.createRange();
-          firstInsertionRange.setStartBefore(marker);
-          firstInsertionRange.setEndAfter(marker);
-          
-          // Clean up <br> tags around the marker before removing it
-          cleanupRangeSurroundings(firstInsertionRange);
-          
-          marker.remove();
-        } else {
-          // Just remove this element
-          match.element.remove();
-          
-          // Clean up surrounding <br> tags and empty elements in the parent
-          if (parentToClean) {
-            const children = Array.from(parentToClean.childNodes);
-            children.forEach(child => {
-              if (child.nodeType === Node.ELEMENT_NODE && child.tagName === "BR") {
-                // Remove isolated <br> tags
-                const prevHasContent = child.previousSibling?.textContent?.trim();
-                const nextHasContent = child.nextSibling?.textContent?.trim();
-                if (!prevHasContent || !nextHasContent) {
-                  child.remove();
-                }
+        // Create a range at the marker position
+        const currentRange = document.createRange();
+        currentRange.setStartBefore(marker);
+        currentRange.setEndAfter(marker);
+        
+        // Clean up <br> tags around the marker before removing it
+        cleanupRangeSurroundings(currentRange);
+        
+        marker.remove();
+        
+        // Always update to current range - we want the LAST one
+        lastInsertionRange = currentRange;
+        
+        // Clean up surrounding <br> tags and empty elements in the parent
+        if (parentToClean) {
+          const children = Array.from(parentToClean.childNodes);
+          children.forEach(child => {
+            if (child.nodeType === Node.ELEMENT_NODE && child.tagName === "BR") {
+              // Remove isolated <br> tags
+              const prevHasContent = child.previousSibling?.textContent?.trim();
+              const nextHasContent = child.nextSibling?.textContent?.trim();
+              if (!prevHasContent || !nextHasContent) {
+                child.remove();
               }
-            });
-          }
+            }
+          });
         }
 
         ircEntries.push({
@@ -2283,11 +2347,11 @@ function performIRCOOCProcessing(mesId, messageElement, oocMatches) {
   // PHASE 2: Create the IRC chat room container with all entries
   const ircContainer = createIRCChatRoom(ircEntries);
 
-  // PHASE 3: Insert the IRC container at the first OOC position
-  if (firstInsertionRange) {
+  // PHASE 3: Insert the IRC container at the LAST OOC position (where the last OOC was detected)
+  if (lastInsertionRange) {
     try {
-      firstInsertionRange.insertNode(ircContainer);
-      console.log(`[${MODULE_NAME}] IRC MODE: Inserted container at first OOC position`);
+      lastInsertionRange.insertNode(ircContainer);
+      console.log(`[${MODULE_NAME}] IRC MODE: Inserted container at last OOC position`);
     } catch (err) {
       console.error(`[${MODULE_NAME}] IRC MODE: Range insertion failed, using fallback:`, err);
       messageElement.appendChild(ircContainer);
