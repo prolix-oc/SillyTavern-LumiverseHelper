@@ -289,9 +289,17 @@ function stripMarkdownFormatting(text) {
   result = result.replace(/\*\*\*(.+?)\*\*\*/g, "$1"); // ***bold italic***
   result = result.replace(/\*\*(.+?)\*\*/g, "$1");     // **bold**
   result = result.replace(/\*(.+?)\*/g, "$1");         // *italic*
-  result = result.replace(/___(.+?)___/g, "$1");       // ___bold italic___
-  result = result.replace(/__(.+?)__/g, "$1");         // __bold__
-  result = result.replace(/_(.+?)_/g, "$1");           // _italic_
+
+  // Underscore-based emphasis: must respect GFM word boundary rules.
+  // GFM does NOT process underscores as emphasis when they are surrounded by
+  // word characters (e.g., `some_word_here` keeps its underscores literal).
+  // Using (?<!\w) and (?!\w) lookbehind/lookahead ensures we only strip
+  // underscores that GFM would actually render as emphasis, preventing
+  // length mismatches between search text and DOM text (e.g., in handles
+  // like @User_Name_Here where underscores are preserved in the DOM).
+  result = result.replace(/(?<!\w)___(.+?)___(?!\w)/g, "$1"); // ___bold italic___
+  result = result.replace(/(?<!\w)__(.+?)__(?!\w)/g, "$1");   // __bold__
+  result = result.replace(/(?<!\w)_(.+?)_(?!\w)/g, "$1");     // _italic_
 
   // Handle standalone asterisks at start (like "*sighs*" action markers)
   // These often appear as *action* at the start of OOC content
@@ -309,6 +317,94 @@ function stripMarkdownFormatting(text) {
   result = result.replace(/\u200D/g, "");          // Zero-width joiners
 
   return result;
+}
+
+/**
+ * Normalize text for DOM matching - applies Unicode normalization that must
+ * be IDENTICAL between search text and accumulated DOM text.
+ *
+ * This is the SINGLE SOURCE OF TRUTH for matching normalization. Both
+ * normalizedSearch and normalizedAccumulated must use this function to ensure
+ * their lengths correspond exactly, preventing off-by-N Range end position bugs.
+ *
+ * Handles:
+ * - Ellipsis expansion: … → ... (+2 chars per ellipsis)
+ * - Smart quote normalization: "" → ", '' → '
+ * - Variation selector stripping: U+FE00-FE0F (invisible emoji modifiers)
+ * - Zero-width joiner stripping: U+200D (invisible emoji combiners)
+ *
+ * NOTE: Whitespace collapsing is handled separately by callers since
+ * the search text is pre-trimmed but accumulated text needs its own collapsing.
+ *
+ * @param {string} text - Text to normalize
+ * @returns {string} Normalized text
+ */
+function normalizeForDOMMatching(text) {
+  if (!text) return "";
+  return text
+    .replace(/…/g, "...")
+    .replace(/["\u201C\u201D]/g, '"')
+    .replace(/['\u2018\u2019]/g, "'")
+    .replace(/[\uFE00-\uFE0F]/g, "")
+    .replace(/\u200D/g, "");
+}
+
+/**
+ * Build a position map from original (accumulated) text to normalized text positions.
+ *
+ * This maps each index in the normalized text back to the corresponding index
+ * in the original text, accounting for characters that expand (ellipsis: 1→3),
+ * collapse (consecutive whitespace: N→1), or are stripped (variation selectors,
+ * zero-width joiners: 1→0).
+ *
+ * CRITICAL: The normalization rules here MUST exactly mirror normalizeForDOMMatching()
+ * plus whitespace collapsing. If a new normalization is added to normalizeForDOMMatching,
+ * a corresponding case MUST be added here.
+ *
+ * @param {string} accumulatedText - The original accumulated DOM text
+ * @returns {number[]} positionMap where positionMap[normalizedIndex] = originalIndex
+ */
+function buildPositionMap(accumulatedText) {
+  const positionMap = [];
+  let prevWasWhitespace = false;
+
+  for (let i = 0; i < accumulatedText.length; i++) {
+    const char = accumulatedText[i];
+    const charCode = char.charCodeAt(0);
+
+    if (/\s/.test(char)) {
+      // Whitespace collapse: only emit one position for consecutive whitespace
+      if (!prevWasWhitespace) {
+        positionMap.push(i);
+        prevWasWhitespace = true;
+      }
+    } else if (char === "\u2026") {
+      // Ellipsis (…) expands to 3 characters "..."
+      positionMap.push(i);
+      positionMap.push(i);
+      positionMap.push(i);
+      prevWasWhitespace = false;
+    } else if (
+      char === "\u201C" || char === "\u201D" ||
+      char === "\u2018" || char === "\u2019"
+    ) {
+      // Smart quotes normalize to straight quotes (1:1 mapping)
+      positionMap.push(i);
+      prevWasWhitespace = false;
+    } else if (charCode >= 0xFE00 && charCode <= 0xFE0F) {
+      // Variation selectors - stripped (0 output chars)
+      // Don't add to map, don't change prevWasWhitespace
+    } else if (char === "\u200D") {
+      // Zero-width joiner - stripped (0 output chars)
+      // Don't add to map, don't change prevWasWhitespace
+    } else {
+      // Regular character (1:1 mapping)
+      positionMap.push(i);
+      prevWasWhitespace = false;
+    }
+  }
+
+  return positionMap;
 }
 
 /**
@@ -478,9 +574,11 @@ function expandRangeForTagFragments(accumulatedText, contentStart, contentEnd) {
 function findAndWrapOOCContent(container, searchText, rawOOCContent) {
   if (!container || !searchText) return null;
 
-  // Normalize search text - collapse whitespace for matching
-  // NOTE: We normalize but preserve the original for length calculation
-  const normalizedSearch = searchText.replace(/\s+/g, " ").trim();
+  // Normalize search text - collapse whitespace AND apply the same Unicode
+  // normalization as normalizedAccumulated to ensure length parity.
+  // Without this, characters like … (1 char) vs ... (3 chars) cause the
+  // potentialEnd calculation to fall short, leaving trailing characters in the DOM.
+  const normalizedSearch = normalizeForDOMMatching(searchText.replace(/\s+/g, " ").trim());
   if (!normalizedSearch) return null;
 
   // Get a substantial prefix for initial matching (more reliable than full text)
@@ -532,17 +630,10 @@ function findAndWrapOOCContent(container, searchText, rawOOCContent) {
     accumulatedText += node.nodeValue || "";
   }
 
-  // Normalize accumulated text for matching
-  // Also normalize ellipses and quotes to match search text normalization
-  // IMPORTANT: Apply same normalizations as stripMarkdownFormatting for consistency
-  // Also strip invisible Unicode characters that browsers may add (variation selectors, ZWJ, etc.)
-  const normalizedAccumulated = accumulatedText
-    .replace(/\s+/g, " ")
-    .replace(/…/g, "...")
-    .replace(/[""]/g, '"')
-    .replace(/['']/g, "'")
-    .replace(/[\uFE00-\uFE0F]/g, "")  // Strip variation selectors
-    .replace(/\u200D/g, "");          // Strip zero-width joiners
+  // Normalize accumulated text for matching using the shared normalization function.
+  // CRITICAL: This MUST use the same normalizeForDOMMatching() as normalizedSearch
+  // so that normalizedSearch.length correctly represents the span in normalizedAccumulated.
+  const normalizedAccumulated = normalizeForDOMMatching(accumulatedText.replace(/\s+/g, " "));
   const normalizedAccumulatedLower = normalizedAccumulated.toLowerCase();
 
   // Find where the OOC content starts in the accumulated text
@@ -574,50 +665,9 @@ function findAndWrapOOCContent(container, searchText, rawOOCContent) {
   }
 
   // Map the match position back to original text (accounting for normalization)
-  // Build a mapping of normalized position -> original position in ONE pass (O(n))
-  // This replaces the previous O(n²) approach that created substrings for each character
-  // IMPORTANT: Must use the SAME normalization rules (whitespace, ellipsis, quotes)
-  const positionMap = []; // positionMap[normalizedPos] = originalPos
-  let prevWasWhitespace = false;
-
-  for (let i = 0; i < accumulatedText.length; i++) {
-    const char = accumulatedText[i];
-    const charCode = char.charCodeAt(0);
-
-    // Apply same normalization rules as the regex-based normalization above
-    if (/\s/.test(char)) {
-      // Whitespace collapse: only output one space for consecutive whitespace
-      if (!prevWasWhitespace) {
-        positionMap.push(i);
-        prevWasWhitespace = true;
-      }
-      // Skip additional consecutive whitespace (don't add to map)
-    } else if (char === "\u2026") {
-      // Ellipsis (…) expands to 3 characters "..."
-      positionMap.push(i);
-      positionMap.push(i);
-      positionMap.push(i);
-      prevWasWhitespace = false;
-    } else if (char === "\u201C" || char === "\u201D") {
-      // Smart double quotes ("") normalize to regular quote (1:1 mapping)
-      positionMap.push(i);
-      prevWasWhitespace = false;
-    } else if (char === "\u2018" || char === "\u2019") {
-      // Smart single quotes ('') normalize to regular apostrophe (1:1 mapping)
-      positionMap.push(i);
-      prevWasWhitespace = false;
-    } else if (charCode >= 0xFE00 && charCode <= 0xFE0F) {
-      // Variation selectors - skip (they're stripped from normalized text)
-      // Don't add to map, don't change prevWasWhitespace
-    } else if (char === "\u200D") {
-      // Zero-width joiner - skip (stripped from normalized text)
-      // Don't add to map, don't change prevWasWhitespace
-    } else {
-      // Regular character (1:1 mapping)
-      positionMap.push(i);
-      prevWasWhitespace = false;
-    }
-  }
+  // Uses shared buildPositionMap to ensure normalization rules stay in sync
+  // with normalizeForDOMMatching(). positionMap[normalizedPos] = originalPos.
+  const positionMap = buildPositionMap(accumulatedText);
 
   // Map normalized positions back to original positions
   // Handle edge cases where positions may be at or beyond the map bounds
@@ -755,8 +805,10 @@ function findAndWrapOOCContent(container, searchText, rawOOCContent) {
 function findMatchingElement(container, searchText) {
   if (!container || !searchText) return null;
 
-  // Normalize search text - collapse whitespace
-  const normalizedSearch = searchText.replace(/\s+/g, " ").trim().toLowerCase();
+  // Normalize search text - collapse whitespace and apply shared Unicode normalization
+  // searchText has already been through stripMarkdownFormatting via htmlToPlainText,
+  // so markdown is handled; we just need length-consistent Unicode normalization here.
+  const normalizedSearch = normalizeForDOMMatching(searchText.replace(/\s+/g, " ").trim()).toLowerCase();
   if (!normalizedSearch) return null;
 
   // Use longer prefix for matching
@@ -773,14 +825,13 @@ function findMatchingElement(container, searchText) {
       continue;
     }
 
-    // Normalize DOM text - apply same normalization as search text
-    const pText = stripMarkdownFormatting(
-      (p.textContent || "")
-        .replace(/\s+/g, " ")
-        .replace(/…/g, "...")
-        .replace(/[""]/g, '"')
-        .replace(/['']/g, "'")
-        .trim()
+    // Normalize DOM text using the shared normalization function.
+    // DO NOT apply stripMarkdownFormatting to DOM textContent — the markdown
+    // engine already rendered emphasis markers into HTML tags, so any underscores
+    // remaining in textContent are literal (e.g., @User_Name). Stripping them
+    // would create a length mismatch with the actual DOM.
+    const pText = normalizeForDOMMatching(
+      (p.textContent || "").replace(/\s+/g, " ").trim()
     );
     const pTextLower = pText.toLowerCase();
 
@@ -809,19 +860,21 @@ function findMatchingElement(container, searchText) {
 
 /**
  * Normalize text for OOC fingerprint matching
- * Applies consistent normalization for both DOM text and OOC content
+ * Applies consistent normalization for both DOM text and OOC content.
+ *
+ * Uses the shared normalizeForDOMMatching() to ensure the same Unicode
+ * normalizations are applied everywhere. Does NOT apply stripMarkdownFormatting
+ * because: (a) OOC content has already been through htmlToPlainText which
+ * applies it, and (b) DOM textContent has already been rendered by the
+ * markdown engine, so any remaining underscores/asterisks are literal.
+ *
  * @param {string} text - Text to normalize
  * @returns {string} Normalized lowercase text
  */
 function normalizeForMatching(text) {
   if (!text) return "";
-  return stripMarkdownFormatting(
-    text
-      .replace(/\s+/g, " ")
-      .replace(/…/g, "...")
-      .replace(/[""]/g, '"')
-      .replace(/['']/g, "'")
-      .trim()
+  return normalizeForDOMMatching(
+    text.replace(/\s+/g, " ").trim()
   ).toLowerCase();
 }
 
@@ -2027,8 +2080,9 @@ function performOOCProcessing(mesId, force = false) {
 function findOOCContentLocation(container, searchText) {
   if (!container || !searchText) return null;
 
-  // Normalize search text - collapse whitespace for matching
-  const normalizedSearch = searchText.replace(/\s+/g, " ").trim();
+  // Normalize search text - collapse whitespace AND apply the same Unicode
+  // normalization as normalizedAccumulated to ensure length parity.
+  const normalizedSearch = normalizeForDOMMatching(searchText.replace(/\s+/g, " ").trim());
   if (!normalizedSearch) return null;
 
   // Get a substantial prefix for initial matching
@@ -2063,12 +2117,8 @@ function findOOCContentLocation(container, searchText) {
     accumulatedText += node.nodeValue || "";
   }
 
-  // Normalize accumulated text for matching
-  const normalizedAccumulated = accumulatedText
-    .replace(/\s+/g, " ")
-    .replace(/…/g, "...")
-    .replace(/[""]/g, '"')
-    .replace(/['']/g, "'");
+  // Normalize accumulated text using shared normalization function
+  const normalizedAccumulated = normalizeForDOMMatching(accumulatedText.replace(/\s+/g, " "));
   const normalizedAccumulatedLower = normalizedAccumulated.toLowerCase();
 
   // Find where the OOC content starts
@@ -2081,30 +2131,8 @@ function findOOCContentLocation(container, searchText) {
   const potentialEnd = matchStart + normalizedSearch.length;
   const clampedPotentialEnd = Math.min(potentialEnd, normalizedAccumulated.length);
 
-  // Build position map
-  const positionMap = [];
-  let prevWasWhitespace = false;
-
-  for (let i = 0; i < accumulatedText.length; i++) {
-    const char = accumulatedText[i];
-    if (/\s/.test(char)) {
-      if (!prevWasWhitespace) {
-        positionMap.push(i);
-        prevWasWhitespace = true;
-      }
-    } else if (char === "\u2026") {
-      positionMap.push(i);
-      positionMap.push(i);
-      positionMap.push(i);
-      prevWasWhitespace = false;
-    } else if (char === "\u201C" || char === "\u201D" || char === "\u2018" || char === "\u2019") {
-      positionMap.push(i);
-      prevWasWhitespace = false;
-    } else {
-      positionMap.push(i);
-      prevWasWhitespace = false;
-    }
-  }
+  // Build position map using shared builder (ensures rules stay in sync)
+  const positionMap = buildPositionMap(accumulatedText);
 
   let originalMatchStart = matchStart < positionMap.length ? positionMap[matchStart] : 0;
   
