@@ -82,6 +82,21 @@ const DEFAULT_SETTINGS = {
     showTimestamps: true, // Show [HH:MM] timestamps in IRC messages
     useLeetHandles: true, // Convert names to l33tspeak handles (e.g., "Sarah" -> "S4r4h")
   },
+  // Council tool calling settings
+  councilTools: {
+    enabled: false, // When true, council members execute tools before generation
+    mode: "sidecar", // "sidecar" = direct fetch with dedicated LLM, "inline" = ST ToolManager with main model
+    timeoutMs: 30000, // Max time to wait for all tool executions
+    llm: {
+      provider: "anthropic",
+      model: "",
+      endpoint: "",
+      apiKey: "",
+      temperature: 0.7,
+      topP: 1.0,
+      maxTokens: 4096,
+    },
+  },
   sovereignHand: {
     enabled: false,
     excludeLastMessage: true, // Whether to remove last user message from context
@@ -564,6 +579,56 @@ export function migrateSettings() {
     settings.councilChatStyle.useLeetHandles = true;
   }
 
+  // Ensure councilTools defaults (tool calling for council members)
+  if (!settings.councilTools) {
+    settings.councilTools = { enabled: false, timeoutMs: 30000 };
+    migrated = true;
+  }
+  if (settings.councilTools.enabled === undefined) {
+    settings.councilTools.enabled = false;
+    migrated = true;
+  }
+  if (settings.councilTools.timeoutMs === undefined) {
+    settings.councilTools.timeoutMs = 30000;
+    migrated = true;
+  }
+  // Migrate councilTools LLM config: if missing, seed from summarization secondary
+  if (!settings.councilTools.llm) {
+    const secondarySrc = settings.summarization?.secondary || {};
+    settings.councilTools.llm = {
+      provider: secondarySrc.provider || "anthropic",
+      model: secondarySrc.model || "",
+      endpoint: secondarySrc.endpoint || "",
+      apiKey: secondarySrc.apiKey || "",
+      temperature: secondarySrc.temperature ?? 0.7,
+      topP: secondarySrc.topP ?? 1.0,
+      maxTokens: secondarySrc.maxTokens || 4096,
+    };
+    migrated = true;
+  }
+  // Ensure mode field exists (default to sidecar for backwards compatibility)
+  if (!settings.councilTools.mode) {
+    settings.councilTools.mode = "sidecar";
+    migrated = true;
+  }
+  // Ensure all llm sub-fields exist
+  if (settings.councilTools.llm.topP === undefined) {
+    settings.councilTools.llm.topP = 1.0;
+  }
+  if (!settings.councilTools.llm.maxTokens || settings.councilTools.llm.maxTokens < 256) {
+    settings.councilTools.llm.maxTokens = 4096;
+  }
+
+  // Ensure council members have tools array
+  if (settings.councilMembers && Array.isArray(settings.councilMembers)) {
+    settings.councilMembers.forEach(member => {
+      if (!member.tools) {
+        member.tools = [];
+        migrated = true;
+      }
+    });
+  }
+
   // Ensure landing page setting default (default to true for new feature)
   if (settings.enableLandingPage === undefined) settings.enableLandingPage = true;
   if (settings.landingPageChatsDisplayed === undefined) settings.landingPageChatsDisplayed = 12;
@@ -729,6 +794,7 @@ export function saveSettings() {
     delete settingsToSave.chimeraMode;
     delete settingsToSave.councilMode;
     delete settingsToSave.councilChatStyle;
+    delete settingsToSave.councilTools;
     delete settingsToSave.lumiaQuirks;
     delete settingsToSave.lumiaQuirksEnabled;
     delete settingsToSave.lumiaOOCInterval;

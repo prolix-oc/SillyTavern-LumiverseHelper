@@ -1255,7 +1255,7 @@ function namesMatch(searchName, targetName) {
  * @param {string} lumiaName - The Lumia's name from the OOC tag (can be regular name, l33t handle, or underscore handle)
  * @returns {string|null} Avatar image URL or null
  */
-function getLumiaAvatarByName(lumiaName) {
+export function getLumiaAvatarByName(lumiaName) {
   if (!lumiaName) return null;
 
   const settings = getSettings();

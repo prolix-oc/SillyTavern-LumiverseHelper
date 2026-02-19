@@ -1,7 +1,21 @@
 import React, { useState, useMemo, useSyncExternalStore, useCallback, useRef } from 'react';
 import clsx from 'clsx';
-import { Users, Plus, Trash2, ChevronDown, ChevronUp, Edit2, X, Check, Zap, Heart, Star, Package } from 'lucide-react';
+import { Users, Plus, Trash2, ChevronDown, ChevronUp, Edit2, X, Check, Zap, Heart, Star, Package, Briefcase, Cpu, Eye, EyeOff, Radio, Plug } from 'lucide-react';
 import { useLumiverseStore, useLumiverseActions, usePacks, saveToExtension, saveToExtensionImmediate } from '../../store/LumiverseContext';
+import { getToolsForUI, isInlineModeAvailable } from '../../../lib/councilTools';
+
+// Provider configurations for council tools LLM
+const COUNCIL_PROVIDER_CONFIG = {
+    openai: { name: 'OpenAI', placeholder: 'gpt-4o-mini' },
+    anthropic: { name: 'Anthropic', placeholder: 'claude-sonnet-4-5-20250929' },
+    google: { name: 'Google AI', placeholder: 'gemini-2.0-flash' },
+    openrouter: { name: 'OpenRouter', placeholder: 'openai/gpt-4o-mini' },
+    chutes: { name: 'Chutes', placeholder: 'deepseek-ai/DeepSeek-V3' },
+    electronhub: { name: 'ElectronHub', placeholder: 'gpt-4o-mini' },
+    nanogpt: { name: 'NanoGPT', placeholder: 'chatgpt-4o-latest' },
+    zai: { name: 'Z.AI', placeholder: 'gpt-4o-mini' },
+    custom: { name: 'Custom', placeholder: 'your-model-id' },
+};
 
 /* global toastr */
 
@@ -73,6 +87,7 @@ function useMobileTapHandler(handler) {
 // Stable selector functions
 const selectCouncilMode = () => store.getState().councilMode || false;
 const selectCouncilMembers = () => store.getState().councilMembers || EMPTY_ARRAY;
+const selectCouncilTools = () => store.getState().councilTools || { enabled: false, timeoutMs: 30000 };
 
 /**
  * Find a Lumia item in a pack - supports both new and legacy formats
@@ -119,11 +134,45 @@ function getLumiaImage(packs, packName, itemName) {
 }
 
 /**
+ * Tool selector dropdown
+ */
+function ToolSelector({ selectedTools, onToggle, onClose }) {
+    const tools = useMemo(() => getToolsForUI(), []);
+
+    return (
+        <div className="lumiverse-council-tool-selector">
+            <div className="lumiverse-council-tool-header">
+                <span>Assign Tools</span>
+                <button className="lumiverse-council-btn" onClick={onClose} type="button">
+                    <X size={14} />
+                </button>
+            </div>
+            <div className="lumiverse-council-tool-list">
+                {tools.map((tool) => (
+                    <label key={tool.name} className="lumiverse-council-tool-item">
+                        <input
+                            type="checkbox"
+                            checked={selectedTools.includes(tool.name)}
+                            onChange={() => onToggle(tool.name)}
+                        />
+                        <div className="lumiverse-council-tool-info">
+                            <span className="lumiverse-council-tool-name">{tool.displayName}</span>
+                            <span className="lumiverse-council-tool-desc">{tool.description}</span>
+                        </div>
+                    </label>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+/**
  * Collapsible member card
  */
 function CouncilMemberCard({ member, packs, onUpdate, onRemove }) {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isEditingRole, setIsEditingRole] = useState(false);
+    const [showToolSelector, setShowToolSelector] = useState(false);
     const [roleValue, setRoleValue] = useState(member.role || '');
 
     const memberName = getLumiaName(packs, member.packName, member.itemName);
@@ -142,8 +191,17 @@ function CouncilMemberCard({ member, packs, onUpdate, onRemove }) {
         }
     };
 
+    const handleToolToggle = (toolName) => {
+        const currentTools = member.tools || [];
+        const newTools = currentTools.includes(toolName)
+            ? currentTools.filter(t => t !== toolName)
+            : [...currentTools, toolName];
+        onUpdate(member.id, { tools: newTools });
+    };
+
     const behaviorsCount = member.behaviors?.length || 0;
     const personalitiesCount = member.personalities?.length || 0;
+    const toolsCount = member.tools?.length || 0;
 
     return (
         <div className="lumiverse-council-member">
@@ -171,6 +229,11 @@ function CouncilMemberCard({ member, packs, onUpdate, onRemove }) {
                         <span className="lumiverse-council-stat">
                             <Heart size={12} /> {personalitiesCount}
                         </span>
+                        {toolsCount > 0 && (
+                            <span className="lumiverse-council-stat lumiverse-council-stat--tools">
+                                <Briefcase size={12} /> {toolsCount}
+                            </span>
+                        )}
                     </div>
                 </div>
                 <div className="lumiverse-council-member-actions">
@@ -287,9 +350,47 @@ function CouncilMemberCard({ member, packs, onUpdate, onRemove }) {
                         </div>
                     </div>
 
+                    {/* Tools section */}
+                    <div className="lumiverse-council-tools-section">
+                        <div className="lumiverse-council-tools-header">
+                            <span className="lumiverse-council-tools-label">
+                                <Briefcase size={14} strokeWidth={1.5} /> Tools:
+                            </span>
+                            <button
+                                className="lumiverse-council-btn lumiverse-council-btn--small"
+                                onClick={() => setShowToolSelector(!showToolSelector)}
+                                type="button"
+                            >
+                                {showToolSelector ? 'Done' : 'Assign Tools'}
+                            </button>
+                        </div>
+                        {showToolSelector ? (
+                            <ToolSelector
+                                selectedTools={member.tools || []}
+                                onToggle={handleToolToggle}
+                                onClose={() => setShowToolSelector(false)}
+                            />
+                        ) : toolsCount > 0 ? (
+                            <div className="lumiverse-council-tools-list">
+                                {(member.tools || []).map(toolName => {
+                                    const toolInfo = getToolsForUI().find(t => t.name === toolName);
+                                    return (
+                                        <span key={toolName} className="lumiverse-council-tool-tag">
+                                            {toolInfo?.displayName || toolName}
+                                        </span>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <span className="lumiverse-council-tools-empty">
+                                No tools assigned. Tools allow this member to contribute suggestions before generation.
+                            </span>
+                        )}
+                    </div>
+
                     <p className="lumiverse-council-help-text">
                         Each member's inherent traits are auto-attached when added.
-                        Additional trait configuration coming soon.
+                        Use the role field to define their expertise, which enhances tool contributions.
                     </p>
                 </div>
             )}
@@ -580,6 +681,208 @@ function QuickAddPackDropdown({ packs, existingMembers, onAddPack, onClose }) {
 }
 
 /**
+ * Council Tools LLM Configuration panel
+ * Provides provider/model/params selection dedicated to council tool execution
+ */
+function CouncilToolsConfig() {
+    const [showApiKey, setShowApiKey] = useState(false);
+    const actions = useLumiverseActions();
+
+    const councilTools = useSyncExternalStore(
+        store.subscribe,
+        selectCouncilTools,
+        selectCouncilTools
+    );
+
+    const llm = councilTools.llm || {};
+    const mode = councilTools.mode || 'sidecar';
+    const inlineAvailable = useMemo(() => isInlineModeAvailable(), []);
+
+    const updateLLM = useCallback((updates) => {
+        actions.updateCouncilToolsLLM(updates);
+        saveToExtension();
+    }, [actions]);
+
+    const handleModeChange = useCallback((newMode) => {
+        actions.setCouncilToolsMode(newMode);
+        saveToExtension();
+    }, [actions]);
+
+    const providerConfig = COUNCIL_PROVIDER_CONFIG[llm.provider] || COUNCIL_PROVIDER_CONFIG.custom;
+    const isCustom = llm.provider === 'custom';
+
+    return (
+        <div className="lumiverse-council-llm-config">
+            {/* Mode selector: Sidecar vs Inline */}
+            <div className="lumiverse-council-tools-mode">
+                <div className="lumiverse-council-llm-header">
+                    <Radio size={14} strokeWidth={1.5} />
+                    <span>Execution Mode</span>
+                </div>
+                <div className="lumiverse-council-mode-selector">
+                    <button
+                        type="button"
+                        className={clsx(
+                            'lumiverse-council-mode-option',
+                            mode === 'sidecar' && 'lumiverse-council-mode-option--active'
+                        )}
+                        onClick={() => handleModeChange('sidecar')}
+                    >
+                        <Cpu size={13} strokeWidth={1.5} />
+                        <span>Sidecar</span>
+                    </button>
+                    <button
+                        type="button"
+                        className={clsx(
+                            'lumiverse-council-mode-option',
+                            mode === 'inline' && 'lumiverse-council-mode-option--active',
+                            !inlineAvailable && 'lumiverse-council-mode-option--disabled'
+                        )}
+                        onClick={() => inlineAvailable && handleModeChange('inline')}
+                        title={!inlineAvailable ? 'Requires function calling enabled in SillyTavern API settings' : ''}
+                    >
+                        <Plug size={13} strokeWidth={1.5} />
+                        <span>Inline</span>
+                    </button>
+                </div>
+                <p className="lumiverse-council-mode-desc-text">
+                    {mode === 'sidecar'
+                        ? 'Dedicated LLM executes tools in parallel before generation. Independent model, no ST function calling required.'
+                        : 'Tools registered with SillyTavern\'s ToolManager. Main model decides when to invoke tools during generation.'
+                    }
+                </p>
+                {mode === 'inline' && !inlineAvailable && (
+                    <p className="lumiverse-council-mode-warning">
+                        Function calling is not enabled. Enable it in SillyTavern API settings or switch to Sidecar mode.
+                    </p>
+                )}
+            </div>
+
+            {/* Sidecar LLM config — only shown in sidecar mode */}
+            {mode === 'sidecar' && (
+                <>
+                    <div className="lumiverse-council-llm-header">
+                        <Cpu size={14} strokeWidth={1.5} />
+                        <span>Tools Model</span>
+                    </div>
+
+                    {/* Provider */}
+                    <div className="lumiverse-council-llm-field">
+                        <label className="lumiverse-council-llm-label">Provider</label>
+                        <select
+                            className="lumiverse-council-llm-select"
+                            value={llm.provider || 'anthropic'}
+                            onChange={(e) => updateLLM({ provider: e.target.value })}
+                        >
+                            {Object.entries(COUNCIL_PROVIDER_CONFIG).map(([key, config]) => (
+                                <option key={key} value={key}>{config.name}</option>
+                            ))}
+                        </select>
+                        {!isCustom && (
+                            <span className="lumiverse-council-llm-hint">Uses API key from SillyTavern settings</span>
+                        )}
+                    </div>
+
+                    {/* Model */}
+                    <div className="lumiverse-council-llm-field">
+                        <label className="lumiverse-council-llm-label">Model</label>
+                        <input
+                            type="text"
+                            className="lumiverse-council-llm-input"
+                            placeholder={providerConfig.placeholder}
+                            value={llm.model || ''}
+                            onChange={(e) => updateLLM({ model: e.target.value })}
+                        />
+                    </div>
+
+                    {/* Custom endpoint + API key */}
+                    {isCustom && (
+                        <>
+                            <div className="lumiverse-council-llm-field">
+                                <label className="lumiverse-council-llm-label">Endpoint</label>
+                                <input
+                                    type="text"
+                                    className="lumiverse-council-llm-input"
+                                    placeholder="https://your-api.com/v1/chat/completions"
+                                    value={llm.endpoint || ''}
+                                    onChange={(e) => updateLLM({ endpoint: e.target.value })}
+                                />
+                            </div>
+                            <div className="lumiverse-council-llm-field">
+                                <label className="lumiverse-council-llm-label">API Key</label>
+                                <div className="lumiverse-council-llm-password-row">
+                                    <input
+                                        type={showApiKey ? 'text' : 'password'}
+                                        className="lumiverse-council-llm-input"
+                                        placeholder="Your API key"
+                                        value={llm.apiKey || ''}
+                                        onChange={(e) => updateLLM({ apiKey: e.target.value })}
+                                    />
+                                    <button
+                                        className="lumiverse-council-btn"
+                                        onClick={() => setShowApiKey(!showApiKey)}
+                                        title={showApiKey ? 'Hide' : 'Show'}
+                                        type="button"
+                                    >
+                                        {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                                    </button>
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    {/* Temperature / Top-P / Max Tokens */}
+                    <div className="lumiverse-council-llm-params">
+                        <div className="lumiverse-council-llm-param">
+                            <label className="lumiverse-council-llm-label">Temp</label>
+                            <input
+                                type="number"
+                                className="lumiverse-council-llm-input lumiverse-council-llm-input--num"
+                                value={llm.temperature ?? 0.7}
+                                onChange={(e) => updateLLM({ temperature: parseFloat(e.target.value) || 0 })}
+                                min={0}
+                                max={2}
+                                step={0.1}
+                            />
+                        </div>
+                        <div className="lumiverse-council-llm-param">
+                            <label className="lumiverse-council-llm-label">Top-P</label>
+                            <input
+                                type="number"
+                                className="lumiverse-council-llm-input lumiverse-council-llm-input--num"
+                                value={llm.topP ?? 1.0}
+                                onChange={(e) => updateLLM({ topP: parseFloat(e.target.value) || 0 })}
+                                min={0}
+                                max={1}
+                                step={0.05}
+                            />
+                        </div>
+                        <div className="lumiverse-council-llm-param">
+                            <label className="lumiverse-council-llm-label">Max Tokens</label>
+                            <input
+                                type="number"
+                                className="lumiverse-council-llm-input lumiverse-council-llm-input--num"
+                                value={llm.maxTokens || 4096}
+                                onChange={(e) => updateLLM({ maxTokens: parseInt(e.target.value, 10) || 4096 })}
+                                min={256}
+                                max={128000}
+                            />
+                        </div>
+                    </div>
+                </>
+            )}
+
+            {/* Inline mode info */}
+            {mode === 'inline' && (
+                <div className="lumiverse-council-inline-info">
+                    <p>Tools use the main model configured in SillyTavern. The model decides when and how to invoke council tools based on their descriptions.</p>
+                </div>
+            )}
+        </div>
+    );
+}
+
+/**
  * Empty state component
  */
 function EmptyState() {
@@ -613,6 +916,11 @@ function CouncilManager() {
         store.subscribe,
         selectCouncilMembers,
         selectCouncilMembers
+    );
+    const councilTools = useSyncExternalStore(
+        store.subscribe,
+        selectCouncilTools,
+        selectCouncilTools
     );
 
     const handleAddMember = useCallback((member) => {
@@ -652,6 +960,12 @@ function CouncilManager() {
         saveToExtensionImmediate();
     }, [actions]);
 
+    const handleToggleCouncilTools = useCallback((enabled) => {
+        actions.setCouncilToolsEnabled(enabled);
+        // Use immediate save for tools toggle - critical state
+        saveToExtensionImmediate();
+    }, [actions]);
+
     // Build packs object for lookups - support both name and packName
     const packsObj = useMemo(() => {
         if (Array.isArray(allPacks)) {
@@ -687,6 +1001,30 @@ function CouncilManager() {
             <p className="lumiverse-council-desc">
                 Create a council of independent Lumias that collaborate, each with their own identity, behaviors, and personalities.
             </p>
+
+            {/* Tools toggle - only show when council mode is active */}
+            {councilMode && (
+                <div className="lumiverse-council-tools-toggle">
+                    <label className="lumiverse-council-mode-toggle lumiverse-council-tools-label">
+                        <input
+                            type="checkbox"
+                            checked={councilTools.enabled}
+                            onChange={(e) => handleToggleCouncilTools(e.target.checked)}
+                        />
+                        <span className={clsx('lumiverse-council-mode-switch', councilTools.enabled && 'lumiverse-council-mode-switch--on')}>
+                            <span className="lumiverse-council-mode-thumb" />
+                        </span>
+                        <span className="lumiverse-council-mode-label">
+                            <Briefcase size={14} /> Council Tools {councilTools.enabled ? 'Enabled' : 'Disabled'}
+                        </span>
+                    </label>
+                    <p className="lumiverse-council-tools-desc">
+                        When enabled, council members with assigned tools contribute suggestions via their chosen execution mode.
+                        Use the {'{{lumiaCouncilDeliberation}}'} macro to include their contributions in the prompt.
+                    </p>
+                    {councilTools.enabled && <CouncilToolsConfig />}
+                </div>
+            )}
 
             {/* Add member button / dropdown */}
             <div className="lumiverse-council-add-section">

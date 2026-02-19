@@ -52,7 +52,13 @@ import {
   restoreSummaryMarkers,
 } from "./lib/summarization.js";
 
-import { registerLumiaMacros, getOOCTriggerText, setLastAIMessageIndex } from "./lib/lumiaContent.js";
+import {
+  registerLumiaMacros, getOOCTriggerText, setLastAIMessageIndex } from "./lib/lumiaContent.js";
+import {
+  executeAllCouncilTools, clearToolResults, areCouncilToolsEnabled,
+  getCouncilToolsMode, registerSTTools, unregisterSTTools,
+  isGenerationCycleActive, markGenerationCycleStart, markGenerationCycleEnd } from "./lib/councilTools.js";
+import { resetIndicator } from "./lib/councilVisuals.js";
 
 import {
   processLoomConditionals,
@@ -260,8 +266,51 @@ function trimEmptyMacroNewlines(content) {
 globalThis.lumiverseHelperGenInterceptor = async function (chat, contextSize, abort, type) {
   console.log(`[${MODULE_NAME}] Generation interceptor called with type: ${type}`);
 
-  // Reset random Lumia on every generation type
-  resetRandomLumia();
+  // Detect recursive Generate() calls from ST's tool call handling.
+  // When the LLM invokes inline tools, ST calls Generate() recursively, which
+  // re-runs this interceptor. We must NOT clear tool results or re-execute
+  // sidecar tools on recursive passes — the results from the first pass or
+  // from inline action callbacks must be preserved.
+  const isRecursiveCall = isGenerationCycleActive();
+
+  if (!isRecursiveCall) {
+    // First call in this generation cycle — fresh start
+    markGenerationCycleStart();
+    resetRandomLumia();
+    clearToolResults();
+    resetIndicator();
+  } else {
+    console.log(`[${MODULE_NAME}] Recursive interceptor call detected — preserving tool results`);
+  }
+
+  // Execute council tools if enabled (only on first call, not recursive passes)
+  // Defensive: handle undefined type, and explicitly check for swipe
+  const isNormalOrSwipe = type === 'normal' || type === 'swipe' || !type;
+  console.log(`[${MODULE_NAME}] Council tools check: type="${type}", isRecursive=${isRecursiveCall}, isNormalOrSwipe=${isNormalOrSwipe}, enabled=${areCouncilToolsEnabled()}`);
+  
+  if (!isRecursiveCall && isNormalOrSwipe && areCouncilToolsEnabled()) {
+    const toolMode = getCouncilToolsMode();
+
+    if (toolMode === 'sidecar') {
+      // Sidecar mode: execute tools via direct fetch with dedicated LLM before generation
+      // CRITICAL: This must complete before returning to ST to stall the generation
+      try {
+        console.log(`[${MODULE_NAME}] Council tools (sidecar mode) executing - STALLING generation...`);
+        const startTime = Date.now();
+        const results = await executeAllCouncilTools();
+        const duration = Date.now() - startTime;
+        console.log(`[${MODULE_NAME}] Council tools (sidecar) execution COMPLETE in ${duration}ms - ${results.length} results obtained, resuming generation`);
+      } catch (error) {
+        console.error(`[${MODULE_NAME}] Council tools (sidecar) execution failed:`, error);
+        // Continue with generation even if tools fail
+      }
+    } else if (toolMode === 'inline') {
+      // Inline mode: tools are registered with ST's ToolManager and will be
+      // included in the main generation request. The LLM decides when to call them.
+      // Tool action callbacks accumulate results into latestToolResults.
+      console.log(`[${MODULE_NAME}] Council tools (inline mode) — tools registered with ST ToolManager, LLM will invoke during generation`);
+    }
+  }
 
   const settings = getSettings();
   const sovereignHandEnabled = settings.sovereignHand?.enabled || false;
@@ -455,6 +504,16 @@ jQuery(async () => {
   // Register macros
   registerAllMacros();
 
+  // Register council tools with ST's ToolManager if inline mode is active.
+  // Tools have a shouldRegister gate that dynamically checks mode/enabled state,
+  // so registering eagerly is safe — they only appear in generation requests when conditions are met.
+  try {
+    registerSTTools();
+    console.log(`[${MODULE_NAME}] Council tools registered with ST ToolManager (shouldRegister gate active)`);
+  } catch (err) {
+    console.warn(`[${MODULE_NAME}] Failed to register ST council tools:`, err);
+  }
+
   // Initialize RAF batch renderer for optimized OOC rendering
   initializeRAFBatchRenderer();
 
@@ -576,6 +635,7 @@ jQuery(async () => {
     eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, (mesId) => {
       console.log(`[${MODULE_NAME}] CHARACTER_MESSAGE_RENDERED event for mesId ${mesId}`);
       setIsGenerating(false);
+      markGenerationCycleEnd();
       captureLoomSummary();
       checkAutoSummarization();
 
@@ -634,6 +694,12 @@ jQuery(async () => {
         existingBoxes.forEach((box) => box.remove());
       }
       processLumiaOOCComments(mesId, true);
+      // CRITICAL: Reset generation cycle on swipe to ensure council tools can fire
+      // Swipe is a fresh generation, not a recursive call
+      markGenerationCycleEnd();
+      clearToolResults();
+      resetIndicator();
+      console.log(`[${MODULE_NAME}] Reset generation cycle and cleared tool results for swipe`);
     });
 
     eventSource.on(event_types.CHAT_CHANGED, () => {
@@ -663,6 +729,8 @@ jQuery(async () => {
       // setIsGenerating(false) triggers setStreamingState(false) which auto-flushes pending updates
       // No need for explicit flushPendingUpdates() call - avoid double flush
       setIsGenerating(false);
+      // Reset generation cycle flag so next generation starts fresh
+      markGenerationCycleEnd();
     });
 
     eventSource.on(event_types.GENERATION_STOPPED, () => {
@@ -670,6 +738,8 @@ jQuery(async () => {
       // setIsGenerating(false) triggers setStreamingState(false) which auto-flushes pending updates
       // No need for explicit flushPendingUpdates() call - avoid double flush
       setIsGenerating(false);
+      // Reset generation cycle flag so next generation starts fresh
+      markGenerationCycleEnd();
     });
   }
 

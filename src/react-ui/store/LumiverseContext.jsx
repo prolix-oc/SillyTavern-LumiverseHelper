@@ -123,6 +123,22 @@ const initialState = {
         useLeetHandles: true,  // Convert names to l33tspeak handles
     },
 
+    // Council tool calling settings
+    councilTools: {
+        enabled: false,        // When true, council members execute tools before generation
+        mode: 'sidecar',      // 'sidecar' = direct fetch with dedicated LLM, 'inline' = ST ToolManager with main model
+        timeoutMs: 30000,      // Max time to wait for all tool executions
+        llm: {
+            provider: 'anthropic',
+            model: '',
+            endpoint: '',
+            apiKey: '',
+            temperature: 0.7,
+            topP: 1.0,
+            maxTokens: 4096,
+        },
+    },
+
     // Message truncation
     messageTruncation: {
         enabled: false,
@@ -1081,6 +1097,89 @@ const actions = {
      */
     clearCouncilMembers: () => {
         store.setState({ councilMembers: [] });
+    },
+
+    /**
+     * Set council tools enabled/disabled
+     * @param {boolean} enabled - Whether council tools are enabled
+     */
+    setCouncilToolsEnabled: (enabled) => {
+        const state = store.getState();
+        store.setState({
+            councilTools: { ...state.councilTools, enabled },
+        });
+    },
+
+    /**
+     * Set council tools execution mode
+     * @param {'sidecar'|'inline'} mode - 'sidecar' for direct fetch, 'inline' for ST ToolManager
+     */
+    setCouncilToolsMode: (mode) => {
+        const state = store.getState();
+        store.setState({
+            councilTools: { ...state.councilTools, mode },
+        });
+    },
+
+    /**
+     * Set council tools timeout
+     * @param {number} timeoutMs - Timeout in milliseconds
+     */
+    setCouncilToolsTimeout: (timeoutMs) => {
+        const state = store.getState();
+        store.setState({
+            councilTools: { ...state.councilTools, timeoutMs },
+        });
+    },
+
+    /**
+     * Update council tools LLM configuration
+     * @param {Object} updates - Partial LLM config to merge (e.g. { provider: 'anthropic', model: 'claude-3-haiku-20240307' })
+     */
+    updateCouncilToolsLLM: (updates) => {
+        const state = store.getState();
+        const currentTools = state.councilTools || {};
+        const currentLLM = currentTools.llm || {};
+        store.setState({
+            councilTools: {
+                ...currentTools,
+                llm: { ...currentLLM, ...updates },
+            },
+        });
+    },
+
+    /**
+     * Assign tools to a council member
+     * @param {string} memberId - The ID of the member
+     * @param {Array} tools - Array of tool name strings
+     */
+    setCouncilMemberTools: (memberId, tools) => {
+        const state = store.getState();
+        store.setState({
+            councilMembers: state.councilMembers.map(member =>
+                member.id === memberId ? { ...member, tools: tools || [] } : member
+            ),
+        });
+    },
+
+    /**
+     * Toggle a tool for a council member
+     * @param {string} memberId - The ID of the member
+     * @param {string} toolName - Name of the tool to toggle
+     */
+    toggleCouncilMemberTool: (memberId, toolName) => {
+        const state = store.getState();
+        store.setState({
+            councilMembers: state.councilMembers.map(member => {
+                if (member.id !== memberId) return member;
+                const currentTools = member.tools || [];
+                const hasTool = currentTools.includes(toolName);
+                const newTools = hasTool
+                    ? currentTools.filter(t => t !== toolName)
+                    : [...currentTools, toolName];
+                return { ...member, tools: newTools };
+            }),
+        });
     },
 
     /**

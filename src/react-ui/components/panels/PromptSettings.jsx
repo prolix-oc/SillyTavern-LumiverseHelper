@@ -2,10 +2,8 @@ import React, { useState, useCallback, useSyncExternalStore } from 'react';
 import { CollapsibleContent } from '../Collapsible';
 import { CollapsibleSection } from '../shared/CollapsibleSection';
 import clsx from 'clsx';
-import { Hand, Filter, Info, Layers, Users, Edit2, Check, X, Brain } from 'lucide-react';
+import { Hand, Filter, Info, Layers, Users, Edit2, Check, X } from 'lucide-react';
 import { useLumiverseStore, useLumiverseActions, saveToExtension } from '../../store/LumiverseContext';
-import { useChatPresetSettings } from '../../hooks/useChatPresetSettings';
-import { ReasoningSettingsContent } from '../shared/ReasoningSettings';
 
 // Get the store for direct access (old code uses root-level settings)
 const store = useLumiverseStore;
@@ -187,22 +185,6 @@ function PromptSettings() {
     // Local state for editing quirks (non-council mode)
     const [quirksValue, setQuirksValue] = useState(lumiaQuirks);
     const [isEditingQuirks, setIsEditingQuirks] = useState(false);
-
-    // Shared reasoning settings (synced with modal)
-    const {
-        reasoningSettings,
-        startReplyWith,
-        apiReasoning,
-        postProcessing,
-        handleApplyReasoningPreset,
-        handleStartReplyWithChange,
-        handleReasoningToggle,
-        handleAPIReasoningToggle,
-        handleReasoningEffortChange,
-        handlePostProcessingChange,
-        REASONING_EFFORT_LEVELS,
-        POST_PROCESSING_OPTIONS
-    } = useChatPresetSettings();
 
     const sovereignEnabled = sovereignHand.enabled ?? false;
     const htmlTagsEnabled = contextFilters.htmlTags?.enabled ?? false;
@@ -403,33 +385,6 @@ function PromptSettings() {
                             </div>
                         )}
                 </div>
-            </CollapsibleSection>
-
-            {/* Reasoning / Chain of Thought Section */}
-            <CollapsibleSection
-                Icon={Brain}
-                title="Reasoning / CoT"
-                status={reasoningSettings?.auto_parse || apiReasoning.enabled}
-                defaultOpen={false}
-            >
-                <p className="lumiverse-vp-settings-desc">
-                    Configure reasoning/chain-of-thought settings for AI models. Changes sync with the Chat Presets modal.
-                </p>
-                <ReasoningSettingsContent
-                    reasoningSettings={reasoningSettings}
-                    startReplyWith={startReplyWith}
-                    apiReasoning={apiReasoning}
-                    postProcessing={postProcessing}
-                    onApplyReasoningPreset={handleApplyReasoningPreset}
-                    onStartReplyWithChange={handleStartReplyWithChange}
-                    onReasoningToggle={handleReasoningToggle}
-                    onAPIReasoningToggle={handleAPIReasoningToggle}
-                    onReasoningEffortChange={handleReasoningEffortChange}
-                    onPostProcessingChange={handlePostProcessingChange}
-                    effortLevels={REASONING_EFFORT_LEVELS}
-                    postProcessingOptions={POST_PROCESSING_OPTIONS}
-                    compact={true}
-                />
             </CollapsibleSection>
 
             {/* Sovereign Hand Section */}

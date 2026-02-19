@@ -332,7 +332,7 @@ export function getProviderDefaults(provider) {
  * @param {string} secretKey - The secret key identifier
  * @returns {Promise<string|null>} The API key or null if not found
  */
-async function fetchSecretKey(secretKey) {
+export async function fetchSecretKey(secretKey) {
   if (!secretKey) return null;
 
   try {

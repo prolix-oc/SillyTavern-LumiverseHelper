@@ -9756,6 +9756,428 @@ details.lumia-panel[open] .lumia-panel-chevron {
 }
 
 /* ========================================
+   Council Tools UI
+   Tool toggle, tool selector, tool tags, LLM config
+   ======================================== */
+
+/* Tools toggle container */
+.lumiverse-council-tools-toggle {
+    padding: 10px 12px;
+    background: rgba(30, 30, 46, 0.5);
+    border: 1px solid var(--lumiverse-border);
+    border-radius: 10px;
+}
+
+.lumiverse-council-tools-label {
+    gap: 8px;
+}
+
+.lumiverse-council-tools-label .lumiverse-council-mode-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.lumiverse-council-tools-desc {
+    margin: 8px 0 0;
+    font-size: 11px;
+    color: var(--lumiverse-text-dim);
+    line-height: 1.5;
+}
+
+/* Tool stat highlight in member card header */
+.lumiverse-council-stat--tools {
+    color: var(--lumiverse-primary);
+}
+
+.lumiverse-council-stat--tools svg {
+    opacity: 1;
+}
+
+/* Tools section inside expanded member body */
+.lumiverse-council-tools-section {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.lumiverse-council-tools-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.lumiverse-council-tools-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--lumiverse-text-muted);
+}
+
+.lumiverse-council-btn--small {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    min-height: 28px;
+    background: rgba(147, 112, 219, 0.12);
+    border: 1px solid rgba(147, 112, 219, 0.2);
+    border-radius: 6px;
+    color: var(--lumiverse-primary);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    touch-action: manipulation;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.lumiverse-council-btn--small:hover {
+    background: rgba(147, 112, 219, 0.2);
+    border-color: rgba(147, 112, 219, 0.35);
+}
+
+/* Tool tags row */
+.lumiverse-council-tools-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.lumiverse-council-tool-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    background: rgba(147, 112, 219, 0.1);
+    border: 1px solid rgba(147, 112, 219, 0.2);
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--lumiverse-primary-text);
+    line-height: 1.3;
+}
+
+.lumiverse-council-tools-empty {
+    font-size: 11px;
+    color: var(--lumiverse-text-dim);
+    line-height: 1.5;
+    font-style: italic;
+}
+
+/* Tool selector dropdown */
+.lumiverse-council-tool-selector {
+    margin-top: 8px;
+    background: rgba(20, 20, 36, 0.6);
+    border: 1px solid var(--lumiverse-border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.lumiverse-council-tool-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--lumiverse-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.lumiverse-council-tool-list {
+    padding: 4px 0;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.lumiverse-council-tool-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 10px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.lumiverse-council-tool-item:hover {
+    background: rgba(147, 112, 219, 0.06);
+}
+
+.lumiverse-council-tool-item input[type="checkbox"] {
+    margin-top: 2px;
+    accent-color: var(--lumiverse-primary);
+    flex-shrink: 0;
+}
+
+.lumiverse-council-tool-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.lumiverse-council-tool-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--lumiverse-text);
+}
+
+.lumiverse-council-tool-desc {
+    font-size: 10px;
+    color: var(--lumiverse-text-dim);
+    line-height: 1.4;
+}
+
+/* ========================================
+   Council Tools LLM Configuration
+   Provider/model/params panel inside tools toggle
+   ======================================== */
+
+.lumiverse-council-llm-config {
+    margin-top: 12px;
+    padding: 12px;
+    background: rgba(20, 20, 36, 0.5);
+    border: 1px solid rgba(147, 112, 219, 0.1);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.lumiverse-council-llm-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--lumiverse-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.lumiverse-council-llm-header svg {
+    color: var(--lumiverse-primary);
+    opacity: 0.8;
+}
+
+.lumiverse-council-llm-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.lumiverse-council-llm-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--lumiverse-text-muted);
+}
+
+.lumiverse-council-llm-hint {
+    font-size: 10px;
+    color: var(--lumiverse-text-dim);
+    font-style: italic;
+}
+
+.lumiverse-council-llm-select {
+    width: 100%;
+    padding: 7px 10px;
+    background: var(--lumiverse-bg);
+    border: 1px solid var(--lumiverse-border);
+    border-radius: 6px;
+    color: var(--lumiverse-text);
+    font-size: 12px;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    padding-right: 28px;
+}
+
+.lumiverse-council-llm-select:focus {
+    outline: none;
+    border-color: var(--lumiverse-primary);
+}
+
+.lumiverse-council-llm-select option {
+    background: #1c1828;
+    color: var(--lumiverse-text);
+}
+
+.lumiverse-council-llm-input {
+    width: 100%;
+    padding: 7px 10px;
+    background: var(--lumiverse-bg);
+    border: 1px solid var(--lumiverse-border);
+    border-radius: 6px;
+    color: var(--lumiverse-text);
+    font-size: 12px;
+    transition: border-color 0.2s ease;
+    box-sizing: border-box;
+}
+
+.lumiverse-council-llm-input:focus {
+    outline: none;
+    border-color: var(--lumiverse-primary);
+}
+
+.lumiverse-council-llm-input::placeholder {
+    color: var(--lumiverse-text-dim);
+}
+
+.lumiverse-council-llm-password-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.lumiverse-council-llm-password-row .lumiverse-council-llm-input {
+    flex: 1;
+    min-width: 0;
+}
+
+.lumiverse-council-llm-password-row .lumiverse-council-btn {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+}
+
+/* Parameter row (Temp / Top-P / Max Tokens) */
+.lumiverse-council-llm-params {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+}
+
+.lumiverse-council-llm-param {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.lumiverse-council-llm-input--num {
+    text-align: center;
+    padding: 6px 4px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Number input spinner removal for cleaner look */
+.lumiverse-council-llm-input--num::-webkit-inner-spin-button,
+.lumiverse-council-llm-input--num::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.lumiverse-council-llm-input--num[type=number] {
+    -moz-appearance: textfield;
+}
+
+/* ========================================
+   Council Tools Mode Selector
+   Segmented control for Sidecar vs Inline mode
+   ======================================== */
+
+.lumiverse-council-tools-mode {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-bottom: 8px;
+}
+
+.lumiverse-council-mode-selector {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--lumiverse-border);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--lumiverse-bg);
+}
+
+.lumiverse-council-mode-option {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 8px 12px;
+    background: transparent;
+    border: none;
+    color: var(--lumiverse-text-muted);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.lumiverse-council-mode-option:first-child {
+    border-right: 1px solid var(--lumiverse-border);
+}
+
+.lumiverse-council-mode-option:hover:not(.lumiverse-council-mode-option--disabled) {
+    color: var(--lumiverse-text);
+    background: rgba(147, 112, 219, 0.06);
+}
+
+.lumiverse-council-mode-option--active {
+    color: var(--lumiverse-text) !important;
+    background: rgba(147, 112, 219, 0.15) !important;
+}
+
+.lumiverse-council-mode-option--active svg {
+    color: var(--lumiverse-primary);
+}
+
+.lumiverse-council-mode-option--disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.lumiverse-council-mode-desc-text {
+    font-size: 10px;
+    color: var(--lumiverse-text-dim);
+    line-height: 1.4;
+    margin: 0;
+}
+
+.lumiverse-council-mode-warning {
+    font-size: 10px;
+    color: #d4a574;
+    line-height: 1.4;
+    margin: 0;
+    padding: 6px 8px;
+    background: rgba(212, 165, 116, 0.08);
+    border: 1px solid rgba(212, 165, 116, 0.15);
+    border-radius: 6px;
+}
+
+/* Inline mode info panel */
+.lumiverse-council-inline-info {
+    padding: 10px;
+    background: rgba(147, 112, 219, 0.05);
+    border: 1px solid rgba(147, 112, 219, 0.1);
+    border-radius: 6px;
+}
+
+.lumiverse-council-inline-info p {
+    font-size: 11px;
+    color: var(--lumiverse-text-muted);
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* ========================================
    Council Select Modal
    Mobile-friendly modal for selecting council members
    ======================================== */

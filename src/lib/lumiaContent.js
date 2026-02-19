@@ -12,6 +12,12 @@ import {
 import { getItemFromLibrary } from "./dataProcessor.js";
 import { getContext } from "../stContext.js";
 import { toLeetSpeak } from "../sthelpers/stringUtils.js";
+import {
+  getLatestToolResults,
+  formatToolResultsForDeliberation,
+  getCouncilDeliberationInstructions,
+  areCouncilToolsEnabled,
+} from "./councilTools.js";
 
 // Track the last AI message index to detect swipe/regenerate vs new generation
 // When macro expands, if chat ends at this same index, we're regenerating (not adding new)
@@ -1542,6 +1548,64 @@ Assess each active personality component. Affirm synthesis: My body is [details,
     returns: "Appropriate prompt or empty string",
     returnType: "string",
     exampleUsage: ["{{lumiaStateSynthesis}}"],
+  });
+
+  // ============================================
+  // Council Tools Macros
+  // ============================================
+
+  // ============================================
+  // lumiaCouncilDeliberation macro - Returns tool results and deliberation instructions
+  // Only returns content when council tools are enabled and have results
+  // ============================================
+  MacrosParser.registerMacro("lumiaCouncilDeliberation", {
+    delayArgResolution: true,
+    handler: ({ resolve }) => {
+      const currentSettings = getSettings();
+      
+      // Only return content if council mode and tools are enabled
+      if (!areCouncilToolsEnabled()) {
+        return "";
+      }
+
+      // Get the latest tool results
+      const results = getLatestToolResults();
+      
+      if (!results || results.length === 0) {
+        return "";
+      }
+
+      console.log(`[LumiverseHelper] lumiaCouncilDeliberation: Formatting ${results.length} tool results`);
+
+      // Format results and add deliberation instructions
+      const formattedResults = formatToolResultsForDeliberation(results);
+      const instructions = getCouncilDeliberationInstructions();
+      
+      const result = `${formattedResults}\n\n${instructions}`;
+      
+      // Resolve any nested macros
+      return resolve ? resolve(result) : result;
+    },
+    description: "Returns council tool execution results and deliberation instructions. Empty when council tools are disabled or have no results.",
+    returns: "Formatted tool results with deliberation instructions",
+    returnType: "string",
+    exampleUsage: ["{{lumiaCouncilDeliberation}}"],
+  });
+
+  // ============================================
+  // lumiaCouncilToolsActive macro - Council tools status indicator
+  // Returns "yes" or "no" for conditional use
+  // ============================================
+  MacrosParser.registerMacro("lumiaCouncilToolsActive", {
+    handler: () => {
+      const isActive = areCouncilToolsEnabled();
+      console.log(`[LumiverseHelper] lumiaCouncilToolsActive: ${isActive ? 'yes' : 'no'}`);
+      return isActive ? "yes" : "no";
+    },
+    description: "Returns Council Tools status indicator. 'yes' if council mode and tools are enabled with members, 'no' otherwise. ST Conditional Compatible.",
+    returns: "'yes' if enabled, 'no' if disabled",
+    returnType: "string",
+    exampleUsage: ["{{lumiaCouncilToolsActive}}"],
   });
 }
 

@@ -404,6 +404,54 @@ export async function getExtensionGitVersion(extensionName) {
 
 
 /**
+ * Get the ToolManager class for ST-native tool calling integration.
+ * Provides registerFunctionTool, unregisterFunctionTool, invokeFunctionTool,
+ * isToolCallingSupported, canPerformToolCalls.
+ * @returns {Object|null} ToolManager class or null if not available
+ */
+export function getToolManager() {
+  const ctx = getContext();
+  return ctx?.ToolManager || null;
+}
+
+/**
+ * Register a function tool with ST's ToolManager.
+ * Convenience wrapper around ToolManager.registerFunctionTool.
+ * @param {Object} toolDef - Tool definition { name, displayName, description, parameters, action, stealth, shouldRegister, formatMessage }
+ */
+export function registerFunctionTool(toolDef) {
+  const ctx = getContext();
+  if (ctx?.registerFunctionTool) {
+    ctx.registerFunctionTool(toolDef);
+  } else {
+    console.warn("[LumiverseHelper] registerFunctionTool not available on context");
+  }
+}
+
+/**
+ * Unregister a function tool from ST's ToolManager.
+ * @param {string} name - The tool name to unregister
+ */
+export function unregisterFunctionTool(name) {
+  const ctx = getContext();
+  if (ctx?.unregisterFunctionTool) {
+    ctx.unregisterFunctionTool(name);
+  } else {
+    console.warn("[LumiverseHelper] unregisterFunctionTool not available on context");
+  }
+}
+
+/**
+ * Check if tool calling is supported in the current ST configuration.
+ * Requires main_api === 'openai' and settings.function_calling enabled.
+ * @returns {boolean} Whether tool calling is supported
+ */
+export function isToolCallingSupported() {
+  const ctx = getContext();
+  return ctx?.isToolCallingSupported?.() || false;
+}
+
+/**
  * Get the generateRaw function for direct LLM calls.
  * @returns {Function|null} generateRaw function
  */
