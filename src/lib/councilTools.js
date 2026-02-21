@@ -12,7 +12,7 @@
  */
 
 import { getSettings, MODULE_NAME } from "./settingsManager.js";
-import { getContext, registerFunctionTool, unregisterFunctionTool, isToolCallingSupported } from "../stContext.js";
+import { getContext, getUserPersona, getCharacterCardInfo, registerFunctionTool, unregisterFunctionTool, isToolCallingSupported } from "../stContext.js";
 import { getItemFromLibrary } from "./dataProcessor.js";
 import { getLumiaField } from "./lumiaContent.js";
 import { getProviderConfig, fetchSecretKey } from "./summarization.js";
@@ -28,6 +28,37 @@ const ST_TOOL_PREFIX = "lumiverse_council_";
 
 // Track which tools are currently registered with ST's ToolManager
 let registeredSTTools = new Set();
+
+// Storage for captured world info entries — refreshed each generation cycle
+let capturedWorldInfoEntries = [];
+
+/**
+ * Capture activated world info entries from the WORLD_INFO_ACTIVATED event.
+ * Stores only the text content (no metadata) to minimize token usage.
+ * @param {Array} entries - Array of activated WI entry objects
+ */
+export function captureWorldInfoEntries(entries) {
+  if (!Array.isArray(entries)) return;
+  capturedWorldInfoEntries = entries
+    .filter(e => e.content && e.content.trim())
+    .map(e => e.content.trim());
+  console.log(`[${MODULE_NAME}] Captured ${capturedWorldInfoEntries.length} world info entries for tool context enrichment`);
+}
+
+/**
+ * Get the currently captured world info entry texts.
+ * @returns {Array<string>} Array of entry content strings
+ */
+export function getCapturedWorldInfoEntries() {
+  return [...capturedWorldInfoEntries];
+}
+
+/**
+ * Clear captured world info entries. Called at the start of each generation cycle.
+ */
+export function clearWorldInfoEntries() {
+  capturedWorldInfoEntries = [];
+}
 
 // Tool definitions with prompts and JSON schemas for each tool type
 const COUNCIL_TOOLS = {
@@ -551,6 +582,58 @@ function buildContextText(chatContext) {
 }
 
 /**
+ * Build optional context enrichment text based on councilTools settings.
+ * Gathers user persona, character card info, and/or captured world book entries
+ * into a formatted block for injection into sidecar tool prompts.
+ * @returns {string} Formatted enrichment context block, or empty string if nothing enabled/available
+ */
+function buildEnrichmentContext() {
+  const settings = getSettings();
+  const ct = settings.councilTools || {};
+  const sections = [];
+
+  // User persona
+  if (ct.includeUserPersona) {
+    const persona = getUserPersona();
+    if (persona && persona.persona) {
+      sections.push(
+        `### User Persona ###\nName: ${persona.name}\n${persona.persona}`
+      );
+    }
+  }
+
+  // Character description / personality
+  if (ct.includeCharacterInfo) {
+    const charInfo = getCharacterCardInfo();
+    if (charInfo) {
+      const parts = [];
+      if (charInfo.description) parts.push(`Description: ${charInfo.description}`);
+      if (charInfo.personality) parts.push(`Personality: ${charInfo.personality}`);
+      if (charInfo.scenario) parts.push(`Scenario: ${charInfo.scenario}`);
+      if (parts.length > 0) {
+        sections.push(
+          `### Character Card: ${charInfo.name} ###\n${parts.join("\n\n")}`
+        );
+      }
+    }
+  }
+
+  // Triggered world book entries
+  if (ct.includeWorldInfo) {
+    const entries = getCapturedWorldInfoEntries();
+    if (entries.length > 0) {
+      sections.push(
+        `### Active World Book Entries ###\n${entries.join("\n\n---\n\n")}`
+      );
+    }
+  }
+
+  if (sections.length === 0) return "";
+
+  return `### Context Enrichment ###\n\n${sections.join("\n\n")}`;
+}
+
+/**
  * Build Anthropic-format tools array from council tool names
  * @param {Array<string>} toolNames - Array of tool names to include
  * @returns {Array} Anthropic tools array
@@ -632,9 +715,10 @@ async function resolveProviderConfig() {
  * @param {string} apiKey - API key
  * @param {Object} secondary - Secondary LLM settings
  * @param {string} endpoint - API endpoint
+ * @param {string} [enrichmentText=''] - Optional context enrichment block
  * @returns {Promise<Array>} Array of tool results for this member
  */
-async function executeToolsForMemberAnthropic(member, memberTools, contextText, apiKey, secondary, endpoint) {
+async function executeToolsForMemberAnthropic(member, memberTools, contextText, apiKey, secondary, endpoint, enrichmentText = '') {
   const item = getItemFromLibrary(member.packName, member.itemName);
   const memberName = getLumiaField(item, "name") || member.itemName || "Unknown";
   const roleDescriptor = buildRoleDescriptor(member);
@@ -657,7 +741,7 @@ async function executeToolsForMemberAnthropic(member, memberTools, contextText, 
 
 ${lumiaContext ? lumiaContext + "\n\n" : ""}${roleDescriptor ? roleDescriptor + "\n\n" : ""}You have the following tools available:
 ${toolDescriptions}
-
+${enrichmentText ? "\n" + enrichmentText + "\n" : ""}
 ### Current Story Context ###
 
 ${contextText}
@@ -749,9 +833,10 @@ Review the story context above and use ALL of your assigned tools to provide you
  * @param {Object} secondary - Secondary LLM settings
  * @param {string} endpoint - API endpoint
  * @param {string} provider - Provider name (for extra headers)
+ * @param {string} [enrichmentText=''] - Optional context enrichment block
  * @returns {Promise<Array>} Array of tool results for this member
  */
-async function executeToolsForMemberOpenAI(member, memberTools, contextText, apiKey, secondary, endpoint, provider) {
+async function executeToolsForMemberOpenAI(member, memberTools, contextText, apiKey, secondary, endpoint, provider, enrichmentText = '') {
   const item = getItemFromLibrary(member.packName, member.itemName);
   const memberName = getLumiaField(item, "name") || member.itemName || "Unknown";
   const roleDescriptor = buildRoleDescriptor(member);
@@ -773,7 +858,7 @@ async function executeToolsForMemberOpenAI(member, memberTools, contextText, api
 
 ${lumiaContext ? lumiaContext + "\n\n" : ""}${roleDescriptor ? roleDescriptor + "\n\n" : ""}You have the following tools available:
 ${toolDescriptions}
-
+${enrichmentText ? "\n" + enrichmentText + "\n" : ""}
 ### Current Story Context ###
 
 ${contextText}
@@ -874,9 +959,10 @@ Review the story context above and use your assigned tools to provide your contr
  * @param {string} apiKey - API key
  * @param {Object} secondary - Secondary LLM settings
  * @param {string} baseEndpoint - Base API endpoint
+ * @param {string} [enrichmentText=''] - Optional context enrichment block
  * @returns {Promise<Array>} Array of tool results for this member
  */
-async function executeToolsForMemberGoogle(member, memberTools, contextText, apiKey, secondary, baseEndpoint) {
+async function executeToolsForMemberGoogle(member, memberTools, contextText, apiKey, secondary, baseEndpoint, enrichmentText = '') {
   const item = getItemFromLibrary(member.packName, member.itemName);
   const memberName = getLumiaField(item, "name") || member.itemName || "Unknown";
   const roleDescriptor = buildRoleDescriptor(member);
@@ -900,7 +986,7 @@ async function executeToolsForMemberGoogle(member, memberTools, contextText, api
 
   const fullPrompt = `You are ${memberName}, a council member contributing to collaborative story direction. Be concise and specific.
 
-${lumiaContext ? lumiaContext + "\n\n" : ""}${roleDescriptor ? roleDescriptor + "\n\n" : ""}### Current Story Context ###
+${lumiaContext ? lumiaContext + "\n\n" : ""}${roleDescriptor ? roleDescriptor + "\n\n" : ""}${enrichmentText ? enrichmentText + "\n\n" : ""}### Current Story Context ###
 
 ${contextText}
 
@@ -1000,9 +1086,10 @@ function formatToolInput(input, toolDef) {
  * @param {Array<string>} memberTools - Tool names assigned to this member
  * @param {string} contextText - Formatted chat context
  * @param {Object} providerInfo - Resolved provider config
+ * @param {string} [enrichmentText=''] - Optional context enrichment block
  * @returns {Promise<Array>} Array of tool results
  */
-async function executeToolsForMember(member, memberTools, contextText, providerInfo) {
+async function executeToolsForMember(member, memberTools, contextText, providerInfo, enrichmentText = '') {
   const { apiKey, providerConfig, secondary, provider } = providerInfo;
   const endpoint = provider === "custom" ? secondary.endpoint : providerConfig.endpoint;
 
@@ -1012,12 +1099,12 @@ async function executeToolsForMember(member, memberTools, contextText, providerI
 
   try {
     if (providerConfig.format === "anthropic") {
-      return await executeToolsForMemberAnthropic(member, memberTools, contextText, apiKey, secondary, endpoint);
+      return await executeToolsForMemberAnthropic(member, memberTools, contextText, apiKey, secondary, endpoint, enrichmentText);
     } else if (providerConfig.format === "google") {
-      return await executeToolsForMemberGoogle(member, memberTools, contextText, apiKey, secondary, endpoint);
+      return await executeToolsForMemberGoogle(member, memberTools, contextText, apiKey, secondary, endpoint, enrichmentText);
     } else {
       // OpenAI-compatible (openai, openrouter, chutes, electronhub, nanogpt, zai, custom)
-      return await executeToolsForMemberOpenAI(member, memberTools, contextText, apiKey, secondary, endpoint, provider);
+      return await executeToolsForMemberOpenAI(member, memberTools, contextText, apiKey, secondary, endpoint, provider, enrichmentText);
     }
   } catch (error) {
     const item = getItemFromLibrary(member.packName, member.itemName);
@@ -1097,6 +1184,7 @@ export async function executeAllCouncilTools() {
     }
 
     const contextText = buildContextText(chatContext);
+    const enrichmentText = buildEnrichmentContext();
 
     // Filter members that have tools assigned
     const membersWithTools = councilMembers.filter(
@@ -1113,7 +1201,7 @@ export async function executeAllCouncilTools() {
     // Execute all members in parallel - each member is one API call
     // Wrap each execution to track visual progress
     const memberPromises = membersWithTools.map(async (member) => {
-      const results = await executeToolsForMember(member, member.tools, contextText, providerInfo);
+      const results = await executeToolsForMember(member, member.tools, contextText, providerInfo, enrichmentText);
       // Add member to visual indicator when their tools complete
       addMemberToIndicator(member);
       return results;

@@ -128,6 +128,9 @@ const initialState = {
         enabled: false,        // When true, council members execute tools before generation
         mode: 'sidecar',      // 'sidecar' = direct fetch with dedicated LLM, 'inline' = ST ToolManager with main model
         timeoutMs: 30000,      // Max time to wait for all tool executions
+        includeUserPersona: false,   // Include user persona in sidecar tool context
+        includeCharacterInfo: false,  // Include character description/personality in sidecar tool context
+        includeWorldInfo: false,      // Include triggered world book entries in sidecar tool context
         llm: {
             provider: 'anthropic',
             model: '',
@@ -1156,6 +1159,39 @@ const actions = {
         const state = store.getState();
         store.setState({
             councilTools: { ...state.councilTools, sidecarContextWindow },
+        });
+    },
+
+    /**
+     * Set whether to include user persona in sidecar tool context
+     * @param {boolean} include
+     */
+    setCouncilToolsIncludeUserPersona: (include) => {
+        const state = store.getState();
+        store.setState({
+            councilTools: { ...state.councilTools, includeUserPersona: include },
+        });
+    },
+
+    /**
+     * Set whether to include character description/personality in sidecar tool context
+     * @param {boolean} include
+     */
+    setCouncilToolsIncludeCharacterInfo: (include) => {
+        const state = store.getState();
+        store.setState({
+            councilTools: { ...state.councilTools, includeCharacterInfo: include },
+        });
+    },
+
+    /**
+     * Set whether to include triggered world book entries in sidecar tool context
+     * @param {boolean} include
+     */
+    setCouncilToolsIncludeWorldInfo: (include) => {
+        const state = store.getState();
+        store.setState({
+            councilTools: { ...state.councilTools, includeWorldInfo: include },
         });
     },
 

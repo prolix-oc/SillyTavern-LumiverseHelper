@@ -496,3 +496,42 @@ export function getChat() {
   return ctx?.chat || [];
 }
 
+/**
+ * Get the user's persona name and description text.
+ * Uses getCharacterCardFields() which returns the processed persona
+ * from User Settings > Persona Description.
+ * @returns {{ name: string, persona: string } | null} User persona info, or null if unavailable
+ */
+export function getUserPersona() {
+  const ctx = getContext();
+  if (!ctx) return null;
+
+  const name = ctx.name1 || "User";
+  const persona = ctx.getCharacterCardFields?.()?.persona;
+  if (!persona) return null;
+
+  return { name, persona };
+}
+
+/**
+ * Get key fields from the current character card.
+ * Pulls description, personality, and scenario from the active character.
+ * @returns {{ name: string, description: string, personality: string, scenario: string } | null} Character info, or null if no character selected
+ */
+export function getCharacterCardInfo() {
+  const ctx = getContext();
+  if (!ctx || ctx.characterId === undefined) return null;
+
+  const char = ctx.characters?.[ctx.characterId];
+  if (!char) return null;
+
+  const name = char.name || ctx.name2 || "Character";
+  const description = char.description || char.data?.description || "";
+  const personality = char.personality || char.data?.personality || "";
+  const scenario = char.scenario || char.data?.scenario || "";
+
+  if (!description && !personality && !scenario) return null;
+
+  return { name, description, personality, scenario };
+}
+

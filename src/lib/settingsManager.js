@@ -88,6 +88,9 @@ const DEFAULT_SETTINGS = {
     mode: "sidecar", // "sidecar" = direct fetch with dedicated LLM, "inline" = ST ToolManager with main model
     timeoutMs: 30000, // Max time to wait for all tool executions
     sidecarContextWindow: 25, // Number of chat messages to include in sidecar mode context (default: 25)
+    includeUserPersona: false, // Include user persona description in sidecar tool context
+    includeCharacterInfo: false, // Include character description/personality in sidecar tool context
+    includeWorldInfo: false, // Include triggered world book entries in sidecar tool context
     llm: {
       provider: "anthropic",
       model: "",
@@ -618,6 +621,16 @@ export function migrateSettings() {
   }
   if (!settings.councilTools.llm.maxTokens || settings.councilTools.llm.maxTokens < 256) {
     settings.councilTools.llm.maxTokens = 4096;
+  }
+  // Ensure context enrichment toggles exist
+  if (settings.councilTools.includeUserPersona === undefined) {
+    settings.councilTools.includeUserPersona = false;
+  }
+  if (settings.councilTools.includeCharacterInfo === undefined) {
+    settings.councilTools.includeCharacterInfo = false;
+  }
+  if (settings.councilTools.includeWorldInfo === undefined) {
+    settings.councilTools.includeWorldInfo = false;
   }
 
   // Ensure council members have tools array

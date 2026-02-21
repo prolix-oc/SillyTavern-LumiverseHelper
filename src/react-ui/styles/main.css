@@ -10134,6 +10134,38 @@ details.lumia-panel[open] .lumia-panel-chevron {
 }
 
 /* ========================================
+   Context Enrichment Toggles
+   Checkboxes for user persona, character info, world book
+   ======================================== */
+
+.lumiverse-council-enrichment-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-bottom: 8px;
+}
+
+.lumiverse-council-enrichment-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--lumiverse-text-secondary, rgba(255, 255, 255, 0.7));
+    cursor: pointer;
+    padding: 2px 0;
+}
+
+.lumiverse-council-enrichment-toggle input[type="checkbox"] {
+    accent-color: var(--lumiverse-primary);
+    cursor: pointer;
+    margin: 0;
+}
+
+.lumiverse-council-enrichment-toggle span {
+    user-select: none;
+}
+
+/* ========================================
    Council Select Modal
    Mobile-friendly modal for selecting council members
    ======================================== */

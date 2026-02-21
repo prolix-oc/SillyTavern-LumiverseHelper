@@ -57,7 +57,8 @@ import {
 import {
   executeAllCouncilTools, clearToolResults, areCouncilToolsEnabled,
   getCouncilToolsMode, registerSTTools, unregisterSTTools,
-  isGenerationCycleActive, markGenerationCycleStart, markGenerationCycleEnd } from "./lib/councilTools.js";
+  isGenerationCycleActive, markGenerationCycleStart, markGenerationCycleEnd,
+  captureWorldInfoEntries, clearWorldInfoEntries } from "./lib/councilTools.js";
 import { resetIndicator } from "./lib/councilVisuals.js";
 
 import {
@@ -278,6 +279,7 @@ globalThis.lumiverseHelperGenInterceptor = async function (chat, contextSize, ab
     markGenerationCycleStart();
     resetRandomLumia();
     clearToolResults();
+    clearWorldInfoEntries();
     resetIndicator();
   } else {
     console.log(`[${MODULE_NAME}] Recursive interceptor call detected — preserving tool results`);
@@ -741,6 +743,14 @@ jQuery(async () => {
       // Reset generation cycle flag so next generation starts fresh
       markGenerationCycleEnd();
     });
+
+    // World Info capture for council tools context enrichment
+    if (event_types.WORLD_INFO_ACTIVATED) {
+      eventSource.on(event_types.WORLD_INFO_ACTIVATED, (entries) => {
+        captureWorldInfoEntries(entries);
+      });
+      console.log(`[${MODULE_NAME}] Subscribed to WORLD_INFO_ACTIVATED for council tools enrichment`);
+    }
   }
 
   // Set up MutationObserver for streaming support

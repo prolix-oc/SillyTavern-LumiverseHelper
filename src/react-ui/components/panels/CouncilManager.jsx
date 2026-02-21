@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useSyncExternalStore, useCallback, useRef } from 'react';
 import clsx from 'clsx';
-import { Users, Plus, Trash2, ChevronDown, ChevronUp, Edit2, X, Check, Zap, Heart, Star, Package, Briefcase, Cpu, Eye, EyeOff, Radio, Plug } from 'lucide-react';
+import { Users, Plus, Trash2, ChevronDown, ChevronUp, Edit2, X, Check, Zap, Heart, Star, Package, Briefcase, Cpu, Eye, EyeOff, Radio, Plug, BookOpen } from 'lucide-react';
 import { useLumiverseStore, useLumiverseActions, usePacks, saveToExtension, saveToExtensionImmediate } from '../../store/LumiverseContext';
 import { getToolsForUI, isInlineModeAvailable } from '../../../lib/councilTools';
 
@@ -717,6 +717,21 @@ function CouncilToolsConfig() {
         }
     }, [actions]);
 
+    const handleToggleUserPersona = useCallback((checked) => {
+        actions.setCouncilToolsIncludeUserPersona(checked);
+        saveToExtension();
+    }, [actions]);
+
+    const handleToggleCharacterInfo = useCallback((checked) => {
+        actions.setCouncilToolsIncludeCharacterInfo(checked);
+        saveToExtension();
+    }, [actions]);
+
+    const handleToggleWorldInfo = useCallback((checked) => {
+        actions.setCouncilToolsIncludeWorldInfo(checked);
+        saveToExtension();
+    }, [actions]);
+
     const providerConfig = COUNCIL_PROVIDER_CONFIG[llm.provider] || COUNCIL_PROVIDER_CONFIG.custom;
     const isCustom = llm.provider === 'custom';
 
@@ -781,6 +796,43 @@ function CouncilToolsConfig() {
                         step={1}
                     />
                     <span className="lumiverse-council-llm-hint">Number of recent chat messages to include in council tool context (5-100)</span>
+                </div>
+            )}
+
+            {/* Context Enrichment — only shown in sidecar mode */}
+            {mode === 'sidecar' && (
+                <div className="lumiverse-council-enrichment-section">
+                    <div className="lumiverse-council-llm-header">
+                        <BookOpen size={14} strokeWidth={1.5} />
+                        <span>Context Enrichment</span>
+                    </div>
+                    <span className="lumiverse-council-llm-hint">
+                        Embed additional context into sidecar tool prompts. Increases token usage per tool call.
+                    </span>
+                    <label className="lumiverse-council-enrichment-toggle">
+                        <input
+                            type="checkbox"
+                            checked={councilTools.includeUserPersona || false}
+                            onChange={(e) => handleToggleUserPersona(e.target.checked)}
+                        />
+                        <span>User Persona</span>
+                    </label>
+                    <label className="lumiverse-council-enrichment-toggle">
+                        <input
+                            type="checkbox"
+                            checked={councilTools.includeCharacterInfo || false}
+                            onChange={(e) => handleToggleCharacterInfo(e.target.checked)}
+                        />
+                        <span>Character Description &amp; Personality</span>
+                    </label>
+                    <label className="lumiverse-council-enrichment-toggle">
+                        <input
+                            type="checkbox"
+                            checked={councilTools.includeWorldInfo || false}
+                            onChange={(e) => handleToggleWorldInfo(e.target.checked)}
+                        />
+                        <span>Active World Book Entries</span>
+                    </label>
                 </div>
             )}
 
