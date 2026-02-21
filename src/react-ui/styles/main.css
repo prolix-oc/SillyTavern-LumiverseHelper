@@ -6660,48 +6660,6 @@ details.lumia-panel[open] .lumia-panel-chevron {
 }
 
 /* ----------------------------------------
-   Standalone Drawer Tab Container
-   Fixed position container outside sliding wrapper
-   Ensures tab is always accessible when panel is closed
-   ---------------------------------------- */
-
-.lumiverse-drawer-tab-standalone {
-    /* Fixed positioning relative to viewport */
-    position: fixed;
-    top: 0;
-    height: 100vh;
-    height: 100dvh;
-    z-index: 9999;
-
-    /* Flex container to position tab with margin */
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: flex-start;
-
-    /* Container doesn't capture events - tab does */
-    pointer-events: none;
-}
-
-/* Position on right side (default) */
-.lumiverse-drawer-tab-standalone:not(.lumiverse-drawer-tab-standalone--left) {
-    right: 0;
-    align-items: flex-end;
-}
-
-/* Position on left side */
-.lumiverse-drawer-tab-standalone--left {
-    left: 0;
-    align-items: flex-start;
-}
-
-/* Tab positioning within standalone container */
-.lumiverse-drawer-tab-standalone .lumiverse-drawer-tab {
-    margin-top: 15vh; /* Matches verticalPosition default */
-    pointer-events: auto; /* Re-enable events on the tab */
-}
-
-/* ----------------------------------------
    Compact Drawer Tab Variant
    Smaller, minimal drawer tab option
    ---------------------------------------- */
@@ -8743,7 +8701,8 @@ details.lumia-panel[open] .lumia-panel-chevron {
 .lumiverse-viewport-wrapper:not(.lumiverse-viewport-wrapper--visible) .lumiverse-vp-tabs,
 .lumiverse-viewport-wrapper:not(.lumiverse-viewport-wrapper--visible) .lumiverse-vp-main {
     pointer-events: none !important;
-    visibility: hidden; /* Also hide visually since they're off-screen anyway */
+    /* No visibility: hidden here - the transform keeps content off-screen,
+       and toggling visibility causes background pop-in during slide animation */
 }
 
 /* Drawer tab MUST remain interactive regardless of panel state */
@@ -8751,8 +8710,6 @@ details.lumia-panel[open] .lumia-panel-chevron {
     pointer-events: auto !important;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
-    /* Ensure tab is always visible even when other panel parts are hidden */
-    visibility: visible !important;
 }
 
 /* When panel IS visible, restore normal pointer events */
@@ -8763,7 +8720,6 @@ details.lumia-panel[open] .lumia-panel-chevron {
 .lumiverse-viewport-wrapper--visible .lumiverse-vp-tabs,
 .lumiverse-viewport-wrapper--visible .lumiverse-vp-main {
     pointer-events: auto;
-    visibility: visible;
 }
 
 /* Mobile-specific enhancements */
