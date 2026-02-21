@@ -91,6 +91,7 @@ const DEFAULT_SETTINGS = {
     includeUserPersona: false, // Include user persona description in sidecar tool context
     includeCharacterInfo: false, // Include character description/personality in sidecar tool context
     includeWorldInfo: false, // Include triggered world book entries in sidecar tool context
+    allowUserControl: false, // When true, tools can plan/speak for the user's character; when false, focus on NPCs only
     llm: {
       provider: "anthropic",
       model: "",

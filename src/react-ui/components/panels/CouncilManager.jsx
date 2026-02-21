@@ -732,6 +732,11 @@ function CouncilToolsConfig() {
         saveToExtension();
     }, [actions]);
 
+    const handleToggleAllowUserControl = useCallback((checked) => {
+        actions.setCouncilToolsAllowUserControl(checked);
+        saveToExtension();
+    }, [actions]);
+
     const providerConfig = COUNCIL_PROVIDER_CONFIG[llm.provider] || COUNCIL_PROVIDER_CONFIG.custom;
     const isCustom = llm.provider === 'custom';
 
@@ -835,6 +840,21 @@ function CouncilToolsConfig() {
                     </label>
                 </div>
             )}
+
+            {/* Allow User Control — applies to both sidecar and inline modes */}
+            <div className="lumiverse-council-enrichment-section">
+                <label className="lumiverse-council-enrichment-toggle">
+                    <input
+                        type="checkbox"
+                        checked={councilTools.allowUserControl || false}
+                        onChange={(e) => handleToggleAllowUserControl(e.target.checked)}
+                    />
+                    <span>Allow User Control</span>
+                </label>
+                <span className="lumiverse-council-llm-hint">
+                    When enabled, tools can plan and speak for your character. When disabled, tools focus only on NPCs reacting to your input.
+                </span>
+            </div>
 
             {/* Sidecar LLM config — only shown in sidecar mode */}
             {mode === 'sidecar' && (

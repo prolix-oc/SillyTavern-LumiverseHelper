@@ -131,6 +131,7 @@ const initialState = {
         includeUserPersona: false,   // Include user persona in sidecar tool context
         includeCharacterInfo: false,  // Include character description/personality in sidecar tool context
         includeWorldInfo: false,      // Include triggered world book entries in sidecar tool context
+        allowUserControl: false,      // When true, tools can plan/speak for the user's character
         llm: {
             provider: 'anthropic',
             model: '',
@@ -1192,6 +1193,17 @@ const actions = {
         const state = store.getState();
         store.setState({
             councilTools: { ...state.councilTools, includeWorldInfo: include },
+        });
+    },
+
+    /**
+     * Set whether tools can plan/speak for the user's character
+     * @param {boolean} allow - When true, tools can control user's character
+     */
+    setCouncilToolsAllowUserControl: (allow) => {
+        const state = store.getState();
+        store.setState({
+            councilTools: { ...state.councilTools, allowUserControl: allow },
         });
     },
 

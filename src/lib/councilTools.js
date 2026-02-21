@@ -515,6 +515,23 @@ export function areCouncilToolsEnabled() {
 }
 
 /**
+ * Build user control guidance text based on the allowUserControl setting.
+ * When disabled (default), instructs the LLM to focus on NPCs only.
+ * When enabled, allows the LLM to plan/speak for the user's character too.
+ * @returns {string} Guidance block to inject into tool prompts
+ */
+function buildUserControlGuidance() {
+  const settings = getSettings();
+  const allowUserControl = settings.councilTools?.allowUserControl === true;
+
+  if (allowUserControl) {
+    return `\n\n### User Character Guidance ###\nYou may plan and suggest actions, dialogue, thoughts, and development for ALL characters in the story, including {{user}} (the user's character). Treat all participants — including the user — as characters whose arcs, actions, and dialogue you can direct and shape.`;
+  }
+
+  return `\n\n### User Character Guidance ###\nIMPORTANT: Do NOT plan actions, dialogue, thoughts, or decisions for {{user}} (the user's character). Focus exclusively on how the story's non-player characters should react, behave, and develop in response to the user's input. Your suggestions should only concern the characters, world, and narrative elements — never dictate what the user's character does, says, thinks, or feels.`;
+}
+
+/**
  * Build a role-based tool descriptor for a council member
  * @param {Object} member - Council member object
  * @returns {string} Role descriptor for tool prompts
@@ -748,7 +765,7 @@ ${contextText}
 
 ### Your Task ###
 
-Review the story context above and use ALL of your assigned tools to provide your contributions. For each tool, provide specific, actionable input from your unique perspective as ${memberName}. Be concise but insightful. Remember to filter all your contributions through your personality, biases, and worldview as described above.`;
+Review the story context above and use ALL of your assigned tools to provide your contributions. For each tool, provide specific, actionable input from your unique perspective as ${memberName}. Be concise but insightful. Remember to filter all your contributions through your personality, biases, and worldview as described above.${buildUserControlGuidance()}`;
 
   const requestBody = {
     model: model,
@@ -865,7 +882,7 @@ ${contextText}
 
 ### Your Task ###
 
-Review the story context above and use your assigned tools to provide your contributions. For each tool, provide specific, actionable input from your unique perspective as ${memberName}. Be concise but insightful. Remember to filter all your contributions through your personality, biases, and worldview as described above.`;
+Review the story context above and use your assigned tools to provide your contributions. For each tool, provide specific, actionable input from your unique perspective as ${memberName}. Be concise but insightful. Remember to filter all your contributions through your personality, biases, and worldview as described above.${buildUserControlGuidance()}`;
 
   const headers = {
     "Content-Type": "application/json",
@@ -996,7 +1013,7 @@ For each task below, provide a clearly labeled response:
 
 ${toolPrompts}
 
-Provide your contributions from your unique perspective as ${memberName}, filtering everything through your personality, biases, and worldview. Label each section clearly.`;
+Provide your contributions from your unique perspective as ${memberName}, filtering everything through your personality, biases, and worldview. Label each section clearly.${buildUserControlGuidance()}`;
 
   const requestBody = {
     safetySettings: [
@@ -1351,7 +1368,7 @@ function buildInlineToolDescription(toolDef, member) {
   const memberName = getLumiaField(item, "name") || member.itemName || "Unknown";
   const roleContext = member.role ? ` Their role on the council is: ${member.role}.` : '';
   
-  return `[Lumiverse Council - ${memberName}] ${toolDef.description}.${roleContext} ${toolDef.prompt}`;
+  return `[Lumiverse Council - ${memberName}] ${toolDef.description}.${roleContext} ${toolDef.prompt}${buildUserControlGuidance()}`;
 }
 
 /**
