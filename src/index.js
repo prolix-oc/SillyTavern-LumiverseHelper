@@ -286,11 +286,11 @@ globalThis.lumiverseHelperGenInterceptor = async function (chat, contextSize, ab
   }
 
   // Execute council tools if enabled (only on first call, not recursive passes)
-  // Defensive: handle undefined type, and explicitly check for swipe
-  const isNormalOrSwipe = type === 'normal' || type === 'swipe' || !type;
-  console.log(`[${MODULE_NAME}] Council tools check: type="${type}", isRecursive=${isRecursiveCall}, isNormalOrSwipe=${isNormalOrSwipe}, enabled=${areCouncilToolsEnabled()}`);
+  // Run for normal sends, swipes, and regenerations (but not continue/impersonate/quiet)
+  const shouldRunTools = type === 'normal' || type === 'swipe' || type === 'regenerate' || !type;
+  console.log(`[${MODULE_NAME}] Council tools check: type="${type}", isRecursive=${isRecursiveCall}, shouldRunTools=${shouldRunTools}, enabled=${areCouncilToolsEnabled()}`);
   
-  if (!isRecursiveCall && isNormalOrSwipe && areCouncilToolsEnabled()) {
+  if (!isRecursiveCall && shouldRunTools && areCouncilToolsEnabled()) {
     const toolMode = getCouncilToolsMode();
 
     if (toolMode === 'sidecar') {
