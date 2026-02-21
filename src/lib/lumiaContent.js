@@ -17,6 +17,7 @@ import {
   formatToolResultsForDeliberation,
   getCouncilDeliberationInstructions,
   areCouncilToolsEnabled,
+  getAvailableTools,
 } from "./councilTools.js";
 
 // Track the last AI message index to detect swipe/regenerate vs new generation
@@ -1606,6 +1607,65 @@ Assess each active personality component. Affirm synthesis: My body is [details,
     returns: "'yes' if enabled, 'no' if disabled",
     returnType: "string",
     exampleUsage: ["{{lumiaCouncilToolsActive}}"],
+  });
+
+  // ============================================
+  // lumiaCouncilToolsList macro - Inline tools reminder
+  // Returns a concise reminder to call available tools (inline mode only)
+  // ============================================
+  MacrosParser.registerMacro("lumiaCouncilToolsList", {
+    handler: () => {
+      const settings = getSettings();
+      
+      // Only return content if inline mode is active
+      if (!areCouncilToolsEnabled() || settings.councilTools?.mode !== 'inline') {
+        return "";
+      }
+
+      const councilMembers = settings.councilMembers || [];
+      const toolNames = new Set();
+      const memberToolMap = new Map();
+
+      // Collect tools assigned to members
+      councilMembers.forEach(member => {
+        const memberTools = member.tools || [];
+        if (memberTools.length > 0) {
+          const item = getItemFromLibrary(member.packName, member.itemName);
+          const memberName = getLumiaField(item, "name") || member.itemName || "Unknown";
+          memberTools.forEach(toolName => {
+            toolNames.add(toolName);
+            if (!memberToolMap.has(toolName)) {
+              memberToolMap.set(toolName, []);
+            }
+            memberToolMap.get(toolName).push(memberName);
+          });
+        }
+      });
+
+      if (toolNames.size === 0) {
+        return "";
+      }
+
+      // Build concise tool list
+      const toolList = Array.from(toolNames).map(toolName => {
+        const members = memberToolMap.get(toolName) || [];
+        const toolDef = getAvailableTools()[toolName];
+        const displayName = toolDef?.displayName || toolName;
+        return `  • ${displayName} (${members.join(", ")})`;
+      }).join("\n");
+
+      return `**Invoke Council Tools Before Proceeding**
+
+You have access to the following tools. Call them now to gather council input before generating the narrative response:
+
+${toolList}
+
+Execute all relevant tools first, then weave their insights into your response.`;
+    },
+    description: "Returns a concise reminder to invoke council tools before proceeding (inline mode only). Lists available tools with member attribution.",
+    returns: "Tool invocation reminder or empty string if not applicable",
+    returnType: "string",
+    exampleUsage: ["{{lumiaCouncilToolsList}}"],
   });
 }
 

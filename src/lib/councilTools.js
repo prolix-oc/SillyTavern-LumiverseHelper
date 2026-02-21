@@ -497,12 +497,51 @@ Draw upon your expertise as ${member.role} to provide valuable insights.`;
 }
 
 /**
+ * Build Lumia personality, behavior, and lens context for a council member
+ * This ensures council members answer from their biased perspective
+ * @param {Object} member - Council member object
+ * @returns {string} Lumia context for tool prompts
+ */
+function buildLumiaContext(member) {
+  const item = getItemFromLibrary(member.packName, member.itemName);
+  if (!item) return "";
+  
+  const personality = getLumiaField(item, "personality");
+  const behavior = getLumiaField(item, "behavior");
+  const definition = getLumiaField(item, "def");
+  
+  const parts = [];
+  
+  if (definition) {
+    parts.push(`### Your Physical Identity ###\n${definition}`);
+  }
+  
+  if (personality) {
+    parts.push(`### Your Personality ###\n${personality}`);
+  }
+  
+  if (behavior) {
+    parts.push(`### Your Behavioral Patterns ###\n${behavior}`);
+  }
+  
+  if (parts.length === 0) return "";
+  
+  return `### WHO YOU ARE ###\n\n${parts.join("\n\n")}\n\n### INSTRUCTION ###\nYou MUST answer ALL tool calls and contributions through the lens of your personality, behavior, and identity described above. Your biases, quirks, speech patterns, and perspective should color every observation and suggestion you make. Do NOT provide generic or neutral responses—filter everything through who you are. Your unique voice and worldview must be evident in every contribution.`;
+}
+
+/**
  * Build chat context text from recent messages
  * @param {Array} chatContext - Full chat array
  * @returns {string} Formatted context text
  */
 function buildContextText(chatContext) {
-  const recentMessages = chatContext.slice(-10);
+  const settings = getSettings();
+  // Use configurable context window for sidecar mode, fallback to 10 for inline
+  const isSidecarMode = getCouncilToolsMode() === 'sidecar';
+  const contextWindow = isSidecarMode 
+    ? (settings.councilTools?.sidecarContextWindow || 25)
+    : 10;
+  const recentMessages = chatContext.slice(-contextWindow);
   return recentMessages
     .map((msg) => {
       const name = msg.is_user ? "{{user}}" : (msg.name || "Assistant");
@@ -599,6 +638,7 @@ async function executeToolsForMemberAnthropic(member, memberTools, contextText, 
   const item = getItemFromLibrary(member.packName, member.itemName);
   const memberName = getLumiaField(item, "name") || member.itemName || "Unknown";
   const roleDescriptor = buildRoleDescriptor(member);
+  const lumiaContext = buildLumiaContext(member);
   const model = secondary.model;
   const maxTokens = Math.max(256, parseInt(secondary.maxTokens, 10) || 4096);
   const temperature = parseFloat(secondary.temperature) || 0.7;
@@ -615,7 +655,7 @@ async function executeToolsForMemberAnthropic(member, memberTools, contextText, 
 
   const userPrompt = `You are ${memberName}, a council member contributing to collaborative story direction.
 
-${roleDescriptor ? roleDescriptor + "\n\n" : ""}You have the following tools available:
+${lumiaContext ? lumiaContext + "\n\n" : ""}${roleDescriptor ? roleDescriptor + "\n\n" : ""}You have the following tools available:
 ${toolDescriptions}
 
 ### Current Story Context ###
@@ -624,7 +664,7 @@ ${contextText}
 
 ### Your Task ###
 
-Review the story context above and use ALL of your assigned tools to provide your contributions. For each tool, provide specific, actionable input from your perspective as ${memberName}. Be concise but insightful.`;
+Review the story context above and use ALL of your assigned tools to provide your contributions. For each tool, provide specific, actionable input from your unique perspective as ${memberName}. Be concise but insightful. Remember to filter all your contributions through your personality, biases, and worldview as described above.`;
 
   const requestBody = {
     model: model,
@@ -715,6 +755,7 @@ async function executeToolsForMemberOpenAI(member, memberTools, contextText, api
   const item = getItemFromLibrary(member.packName, member.itemName);
   const memberName = getLumiaField(item, "name") || member.itemName || "Unknown";
   const roleDescriptor = buildRoleDescriptor(member);
+  const lumiaContext = buildLumiaContext(member);
   const model = secondary.model;
   const maxTokens = Math.max(256, parseInt(secondary.maxTokens, 10) || 4096);
   const temperature = parseFloat(secondary.temperature) || 0.7;
@@ -730,7 +771,7 @@ async function executeToolsForMemberOpenAI(member, memberTools, contextText, api
 
   const userPrompt = `You are ${memberName}, a council member contributing to collaborative story direction.
 
-${roleDescriptor ? roleDescriptor + "\n\n" : ""}You have the following tools available:
+${lumiaContext ? lumiaContext + "\n\n" : ""}${roleDescriptor ? roleDescriptor + "\n\n" : ""}You have the following tools available:
 ${toolDescriptions}
 
 ### Current Story Context ###
@@ -739,7 +780,7 @@ ${contextText}
 
 ### Your Task ###
 
-Review the story context above and use your assigned tools to provide your contributions. For each tool, provide specific, actionable input from your perspective as ${memberName}. Be concise but insightful.`;
+Review the story context above and use your assigned tools to provide your contributions. For each tool, provide specific, actionable input from your unique perspective as ${memberName}. Be concise but insightful. Remember to filter all your contributions through your personality, biases, and worldview as described above.`;
 
   const headers = {
     "Content-Type": "application/json",
@@ -839,6 +880,7 @@ async function executeToolsForMemberGoogle(member, memberTools, contextText, api
   const item = getItemFromLibrary(member.packName, member.itemName);
   const memberName = getLumiaField(item, "name") || member.itemName || "Unknown";
   const roleDescriptor = buildRoleDescriptor(member);
+  const lumiaContext = buildLumiaContext(member);
   const model = secondary.model;
   const maxTokens = Math.max(256, parseInt(secondary.maxTokens, 10) || 4096);
   const temperature = parseFloat(secondary.temperature) || 0.7;
@@ -858,7 +900,7 @@ async function executeToolsForMemberGoogle(member, memberTools, contextText, api
 
   const fullPrompt = `You are ${memberName}, a council member contributing to collaborative story direction. Be concise and specific.
 
-${roleDescriptor ? roleDescriptor + "\n\n" : ""}### Current Story Context ###
+${lumiaContext ? lumiaContext + "\n\n" : ""}${roleDescriptor ? roleDescriptor + "\n\n" : ""}### Current Story Context ###
 
 ${contextText}
 
@@ -868,7 +910,7 @@ For each task below, provide a clearly labeled response:
 
 ${toolPrompts}
 
-Provide your contributions from your perspective as ${memberName}. Label each section clearly.`;
+Provide your contributions from your unique perspective as ${memberName}, filtering everything through your personality, biases, and worldview. Label each section clearly.`;
 
   const requestBody = {
     safetySettings: [
@@ -1156,14 +1198,23 @@ Your task:
 4. Reach a consensus on the best path forward
 5. In your OOC commentary, reflect this deliberation process
 
+**CRITICAL - Chain of Thought for Deliberation:**
+When reviewing suggestions, you MUST:
+- **ALWAYS** attempt to integrate and accommodate ALL reasonable suggestions from council members
+- Exhaustively consider how multiple ideas can coexist and complement each other
+- Only reject or challenge a suggestion if it would create irreconcilable conflicts with established lore (to the point of nonsense or contradiction)
+- Default stance: "How can we make this work together?" rather than "Why won't this work?"
+- If two suggestions seem to conflict, explore creative synthesis first before dismissing either
+- Treat lore inconsistencies as rare exceptions requiring strong justification, not default responses
+
 **Guidelines for Deliberation:**
 - Reference specific contributions by name ("Elandra's suggestion about...", "I disagree with Kael's proposal because...")
 - Build upon good ideas ("Taking Mira's point further...")
-- Respectfully challenge weak suggestions ("While interesting, that approach might not work because...")
-- Find synthesis between competing ideas when possible
-- Your final narrative output should reflect the consensus reached
+- When challenging: only do so if the suggestion fundamentally breaks established lore beyond repair
+- Find synthesis between competing ideas—this is the DEFAULT expectation
+- Your final narrative output should reflect the consensus reached through generous integration
 
-**Tone:** Professional but passionate. You are invested in telling the best possible story.`;
+**Tone:** Professional but passionate. You are invested in telling the best possible story through collaborative synthesis.`;
 }
 
 /**

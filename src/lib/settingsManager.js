@@ -87,6 +87,7 @@ const DEFAULT_SETTINGS = {
     enabled: false, // When true, council members execute tools before generation
     mode: "sidecar", // "sidecar" = direct fetch with dedicated LLM, "inline" = ST ToolManager with main model
     timeoutMs: 30000, // Max time to wait for all tool executions
+    sidecarContextWindow: 25, // Number of chat messages to include in sidecar mode context (default: 25)
     llm: {
       provider: "anthropic",
       model: "",

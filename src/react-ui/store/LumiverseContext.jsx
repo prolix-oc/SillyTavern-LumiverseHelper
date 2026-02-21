@@ -1149,6 +1149,17 @@ const actions = {
     },
 
     /**
+     * Set sidecar context window size (number of messages to include)
+     * @param {number} sidecarContextWindow - Number of chat messages to include in sidecar mode context
+     */
+    setSidecarContextWindow: (sidecarContextWindow) => {
+        const state = store.getState();
+        store.setState({
+            councilTools: { ...state.councilTools, sidecarContextWindow },
+        });
+    },
+
+    /**
      * Assign tools to a council member
      * @param {string} memberId - The ID of the member
      * @param {Array} tools - Array of tool name strings

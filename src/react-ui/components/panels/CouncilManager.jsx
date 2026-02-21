@@ -696,6 +696,7 @@ function CouncilToolsConfig() {
 
     const llm = councilTools.llm || {};
     const mode = councilTools.mode || 'sidecar';
+    const sidecarContextWindow = councilTools.sidecarContextWindow ?? 25;
     const inlineAvailable = useMemo(() => isInlineModeAvailable(), []);
 
     const updateLLM = useCallback((updates) => {
@@ -706,6 +707,14 @@ function CouncilToolsConfig() {
     const handleModeChange = useCallback((newMode) => {
         actions.setCouncilToolsMode(newMode);
         saveToExtension();
+    }, [actions]);
+
+    const handleContextWindowChange = useCallback((value) => {
+        const numValue = parseInt(value, 10);
+        if (!isNaN(numValue) && numValue >= 5 && numValue <= 100) {
+            actions.setSidecarContextWindow(numValue);
+            saveToExtension();
+        }
     }, [actions]);
 
     const providerConfig = COUNCIL_PROVIDER_CONFIG[llm.provider] || COUNCIL_PROVIDER_CONFIG.custom;
@@ -757,6 +766,23 @@ function CouncilToolsConfig() {
                     </p>
                 )}
             </div>
+
+            {/* Sidecar Context Window — only shown in sidecar mode */}
+            {mode === 'sidecar' && (
+                <div className="lumiverse-council-llm-field lumiverse-council-context-window-field">
+                    <label className="lumiverse-council-llm-label">Context Window (messages)</label>
+                    <input
+                        type="number"
+                        className="lumiverse-council-llm-input lumiverse-council-llm-input--num"
+                        value={sidecarContextWindow}
+                        onChange={(e) => handleContextWindowChange(e.target.value)}
+                        min={5}
+                        max={100}
+                        step={1}
+                    />
+                    <span className="lumiverse-council-llm-hint">Number of recent chat messages to include in council tool context (5-100)</span>
+                </div>
+            )}
 
             {/* Sidecar LLM config — only shown in sidecar mode */}
             {mode === 'sidecar' && (
