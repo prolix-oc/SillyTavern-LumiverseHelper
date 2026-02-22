@@ -710,11 +710,18 @@ function CouncilToolsConfig() {
     }, [actions]);
 
     const handleContextWindowChange = useCallback((value) => {
+        // Accept any numeric input during typing for responsiveness
         const numValue = parseInt(value, 10);
-        if (!isNaN(numValue) && numValue >= 5 && numValue <= 100) {
+        if (!isNaN(numValue)) {
             actions.setSidecarContextWindow(numValue);
-            saveToExtension();
         }
+    }, [actions]);
+
+    const handleContextWindowBlur = useCallback((value) => {
+        // Clamp to valid range on blur and persist
+        const numValue = Math.max(5, Math.min(100, parseInt(value, 10) || 25));
+        actions.setSidecarContextWindow(numValue);
+        saveToExtension();
     }, [actions]);
 
     const handleToggleUserPersona = useCallback((checked) => {
@@ -740,11 +747,18 @@ function CouncilToolsConfig() {
     const maxWordsPerTool = councilTools.maxWordsPerTool ?? 150;
 
     const handleMaxWordsChange = useCallback((value) => {
+        // Accept any numeric input during typing for responsiveness
         const numValue = parseInt(value, 10);
-        if (!isNaN(numValue) && numValue >= 100 && numValue <= 1000) {
+        if (!isNaN(numValue)) {
             actions.setMaxWordsPerTool(numValue);
-            saveToExtension();
         }
+    }, [actions]);
+
+    const handleMaxWordsBlur = useCallback((value) => {
+        // Clamp to valid range on blur and persist
+        const numValue = Math.max(100, Math.min(1000, parseInt(value, 10) || 150));
+        actions.setMaxWordsPerTool(numValue);
+        saveToExtension();
     }, [actions]);
 
     const providerConfig = COUNCIL_PROVIDER_CONFIG[llm.provider] || COUNCIL_PROVIDER_CONFIG.custom;
@@ -806,6 +820,7 @@ function CouncilToolsConfig() {
                         className="lumiverse-council-llm-input lumiverse-council-llm-input--num"
                         value={sidecarContextWindow}
                         onChange={(e) => handleContextWindowChange(e.target.value)}
+                        onBlur={(e) => handleContextWindowBlur(e.target.value)}
                         min={5}
                         max={100}
                         step={1}
@@ -823,6 +838,7 @@ function CouncilToolsConfig() {
                         className="lumiverse-council-llm-input lumiverse-council-llm-input--num"
                         value={maxWordsPerTool}
                         onChange={(e) => handleMaxWordsChange(e.target.value)}
+                        onBlur={(e) => handleMaxWordsBlur(e.target.value)}
                         min={100}
                         max={1000}
                         step={25}
