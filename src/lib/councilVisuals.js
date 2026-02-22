@@ -110,12 +110,12 @@ function injectIndicatorStyles() {
       padding: 10px 18px;
       min-width: 100px;
       min-height: 48px;
-      background: linear-gradient(135deg, rgba(40, 30, 60, 0.9) 0%, rgba(50, 35, 75, 0.85) 100%);
-      border: 1px solid rgba(147, 112, 219, 0.4);
+      background: linear-gradient(135deg, var(--lumiverse-bg-hover-095) 0%, var(--lumiverse-bg-surface-2) 100%);
+      border: 1px solid var(--lumiverse-primary-040);
       border-radius: 24px;
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 2px 12px rgba(147, 112, 219, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      box-shadow: var(--lumiverse-shadow-md), 0 2px 12px var(--lumiverse-primary-020), var(--lumiverse-highlight-inset);
       animation: lumiverse-council-pulse 2s ease-in-out infinite;
       position: relative;
       overflow: hidden;
@@ -129,7 +129,7 @@ function injectIndicatorStyles() {
       left: -100%;
       width: 100%;
       height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(147, 112, 219, 0.15), transparent);
+      background: linear-gradient(90deg, transparent, var(--lumiverse-primary-015), transparent);
       animation: lumiverse-council-shimmer 3s ease-in-out infinite;
     }
 
@@ -140,7 +140,7 @@ function injectIndicatorStyles() {
       font-weight: 600;
       letter-spacing: 0.8px;
       text-transform: uppercase;
-      color: rgba(147, 112, 219, 0.95);
+      color: var(--lumiverse-primary-095);
       white-space: nowrap;
       position: relative;
       z-index: 1;
@@ -159,15 +159,15 @@ function injectIndicatorStyles() {
       width: 28px;
       height: 28px;
       border-radius: 50%;
-      border: 2px solid rgba(255, 255, 255, 0.9);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(147, 112, 219, 0.4);
+      border: 2px solid var(--lumiverse-swatch-border);
+      box-shadow: var(--lumiverse-shadow-sm), 0 0 0 1px var(--lumiverse-primary-040);
       object-fit: cover;
       margin-left: -10px;
       transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
       animation: lumiverse-council-avatar-enter 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
       opacity: 0;
       transform: scale(0.8) translateY(4px);
-      background: linear-gradient(135deg, #1a1a2e 0%, #252540 100%);
+      background: linear-gradient(135deg, var(--lumiverse-bg-deep) 0%, var(--lumiverse-bg-elevated) 100%);
     }
 
     .lumiverse-council-avatar:first-child {
@@ -176,7 +176,7 @@ function injectIndicatorStyles() {
 
     /* Hover state - subtle glow only, no displacement */
     .lumiverse-council-avatar:hover {
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 0 2px rgba(147, 112, 219, 0.5);
+      box-shadow: var(--lumiverse-shadow-sm), 0 0 0 2px var(--lumiverse-primary-050);
     }
 
     /* Loading State */
@@ -187,9 +187,9 @@ function injectIndicatorStyles() {
     /* Complete State - Larger with darker background */
     .lumiverse-council-indicator.complete {
       animation: none;
-      border-color: rgba(147, 112, 219, 0.5);
-      background: linear-gradient(135deg, rgba(60, 50, 85, 0.95) 0%, rgba(70, 55, 100, 0.9) 100%);
-      box-shadow: 0 6px 28px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(147, 112, 219, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+      border-color: var(--lumiverse-primary-050);
+      background: linear-gradient(135deg, var(--lumiverse-bg-surface-2) 0%, var(--lumiverse-bg-surface-2) 100%);
+      box-shadow: var(--lumiverse-shadow-md), 0 4px 16px var(--lumiverse-border-hover), var(--lumiverse-highlight-inset);
     }
 
     .lumiverse-council-indicator.complete::before {
@@ -201,17 +201,17 @@ function injectIndicatorStyles() {
       width: 20px;
       height: 20px;
       margin-left: 6px;
-      color: #b388ff;
+      color: var(--lumiverse-primary-text-100);
       animation: lumiverse-council-icon-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
     }
 
     /* Animations - Enhanced for larger indicator with darker background */
     @keyframes lumiverse-council-pulse {
       0%, 100% {
-        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35), 0 2px 12px rgba(147, 112, 219, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        box-shadow: var(--lumiverse-shadow-md), 0 2px 12px var(--lumiverse-primary-020), var(--lumiverse-highlight-inset);
       }
       50% {
-        box-shadow: 0 4px 32px rgba(0, 0, 0, 0.4), 0 3px 18px rgba(147, 112, 219, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        box-shadow: var(--lumiverse-shadow-md), 0 3px 18px var(--lumiverse-primary-035), var(--lumiverse-highlight-inset-md);
       }
     }
 
@@ -298,13 +298,13 @@ function injectIndicatorStyles() {
         width: 28px;
         height: 28px;
         border-radius: 50%;
-        border: 2px solid rgba(255, 255, 255, 0.9);
-        background: linear-gradient(135deg, rgba(147, 112, 219, 0.85) 0%, rgba(123, 95, 196, 0.85) 100%);
+        border: 2px solid var(--lumiverse-swatch-border);
+        background: linear-gradient(135deg, var(--lumiverse-primary-085) 0%, var(--lumiverse-primary-080) 100%);
         color: white;
         font-size: 10px;
         font-weight: 600;
         margin-left: -10px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(147, 112, 219, 0.4);
+        box-shadow: var(--lumiverse-shadow-sm), 0 0 0 1px var(--lumiverse-primary-040);
         animation: lumiverse-council-avatar-enter 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         animation-delay: 300ms;
       }

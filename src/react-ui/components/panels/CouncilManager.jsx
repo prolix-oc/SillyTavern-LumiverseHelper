@@ -737,6 +737,16 @@ function CouncilToolsConfig() {
         saveToExtension();
     }, [actions]);
 
+    const maxWordsPerTool = councilTools.maxWordsPerTool ?? 150;
+
+    const handleMaxWordsChange = useCallback((value) => {
+        const numValue = parseInt(value, 10);
+        if (!isNaN(numValue) && numValue >= 100 && numValue <= 1000) {
+            actions.setMaxWordsPerTool(numValue);
+            saveToExtension();
+        }
+    }, [actions]);
+
     const providerConfig = COUNCIL_PROVIDER_CONFIG[llm.provider] || COUNCIL_PROVIDER_CONFIG.custom;
     const isCustom = llm.provider === 'custom';
 
@@ -801,6 +811,23 @@ function CouncilToolsConfig() {
                         step={1}
                     />
                     <span className="lumiverse-council-llm-hint">Number of recent chat messages to include in council tool context (5-100)</span>
+                </div>
+            )}
+
+            {/* Response Word Limit — only shown in sidecar mode */}
+            {mode === 'sidecar' && (
+                <div className="lumiverse-council-llm-field lumiverse-council-context-window-field">
+                    <label className="lumiverse-council-llm-label">Response Word Limit</label>
+                    <input
+                        type="number"
+                        className="lumiverse-council-llm-input lumiverse-council-llm-input--num"
+                        value={maxWordsPerTool}
+                        onChange={(e) => handleMaxWordsChange(e.target.value)}
+                        min={100}
+                        max={1000}
+                        step={25}
+                    />
+                    <span className="lumiverse-council-llm-hint">Max words per tool response field (100-1000). Lower values = more concise council input, less token usage.</span>
                 </div>
             )}
 

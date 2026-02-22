@@ -128,6 +128,7 @@ const initialState = {
         enabled: false,        // When true, council members execute tools before generation
         mode: 'sidecar',      // 'sidecar' = direct fetch with dedicated LLM, 'inline' = ST ToolManager with main model
         timeoutMs: 30000,      // Max time to wait for all tool executions
+        maxWordsPerTool: 150,  // Max words per tool response field (soft prompt guidance + hard truncation)
         includeUserPersona: false,   // Include user persona in sidecar tool context
         includeCharacterInfo: false,  // Include character description/personality in sidecar tool context
         includeWorldInfo: false,      // Include triggered world book entries in sidecar tool context
@@ -170,6 +171,9 @@ const initialState = {
     // Landing page setting
     enableLandingPage: true,
     landingPageChatsDisplayed: 12,
+
+    // Theme customization
+    theme: null, // null = use CSS defaults, object = { name, baseColors: { primary, secondary, background, text, danger, success, warning } }
 
     // Toggle binding default state restoration
     disableDefaultStateRestore: true, // When true, skip restoring default toggle states for unbound chats (opt-in feature)
@@ -1164,6 +1168,17 @@ const actions = {
     },
 
     /**
+     * Set max words per tool response field (soft prompt guidance + hard truncation)
+     * @param {number} maxWordsPerTool - Maximum words per tool response field (0 = unlimited)
+     */
+    setMaxWordsPerTool: (maxWordsPerTool) => {
+        const state = store.getState();
+        store.setState({
+            councilTools: { ...state.councilTools, maxWordsPerTool },
+        });
+    },
+
+    /**
      * Set whether to include user persona in sidecar tool context
      * @param {boolean} include
      */
@@ -1503,6 +1518,17 @@ const actions = {
      */
     setDisableDefaultStateRestore: (disabled) => {
         store.setState({ disableDefaultStateRestore: disabled });
+        saveToExtension();
+    },
+
+    // Theme actions
+    setTheme: (theme) => {
+        store.setState({ theme });
+        saveToExtension();
+    },
+
+    resetTheme: () => {
+        store.setState({ theme: null });
         saveToExtension();
     },
 };

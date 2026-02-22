@@ -159,6 +159,8 @@ const DEFAULT_SETTINGS = {
   // Landing page override setting
   enableLandingPage: true, // When true, show custom Lumiverse landing page instead of default welcome
   landingPageChatsDisplayed: 12,
+  // Theme customization
+  theme: null, // null = use CSS defaults, object = { name, baseColors }
   // Toggle binding default state restoration
   disableDefaultStateRestore: true, // When true, skip restoring default toggle states for unbound chats (opt-in feature)
   capturedDefaultToggles: null, // Persisted default toggle state (survives page refresh)
@@ -632,6 +634,11 @@ export function migrateSettings() {
   }
   if (settings.councilTools.includeWorldInfo === undefined) {
     settings.councilTools.includeWorldInfo = false;
+  }
+
+  // Ensure maxWordsPerTool default for tool response length guidance
+  if (settings.councilTools.maxWordsPerTool === undefined) {
+    settings.councilTools.maxWordsPerTool = 150;
   }
 
   // Ensure council members have tools array

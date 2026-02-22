@@ -25,6 +25,7 @@ import {
   savePack,
   deletePack,
 } from "./settingsManager.js";
+import { applyTheme, removeThemeOverrides } from "./themeManager.js";
 import { getEventSource, getEventTypes, getRequestHeaders, triggerExtensionUpdate, getExtensionGitVersion } from "../stContext.js";
 
 // Extension name discovery from import.meta.url per EXTENSION_GUIDE_UPDATES.md
@@ -185,6 +186,7 @@ export async function reactFormatToSettings(reactState, immediate = false) {
         'lumiaOOCStyle',
         'activePresetName',
         'dismissedUpdateVersion',
+        'theme',
       ];
       for (const field of preferenceFields) {
         if (reactState[field] !== undefined) {
@@ -309,6 +311,11 @@ export async function initializeReactUI(container) {
     const initialSettings = settingsToReactFormat();
     console.log("[ReactBridge] Initial settings prepared");
 
+    // Apply saved theme before mounting UI to prevent flash of default colors
+    if (initialSettings.theme) {
+      applyTheme(initialSettings.theme);
+    }
+
     // Expose the bridge API to React
     window.LumiverseBridge = {
       getSettings: settingsToReactFormat,
@@ -354,6 +361,22 @@ export async function initializeReactUI(container) {
       console.log("[ReactBridge] Mounting viewport panel...");
       viewportCleanupFn = window.LumiverseUI.mountViewportPanel(initialSettings);
       console.log("[ReactBridge] Viewport panel mounted");
+    }
+
+    // Subscribe to theme changes from the React store for live updates
+    if (window.LumiverseUI.subscribe) {
+      let lastTheme = initialSettings.theme;
+      window.LumiverseUI.subscribe(() => {
+        const state = window.LumiverseUI.getState();
+        if (state.theme !== lastTheme) {
+          lastTheme = state.theme;
+          if (state.theme) {
+            applyTheme(state.theme);
+          } else {
+            removeThemeOverrides();
+          }
+        }
+      });
     }
 
     // Set up event sync

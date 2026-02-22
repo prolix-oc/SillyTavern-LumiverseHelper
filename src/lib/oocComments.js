@@ -27,10 +27,28 @@ import {
   yieldToBrowser,
   OOC_PROCESSING_CHUNK_SIZE,
 } from "./rafBatchRenderer.js";
+import { getThemeColor } from "./themeManager.js";
 
 // Lumia OOC color constant - the specific purple color used for Lumia's OOC comments
+// These constants are used for DETECTION of legacy <font> tags - keep as hardcoded strings
 export const LUMIA_OOC_COLOR = "#9370DB";
 export const LUMIA_OOC_COLOR_LOWER = "#9370db";
+
+// Cached theme colors for inline styles - refreshed at render time
+let cachedOocColor = null;
+
+/** Get the OOC accent color from the theme, with caching for render performance. */
+function getOocColor() {
+  if (!cachedOocColor) {
+    cachedOocColor = getThemeColor('--lumiverse-ooc-color', '#9370DB');
+  }
+  return cachedOocColor;
+}
+
+/** Call at the start of each OOC render pass to refresh cached colors. */
+export function refreshOocColorCache() {
+  cachedOocColor = null;
+}
 
 // Debounce timers for OOC processing
 let oocProcessingTimer = null;
@@ -1005,14 +1023,14 @@ function createIRCChatRoom(oocEntries) {
   
   const titleSpan = document.createElement("span");
   titleSpan.textContent = "#LumiaCouncil";
-  titleSpan.style.cssText = "color:#888;font-family:'Courier New', Consolas, monospace;font-size:10px;font-weight:bold;letter-spacing:0.5px;text-transform:uppercase;";
+  titleSpan.style.cssText = `color:${getThemeColor('--lumiverse-text-muted', '#888')};font-family:'Courier New', Consolas, monospace;font-size:10px;font-weight:bold;letter-spacing:0.5px;text-transform:uppercase;`;
   
   // Toggle button (acts as button using CSS radio hack + JS fallback)
   const toggleLabel = document.createElement("button");
   toggleLabel.type = "button";
   toggleLabel.className = "lumia-irc-toggle-btn";
   toggleLabel.innerHTML = "▼";
-  toggleLabel.style.cssText = "cursor:pointer;font-size:10px;color:#9370DB;padding:2px 6px;border-radius:3px;transition:transform 0.2s ease;user-select:none;background:transparent;border:none;display:inline-block;";
+  toggleLabel.style.cssText = `cursor:pointer;font-size:10px;color:${getOocColor()};padding:2px 6px;border-radius:3px;transition:transform 0.2s ease;user-select:none;background:transparent;border:none;display:inline-block;`;
   toggleLabel.setAttribute("title", "Click to collapse/expand");
   toggleLabel.setAttribute("aria-expanded", "true");
   toggleLabel.setAttribute("aria-controls", uniqueId + "-messages");
@@ -1040,13 +1058,13 @@ function createIRCChatRoom(oocEntries) {
   // Apply header styles with !important priority
   const headerStyles = {
     display: "block",
-    background: "linear-gradient(180deg, #252540 0%, #1e1e35 100%)",
-    color: "#888",
+    background: `linear-gradient(180deg, ${getThemeColor('--lumiverse-bg-elevated', '#252540')} 0%, ${getThemeColor('--lumiverse-bg-deep', '#1e1e35')} 100%)`,
+    color: getThemeColor('--lumiverse-text-muted', '#888'),
     fontSize: "10px",
     fontWeight: "bold",
     letterSpacing: "0.5px",
     padding: "4px 10px",
-    borderBottom: "1px solid #333",
+    borderBottom: `1px solid ${getThemeColor('--lumiverse-border-neutral', '#333')}`,
     textTransform: "uppercase",
     fontFamily: "'Courier New', Consolas, monospace",
   };
@@ -1088,8 +1106,8 @@ function createIRCChatRoom(oocEntries) {
       lineHeight: "1.5",
       fontSize: "12px",
       fontFamily: "'Courier New', Consolas, monospace",
-      background: index % 2 === 1 ? "rgba(147, 112, 219, 0.03)" : "transparent",
-      borderBottom: "1px solid rgba(26, 26, 46, 0.5)",
+      background: index % 2 === 1 ? getThemeColor('--lumiverse-primary-003', 'rgba(147, 112, 219, 0.03)') : "transparent",
+      borderBottom: `1px solid ${getThemeColor('--lumiverse-border-neutral', 'rgba(26, 26, 46, 0.5)')}`,
     };
     Object.entries(lineStyles).forEach(([prop, val]) => {
       lineDiv.style.setProperty(prop.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`), val, "important");
@@ -1102,14 +1120,14 @@ function createIRCChatRoom(oocEntries) {
 
     // Timestamp (inline span)
     if (showTimestamps) {
-      lineHtml += `<span style="color:#555 !important;font-size:11px !important;margin-right:6px !important;">[${timestamp}]</span>`;
+      lineHtml += `<span style="color:${getThemeColor('--lumiverse-text-dim', '#555')} !important;font-size:11px !important;margin-right:6px !important;">[${timestamp}]</span>`;
     }
 
     // Handle/nick in <nick> format (inline span)
-    lineHtml += `<span style="color:#9370DB !important;font-weight:bold !important;margin-right:6px !important;white-space:nowrap !important;">&lt;${entry.handle}&gt;</span>`;
+    lineHtml += `<span style="color:${getOocColor()} !important;font-weight:bold !important;margin-right:6px !important;white-space:nowrap !important;">&lt;${entry.handle}&gt;</span>`;
 
     // Message content (inline span that wraps naturally)
-    lineHtml += `<span style="color:#00ff00 !important;word-break:break-word !important;">${contentHtml}</span>`;
+    lineHtml += `<span style="color:${getThemeColor('--lumiverse-irc-text', '#00ff00')} !important;word-break:break-word !important;">${contentHtml}</span>`;
 
     lineDiv.innerHTML = lineHtml;
 
@@ -1127,14 +1145,14 @@ function createIRCChatRoom(oocEntries) {
     display: "block",
     position: "relative",
     fontFamily: "'Courier New', Consolas, 'Lucida Console', monospace",
-    background: "linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%)",
-    border: "1px solid #333",
-    borderLeft: "3px solid #9370DB",
+    background: `linear-gradient(180deg, ${getThemeColor('--lumiverse-bg-deep', '#1a1a2e')} 0%, ${getThemeColor('--lumiverse-bg-deepest', '#0f0f1a')} 100%)`,
+    border: `1px solid ${getThemeColor('--lumiverse-border-neutral', '#333')}`,
+    borderLeft: `3px solid ${getOocColor()}`,
     borderRadius: "4px",
     margin: "12px 0",
     padding: "0",
     overflow: "hidden",
-    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.4)",
+    boxShadow: getThemeColor('--lumiverse-shadow-sm', '0 2px 8px rgba(0, 0, 0, 0.4)'),
     width: "100%",
     maxWidth: "100%",
   };
@@ -2504,6 +2522,9 @@ export function processAllLumiaOOCComments(clearExisting = false) {
  * @returns {Promise<void>}
  */
 export async function processAllOOCCommentsSynchronous() {
+  // Refresh cached theme colors at the start of each render pass
+  refreshOocColorCache();
+
   // Cancel any pending RAF updates to prevent competing operations
   cancelAllPendingUpdates();
 

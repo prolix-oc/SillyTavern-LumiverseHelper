@@ -1667,7 +1667,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
 }
 
 .lumia-placeholder-img {
-  color: #888;
+  color: var(--lumiverse-text-muted, #888);
   font-size: 30px;
   font-weight: bold;
 }
@@ -1917,8 +1917,8 @@ details.lumia-panel[open] .lumia-panel-chevron {
 }
 
 .lumia-panel-status-active {
-  background: rgba(147, 112, 219, 0.25);
-  color: #9370db;
+  background: var(--lumiverse-primary-025, rgba(147, 112, 219, 0.25));
+  color: var(--lumiverse-primary, #9370db);
 }
 
 /* Filter Item Styles */
@@ -2216,14 +2216,9 @@ details.lumia-panel[open] .lumia-panel-chevron {
   gap: 14px;
   padding: 16px 18px;
   margin: 16px 4px;
-  background: linear-gradient(
-    168deg,
-    rgba(20, 16, 28, 0.85) 0%,
-    rgba(30, 24, 42, 0.75) 50%,
-    rgba(25, 20, 35, 0.8) 100%
-  );
+  background: var(--lumiverse-ooc-card-bg, linear-gradient(168deg, rgba(20, 16, 28, 0.85) 0%, rgba(30, 24, 42, 0.75) 50%, rgba(25, 20, 35, 0.8) 100%));
   border-radius: 16px;
-  border: 1px solid rgba(147, 112, 219, 0.2);
+  border: 1px solid var(--lumiverse-primary-020, rgba(147, 112, 219, 0.2));
   position: relative;
   overflow: hidden;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -2240,11 +2235,11 @@ details.lumia-panel[open] .lumia-panel-chevron {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(147, 112, 219, 0.3) 15%,
-    rgba(186, 135, 255, 0.6) 30%,
-    rgba(147, 112, 219, 0.8) 50%,
-    rgba(186, 135, 255, 0.6) 70%,
-    rgba(147, 112, 219, 0.3) 85%,
+    var(--lumiverse-primary-030, rgba(147, 112, 219, 0.3)) 15%,
+    var(--lumiverse-primary-text-060, rgba(186, 135, 255, 0.6)) 30%,
+    var(--lumiverse-primary-080, rgba(147, 112, 219, 0.8)) 50%,
+    var(--lumiverse-primary-text-060, rgba(186, 135, 255, 0.6)) 70%,
+    var(--lumiverse-primary-030, rgba(147, 112, 219, 0.3)) 85%,
     transparent 100%
   );
   animation: loom-weave 8s ease-in-out infinite;
@@ -2261,7 +2256,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(147, 112, 219, 0.03),
+    var(--lumiverse-primary-003, rgba(147, 112, 219, 0.03)),
     transparent
   );
   animation: ethereal-shimmer 12s ease-in-out infinite;
@@ -2293,10 +2288,10 @@ details.lumia-panel[open] .lumia-panel-chevron {
 }
 
 .lumia-ooc-comment-box:hover {
-  border-color: rgba(147, 112, 219, 0.4);
+  border-color: var(--lumiverse-primary-040, rgba(147, 112, 219, 0.4));
   box-shadow:
-    0 4px 24px rgba(147, 112, 219, 0.15),
-    0 0 40px rgba(147, 112, 219, 0.05) inset;
+    0 4px 24px var(--lumiverse-primary-015, rgba(147, 112, 219, 0.15)),
+    0 0 40px var(--lumiverse-primary-005, rgba(147, 112, 219, 0.05)) inset;
   transform: translateY(-1px);
 }
 
@@ -2317,11 +2312,11 @@ details.lumia-panel[open] .lumia-panel-chevron {
   border-radius: 50%;
   background: conic-gradient(
     from 0deg,
-    rgba(147, 112, 219, 0.5),
-    rgba(186, 135, 255, 0.3),
-    rgba(138, 43, 226, 0.5),
-    rgba(186, 135, 255, 0.3),
-    rgba(147, 112, 219, 0.5)
+    var(--lumiverse-primary-050, rgba(147, 112, 219, 0.5)),
+    var(--lumiverse-primary-text-030, rgba(186, 135, 255, 0.3)),
+    var(--lumiverse-primary-050, rgba(138, 43, 226, 0.5)),
+    var(--lumiverse-primary-text-030, rgba(186, 135, 255, 0.3)),
+    var(--lumiverse-primary-050, rgba(147, 112, 219, 0.5))
   );
   animation: avatar-glow-spin 6s linear infinite;
   opacity: 0.7;
@@ -2347,15 +2342,15 @@ details.lumia-panel[open] .lumia-panel-chevron {
   gap: 6px;
   margin-left: 8px;
   font-size: 11px;
-  color: rgba(147, 112, 219, 0.9);
+  color: var(--lumiverse-primary-090, rgba(147, 112, 219, 0.9));
   vertical-align: middle;
 }
 
 .loom-summary-spinner {
   width: 12px;
   height: 12px;
-  border: 2px solid rgba(147, 112, 219, 0.25);
-  border-top-color: rgba(147, 112, 219, 0.9);
+  border: 2px solid var(--lumiverse-primary-025, rgba(147, 112, 219, 0.25));
+  border-top-color: var(--lumiverse-primary-090, rgba(147, 112, 219, 0.9));
   border-radius: 50%;
   animation: loom-summary-spin 0.7s linear infinite;
 }
@@ -2389,20 +2384,20 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
 /* Thread spool - complete state */
 .loom-summary-marker-complete {
-  color: rgba(147, 112, 219, 0.9);
+  color: var(--lumiverse-primary-090, rgba(147, 112, 219, 0.9));
 }
 
 .loom-summary-marker-complete:hover {
-  color: rgba(186, 135, 255, 1);
+  color: var(--lumiverse-primary-text, rgba(186, 135, 255, 1));
 }
 
 /* Error X - failed state */
 .loom-summary-marker-error {
-  color: rgba(244, 67, 54, 0.8);
+  color: var(--lumiverse-danger-080, rgba(244, 67, 54, 0.8));
 }
 
 .loom-summary-marker-error:hover {
-  color: rgba(244, 67, 54, 1);
+  color: var(--lumiverse-danger, rgba(244, 67, 54, 1));
 }
 
 .loom-summary-icon-error {
@@ -2417,18 +2412,18 @@ details.lumia-panel[open] .lumia-panel-chevron {
   object-fit: cover;
   position: relative;
   z-index: 1;
-  border: 2px solid rgba(30, 24, 42, 0.9);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  border: 2px solid var(--lumiverse-bg-deep, rgba(30, 24, 42, 0.9));
+  box-shadow: var(--lumiverse-shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.3));
 }
 
 .lumia-ooc-avatar-placeholder {
-  background: linear-gradient(135deg, #9370db 0%, #7b5fc4 50%, #8a2be2 100%);
+  background: var(--lumiverse-gradient-accent, linear-gradient(135deg, #9370db 0%, #7b5fc4 50%, #8a2be2 100%));
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 18px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.95);
+  color: var(--lumiverse-text, rgba(255, 255, 255, 0.95));
   font-family:
     -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
   letter-spacing: -0.5px;
@@ -2454,7 +2449,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
 .lumia-ooc-name {
   font-size: 14px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.95);
+  color: var(--lumiverse-text, rgba(255, 255, 255, 0.95));
   font-family:
     -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
   letter-spacing: -0.2px;
@@ -2463,7 +2458,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
 .lumia-ooc-thread {
   font-size: 12px;
   font-weight: 400;
-  color: rgba(147, 112, 219, 0.7);
+  color: var(--lumiverse-primary-070, rgba(147, 112, 219, 0.7));
   font-style: italic;
   font-family:
     -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
@@ -2481,7 +2476,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
 .lumia-ooc-content {
   font-size: 14px;
   line-height: 1.55;
-  color: rgba(255, 255, 255, 0.88);
+  color: var(--lumiverse-text, rgba(255, 255, 255, 0.88));
   font-family:
     -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
   letter-spacing: -0.1px;
@@ -2491,13 +2486,13 @@ details.lumia-panel[open] .lumia-panel-chevron {
 /* Style any emphasis within the content */
 .lumia-ooc-content em,
 .lumia-ooc-content i {
-  color: rgba(186, 135, 255, 0.9);
+  color: var(--lumiverse-primary-text-090, rgba(186, 135, 255, 0.9));
   font-style: italic;
 }
 
 .lumia-ooc-content strong,
 .lumia-ooc-content b {
-  color: rgba(255, 255, 255, 0.95);
+  color: var(--lumiverse-text, rgba(255, 255, 255, 0.95));
   font-weight: 600;
 }
 
@@ -2541,18 +2536,14 @@ details.lumia-panel[open] .lumia-panel-chevron {
   justify-content: center;
   width: 48px;
   min-height: 48px;
-  background: linear-gradient(
-    135deg,
-    rgba(147, 112, 219, 0.95) 0%,
-    rgba(123, 95, 196, 0.95) 100%
-  );
+  background: var(--lumiverse-gradient-accent, linear-gradient(135deg, rgba(147, 112, 219, 0.95) 0%, rgba(123, 95, 196, 0.95) 100%));
   /* Rounded on outer edge, square on inner edge flush with text box */
   border-radius: 10px 0 0 10px;
   position: relative;
   z-index: 1;
   box-shadow:
-    -2px 0 8px rgba(147, 112, 219, 0.25),
-    0 2px 8px rgba(0, 0, 0, 0.15);
+    -2px 0 8px var(--lumiverse-primary-025, rgba(147, 112, 219, 0.25)),
+    var(--lumiverse-shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.15));
   overflow: hidden;
 }
 
@@ -2560,14 +2551,14 @@ details.lumia-panel[open] .lumia-panel-chevron {
 .lumia-ooc-margin.lumia-ooc-alt .lumia-ooc-margin-tag {
   border-radius: 0 10px 10px 0;
   box-shadow:
-    2px 0 8px rgba(147, 112, 219, 0.25),
-    0 2px 8px rgba(0, 0, 0, 0.15);
+    2px 0 8px var(--lumiverse-primary-025, rgba(147, 112, 219, 0.25)),
+    var(--lumiverse-shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.15));
 }
 
 .lumia-ooc-margin .lumia-ooc-margin-tag-letter {
   font-size: 22px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.95);
+  color: var(--lumiverse-text, rgba(255, 255, 255, 0.95));
   font-family:
     -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
   letter-spacing: -0.5px;
@@ -2588,19 +2579,15 @@ details.lumia-panel[open] .lumia-panel-chevron {
   flex-direction: column;
   justify-content: center;
   padding: 10px 14px;
-  background: linear-gradient(
-    135deg,
-    rgba(30, 24, 42, 0.8) 0%,
-    rgba(40, 32, 55, 0.75) 100%
-  );
-  border: 1px solid rgba(147, 112, 219, 0.25);
+  background: var(--lumiverse-ooc-margin-bg, linear-gradient(135deg, rgba(30, 24, 42, 0.8) 0%, rgba(40, 32, 55, 0.75) 100%));
+  border: 1px solid var(--lumiverse-primary-025, rgba(147, 112, 219, 0.25));
   border-left: none;
   border-radius: 0 10px 10px 0;
 }
 
 /* Alternating: flip the content area styling */
 .lumia-ooc-margin.lumia-ooc-alt .lumia-ooc-margin-content-area {
-  border-left: 1px solid rgba(147, 112, 219, 0.25);
+  border-left: 1px solid var(--lumiverse-primary-025, rgba(147, 112, 219, 0.25));
   border-right: none;
   border-radius: 10px 0 0 10px;
   text-align: right;
@@ -2610,7 +2597,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
 .lumia-ooc-margin .lumia-ooc-margin-label {
   font-size: 11px;
   font-weight: 500;
-  color: rgba(186, 135, 255, 0.8);
+  color: var(--lumiverse-primary-text-080, rgba(186, 135, 255, 0.8));
   font-family:
     -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
   letter-spacing: 0.3px;
@@ -2622,7 +2609,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
 .lumia-ooc-margin .lumia-ooc-margin-text {
   font-size: 14px;
   line-height: 1.5;
-  color: rgba(255, 255, 255, 0.88);
+  color: var(--lumiverse-text, rgba(255, 255, 255, 0.88));
   font-family:
     -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
   letter-spacing: -0.1px;
@@ -2631,13 +2618,13 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
 .lumia-ooc-margin .lumia-ooc-margin-text em,
 .lumia-ooc-margin .lumia-ooc-margin-text i {
-  color: rgba(186, 135, 255, 0.9);
+  color: var(--lumiverse-primary-text-090, rgba(186, 135, 255, 0.9));
   font-style: italic;
 }
 
 .lumia-ooc-margin .lumia-ooc-margin-text strong,
 .lumia-ooc-margin .lumia-ooc-margin-text b {
-  color: rgba(255, 255, 255, 0.95);
+  color: var(--lumiverse-text, rgba(255, 255, 255, 0.95));
   font-weight: 600;
 }
 
@@ -2673,29 +2660,29 @@ details.lumia-panel[open] .lumia-panel-chevron {
   height: 38px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid rgba(147, 112, 219, 0.5);
+  border: 2px solid var(--lumiverse-primary-050, rgba(147, 112, 219, 0.5));
   box-shadow:
-    0 2px 10px rgba(147, 112, 219, 0.3),
-    0 0 20px rgba(147, 112, 219, 0.15);
+    0 2px 10px var(--lumiverse-primary-030, rgba(147, 112, 219, 0.3)),
+    0 0 20px var(--lumiverse-primary-015, rgba(147, 112, 219, 0.15));
 }
 
 .lumia-ooc-whisper .lumia-ooc-whisper-avatar-placeholder {
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #9370db 0%, #7b5fc4 50%, #8a2be2 100%);
+  background: var(--lumiverse-gradient-accent, linear-gradient(135deg, #9370db 0%, #7b5fc4 50%, #8a2be2 100%));
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 16px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.95);
+  color: var(--lumiverse-text, rgba(255, 255, 255, 0.95));
   font-family:
     -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
-  border: 2px solid rgba(147, 112, 219, 0.5);
+  border: 2px solid var(--lumiverse-primary-050, rgba(147, 112, 219, 0.5));
   box-shadow:
-    0 2px 10px rgba(147, 112, 219, 0.3),
-    0 0 20px rgba(147, 112, 219, 0.15);
+    0 2px 10px var(--lumiverse-primary-030, rgba(147, 112, 219, 0.3)),
+    0 0 20px var(--lumiverse-primary-015, rgba(147, 112, 219, 0.15));
 }
 
 /* The bubble container */
@@ -2703,18 +2690,13 @@ details.lumia-panel[open] .lumia-panel-chevron {
   position: relative;
   flex: 1;
   padding: 12px 16px;
-  background: linear-gradient(
-    145deg,
-    rgba(30, 24, 42, 0.85) 0%,
-    rgba(40, 32, 55, 0.8) 50%,
-    rgba(35, 28, 48, 0.85) 100%
-  );
-  border: 1px solid rgba(147, 112, 219, 0.3);
+  background: var(--lumiverse-ooc-bubble-bg, linear-gradient(145deg, rgba(30, 24, 42, 0.85) 0%, rgba(40, 32, 55, 0.8) 50%, rgba(35, 28, 48, 0.85) 100%));
+  border: 1px solid var(--lumiverse-primary-030, rgba(147, 112, 219, 0.3));
   border-radius: 16px;
   border-top-left-radius: 4px;
   box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.2),
-    0 0 20px rgba(147, 112, 219, 0.08) inset;
+    var(--lumiverse-shadow-md, 0 4px 16px rgba(0, 0, 0, 0.2)),
+    0 0 20px var(--lumiverse-primary-008, rgba(147, 112, 219, 0.08)) inset;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -2725,10 +2707,10 @@ details.lumia-panel[open] .lumia-panel-chevron {
 }
 
 .lumia-ooc-whisper .lumia-ooc-whisper-bubble:hover {
-  border-color: rgba(147, 112, 219, 0.45);
+  border-color: var(--lumiverse-primary-045, rgba(147, 112, 219, 0.45));
   box-shadow:
-    0 6px 20px rgba(0, 0, 0, 0.25),
-    0 0 25px rgba(147, 112, 219, 0.12) inset;
+    0 6px 20px var(--lumiverse-fill-medium, rgba(0, 0, 0, 0.25)),
+    0 0 25px var(--lumiverse-primary-012, rgba(147, 112, 219, 0.12)) inset;
   transform: translateY(-1px);
 }
 
@@ -2743,9 +2725,9 @@ details.lumia-panel[open] .lumia-panel-chevron {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(147, 112, 219, 0.4) 20%,
-    rgba(186, 135, 255, 0.5) 50%,
-    rgba(147, 112, 219, 0.4) 80%,
+    var(--lumiverse-primary-040, rgba(147, 112, 219, 0.4)) 20%,
+    var(--lumiverse-primary-text-050, rgba(186, 135, 255, 0.5)) 50%,
+    var(--lumiverse-primary-040, rgba(147, 112, 219, 0.4)) 80%,
     transparent 100%
   );
   border-radius: 1px;
@@ -2762,7 +2744,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
 .lumia-ooc-whisper .lumia-ooc-whisper-name {
   font-size: 12px;
   font-weight: 500;
-  color: rgba(186, 135, 255, 0.9);
+  color: var(--lumiverse-primary-text-090, rgba(186, 135, 255, 0.9));
   font-family:
     -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
   letter-spacing: 0.2px;
@@ -2773,7 +2755,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
 .lumia-ooc-whisper .lumia-ooc-whisper-text {
   font-size: 14px;
   line-height: 1.55;
-  color: rgba(255, 255, 255, 0.88);
+  color: var(--lumiverse-text, rgba(255, 255, 255, 0.88));
   font-family:
     -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
   letter-spacing: -0.1px;
@@ -2782,12 +2764,12 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
 .lumia-ooc-whisper .lumia-ooc-whisper-text em,
 .lumia-ooc-whisper .lumia-ooc-whisper-text i {
-  color: rgba(186, 135, 255, 0.95);
+  color: var(--lumiverse-primary-text-095, rgba(186, 135, 255, 0.95));
 }
 
 .lumia-ooc-whisper .lumia-ooc-whisper-text strong,
 .lumia-ooc-whisper .lumia-ooc-whisper-text b {
-  color: rgba(255, 255, 255, 0.95);
+  color: var(--lumiverse-text, rgba(255, 255, 255, 0.95));
   font-weight: 600;
 }
 
@@ -2798,58 +2780,58 @@ details.lumia-panel[open] .lumia-panel-chevron {
   /* Minimal styling - just inherit from parent message */
   display: inline;
   font-style: italic;
-  color: rgba(147, 112, 219, 0.9);
+  color: var(--lumiverse-primary-090, rgba(147, 112, 219, 0.9));
 }
 
 .lumia-ooc-raw em,
 .lumia-ooc-raw i {
-  color: rgba(186, 135, 255, 0.95);
+  color: var(--lumiverse-primary-text-095, rgba(186, 135, 255, 0.95));
 }
 
 .lumia-ooc-raw strong,
 .lumia-ooc-raw b {
-  color: rgba(147, 112, 219, 1);
+  color: var(--lumiverse-primary, rgba(147, 112, 219, 1));
   font-weight: 600;
 }
 
 /* Summarization Modal Styling */
 .lumia-misc-section {
-  border: 1px solid rgba(128, 128, 128, 0.3);
+  border: 1px solid var(--lumiverse-border-neutral-hover, rgba(128, 128, 128, 0.3));
   padding: 15px;
   border-radius: 8px;
-  background-color: rgba(0, 0, 0, 0.15);
+  background-color: var(--lumiverse-fill, rgba(0, 0, 0, 0.15));
 }
 
 .lumia-misc-section h4 {
   margin: 0 0 8px 0;
   font-size: 1.1em;
-  color: rgba(255, 255, 255, 0.95);
+  color: var(--lumiverse-text, rgba(255, 255, 255, 0.95));
 }
 
 .lumia-misc-section p {
   margin: 0 0 10px 0;
   font-size: 0.9em;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--lumiverse-text-muted, rgba(255, 255, 255, 0.7));
 }
 
 .lumia-misc-section label {
   display: block;
   margin-bottom: 5px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--lumiverse-text, rgba(255, 255, 255, 0.85));
 }
 
 .lumia-misc-section small {
   display: block;
   margin-top: 4px;
   font-size: 0.85em;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--lumiverse-text-dim, rgba(255, 255, 255, 0.5));
 }
 
 #lumia-sum-test-status {
   padding: 10px;
   border-radius: 5px;
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: var(--lumiverse-fill-hover, rgba(0, 0, 0, 0.2));
 }
 
 /* Mobile Responsiveness */
@@ -4661,16 +4643,16 @@ details.lumia-panel[open] .lumia-panel-chevron {
   display: block !important;
   position: relative !important;
   font-family: 'Courier New', 'Lucida Console', 'Monaco', monospace !important;
-  background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%) !important;
-  border: 1px solid #333 !important;
-  border-left: 3px solid #9370DB !important;
+  background: linear-gradient(180deg, var(--lumiverse-bg-deep, #1a1a2e) 0%, var(--lumiverse-bg-deepest, #0f0f1a) 100%) !important;
+  border: 1px solid var(--lumiverse-border-neutral, #333) !important;
+  border-left: 3px solid var(--lumiverse-primary, #9370DB) !important;
   border-radius: 4px !important;
   margin: 12px 0 !important;
   padding: 0 !important;
   overflow: hidden !important;
   box-shadow: 
-    0 2px 8px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.02) !important;
+    var(--lumiverse-shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.4)),
+    var(--lumiverse-highlight-inset, inset 0 1px 0 rgba(255, 255, 255, 0.02)) !important;
   width: 100% !important;
   max-width: 100% !important;
 }
@@ -4678,19 +4660,19 @@ details.lumia-panel[open] .lumia-panel-chevron {
 /* Channel Header */
 .lumia-irc-container .lumia-irc-header {
   display: block !important;
-  background: linear-gradient(180deg, #252540 0%, #1e1e35 100%) !important;
-  color: #888 !important;
+  background: linear-gradient(180deg, var(--lumiverse-bg-elevated, #252540) 0%, var(--lumiverse-bg-deep, #1e1e35) 100%) !important;
+  color: var(--lumiverse-text-muted, #888) !important;
   font-size: 10px !important;
   font-weight: bold !important;
   letter-spacing: 0.5px !important;
   padding: 4px 10px !important;
-  border-bottom: 1px solid #333 !important;
+  border-bottom: 1px solid var(--lumiverse-border-neutral, #333) !important;
   text-transform: uppercase !important;
 }
 
 .lumia-irc-header::before {
   content: "● ";
-  color: #00ff00;
+  color: var(--lumiverse-irc-text, #00ff00);
   font-size: 8px;
 }
 
@@ -4701,7 +4683,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
   gap: 8px !important;
   padding: 4px 10px !important;
   line-height: 1.5 !important;
-  border-bottom: 1px solid rgba(26, 26, 46, 0.5) !important;
+  border-bottom: 1px solid var(--lumiverse-border-neutral, rgba(26, 26, 46, 0.5)) !important;
   transition: background-color 0.15s ease !important;
   background: transparent !important;
 }
@@ -4711,21 +4693,21 @@ details.lumia-panel[open] .lumia-panel-chevron {
 }
 
 .lumia-irc-msg:hover {
-  background: rgba(147, 112, 219, 0.08);
+  background: var(--lumiverse-primary-008, rgba(147, 112, 219, 0.08));
 }
 
 /* Alternating row colors */
 .lumia-irc-msg.lumia-irc-alt {
-  background: rgba(147, 112, 219, 0.03);
+  background: var(--lumiverse-primary-003, rgba(147, 112, 219, 0.03));
 }
 
 .lumia-irc-msg.lumia-irc-alt:hover {
-  background: rgba(147, 112, 219, 0.1);
+  background: var(--lumiverse-primary-010, rgba(147, 112, 219, 0.1));
 }
 
 /* Timestamp */
 .lumia-irc-time {
-  color: #555;
+  color: var(--lumiverse-text-dim, #555);
   font-size: 10px;
   flex-shrink: 0;
   min-width: 42px;
@@ -4743,14 +4725,14 @@ details.lumia-panel[open] .lumia-panel-chevron {
   object-fit: cover !important;
   flex-shrink: 0 !important;
   image-rendering: pixelated !important;
-  border: 1px solid #444 !important;
+  border: 1px solid var(--lumiverse-border-neutral-hover, #444) !important;
   display: inline-block !important;
   vertical-align: middle !important;
 }
 
 /* Handle/Nick */
 .lumia-irc-handle {
-  color: #9370DB;
+  color: var(--lumiverse-primary, #9370DB);
   font-weight: bold;
   font-size: 12px;
   flex-shrink: 0;
@@ -4759,7 +4741,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
 /* Message Content */
 .lumia-irc-content {
-  color: #00ff00;
+  color: var(--lumiverse-irc-text, #00ff00);
   font-size: 12px;
   word-break: break-word;
   flex-grow: 1;
@@ -4767,9 +4749,9 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
 /* @Mention Highlighting */
 .lumia-irc-mention {
-  color: #ff6b6b;
+  color: var(--lumiverse-irc-mention, var(--lumiverse-danger, #ff6b6b));
   font-weight: bold;
-  background: rgba(255, 107, 107, 0.1);
+  background: var(--lumiverse-irc-mention-bg, var(--lumiverse-danger-010, rgba(255, 107, 107, 0.1)));
   padding: 0 2px;
   border-radius: 2px;
 }
@@ -4834,7 +4816,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
 .lumia-irc-toggle-btn {
   cursor: pointer;
   font-size: 10px;
-  color: #9370DB;
+  color: var(--lumiverse-primary, #9370DB);
   padding: 2px 6px;
   border-radius: 3px;
   transition: all 0.2s ease;
@@ -4843,8 +4825,8 @@ details.lumia-panel[open] .lumia-panel-chevron {
 }
 
 .lumia-irc-toggle-btn:hover {
-  background: rgba(147, 112, 219, 0.15);
-  color: #a78bfa;
+  background: var(--lumiverse-primary-015, rgba(147, 112, 219, 0.15));
+  color: var(--lumiverse-primary-text, #a78bfa);
 }
 
 /* Body wrapper - grid container for smooth collapse via grid-template-rows */

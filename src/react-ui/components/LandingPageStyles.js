@@ -14,6 +14,7 @@ export const landingPageStyles = `
   box-sizing: border-box;
   /* background moved to .lumiverse-lp-bg for proper layering */
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--lumiverse-text, rgba(255, 255, 255, 0.9));
   /* padding-top handled inline */
 }
 
@@ -28,9 +29,9 @@ export const landingPageStyles = `
   pointer-events: auto; /* Block clicks on underlying content */
   background: linear-gradient(
     165deg,
-    rgba(15, 12, 22, 0.98) 0%,
-    rgba(22, 18, 32, 0.97) 50%,
-    rgba(18, 15, 28, 0.98) 100%
+    var(--lumiverse-bg-deep) 0%,
+    var(--lumiverse-bg-097) 50%,
+    var(--lumiverse-bg-deepest) 100%
   );
 }
 
@@ -45,7 +46,7 @@ export const landingPageStyles = `
 .lumiverse-lp-bg-glow-1 {
   width: 600px;
   height: 600px;
-  background: radial-gradient(circle, rgba(147, 112, 219, 0.25) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--lumiverse-border-hover) 0%, transparent 70%);
   top: -200px;
   right: -100px;
   animation-delay: 0s;
@@ -54,7 +55,7 @@ export const landingPageStyles = `
 .lumiverse-lp-bg-glow-2 {
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, rgba(100, 149, 237, 0.2) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--lumiverse-secondary-020) 0%, transparent 70%);
   bottom: -150px;
   left: -100px;
   animation-delay: -2.6s;
@@ -63,7 +64,7 @@ export const landingPageStyles = `
 .lumiverse-lp-bg-glow-3 {
   width: 400px;
   height: 400px;
-  background: radial-gradient(circle, rgba(186, 135, 255, 0.15) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--lumiverse-primary-text-015) 0%, transparent 70%);
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -89,8 +90,8 @@ export const landingPageStyles = `
   bottom: 0;
   /* top handled inline */
   background-image:
-    linear-gradient(rgba(147, 112, 219, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(147, 112, 219, 0.03) 1px, transparent 1px);
+    linear-gradient(var(--lumiverse-primary-003) 1px, transparent 1px),
+    linear-gradient(90deg, var(--lumiverse-primary-003) 1px, transparent 1px);
   background-size: 50px 50px;
   pointer-events: none;
   opacity: 0.6;
@@ -125,9 +126,9 @@ export const landingPageStyles = `
   padding: 44px 32px 60px;
   background: linear-gradient(
     180deg,
-    #0f0c16 0%,
-    rgba(15, 12, 22, 0.98) 70%,
-    rgba(15, 12, 22, 0) 100%
+    var(--lumiverse-bg-deep) 0%,
+    var(--lumiverse-bg-deep) 70%,
+    transparent 100%
   );
   pointer-events: none;
 }
@@ -161,14 +162,14 @@ export const landingPageStyles = `
   justify-content: center;
   background: linear-gradient(
     135deg,
-    rgba(147, 112, 219, 0.25) 0%,
-    rgba(100, 149, 237, 0.15) 100%
+    var(--lumiverse-border-hover) 0%,
+    var(--lumiverse-secondary-015) 100%
   );
-  border: 1px solid rgba(147, 112, 219, 0.4);
+  border: 1px solid var(--lumiverse-primary-040);
   border-radius: 16px;
   box-shadow:
-    0 4px 24px rgba(147, 112, 219, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    0 4px 24px var(--lumiverse-primary-030),
+    var(--lumiverse-highlight-inset);
 }
 
 .lumiverse-lp-logo-icon svg {
@@ -176,14 +177,14 @@ export const landingPageStyles = `
   height: 100%;
   padding: 10px;
   box-sizing: border-box;
-  filter: drop-shadow(0 0 4px rgba(186, 135, 255, 0.5));
+  filter: drop-shadow(0 0 4px var(--lumiverse-primary-text-050));
 }
 
 .lumiverse-lp-logo-text h1 {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif !important;
   font-size: 28px;
   font-weight: 800;
-  color: rgba(255, 255, 255, 0.98);
+  color: var(--lumiverse-text);
   margin: 0 !important;
   padding: 0 !important;
   border: none !important;
@@ -192,11 +193,11 @@ export const landingPageStyles = `
   text-decoration: none !important;
   line-height: 1.1 !important;
   letter-spacing: -0.5px;
-  background: linear-gradient(135deg, #ffffff 0%, #d8b4fe 100%) !important;
+  background: linear-gradient(135deg, var(--lumiverse-text, #ffffff) 0%, var(--lumiverse-primary, #d8b4fe) 100%) !important;
   -webkit-background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
   background-clip: text !important;
-  text-shadow: 0 4px 12px rgba(147, 112, 219, 0.3) !important;
+  text-shadow: 0 4px 12px var(--lumiverse-primary-030) !important;
   padding-top: 4px !important; /* Nudge text down slightly for visual balance */
 }
 
@@ -204,7 +205,7 @@ export const landingPageStyles = `
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif !important;
   font-size: 14px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.6) !important;
+  color: var(--lumiverse-text-muted) !important;
   letter-spacing: 0.5px;
   text-transform: uppercase;
   margin: 0 !important;
@@ -243,15 +244,15 @@ export const landingPageStyles = `
   width: 40px;
   height: 40px;
   padding: 0;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.7);
+  background: var(--lumiverse-fill-subtle);
+  border: 1px solid var(--lumiverse-border);
+  color: var(--lumiverse-text-muted);
 }
 
 .lumiverse-lp-btn-refresh:hover {
-  background: rgba(147, 112, 219, 0.15);
-  border-color: rgba(147, 112, 219, 0.4);
-  color: rgba(186, 135, 255, 0.95);
+  background: var(--lumiverse-primary-015);
+  border-color: var(--lumiverse-primary-040);
+  color: var(--lumiverse-primary-text);
 }
 
 /* Temporary chat button */
@@ -259,9 +260,9 @@ export const landingPageStyles = `
   width: 40px;
   height: 40px;
   padding: 0;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.7);
+  background: var(--lumiverse-fill-subtle);
+  border: 1px solid var(--lumiverse-border);
+  color: var(--lumiverse-text-muted);
 }
 
 .lumiverse-lp-btn-temp-chat:hover {
@@ -273,41 +274,41 @@ export const landingPageStyles = `
 .lumiverse-lp-btn-toggle {
   background: linear-gradient(
     135deg,
-    rgba(147, 112, 219, 0.2) 0%,
-    rgba(100, 149, 237, 0.15) 100%
+    var(--lumiverse-primary-020) 0%,
+    var(--lumiverse-secondary-015) 100%
   );
-  border: 1px solid rgba(147, 112, 219, 0.35);
-  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--lumiverse-primary-035);
+  color: var(--lumiverse-text);
 }
 
 .lumiverse-lp-btn-toggle:hover {
   background: linear-gradient(
     135deg,
-    rgba(147, 112, 219, 0.3) 0%,
-    rgba(100, 149, 237, 0.25) 100%
+    var(--lumiverse-primary-030) 0%,
+    var(--lumiverse-secondary-025) 100%
   );
-  border-color: rgba(147, 112, 219, 0.5);
-  box-shadow: 0 4px 20px rgba(147, 112, 219, 0.25);
+  border-color: var(--lumiverse-primary-050);
+  box-shadow: 0 4px 20px var(--lumiverse-border-hover);
 }
 
 .lumiverse-lp-btn-primary {
   background: linear-gradient(
     135deg,
-    rgba(147, 112, 219, 0.9) 0%,
-    rgba(100, 149, 237, 0.85) 100%
+    var(--lumiverse-primary) 0%,
+    var(--lumiverse-secondary-085) 100%
   );
   color: white;
-  border: 1px solid rgba(147, 112, 219, 0.4);
+  border: 1px solid var(--lumiverse-primary-040);
 }
 
 .lumiverse-lp-btn-primary:hover {
   background: linear-gradient(
     135deg,
-    rgba(167, 132, 239, 0.95) 0%,
+    var(--lumiverse-primary-hover) 0%,
     rgba(120, 169, 247, 0.9) 100%
   );
   transform: translateY(-1px);
-  box-shadow: 0 6px 24px rgba(147, 112, 219, 0.35);
+  box-shadow: 0 6px 24px var(--lumiverse-primary-035);
 }
 
 /* Spin animation for refresh */
@@ -330,7 +331,7 @@ export const landingPageStyles = `
   width: 100%;
   box-sizing: border-box;
   scrollbar-width: thin;
-  scrollbar-color: rgba(147, 112, 219, 0.3) transparent;
+  scrollbar-color: var(--lumiverse-primary-030) transparent;
 }
 
 .lumiverse-lp-main::-webkit-scrollbar {
@@ -342,12 +343,12 @@ export const landingPageStyles = `
 }
 
 .lumiverse-lp-main::-webkit-scrollbar-thumb {
-  background: rgba(147, 112, 219, 0.3);
+  background: var(--lumiverse-primary-030);
   border-radius: 3px;
 }
 
 .lumiverse-lp-main::-webkit-scrollbar-thumb:hover {
-  background: rgba(147, 112, 219, 0.5);
+  background: var(--lumiverse-primary-050);
 }
 
 /* Card grid */
@@ -377,11 +378,11 @@ export const landingPageStyles = `
 
   background: linear-gradient(
     165deg,
-    rgba(255, 255, 255, 0.08) 0%,
-    rgba(255, 255, 255, 0.03) 50%,
-    rgba(255, 255, 255, 0.02) 100%
+    var(--lumiverse-fill-subtle) 0%,
+    var(--lumiverse-fill-subtle) 50%,
+    var(--lumiverse-fill-subtle) 100%
   );
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--lumiverse-border);
   border-radius: 20px;
   overflow: hidden;
   cursor: pointer;
@@ -401,11 +402,11 @@ export const landingPageStyles = `
 }
 
 .lumiverse-lp-card:hover {
-  border-color: rgba(147, 112, 219, 0.4);
+  border-color: var(--lumiverse-primary-040);
   box-shadow:
     0 12px 40px rgba(0, 0, 0, 0.3),
-    0 0 0 1px rgba(147, 112, 219, 0.15) inset,
-    0 0 60px rgba(147, 112, 219, 0.1);
+    0 0 0 1px var(--lumiverse-primary-015) inset,
+    0 0 60px var(--lumiverse-primary-010);
 }
 
 /* Glass shimmer effect on hover */
@@ -443,7 +444,7 @@ export const landingPageStyles = `
   aspect-ratio: 1 / 1;
   background: linear-gradient(
     135deg,
-    rgba(20, 16, 28, 0.6) 0%,
+    var(--lumiverse-bg-060) 0%,
     rgba(40, 32, 55, 0.4) 100%
   );
   display: flex;
@@ -459,7 +460,7 @@ export const landingPageStyles = `
   height: 70%;
   background: radial-gradient(
     circle,
-    rgba(147, 112, 219, 0.3) 0%,
+    var(--lumiverse-primary-030) 0%,
     transparent 70%
   );
   opacity: 0;
@@ -479,10 +480,10 @@ export const landingPageStyles = `
   max-height: 100%;
   object-fit: cover;
   border-radius: 50%;
-  border: 3px solid rgba(255, 255, 255, 0.1);
+  border: 3px solid var(--lumiverse-border);
   box-shadow:
-    0 4px 20px rgba(0, 0, 0, 0.3),
-    0 0 0 1px rgba(255, 255, 255, 0.05);
+    var(--lumiverse-shadow-sm),
+    0 0 0 1px var(--lumiverse-border);
   transition: all 0.3s ease;
   position: relative;
   z-index: 1;
@@ -492,10 +493,10 @@ export const landingPageStyles = `
 
 .lumiverse-lp-card:hover .lumiverse-lp-card-avatar {
   transform: scale(1.05);
-  border-color: rgba(147, 112, 219, 0.4);
+  border-color: var(--lumiverse-primary-040);
   box-shadow:
-    0 6px 30px rgba(0, 0, 0, 0.4),
-    0 0 30px rgba(147, 112, 219, 0.2);
+    var(--lumiverse-shadow-md),
+    0 0 30px var(--lumiverse-primary-020);
 }
 
 /* Group avatar placeholder (legacy fallback) */
@@ -507,20 +508,20 @@ export const landingPageStyles = `
   justify-content: center;
   background: linear-gradient(
     135deg,
-    rgba(100, 149, 237, 0.2) 0%,
-    rgba(147, 112, 219, 0.15) 100%
+    var(--lumiverse-secondary-020) 0%,
+    var(--lumiverse-primary-015) 100%
   );
   border-radius: 50%;
-  border: 3px solid rgba(255, 255, 255, 0.1);
-  color: rgba(186, 135, 255, 0.8);
+  border: 3px solid var(--lumiverse-border);
+  color: var(--lumiverse-primary-text-080);
 }
 
 /* Group image container variant - same aspect ratio as solo cards */
 .lumiverse-lp-card-image-container.lumiverse-lp-card-image-group {
   background: linear-gradient(
     135deg,
-    rgba(100, 149, 237, 0.08) 0%,
-    rgba(147, 112, 219, 0.05) 50%,
+    var(--lumiverse-secondary-008) 0%,
+    var(--lumiverse-primary-005) 50%,
     rgba(75, 85, 150, 0.1) 100%
   );
 }
@@ -547,7 +548,7 @@ export const landingPageStyles = `
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(147, 112, 219, 0.5);
+  color: var(--lumiverse-primary-050);
 }
 
 .lumiverse-lp-group-stack-avatars {
@@ -571,8 +572,8 @@ export const landingPageStyles = `
   border-radius: 50%;
   overflow: hidden;
   box-shadow:
-    0 2px 12px rgba(0, 0, 0, 0.4),
-    0 0 0 2px rgba(255, 255, 255, 0.1);
+    var(--lumiverse-shadow-sm),
+    0 0 0 2px var(--lumiverse-border);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -679,21 +680,21 @@ export const landingPageStyles = `
   justify-content: center;
   background: linear-gradient(
     135deg,
-    rgba(100, 149, 237, 0.85) 0%,
-    rgba(147, 112, 219, 0.9) 100%
+    var(--lumiverse-secondary-085) 0%,
+    var(--lumiverse-primary) 100%
   );
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.15);
+  border: 2px solid var(--lumiverse-border);
   backdrop-filter: blur(4px);
   box-shadow:
-    0 2px 12px rgba(0, 0, 0, 0.4),
-    0 0 20px rgba(100, 149, 237, 0.3);
+    var(--lumiverse-shadow-sm),
+    0 0 20px var(--lumiverse-secondary-030);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
   font-size: 14px;
   font-weight: 700;
   color: white;
   letter-spacing: -0.3px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  /* text-shadow removed — clean text in both modes */
 }
 
 .lumiverse-lp-group-avatar-img {
@@ -707,9 +708,9 @@ export const landingPageStyles = `
 /* Hover effects for group cards */
 .lumiverse-lp-card:hover .lumiverse-lp-group-avatar-wrapper {
   box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.5),
-    0 0 0 2px rgba(147, 112, 219, 0.4),
-    0 0 20px rgba(147, 112, 219, 0.15);
+    var(--lumiverse-shadow-md),
+    0 0 0 2px var(--lumiverse-primary-040),
+    0 0 20px var(--lumiverse-primary-015);
 }
 
 .lumiverse-lp-card:hover .lumiverse-lp-group-avatar-wrapper:nth-child(1) {
@@ -752,7 +753,7 @@ export const landingPageStyles = `
 
 .lumiverse-lp-card:hover .lumiverse-lp-group-avatar-overflow {
   box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.5),
+    var(--lumiverse-shadow-md),
     0 0 30px rgba(100, 149, 237, 0.4);
 }
 
@@ -766,21 +767,21 @@ export const landingPageStyles = `
   align-items: center;
   gap: 4px;
   padding: 4px 10px;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--lumiverse-fill-heavy);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--lumiverse-border);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
   font-size: 11px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--lumiverse-text-muted);
 }
 
 .lumiverse-lp-card-time-badge svg {
   width: 10px;
   height: 10px;
-  stroke: rgba(255, 255, 255, 0.6);
+  stroke: var(--lumiverse-icon-muted);
 }
 
 /* Delete button - positioned top-right corner of card */
@@ -796,11 +797,11 @@ export const landingPageStyles = `
   height: 36px;
   padding: 0;
   border-radius: 12px;
-  background: rgba(30, 30, 40, 0.85);
+  background: var(--lumiverse-bg-elevated);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--lumiverse-border);
+  color: var(--lumiverse-text);
   cursor: pointer;
   /* Only transition color properties - let Framer Motion handle transform/opacity */
   transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
@@ -863,7 +864,7 @@ export const landingPageStyles = `
   background: linear-gradient(
     180deg,
     transparent 0%,
-    rgba(0, 0, 0, 0.2) 100%
+    var(--lumiverse-fill-hover) 100%
   );
 }
 
@@ -871,7 +872,7 @@ export const landingPageStyles = `
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
   font-size: 15px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.95);
+  color: var(--lumiverse-text);
   margin: 0;
   letter-spacing: -0.2px;
   white-space: nowrap;
@@ -905,14 +906,14 @@ export const landingPageStyles = `
 }
 
 .lumiverse-lp-card-badge-preset {
-  background: rgba(147, 112, 219, 0.2);
-  border: 1px solid rgba(147, 112, 219, 0.35);
-  color: rgba(186, 135, 255, 0.95);
+  background: var(--lumiverse-primary-020);
+  border: 1px solid var(--lumiverse-primary-035);
+  color: var(--lumiverse-primary-text);
 }
 
 .lumiverse-lp-card-badge-group {
-  background: rgba(100, 149, 237, 0.2);
-  border: 1px solid rgba(100, 149, 237, 0.35);
+  background: var(--lumiverse-secondary-020);
+  border: 1px solid var(--lumiverse-secondary-035);
   color: rgba(135, 180, 247, 0.95);
 }
 
@@ -926,7 +927,7 @@ export const landingPageStyles = `
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(147, 112, 219, 0.6) 50%,
+    var(--lumiverse-primary-muted) 50%,
     transparent 100%
   );
   border-radius: 1px;
@@ -943,9 +944,9 @@ export const landingPageStyles = `
   aspect-ratio: 1 / 1;
   background: linear-gradient(
     90deg,
-    rgba(147, 112, 219, 0.08) 0%,
-    rgba(147, 112, 219, 0.15) 50%,
-    rgba(147, 112, 219, 0.08) 100%
+    var(--lumiverse-primary-008) 0%,
+    var(--lumiverse-primary-015) 50%,
+    var(--lumiverse-primary-008) 100%
   );
   background-size: 200% 100%;
   animation: lumia-skeleton-shimmer 1.5s ease-in-out infinite;
@@ -962,9 +963,9 @@ export const landingPageStyles = `
   height: 12px;
   background: linear-gradient(
     90deg,
-    rgba(147, 112, 219, 0.08) 0%,
-    rgba(147, 112, 219, 0.15) 50%,
-    rgba(147, 112, 219, 0.08) 100%
+    var(--lumiverse-primary-008) 0%,
+    var(--lumiverse-primary-015) 50%,
+    var(--lumiverse-primary-008) 100%
   );
   background-size: 200% 100%;
   animation: lumia-skeleton-shimmer 1.5s ease-in-out infinite;
@@ -1002,26 +1003,26 @@ export const landingPageStyles = `
   justify-content: center;
   background: linear-gradient(
     135deg,
-    rgba(147, 112, 219, 0.15) 0%,
-    rgba(100, 149, 237, 0.1) 100%
+    var(--lumiverse-primary-015) 0%,
+    var(--lumiverse-secondary-010) 100%
   );
-  border: 1px solid rgba(147, 112, 219, 0.25);
+  border: 1px solid var(--lumiverse-border-hover);
   border-radius: 50%;
   margin-bottom: 24px;
-  color: rgba(147, 112, 219, 0.6);
+  color: var(--lumiverse-primary-muted);
 }
 
 .lumiverse-lp-empty-icon svg {
   width: 48px;
   height: 48px;
-  stroke: rgba(147, 112, 219, 0.8);
+  stroke: var(--lumiverse-primary-080);
 }
 
 .lumiverse-lp-empty h3 {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
   font-size: 24px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--lumiverse-text);
   margin: 0 0 8px 0;
   letter-spacing: -0.3px;
 }
@@ -1029,7 +1030,7 @@ export const landingPageStyles = `
 .lumiverse-lp-empty p {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--lumiverse-text-dim);
   max-width: 320px;
   line-height: 1.5;
 }
@@ -1047,7 +1048,7 @@ export const landingPageStyles = `
 .lumiverse-lp-error p {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
   font-size: 16px;
-  color: rgba(244, 67, 54, 0.8);
+  color: var(--lumiverse-danger-080);
   margin-bottom: 16px;
 }
 
@@ -1061,7 +1062,7 @@ export const landingPageStyles = `
 .lumiverse-lp-footer p {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.35);
+  color: var(--lumiverse-text-dim);
   letter-spacing: 0.3px;
 }
 
@@ -1249,14 +1250,14 @@ export const landingPageStyles = `
   align-items: flex-end;
   gap: 4px;
   padding: 10px 14px;
-  background: rgba(15, 12, 22, 0.65);
+  background: var(--lumiverse-bg-060);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--lumiverse-border);
   border-radius: 10px;
   box-shadow:
-    0 2px 12px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    var(--lumiverse-shadow-sm),
+    var(--lumiverse-highlight-inset);
   pointer-events: auto;
   user-select: none;
   -webkit-user-select: none;
@@ -1265,8 +1266,8 @@ export const landingPageStyles = `
 }
 
 .lumiverse-lp-version-info:hover {
-  border-color: rgba(147, 112, 219, 0.25);
-  background: rgba(20, 16, 28, 0.75);
+  border-color: var(--lumiverse-border-hover);
+  background: var(--lumiverse-bg-070);
   box-shadow:
     0 4px 16px rgba(0, 0, 0, 0.25),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
@@ -1278,9 +1279,9 @@ export const landingPageStyles = `
 
 /* Copied state - brief flash */
 .lumiverse-lp-version-info--copied {
-  border-color: rgba(147, 112, 219, 0.5) !important;
+  border-color: var(--lumiverse-primary-050) !important;
   box-shadow:
-    0 4px 20px rgba(147, 112, 219, 0.2),
+    0 4px 20px var(--lumiverse-primary-020),
     inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
 }
 
@@ -1291,12 +1292,12 @@ export const landingPageStyles = `
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(147, 112, 219, 0.15);
+  background: var(--lumiverse-primary-015);
   border-radius: 9px;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
   font-size: 11px;
   font-weight: 600;
-  color: rgba(186, 135, 255, 0.95);
+  color: var(--lumiverse-primary-text);
   letter-spacing: 0.3px;
   text-transform: uppercase;
 }
@@ -1311,7 +1312,7 @@ export const landingPageStyles = `
 .lumiverse-lp-version-label {
   font-size: 10px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.35);
+  color: var(--lumiverse-text-dim);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -1319,7 +1320,7 @@ export const landingPageStyles = `
 .lumiverse-lp-version-value {
   font-size: 11px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--lumiverse-text-dim);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.2px;
   display: inline-flex;
@@ -1331,13 +1332,13 @@ export const landingPageStyles = `
 .lumiverse-lp-version-git {
   font-size: 10px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--lumiverse-text-hint);
   padding-left: 6px;
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 1px solid var(--lumiverse-border);
 }
 
 .lumiverse-lp-version-commit {
-  color: rgba(147, 112, 219, 0.5);
+  color: var(--lumiverse-primary-050);
   font-family: "SF Mono", "Fira Code", "Consolas", monospace;
   font-size: 9px;
   margin-left: 3px;
@@ -1345,7 +1346,7 @@ export const landingPageStyles = `
 
 /* Beta/prerelease version styling - subtle accent */
 .lumiverse-lp-version-beta {
-  color: rgba(186, 135, 255, 0.7);
+  color: var(--lumiverse-primary-text-080);
   position: relative;
 }
 
@@ -1359,7 +1360,7 @@ export const landingPageStyles = `
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(186, 135, 255, 0.4) 50%,
+    var(--lumiverse-primary-text-050) 50%,
     transparent 100%
   );
 }

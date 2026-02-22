@@ -765,13 +765,13 @@ ${contextText}
 
 ### Your Task ###
 
-Review the story context above and use ALL of your assigned tools to provide your contributions. For each tool, provide specific, actionable input from your unique perspective as ${memberName}. Be concise but insightful. Remember to filter all your contributions through your personality, biases, and worldview as described above.${buildUserControlGuidance()}`;
+Review the story context above and use ALL of your assigned tools to provide your contributions. For each tool, provide specific, actionable input from your unique perspective as ${memberName}. Be concise but insightful. Remember to filter all your contributions through your personality, biases, and worldview as described above.${buildBrevityInstruction()}${buildUserControlGuidance()}`;
 
   const requestBody = {
     model: model,
     max_tokens: maxTokens,
     temperature: temperature,
-    system: "You are a council member contributing to story direction. Use your tools to provide structured contributions. Be concise and specific. You MUST use all available tools.",
+    system: `You are a council member contributing to story direction. Use your tools to provide structured contributions. Be concise and specific. You MUST use all available tools.${buildBrevityInstruction()}`,
     messages: [{ role: "user", content: userPrompt }],
     tools: tools,
     tool_choice: { type: "any" },
@@ -823,7 +823,7 @@ Review the story context above and use ALL of your assigned tools to provide you
   if (results.length === 0) {
     const textBlocks = (data.content || []).filter((b) => b.type === "text");
     if (textBlocks.length > 0) {
-      const fallbackText = textBlocks.map((b) => b.text).join("\n");
+      const fallbackText = normalizeToolText(textBlocks.map((b) => b.text).join("\n"));
       // Attribute to first tool as a fallback
       const firstTool = COUNCIL_TOOLS[memberTools[0]];
       results.push({
@@ -833,7 +833,7 @@ Review the story context above and use ALL of your assigned tools to provide you
         toolName: memberTools[0],
         toolDisplayName: firstTool?.displayName || memberTools[0],
         success: true,
-        response: fallbackText.trim(),
+        response: fallbackText,
       });
     }
   }
@@ -882,7 +882,7 @@ ${contextText}
 
 ### Your Task ###
 
-Review the story context above and use your assigned tools to provide your contributions. For each tool, provide specific, actionable input from your unique perspective as ${memberName}. Be concise but insightful. Remember to filter all your contributions through your personality, biases, and worldview as described above.${buildUserControlGuidance()}`;
+Review the story context above and use your assigned tools to provide your contributions. For each tool, provide specific, actionable input from your unique perspective as ${memberName}. Be concise but insightful. Remember to filter all your contributions through your personality, biases, and worldview as described above.${buildBrevityInstruction()}${buildUserControlGuidance()}`;
 
   const headers = {
     "Content-Type": "application/json",
@@ -899,7 +899,7 @@ Review the story context above and use your assigned tools to provide your contr
     max_tokens: maxTokens,
     temperature: temperature,
     messages: [
-      { role: "system", content: "You are a council member contributing to story direction. Use your tools to provide structured contributions. Be concise and specific." },
+      { role: "system", content: `You are a council member contributing to story direction. Use your tools to provide structured contributions. Be concise and specific.${buildBrevityInstruction()}` },
       { role: "user", content: userPrompt },
     ],
     tools: tools,
@@ -960,7 +960,7 @@ Review the story context above and use your assigned tools to provide your contr
       toolName: memberTools[0],
       toolDisplayName: firstTool?.displayName || memberTools[0],
       success: true,
-      response: message.content.trim(),
+      response: normalizeToolText(message.content),
     });
   }
 
@@ -1001,7 +1001,7 @@ async function executeToolsForMemberGoogle(member, memberTools, contextText, api
     .filter(Boolean)
     .join("\n\n---\n\n");
 
-  const fullPrompt = `You are ${memberName}, a council member contributing to collaborative story direction. Be concise and specific.
+  const fullPrompt = `You are ${memberName}, a council member contributing to collaborative story direction. Be concise and specific.${buildBrevityInstruction()}
 
 ${lumiaContext ? lumiaContext + "\n\n" : ""}${roleDescriptor ? roleDescriptor + "\n\n" : ""}${enrichmentText ? enrichmentText + "\n\n" : ""}### Current Story Context ###
 
@@ -1049,13 +1049,17 @@ Provide your contributions from your unique perspective as ${memberName}, filter
   }
 
   const data = await response.json();
-  const fullText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  // Normalize Google's raw text response to strip any JSON artifacts
+  const fullText = normalizeToolText(rawText);
 
   // For prompt-based fallback, return one result per tool with the combined response
   // attributed to the first tool, since we can't reliably parse sections
   const results = [];
-  if (fullText.trim()) {
+  if (fullText) {
     // Try to split by tool headers if possible
+    const maxWords = getMaxWordsPerTool();
+    const truncatedText = maxWords > 0 ? truncateToWordLimit(fullText, maxWords * memberTools.length) : fullText;
     for (const toolName of memberTools) {
       const toolDef = COUNCIL_TOOLS[toolName];
       if (!toolDef) continue;
@@ -1066,7 +1070,7 @@ Provide your contributions from your unique perspective as ${memberName}, filter
         toolName: toolName,
         toolDisplayName: toolDef.displayName,
         success: true,
-        response: fullText.trim(),
+        response: truncatedText,
       });
       break; // Only attribute to first tool for prompt-based; full text contains all
     }
@@ -1076,25 +1080,119 @@ Provide your contributions from your unique perspective as ${memberName}, filter
 }
 
 /**
+ * Normalize a text value by stripping JSON artifacts and ensuring pure prose output.
+ * Handles cases where the LLM returns raw JSON objects/arrays as values, or embeds
+ * JSON structures within otherwise readable text.
+ * @param {*} value - The value to normalize (string, object, or array)
+ * @returns {string} Clean prose text
+ */
+function normalizeToolText(value) {
+  if (value === undefined || value === null) return "";
+
+  // If already a non-string type, extract text from it
+  if (typeof value === "object") {
+    if (Array.isArray(value)) {
+      return value.map(v => normalizeToolText(v)).filter(Boolean).join(" ");
+    }
+    // Object: extract all string values recursively
+    const extracted = Object.values(value).map(v => normalizeToolText(v)).filter(Boolean);
+    return extracted.join(" ");
+  }
+
+  let text = String(value);
+
+  // Try to detect and unwrap a JSON-encoded string
+  if ((text.startsWith("{") && text.endsWith("}")) || (text.startsWith("[") && text.endsWith("]"))) {
+    try {
+      const parsed = JSON.parse(text);
+      return normalizeToolText(parsed);
+    } catch {
+      // Not valid JSON, continue with string cleanup
+    }
+  }
+
+  // Strip JSON key patterns like "key": or "key" : from text
+  text = text.replace(/"([^"]+)"\s*:\s*/g, "");
+
+  // Remove stray JSON structural characters (braces/brackets not part of markdown)
+  // Preserve brackets in markdown links [text](url) and bold **text**
+  text = text.replace(/(?<!\[)[{}](?!\()/g, "");
+
+  // Collapse excessive whitespace and trim
+  text = text.replace(/\n{3,}/g, "\n\n").replace(/[ \t]{2,}/g, " ").trim();
+
+  return text;
+}
+
+/**
+ * Truncate text to a maximum word count as a hard safety net.
+ * @param {string} text - The text to truncate
+ * @param {number} maxWords - Maximum number of words allowed
+ * @returns {string} Truncated text with [...] appended if truncated
+ */
+function truncateToWordLimit(text, maxWords) {
+  if (!text || !maxWords || maxWords <= 0) return text || "";
+
+  const words = text.split(/\s+/);
+  if (words.length <= maxWords) return text;
+
+  return words.slice(0, maxWords).join(" ") + " [...]";
+}
+
+/**
+ * Build a brevity instruction fragment based on the configured word limit.
+ * Used in sidecar mode system/user prompts to guide the LLM toward concise responses.
+ * @returns {string} Brevity instruction text, or empty string if no limit configured
+ */
+function buildBrevityInstruction() {
+  const settings = getSettings();
+  const maxWords = settings.councilTools?.maxWordsPerTool;
+  if (!maxWords || maxWords <= 0) return "";
+
+  return `\n\nIMPORTANT — BREVITY REQUIREMENT: Keep each tool response field under ${maxWords} words. Be direct, specific, and actionable. No preamble, filler, or repetition. Every word must earn its place.`;
+}
+
+/**
+ * Get the configured max words per tool from settings.
+ * @returns {number} Max words per tool field (0 = unlimited)
+ */
+function getMaxWordsPerTool() {
+  const settings = getSettings();
+  return parseInt(settings.councilTools?.maxWordsPerTool, 10) || 0;
+}
+
+/**
  * Format tool input object into readable text
  * @param {Object} input - The tool input/arguments object
  * @param {Object} toolDef - The tool definition
  * @returns {string} Formatted readable text
  */
 function formatToolInput(input, toolDef) {
-  if (!input || typeof input !== "object") return String(input || "");
+  if (!input || typeof input !== "object") return normalizeToolText(input);
 
+  const maxWords = getMaxWordsPerTool();
   const parts = [];
   const schema = toolDef.inputSchema?.properties || {};
 
   for (const [key, value] of Object.entries(input)) {
     if (value === undefined || value === null || value === "") continue;
+    // Normalize first to strip any JSON artifacts, then truncate
+    let cleaned = normalizeToolText(value);
+    if (maxWords > 0) {
+      cleaned = truncateToWordLimit(cleaned, maxWords);
+    }
     // Use a human-readable label from the key
     const label = key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-    parts.push(`**${label}:** ${value}`);
+    parts.push(`**${label}:** ${cleaned}`);
   }
 
-  return parts.join("\n\n") || JSON.stringify(input);
+  if (parts.length === 0) {
+    // Fallback: extract any text content from the input rather than dumping JSON
+    const fallback = normalizeToolText(input);
+    return fallback || "(No content provided)";
+  }
+
+  return parts.join("\n\n");
 }
 
 /**
@@ -1276,7 +1374,8 @@ export function formatToolResultsForDeliberation(results) {
 
     memberResults.forEach((result) => {
       lines.push(`**${result.toolDisplayName}:**`);
-      lines.push(result.response);
+      // Final safety net: normalize response to ensure no JSON leaks into deliberation
+      lines.push(normalizeToolText(result.response));
       lines.push("");
     });
 

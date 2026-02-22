@@ -65,18 +65,18 @@ const ConfirmationModal = ({
         switch (variant) {
             case 'danger':
                 return {
-                    iconBg: 'rgba(239, 68, 68, 0.15)',
-                    iconColor: '#ef4444',
+                    iconBg: 'var(--lumiverse-danger-015, rgba(239, 68, 68, 0.15))',
+                    iconColor: 'var(--lumiverse-danger, #ef4444)',
                     confirmBg: 'linear-gradient(135deg, rgba(239, 68, 68, 0.9), rgba(220, 38, 38, 0.9))',
                     confirmHoverBg: 'linear-gradient(135deg, rgba(248, 113, 113, 0.95), rgba(239, 68, 68, 0.95))',
-                    confirmBorder: 'rgba(239, 68, 68, 0.5)',
+                    confirmBorder: 'var(--lumiverse-danger-050, rgba(239, 68, 68, 0.5))',
                     accentGlow: 'rgba(239, 68, 68, 0.3)',
-                    borderAccent: 'rgba(239, 68, 68, 0.2)',
+                    borderAccent: 'var(--lumiverse-danger-020, rgba(239, 68, 68, 0.2))',
                 };
             case 'warning':
                 return {
                     iconBg: 'rgba(245, 158, 11, 0.15)',
-                    iconColor: '#f59e0b',
+                    iconColor: 'var(--lumiverse-warning, #f59e0b)',
                     confirmBg: 'linear-gradient(135deg, rgba(245, 158, 11, 0.9), rgba(217, 119, 6, 0.9))',
                     confirmHoverBg: 'linear-gradient(135deg, rgba(251, 191, 36, 0.95), rgba(245, 158, 11, 0.95))',
                     confirmBorder: 'rgba(245, 158, 11, 0.5)',
@@ -86,13 +86,13 @@ const ConfirmationModal = ({
             case 'safe':
             default:
                 return {
-                    iconBg: 'rgba(147, 112, 219, 0.15)',
-                    iconColor: '#9370db',
+                    iconBg: 'var(--lumiverse-primary-015, rgba(147, 112, 219, 0.15))',
+                    iconColor: 'var(--lumiverse-primary, #9370db)',
                     confirmBg: 'linear-gradient(135deg, rgba(147, 112, 219, 0.9), rgba(124, 58, 237, 0.9))',
                     confirmHoverBg: 'linear-gradient(135deg, rgba(167, 139, 250, 0.95), rgba(147, 112, 219, 0.95))',
-                    confirmBorder: 'rgba(147, 112, 219, 0.5)',
+                    confirmBorder: 'var(--lumiverse-primary-050, rgba(147, 112, 219, 0.5))',
                     accentGlow: 'rgba(147, 112, 219, 0.3)',
-                    borderAccent: 'rgba(147, 112, 219, 0.2)',
+                    borderAccent: 'var(--lumiverse-primary-020, rgba(147, 112, 219, 0.2))',
                 };
         }
     };
@@ -132,7 +132,7 @@ const ConfirmationModal = ({
                         alignItems: 'center',
                         justifyContent: 'center',
                         padding: '20px',
-                        background: 'rgba(0, 0, 0, 0.6)',
+                        background: 'var(--lumiverse-modal-backdrop, rgba(0, 0, 0, 0.6))',
                         backdropFilter: 'blur(4px)',
                         WebkitBackdropFilter: 'blur(4px)',
                         pointerEvents: 'auto',
@@ -148,12 +148,12 @@ const ConfirmationModal = ({
                             position: 'relative',
                             width: '100%',
                             maxWidth: '420px',
-                            background: 'linear-gradient(135deg, rgba(30, 25, 45, 0.98), rgba(20, 18, 30, 0.98))',
+                            background: 'var(--lumiverse-gradient-modal, linear-gradient(135deg, rgba(30, 25, 45, 0.98), rgba(20, 18, 30, 0.98)))',
                             borderRadius: '16px',
                             border: `1px solid ${variantStyles.borderAccent}`,
                             boxShadow: `
                                 0 25px 50px -12px rgba(0, 0, 0, 0.5),
-                                0 0 0 1px rgba(255, 255, 255, 0.05),
+                                0 0 0 1px var(--lumiverse-border),
                                 0 0 40px ${variantStyles.accentGlow}
                             `,
                             overflow: 'hidden',
@@ -171,20 +171,20 @@ const ConfirmationModal = ({
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                background: 'rgba(255, 255, 255, 0.05)',
-                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                background: 'var(--lumiverse-bg-dark, rgba(255, 255, 255, 0.05))',
+                                border: '1px solid var(--lumiverse-border, rgba(255, 255, 255, 0.1))',
                                 borderRadius: '8px',
-                                color: 'rgba(255, 255, 255, 0.6)',
+                                color: 'var(--lumiverse-text-muted, rgba(255, 255, 255, 0.6))',
                                 cursor: 'pointer',
                                 transition: 'all 0.15s ease',
                             }}
                             onMouseEnter={(e) => {
-                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                                e.currentTarget.style.color = 'rgba(255, 255, 255, 0.9)';
+                                e.currentTarget.style.background = 'var(--lumiverse-bg-darker, rgba(255, 255, 255, 0.1))';
+                                e.currentTarget.style.color = 'var(--lumiverse-text, rgba(255, 255, 255, 0.9))';
                             }}
                             onMouseLeave={(e) => {
-                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                                e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)';
+                                e.currentTarget.style.background = 'var(--lumiverse-bg-dark, rgba(255, 255, 255, 0.05))';
+                                e.currentTarget.style.color = 'var(--lumiverse-text-muted, rgba(255, 255, 255, 0.6))';
                             }}
                             type="button"
                             aria-label="Close"
@@ -217,7 +217,7 @@ const ConfirmationModal = ({
                                     margin: '0 0 12px',
                                     fontSize: '18px',
                                     fontWeight: 600,
-                                    color: '#ffffff',
+                                    color: 'var(--lumiverse-text, #ffffff)',
                                     textAlign: 'center',
                                 }}
                             >

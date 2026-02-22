@@ -7,8 +7,9 @@ import { ChatPresetsPanel } from './panels/ChatPresets';
 import { PresetBindingsPanel } from './panels/PresetBindings';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
-import { Eye, Sparkles, Wrench, Layers, Trash2, Users, Bookmark, Plus, ChevronDown, Check, X, AlertTriangle, Download, Settings2 } from 'lucide-react';
+import { Eye, Sparkles, Wrench, Layers, Trash2, Users, Bookmark, Plus, ChevronDown, Check, X, AlertTriangle, Download, Settings2, Palette } from 'lucide-react';
 import ConfirmationModal from './shared/ConfirmationModal';
+import ThemePanel from './panels/ThemePanel';
 
 /* global LumiverseBridge, toastr */
 
@@ -1269,6 +1270,11 @@ function SettingsPanel() {
                     </div>
                 )}
             </div>
+
+            {/* Theme Customization */}
+            <Panel title="Theme" icon={<Palette size={16} strokeWidth={1.5} />} collapsible>
+                <ThemePanel />
+            </Panel>
 
             {/* Lumia DLC Packs Section */}
             <Panel title="Lumia DLC Packs" icon={Icons.book}>
