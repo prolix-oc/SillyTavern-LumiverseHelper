@@ -53,6 +53,83 @@ export function isLightMode(background) {
     return background.l > 50;
 }
 
+// ─── Color Format Conversions ───────────────────────────────────────
+
+/**
+ * Convert HSL color to RGB.
+ * @param {{ h: number, s: number, l: number }} color
+ * @returns {{ r: number, g: number, b: number }}
+ */
+export function hslToRgb({ h, s, l }) {
+    const sNorm = s / 100;
+    const lNorm = l / 100;
+    const c = (1 - Math.abs(2 * lNorm - 1)) * sNorm;
+    const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+    const m = lNorm - c / 2;
+    let r, g, b;
+    if (h < 60)       { r = c; g = x; b = 0; }
+    else if (h < 120) { r = x; g = c; b = 0; }
+    else if (h < 180) { r = 0; g = c; b = x; }
+    else if (h < 240) { r = 0; g = x; b = c; }
+    else if (h < 300) { r = x; g = 0; b = c; }
+    else               { r = c; g = 0; b = x; }
+    return {
+        r: Math.round((r + m) * 255),
+        g: Math.round((g + m) * 255),
+        b: Math.round((b + m) * 255),
+    };
+}
+
+/**
+ * Convert RGB color to HSL.
+ * @param {{ r: number, g: number, b: number }} color
+ * @returns {{ h: number, s: number, l: number }}
+ */
+export function rgbToHsl({ r, g, b }) {
+    const rNorm = r / 255;
+    const gNorm = g / 255;
+    const bNorm = b / 255;
+    const max = Math.max(rNorm, gNorm, bNorm);
+    const min = Math.min(rNorm, gNorm, bNorm);
+    const d = max - min;
+    const l = (max + min) / 2;
+    if (d === 0) return { h: 0, s: 0, l: Math.round(l * 100) };
+    const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    let h;
+    if (max === rNorm)      h = ((gNorm - bNorm) / d + (gNorm < bNorm ? 6 : 0)) * 60;
+    else if (max === gNorm) h = ((bNorm - rNorm) / d + 2) * 60;
+    else                    h = ((rNorm - gNorm) / d + 4) * 60;
+    return { h: Math.round(h), s: Math.round(s * 100), l: Math.round(l * 100) };
+}
+
+/**
+ * Convert HSL color to hex string.
+ * @param {{ h: number, s: number, l: number }} color
+ * @returns {string} e.g. "#A855F7"
+ */
+export function hslToHex(color) {
+    const { r, g, b } = hslToRgb(color);
+    return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('').toUpperCase();
+}
+
+/**
+ * Parse a hex color string to HSL. Accepts 3 or 6 digit hex with or without #.
+ * @param {string} hex
+ * @returns {{ h: number, s: number, l: number } | null}
+ */
+export function hexToHsl(hex) {
+    let cleaned = hex.replace(/^#/, '');
+    if (cleaned.length === 3) {
+        cleaned = cleaned[0] + cleaned[0] + cleaned[1] + cleaned[1] + cleaned[2] + cleaned[2];
+    }
+    if (!/^[0-9a-fA-F]{6}$/.test(cleaned)) return null;
+    return rgbToHsl({
+        r: parseInt(cleaned.slice(0, 2), 16),
+        g: parseInt(cleaned.slice(2, 4), 16),
+        b: parseInt(cleaned.slice(4, 6), 16),
+    });
+}
+
 // ─── Default Theme ───────────────────────────────────────────────────
 
 const DEFAULT_THEME = {

@@ -3,7 +3,7 @@ import { HslColorPicker } from 'react-colorful';
 import clsx from 'clsx';
 import { RotateCcw, Download, Upload, Check, Sun, Moon } from 'lucide-react';
 import { useLumiverseActions, useLumiverseStore, saveToExtension } from '../../store/LumiverseContext';
-import { applyTheme, getDefaultTheme, THEME_PRESETS, exportTheme, importTheme, isValidTheme, isLightMode } from '../../../lib/themeManager';
+import { applyTheme, getDefaultTheme, THEME_PRESETS, exportTheme, importTheme, isValidTheme, isLightMode, hslToRgb, rgbToHsl, hslToHex, hexToHsl } from '../../../lib/themeManager';
 
 /* global toastr */
 
@@ -107,11 +107,15 @@ export default function ThemePanel() {
         applyTheme(localTheme);
     }, [localTheme]);
 
-    // Debounced persist to store
+    // Debounced persist to store — version counter prevents stale saves
     const saveTimerRef = useRef(null);
+    const persistVersionRef = useRef(0);
     const persistTheme = useCallback((themeToSave) => {
+        const version = ++persistVersionRef.current;
         if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
         saveTimerRef.current = setTimeout(() => {
+            // Discard if a newer persist was queued (race condition guard)
+            if (version !== persistVersionRef.current) return;
             // Only persist if different from default
             const isDefault = themeToSave.name === 'Default Purple' &&
                 JSON.stringify(themeToSave.baseColors) === JSON.stringify(defaultTheme.baseColors);
@@ -152,8 +156,13 @@ export default function ThemePanel() {
         setActivePreset('Custom');
     }, [persistTheme]);
 
+    // Lock ref: set true on preset/reset clicks to block stale trailing picker
+    // events from react-colorful; cleared when the user presses down on the picker again.
+    const presetLockRef = useRef(false);
+
     // Handle color change from picker
     const handleColorChange = useCallback((newColor) => {
+        if (presetLockRef.current) return;
         setLocalTheme(prev => {
             const next = {
                 ...prev,
@@ -166,17 +175,32 @@ export default function ThemePanel() {
         setActivePreset('Custom');
     }, [activeSlot, persistTheme]);
 
-    // Handle preset selection
+    // Handle preset selection — synchronous, bypasses debounce to prevent
+    // race conditions with late color picker onChange events
     const handlePresetSelect = useCallback((presetName) => {
         const preset = THEME_PRESETS[presetName];
         if (!preset) return;
+        // Cancel any in-flight debounced save and lock out stale picker events
+        if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+        persistVersionRef.current++;
+        presetLockRef.current = true;
         setLocalTheme(preset);
         setActivePreset(presetName);
-        persistTheme(preset);
-    }, [persistTheme]);
+        // Persist immediately — preset clicks are discrete user actions
+        const isDefault = presetName === 'Default Purple' &&
+            JSON.stringify(preset.baseColors) === JSON.stringify(defaultTheme.baseColors);
+        if (isDefault) {
+            actions.resetTheme();
+        } else {
+            actions.setTheme(preset);
+        }
+    }, [actions, defaultTheme]);
 
-    // Handle reset
+    // Handle reset — cancel debounce and lock out stale picker events
     const handleReset = useCallback(() => {
+        if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+        persistVersionRef.current++;
+        presetLockRef.current = true;
         setLocalTheme(defaultTheme);
         setActivePreset('Default Purple');
         actions.resetTheme();
@@ -228,6 +252,29 @@ export default function ThemePanel() {
     }, [persistTheme]);
 
     const currentColor = localTheme.baseColors[activeSlot];
+
+    // Derived hex/RGB values for the active color slot
+    const currentRgb = useMemo(() => hslToRgb(currentColor), [currentColor]);
+    const currentHex = useMemo(() => hslToHex(currentColor), [currentColor]);
+
+    // Local hex input state — only commits on blur/Enter to allow partial typing
+    const [hexInput, setHexInput] = useState(currentHex);
+    useEffect(() => { setHexInput(currentHex); }, [currentHex]);
+
+    const commitHex = useCallback((value) => {
+        const parsed = hexToHsl(value);
+        if (parsed) handleColorChange(parsed);
+    }, [handleColorChange]);
+
+    const handleHexKeyDown = useCallback((e) => {
+        if (e.key === 'Enter') commitHex(hexInput);
+    }, [commitHex, hexInput]);
+
+    const handleRgbChange = useCallback((channel, value) => {
+        const clamped = Math.max(0, Math.min(255, Math.round(Number(value) || 0)));
+        const newRgb = { ...currentRgb, [channel]: clamped };
+        handleColorChange(rgbToHsl(newRgb));
+    }, [currentRgb, handleColorChange]);
 
     return (
         <div className="lumiverse-theme-panel">
@@ -294,11 +341,39 @@ export default function ThemePanel() {
                 <label className="lumiverse-theme-label">
                     Editing: <strong>{COLOR_SLOTS.find(s => s.key === activeSlot)?.label}</strong>
                 </label>
-                <div className="lumiverse-theme-picker">
+                <div className="lumiverse-theme-picker" onPointerDown={() => { presetLockRef.current = false; }}>
                     <HslColorPicker
                         color={currentColor}
                         onChange={handleColorChange}
                     />
+                </div>
+                <div className="lumiverse-color-inputs">
+                    <div className="lumiverse-color-input-group lumiverse-color-input-group--hex">
+                        <label className="lumiverse-color-input-label">HEX</label>
+                        <input
+                            type="text"
+                            className="lumiverse-input lumiverse-color-input-hex"
+                            value={hexInput}
+                            onChange={(e) => setHexInput(e.target.value)}
+                            onBlur={() => commitHex(hexInput)}
+                            onKeyDown={handleHexKeyDown}
+                            spellCheck={false}
+                            maxLength={7}
+                        />
+                    </div>
+                    {['r', 'g', 'b'].map(ch => (
+                        <div key={ch} className="lumiverse-color-input-group">
+                            <label className="lumiverse-color-input-label">{ch.toUpperCase()}</label>
+                            <input
+                                type="number"
+                                className="lumiverse-input lumiverse-color-input-rgb"
+                                value={currentRgb[ch]}
+                                onChange={(e) => handleRgbChange(ch, e.target.value)}
+                                min={0}
+                                max={255}
+                            />
+                        </div>
+                    ))}
                 </div>
             </div>
 

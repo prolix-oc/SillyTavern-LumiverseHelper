@@ -258,6 +258,52 @@
     border-width: 3px;
 }
 
+/* Hex / RGB Inputs */
+.lumiverse-color-inputs {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+    align-items: flex-end;
+}
+
+.lumiverse-color-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1;
+    min-width: 0;
+}
+
+.lumiverse-color-input-group--hex {
+    flex: 2;
+}
+
+.lumiverse-color-input-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--lumiverse-text-dim);
+}
+
+.lumiverse-color-input-hex,
+.lumiverse-color-input-rgb {
+    padding: 6px 8px;
+    font-size: 13px;
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+    text-align: center;
+}
+
+/* Hide number input spinners */
+.lumiverse-color-input-rgb::-webkit-inner-spin-button,
+.lumiverse-color-input-rgb::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.lumiverse-color-input-rgb {
+    -moz-appearance: textfield;
+}
+
 /* Actions Row */
 .lumiverse-theme-actions {
     display: flex;
