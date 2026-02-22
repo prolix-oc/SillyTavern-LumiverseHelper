@@ -1101,6 +1101,11 @@ function normalizeToolText(value) {
 
   let text = String(value);
 
+  // Replace literal escape sequences with actual whitespace characters.
+  // LLMs sometimes return literal "\n" (two-char backslash-n) in tool call arguments
+  // instead of real newline characters — normalize these first.
+  text = text.replace(/\\r\\n/g, "\n").replace(/\\n/g, "\n").replace(/\\r/g, "\n").replace(/\\t/g, "\t");
+
   // Try to detect and unwrap a JSON-encoded string
   if ((text.startsWith("{") && text.endsWith("}")) || (text.startsWith("[") && text.endsWith("]"))) {
     try {
