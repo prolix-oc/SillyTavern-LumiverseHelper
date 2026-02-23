@@ -663,6 +663,7 @@ export function getLatestToolResults() {
  */
 export function clearToolResults() {
   latestToolResults = [];
+  window.LumiverseBridge?.setCouncilToolResults?.([]);
 }
 
 /**
@@ -738,10 +739,26 @@ Draw upon your expertise as ${member.role} to provide valuable insights.`;
  * @param {Object} member - Council member object
  * @returns {string} Lumia context for tool prompts
  */
+/**
+ * Extract raw Lumia identity fields for a council member (for diagnostic record-keeping).
+ * Returns the same fields that buildLumiaContext uses, but as individual strings.
+ * @param {Object} member - Council member object
+ * @returns {{ definition: string, personality: string, behavior: string, role: string }}
+ */
+function extractLumiaIdentity(member) {
+  const item = getItemFromLibrary(member.packName, member.itemName);
+  return {
+    definition: item ? (getLumiaField(item, "def") || "") : "",
+    personality: item ? (getLumiaField(item, "personality") || "") : "",
+    behavior: item ? (getLumiaField(item, "behavior") || "") : "",
+    role: member.role || "",
+  };
+}
+
 function buildLumiaContext(member) {
   const item = getItemFromLibrary(member.packName, member.itemName);
   if (!item) return "";
-  
+
   const personality = getLumiaField(item, "personality");
   const behavior = getLumiaField(item, "behavior");
   const definition = getLumiaField(item, "def");
@@ -928,6 +945,7 @@ async function executeToolsForMemberAnthropic(member, memberTools, contextText, 
   const memberName = getLumiaField(item, "name") || member.itemName || "Unknown";
   const roleDescriptor = buildRoleDescriptor(member);
   const lumiaContext = buildLumiaContext(member);
+  const identity = extractLumiaIdentity(member);
   const model = secondary.model;
   const maxTokens = Math.max(256, parseInt(secondary.maxTokens, 10) || 4096);
   const temperature = parseFloat(secondary.temperature) || 0.7;
@@ -1001,6 +1019,7 @@ Review the story context above and use ALL of your assigned tools to provide you
             toolDisplayName: toolDef.displayName,
             success: true,
             response: responseText,
+            identity,
           });
         }
       }
@@ -1022,6 +1041,7 @@ Review the story context above and use ALL of your assigned tools to provide you
         toolDisplayName: firstTool?.displayName || memberTools[0],
         success: true,
         response: fallbackText,
+        identity,
       });
     }
   }
@@ -1046,6 +1066,7 @@ async function executeToolsForMemberOpenAI(member, memberTools, contextText, api
   const memberName = getLumiaField(item, "name") || member.itemName || "Unknown";
   const roleDescriptor = buildRoleDescriptor(member);
   const lumiaContext = buildLumiaContext(member);
+  const identity = extractLumiaIdentity(member);
   const model = secondary.model;
   const maxTokens = Math.max(256, parseInt(secondary.maxTokens, 10) || 4096);
   const temperature = parseFloat(secondary.temperature) || 0.7;
@@ -1132,6 +1153,7 @@ Review the story context above and use your assigned tools to provide your contr
             toolDisplayName: toolDef.displayName,
             success: true,
             response: responseText,
+            identity,
           });
         }
       }
@@ -1148,6 +1170,7 @@ Review the story context above and use your assigned tools to provide your contr
       toolName: memberTools[0],
       toolDisplayName: firstTool?.displayName || memberTools[0],
       success: true,
+      identity,
       response: normalizeToolText(message.content),
     });
   }
@@ -1172,6 +1195,7 @@ async function executeToolsForMemberGoogle(member, memberTools, contextText, api
   const memberName = getLumiaField(item, "name") || member.itemName || "Unknown";
   const roleDescriptor = buildRoleDescriptor(member);
   const lumiaContext = buildLumiaContext(member);
+  const identity = extractLumiaIdentity(member);
   const model = secondary.model;
   const maxTokens = Math.max(256, parseInt(secondary.maxTokens, 10) || 4096);
   const temperature = parseFloat(secondary.temperature) || 0.7;
@@ -1259,6 +1283,7 @@ Provide your contributions from your unique perspective as ${memberName}, filter
         toolDisplayName: toolDef.displayName,
         success: true,
         response: truncatedText,
+        identity,
       });
       break; // Only attribute to first tool for prompt-based; full text contains all
     }
@@ -1417,6 +1442,7 @@ async function executeToolsForMember(member, memberTools, contextText, providerI
   } catch (error) {
     const item = getItemFromLibrary(member.packName, member.itemName);
     const memberName = getLumiaField(item, "name") || member.itemName || "Unknown";
+    const identity = extractLumiaIdentity(member);
     console.error(`[${MODULE_NAME}] Tool execution failed for ${memberName}:`, error);
 
     // Return error results for all tools
@@ -1426,6 +1452,7 @@ async function executeToolsForMember(member, memberTools, contextText, providerI
       itemName: member.itemName,
       toolName,
       toolDisplayName: COUNCIL_TOOLS[toolName]?.displayName || toolName,
+      identity,
       success: false,
       error: error.message,
       response: "",
@@ -1488,6 +1515,7 @@ export async function executeAllCouncilTools() {
         }
       }
       setLatestToolResults(errorResults);
+      window.LumiverseBridge?.setCouncilToolResults?.(errorResults);
       return errorResults;
     }
 
@@ -1507,20 +1535,26 @@ export async function executeAllCouncilTools() {
     }
 
     // Execute all members in parallel - each member is one API call
-    // Wrap each execution to track visual progress
+    // Stream results to the Feedback panel as each member completes
+    const streamedResults = [];
     const memberPromises = membersWithTools.map(async (member) => {
       const results = await executeToolsForMember(member, member.tools, contextText, providerInfo, enrichmentText);
       // Add member to visual indicator when their tools complete
       addMemberToIndicator(member);
+      // Stream this member's results to the Feedback panel immediately
+      streamedResults.push(...results);
+      window.LumiverseBridge?.setCouncilToolResults?.([...streamedResults]);
       return results;
     });
 
     const memberResultArrays = await Promise.all(memberPromises);
     const allResults = memberResultArrays.flat();
 
-    // Store results for macro access
+    // Store final results for macro access
     setLatestToolResults(allResults);
-    
+    // Final push ensures React store matches the canonical result set
+    window.LumiverseBridge?.setCouncilToolResults?.(allResults);
+
     const successCount = allResults.filter((r) => r.success).length;
     console.log(`[${MODULE_NAME}] Council tool execution complete. ${successCount}/${allResults.length} tools succeeded.`);
 

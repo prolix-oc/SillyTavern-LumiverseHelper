@@ -330,6 +330,10 @@ export async function initializeReactUI(container) {
       getExtensionGitVersion: (name) => getExtensionGitVersion(name || EXTENSION_FOLDER_NAME),
       // Expose detected extension name for React store
       extensionName: EXTENSION_FOLDER_NAME,
+      // Push council tool results into React store for the Feedback panel
+      setCouncilToolResults: (results) => {
+        window.LumiverseUI?.getStore()?.setState({ councilToolResults: results || [] });
+      },
       // Called by packCache when pack data changes
       onPackCacheChange: () => {
         // Skip if this change was triggered by React saving

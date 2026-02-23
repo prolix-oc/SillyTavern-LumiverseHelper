@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 import clsx from 'clsx';
-import { User, Package, MessageSquare, Sliders, FileText, ChevronRight, ChevronLeft, X, Sparkles, Bookmark, Users } from 'lucide-react';
+import { User, Package, MessageSquare, Sliders, FileText, ChevronRight, ChevronLeft, X, Sparkles, Bookmark, Users, BarChart2 } from 'lucide-react';
 import { useLumiverseStore, useUpdates } from '../store/LumiverseContext';
 import { UpdateDot } from './UpdateBanner';
 import UpdateBanner from './UpdateBanner';
@@ -10,9 +10,14 @@ const store = useLumiverseStore;
 
 // Stable fallback constants for useSyncExternalStore
 const DEFAULT_DRAWER_SETTINGS = { side: 'right', verticalPosition: 15, tabSize: 'large' };
+const EMPTY_ARRAY = [];
 
 // Stable selector functions
 const selectDrawerSettings = () => store.getState().drawerSettings ?? DEFAULT_DRAWER_SETTINGS;
+const selectCouncilMode = () => store.getState().councilMode || false;
+const selectCouncilToolsEnabled = () => store.getState().councilTools?.enabled || false;
+const selectCouncilMembers = () => store.getState().councilMembers || EMPTY_ARRAY;
+const selectChatChangeCounter = () => store.getState().chatChangeCounter || 0;
 
 // Panel dimensions
 const DESKTOP_PANEL_WIDTH = 376; // 56px tabs + 320px content
@@ -148,8 +153,9 @@ function PanelHeader({ title, Icon, onClose }) {
 
 /**
  * Tab configuration for the viewport panel
+ * Tabs with conditional: true are filtered based on state
  */
-const PANEL_TABS = [
+const ALL_PANEL_TABS = [
     {
         id: 'profile',
         Icon: User,
@@ -192,6 +198,13 @@ const PANEL_TABS = [
         label: 'Summary',
         title: 'Summary Editor',
     },
+    {
+        id: 'feedback',
+        Icon: BarChart2,
+        label: 'Feedback',
+        title: 'Council Feedback',
+        conditional: true,
+    },
 ];
 
 /**
@@ -214,11 +227,47 @@ function ViewportPanel({
     PromptContent,
     CouncilContent,
     SummaryContent,
+    FeedbackContent,
 }) {
     const [activeTab, setActiveTab] = useState(defaultTab);
     const [isCollapsed, setIsCollapsed] = useState(false);
     const isMobile = useIsMobile();
     const { hasAnyUpdate } = useUpdates();
+
+    // Subscribe to state needed for conditional tab visibility
+    const councilMode = useSyncExternalStore(store.subscribe, selectCouncilMode, selectCouncilMode);
+    const councilToolsEnabled = useSyncExternalStore(store.subscribe, selectCouncilToolsEnabled, selectCouncilToolsEnabled);
+    const councilMembers = useSyncExternalStore(store.subscribe, selectCouncilMembers, selectCouncilMembers);
+    const chatChangeCounter = useSyncExternalStore(store.subscribe, selectChatChangeCounter, selectChatChangeCounter);
+
+    // Check if there's an active chat
+    const hasActiveChat = useMemo(() => {
+        try {
+            if (typeof SillyTavern !== 'undefined') {
+                const context = SillyTavern.getContext();
+                return context?.chat && context.chat.length > 0;
+            }
+        } catch { /* ignore */ }
+        return false;
+    }, [chatChangeCounter]);
+
+    // Filter tabs based on conditional visibility
+    const visibleTabs = useMemo(() => {
+        return ALL_PANEL_TABS.filter(tab => {
+            if (tab.id === 'feedback') {
+                return hasActiveChat && councilMode && councilToolsEnabled && councilMembers?.length > 0;
+            }
+            return true;
+        });
+    }, [hasActiveChat, councilMode, councilToolsEnabled, councilMembers?.length]);
+
+    // Auto-fallback if active tab becomes hidden
+    useEffect(() => {
+        const isActiveTabVisible = visibleTabs.some(t => t.id === activeTab);
+        if (!isActiveTabVisible && visibleTabs.length > 0) {
+            setActiveTab(visibleTabs[0].id);
+        }
+    }, [visibleTabs, activeTab]);
 
     // Subscribe to drawer settings from store (fallback if not passed as prop)
     const drawerSettingsFromStore = useSyncExternalStore(
@@ -270,7 +319,7 @@ function ViewportPanel({
         setIsCollapsed(prev => !prev);
     }, []);
 
-    const activeTabConfig = PANEL_TABS.find(tab => tab.id === activeTab);
+    const activeTabConfig = ALL_PANEL_TABS.find(tab => tab.id === activeTab);
 
     // Memoize tab content components to prevent unnecessary re-renders
     // Pass handleTabClick to ProfileContent so it can navigate to other tabs (e.g., Council)
@@ -282,7 +331,8 @@ function ViewportPanel({
         prompt: PromptContent ? <PromptContent /> : <PlaceholderContent tab="prompt" />,
         council: CouncilContent ? <CouncilContent /> : <PlaceholderContent tab="council" />,
         summary: SummaryContent ? <SummaryContent /> : <PlaceholderContent tab="summary" />,
-    }), [ProfileContent, PresetsContent, BrowserContent, OOCContent, PromptContent, CouncilContent, SummaryContent, handleTabClick]);
+        feedback: FeedbackContent ? <FeedbackContent /> : <PlaceholderContent tab="feedback" />,
+    }), [ProfileContent, PresetsContent, BrowserContent, OOCContent, PromptContent, CouncilContent, SummaryContent, FeedbackContent, handleTabClick]);
 
     // Calculate wrapper positioning based on side
     const getWrapperStyle = () => {
@@ -358,7 +408,7 @@ function ViewportPanel({
                 />
                 {/* Tab sidebar */}
                 <div className="lumiverse-vp-tabs">
-                    {PANEL_TABS.map(tab => (
+                    {visibleTabs.map(tab => (
                         <TabButton
                             key={tab.id}
                             id={tab.id}
@@ -397,7 +447,7 @@ function ViewportPanel({
                     <UpdateBanner variant="full" />
                     <div className="lumiverse-vp-content">
                         {/* All tabs stay mounted - CSS handles visibility */}
-                        {PANEL_TABS.map(tab => (
+                        {visibleTabs.map(tab => (
                             <div
                                 key={tab.id}
                                 className={clsx(
@@ -456,6 +506,11 @@ function PlaceholderContent({ tab }) {
             Icon: FileText,
             title: 'Summary Editor',
             description: 'View and edit the current conversation summary',
+        },
+        feedback: {
+            Icon: BarChart2,
+            title: 'Council Feedback',
+            description: 'View diagnostic feedback from council tool executions',
         },
     };
 

@@ -182,6 +182,10 @@ const initialState = {
     // Components can subscribe to this to reload when chat changes
     chatChangeCounter: 0,
 
+    // Council tool results (React-only, not saved to extension)
+    // Populated by LumiverseBridge.setCouncilToolResults after council tool execution
+    councilToolResults: [],
+
     // UI state (React-only, not saved to extension)
     ui: {
         activeModal: null,
@@ -1553,6 +1557,8 @@ function syncFromExtension(extensionSettings) {
         ...extensionSettings,
         // Keep React-only UI state
         ui: currentState.ui,
+        // Preserve React-only council tool results
+        councilToolResults: currentState.councilToolResults,
         // Increment chat change counter so components know to reload
         chatChangeCounter: (currentState.chatChangeCounter || 0) + 1,
     });
@@ -1566,7 +1572,7 @@ function syncFromExtension(extensionSettings) {
  */
 function exportForExtension() {
     // Return everything except the React-only UI state
-    const { ui, ...settingsToExport } = store.getState();
+    const { ui, councilToolResults, ...settingsToExport } = store.getState();
     return settingsToExport;
 }
 

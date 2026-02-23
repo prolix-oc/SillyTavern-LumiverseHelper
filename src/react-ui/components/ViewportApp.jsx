@@ -7,6 +7,7 @@ import OOCSettings from './panels/OOCSettings';
 import PromptSettings from './panels/PromptSettings';
 import CouncilManager from './panels/CouncilManager';
 import SummaryEditor from './panels/SummaryEditor';
+import FeedbackPanel from './panels/FeedbackPanel';
 import PackDetailModal from './modals/PackDetailModal';
 import LoomPackDetailModal from './modals/LoomPackDetailModal';
 import { useLumiverseStore } from '../store/LumiverseContext';
@@ -67,6 +68,7 @@ function ViewportApp() {
                 PromptContent={PromptSettings}
                 CouncilContent={CouncilManager}
                 SummaryContent={SummaryEditor}
+                FeedbackContent={FeedbackPanel}
             />
             {/* Pack detail modal - rendered when viewingPack is set */}
             <PackDetailModal />
