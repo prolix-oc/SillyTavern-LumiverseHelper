@@ -14,7 +14,7 @@
 import { getSettings, MODULE_NAME } from "./settingsManager.js";
 import { getContext, getUserPersona, getCharacterCardInfo, registerFunctionTool, unregisterFunctionTool, isToolCallingSupported } from "../stContext.js";
 import { getItemFromLibrary } from "./dataProcessor.js";
-import { getLumiaField } from "./lumiaContent.js";
+import { getLumiaField, getLoomContent } from "./lumiaContent.js";
 import { getProviderConfig, fetchSecretKey } from "./summarization.js";
 import {
   showCouncilIndicator,
@@ -28,6 +28,15 @@ const ST_TOOL_PREFIX = "lumiverse_council_";
 
 // Track which tools are currently registered with ST's ToolManager
 let registeredSTTools = new Set();
+
+/**
+ * Resolve a tool's prompt, supporting both static string and dynamic function prompts.
+ * @param {Object} tool - The tool definition from COUNCIL_TOOLS
+ * @returns {string} The resolved prompt text
+ */
+function resolveToolPrompt(tool) {
+  return typeof tool.prompt === 'function' ? tool.prompt() : tool.prompt;
+}
 
 // Storage for captured world info entries — refreshed each generation cycle
 let capturedWorldInfoEntries = [];
@@ -416,6 +425,122 @@ Your goal is to help create authentic, compelling relationship progression that 
         },
       },
       required: ["relationships_analyzed", "progression_guidance"],
+    },
+  },
+
+  historical_accuracy: {
+    name: "historical_accuracy",
+    displayName: "Historical Accuracy",
+    description: "Judge the roleplay's direction against real historical facts, events, and canon from Earth's history to ensure accuracy",
+    prompt: `Analyze the current story context for historical accuracy, drawing on real-world Earth history, events, geography, cultural practices, and factual canon.
+
+Your role is to act as a proactive historical guardian — identify potential inaccuracies BEFORE they become embedded in the narrative, and correct the story's trajectory to align with real historical fact.
+
+Consider:
+- Are dates, timelines, and historical sequences accurate?
+- Do cultural depictions (clothing, customs, language, social structures) match the stated time period and region?
+- Are referenced historical events, figures, or technologies portrayed faithfully?
+- Would the characters' actions or circumstances be plausible given real historical constraints?
+- Are there anachronisms (technology, concepts, terminology) that break historical immersion?
+- Do geographic references (distances, terrain, climate, flora/fauna) match reality?
+
+For each issue identified:
+- Cite the specific historical fact or event being misrepresented
+- Explain what is inaccurate and why it matters for immersion
+- Provide the historically accurate alternative
+- Suggest how to course-correct the narrative without disrupting flow
+
+Be proactive: if the story is heading toward a historically implausible outcome, flag it now with guidance to prevent the error rather than correct it after the fact.`,
+    inputSchema: {
+      type: "object",
+      properties: {
+        accuracy_assessment: {
+          type: "string",
+          description: "Assessment of historical accuracy in the current narrative, citing specific facts, events, or cultural details that are correct or incorrect.",
+        },
+        corrections: {
+          type: "string",
+          description: "Specific corrections needed with historically accurate alternatives. For each issue, cite the real historical fact and suggest how to fix the narrative.",
+        },
+        proactive_guidance: {
+          type: "string",
+          description: "Proactive warnings about where the story's current trajectory may lead to historical inaccuracies, with preemptive guidance to avoid them.",
+        },
+        confidence: {
+          type: "string",
+          enum: ["verified", "likely_accurate", "uncertain", "requires_research"],
+          description: "Confidence level in the historical assessment (verified = well-documented facts, likely_accurate = strong basis but minor uncertainty, uncertain = limited knowledge, requires_research = outside expertise).",
+        },
+      },
+      required: ["accuracy_assessment", "proactive_guidance"],
+    },
+  },
+
+  style_adherence: {
+    name: "style_adherence",
+    displayName: "Narrative Style Adherence",
+    description: "Analyze the story for adherence to the selected Lumiverse narrative style and enforce stylistic consistency",
+    prompt: () => {
+      const settings = getSettings();
+      const styleSelection = settings.selectedLoomStyle;
+      const styleContent = (styleSelection && styleSelection.length > 0)
+        ? getLoomContent(styleSelection)
+        : null;
+
+      const basePrompt = `Analyze the recent story output for adherence to the designated narrative style. Your role is to enforce stylistic consistency and guide the prose toward the intended aesthetic.
+
+Examine the story thus far for:
+- Prose rhythm, sentence structure, and paragraph flow
+- Vocabulary register and word choice patterns
+- Tone and emotional coloring of descriptions
+- Narrative voice (POV consistency, tense, distance)
+- Use of literary devices (metaphor, imagery, symbolism, dialogue style)
+- Pacing and scene structure
+- Any drift from the established style into generic or inconsistent prose
+
+For each deviation identified:
+- Quote or reference the specific passage
+- Explain how it deviates from the target style
+- Provide a concrete rewrite suggestion or guidance to realign
+- Note patterns of drift that may indicate the model losing the style thread`;
+
+      if (styleContent) {
+        return `${basePrompt}
+
+### Active Narrative Style ###
+The following is the narrative style that MUST be adhered to. All analysis should measure the story against these specific stylistic requirements:
+
+${styleContent}
+
+Enforce this style rigorously. Flag any prose that does not match the voice, tone, structure, and techniques described above. Prioritize the most impactful deviations first.`;
+      }
+
+      return `${basePrompt}
+
+Note: No specific narrative style is currently selected in Lumiverse Helper. Analyze based on internal consistency — identify the dominant style in recent messages and flag deviations from that established voice.`;
+    },
+    inputSchema: {
+      type: "object",
+      properties: {
+        style_analysis: {
+          type: "string",
+          description: "Analysis of how well the recent story output adheres to the target narrative style, with specific examples of conformance and deviation.",
+        },
+        deviations: {
+          type: "string",
+          description: "Specific passages or patterns that deviate from the target style, with quotes and explanations of how they diverge.",
+        },
+        realignment_guidance: {
+          type: "string",
+          description: "Concrete guidance for realigning the prose with the target style, including rewrite suggestions, technique reminders, and priority corrections.",
+        },
+        adherence_level: {
+          type: "string",
+          enum: ["excellent", "good", "moderate", "poor", "inconsistent"],
+          description: "Overall assessment of style adherence (excellent = near-perfect match, good = minor drifts, moderate = noticeable deviations, poor = significant departure, inconsistent = fluctuates between adherent and divergent).",
+        },
+      },
+      required: ["style_analysis", "realignment_guidance"],
     },
   },
 };
@@ -996,7 +1121,7 @@ async function executeToolsForMemberGoogle(member, memberTools, contextText, api
     .map((tn) => {
       const tool = COUNCIL_TOOLS[tn];
       if (!tool) return null;
-      return `## ${tool.displayName}\n${tool.prompt}`;
+      return `## ${tool.displayName}\n${resolveToolPrompt(tool)}`;
     })
     .filter(Boolean)
     .join("\n\n---\n\n");
@@ -1472,7 +1597,7 @@ function buildInlineToolDescription(toolDef, member) {
   const memberName = getLumiaField(item, "name") || member.itemName || "Unknown";
   const roleContext = member.role ? ` Their role on the council is: ${member.role}.` : '';
   
-  return `[Lumiverse Council - ${memberName}] ${toolDef.description}.${roleContext} ${toolDef.prompt}${buildUserControlGuidance()}`;
+  return `[Lumiverse Council - ${memberName}] ${toolDef.description}.${roleContext} ${resolveToolPrompt(toolDef)}${buildUserControlGuidance()}`;
 }
 
 /**
