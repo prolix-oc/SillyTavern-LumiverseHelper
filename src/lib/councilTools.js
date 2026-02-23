@@ -254,31 +254,36 @@ Provide specific details that feel organic to the established world.`,
   full_canon: {
     name: "full_canon",
     displayName: "Full Canon Analysis",
-    description: "Analyze how the character should act, talk, think, and portray themselves in 100% faithful source material adherence",
-    prompt: `Analyze the current scene and determine how the character should authentically behave, speak, think, and present themselves with ZERO deviation from established source material and lore.
+    description: "Fandom accuracy tool — analyze how the character should act, talk, think, and portray themselves in 100% faithful adherence to their source material, franchise, and fandom canon",
+    prompt: `You are a fandom accuracy analyst. Your job is to ensure characters from established franchises, series, games, anime, manga, books, films, and other media are portrayed with absolute fidelity to their source material.
+
+Analyze the current scene and determine how the character should authentically behave, speak, think, and present themselves with ZERO deviation from established source material, franchise lore, and fandom canon.
 
 Ground your analysis in:
-- The current location and setting context
-- Established character behaviors, personality traits, and mannerisms from source material
-- How the character would genuinely react to the current situation based on their canonical history
-- Speech patterns, vocabulary, and thought processes true to the character
-- World lore and established rules that constrain or inform their actions
+- The character's canon portrayal across their source material (games, anime, manga, books, films, shows, etc.)
+- Canonical personality traits, quirks, speech patterns, catchphrases, and mannerisms specific to the character
+- How the character has reacted to similar situations in their source material
+- The character's canonical relationships, loyalties, rivalries, and emotional attachments
+- Franchise-specific world rules, power systems, social hierarchies, and lore that govern the character's behavior
+- The current location and setting context as it relates to established canon
 
-Provide specific guidance on what the character should do, say, or think next, ensuring 100% fidelity to source material with no creative liberties or AU interpretations.`,
+Think like a dedicated fan who knows this character inside and out. If the character is being written in a way that contradicts how they canonically behave in their franchise, flag it immediately.
+
+Provide specific guidance on what the character should do, say, or think next, ensuring 100% fidelity to their source material with no creative liberties or AU interpretations.`,
     inputSchema: {
       type: "object",
       properties: {
         character_analysis: {
           type: "string",
-          description: "Analysis of how the character should authentically behave, speak, and think based on 100% source material fidelity, grounded in current location and established character traits.",
+          description: "Analysis of how the character should authentically behave, speak, and think based on 100% fidelity to their franchise, source material, and fandom canon.",
         },
         recommended_action: {
           type: "string",
-          description: "Specific guidance on what the character should do, say, or think next with zero deviation from canonical behavior.",
+          description: "Specific guidance on what the character should do, say, or think next with zero deviation from their canonical portrayal in the source material.",
         },
         canon_justification: {
           type: "string",
-          description: "Reference to specific source material, lore, or established character traits that justify this analysis and recommendation.",
+          description: "Reference to specific franchise source material, canonical events, character moments, or established lore that justify this analysis and recommendation.",
         },
       },
       required: ["character_analysis", "recommended_action"],
@@ -288,46 +293,50 @@ Provide specific guidance on what the character should do, say, or think next, e
   au_canon: {
     name: "au_canon",
     displayName: "AU Canon Analysis",
-    description: "Analyze character behavior with minor flexibility for alternate universe scenarios while maintaining core authenticity",
-    prompt: `Analyze the current scene and determine how the character should behave, speak, think, and present themselves with MINOR flexibility for alternate universe (AU) interpretations, while maintaining core character authenticity.
+    description: "Fandom accuracy tool (AU-flexible) — analyze character behavior with minor flexibility for alternate universe scenarios while preserving the core identity fans know and love",
+    prompt: `You are a fandom accuracy analyst with AU awareness. Your job is to ensure characters from established franchises are portrayed authentically to their core identity — even when placed in alternate universe scenarios that differ from their original source material.
+
+Analyze the current scene and determine how the character should behave, speak, think, and present themselves with MINOR flexibility for alternate universe (AU) interpretations, while maintaining the core character identity that fans recognize and love.
 
 Ground your analysis in:
-- The current location and setting context (which may differ from canon)
-- Core character personality traits that remain consistent even in AUs
-- How AU circumstances might reasonably influence behavior without breaking character
-- Speech patterns and thought processes that feel authentic to the character's essence
-- AU-specific lore or setting rules that inform actions
+- The character's core personality traits from their franchise that remain consistent even in AUs — the traits that MAKE them who they are
+- Canonical speech patterns, quirks, and mannerisms that should persist regardless of setting
+- How the character's canonical relationships, values, and motivations translate into the AU context
+- The current AU setting and how it reasonably reshapes circumstances without breaking character
+- AU-specific lore or rules that inform behavior while respecting the character's essence
 
 Allow for:
-- Situational adaptations to different settings or circumstances
-- Evolution of relationships in AU contexts
-- Creative interpretations that don't contradict core personality
+- Situational adaptations to AU settings (e.g., a fantasy character in a modern AU adjusting to technology)
+- Evolution of relationships in AU contexts while honoring canonical dynamics
+- Creative interpretations that explore "what if" without contradicting who the character fundamentally IS
 
 Do NOT allow:
-- Complete personality overhauls
-- Out-of-character behavior that contradicts established traits
-- Actions that would be impossible given the character's nature
+- Complete personality overhauls that make the character unrecognizable to fans
+- Out-of-character behavior that contradicts the traits central to their franchise identity
+- Actions that betray the character's core values, loyalties, or nature as established in source material
 
-Provide specific guidance on what the character should do, say, or think next, balancing AU flexibility with character authenticity.`,
+Think like a fan who writes good AU fanfiction — the setting can change, but the CHARACTER must still feel right.
+
+Provide specific guidance on what the character should do, say, or think next, balancing AU flexibility with fandom-accurate character authenticity.`,
     inputSchema: {
       type: "object",
       properties: {
         character_analysis: {
           type: "string",
-          description: "Analysis of how the character should behave, speak, and think with minor AU flexibility, grounded in current location and core character traits.",
+          description: "Analysis of how the character should behave, speak, and think in this AU context, grounded in their core franchise identity and the traits fans recognize.",
         },
         recommended_action: {
           type: "string",
-          description: "Specific guidance on what the character should do, say, or think next, balancing AU flexibility with character authenticity.",
+          description: "Specific guidance on what the character should do, say, or think next, balancing AU flexibility with fandom-accurate character authenticity.",
         },
         au_justification: {
           type: "string",
-          description: "Explanation of how AU circumstances influence this recommendation while maintaining core character authenticity.",
+          description: "Explanation of how AU circumstances influence this recommendation while preserving the character's core franchise identity and fan-recognized traits.",
         },
         canon_fidelity: {
           type: "string",
           enum: ["high", "medium", "low"],
-          description: "Assessment of how closely this recommendation adheres to canonical character traits (high = very faithful, medium = some AU flexibility, low = significant AU interpretation).",
+          description: "Assessment of how closely this recommendation adheres to the character's canonical franchise portrayal (high = very faithful to source, medium = some AU flexibility, low = significant AU interpretation).",
         },
       },
       required: ["character_analysis", "recommended_action"],
@@ -541,6 +550,60 @@ Note: No specific narrative style is currently selected in Lumiverse Helper. Ana
         },
       },
       required: ["style_analysis", "realignment_guidance"],
+    },
+  },
+
+  depravity_analyst: {
+    name: "depravity_analyst",
+    displayName: "Depravity Analyst",
+    description: "Analyze psychosexual dynamics, kink elements, and NSFW direction to guide scenes toward more satisfying and authentic erotic storytelling",
+    prompt: `You are a shameless, expert-level analyst of erotic fiction and psychosexual storytelling. Your purpose is to dissect the NSFW elements of the current scene and provide blunt, unflinching guidance to elevate the smut into something genuinely compelling.
+
+You have ZERO inhibitions about explicit content. You treat sexual dynamics with the same analytical rigor a literary critic applies to prose — except your domain is kink, desire, power exchange, arousal, and carnal satisfaction. You are not here to sanitize. You are here to make it BETTER.
+
+Analyze the current scene for:
+- Sexual tension and buildup — is the pacing effective or rushing past the foreplay?
+- Power dynamics — who holds control, who surrenders it, and is the interplay compelling?
+- Character desire and motivation — what do the characters actually WANT, and is the scene delivering on those desires authentically?
+- Kink coherence — are established kinks, fetishes, and preferences being honored or neglected?
+- Sensory detail — is the prose engaging the body (touch, taste, sound, scent, sight) or staying too cerebral?
+- Escalation and rhythm — does the scene build effectively, or does it plateau or spike unnaturally?
+- Emotional undertow — even pure smut benefits from emotional stakes; are they present?
+- Character voice in intimacy — do characters sound like themselves during sex, or do they become generic?
+
+For each observation:
+- Be specific about what's working and what isn't
+- Provide explicit, actionable direction for how to heighten satisfaction
+- Suggest concrete scene beats, dialogue, actions, or escalations
+- Flag missed opportunities for deeper kink exploration or emotional intensity
+
+Your goal is maximum reader satisfaction through authentic, well-crafted erotic storytelling. Do not hold back.`,
+    inputSchema: {
+      type: "object",
+      properties: {
+        scene_analysis: {
+          type: "string",
+          description: "Blunt analysis of the current NSFW scene's effectiveness — what's working, what's falling flat, and where the psychosexual dynamics stand.",
+        },
+        desire_mapping: {
+          type: "string",
+          description: "Analysis of character desires, motivations, and kink profiles as established in the story, and whether the scene is satisfying or neglecting them.",
+        },
+        escalation_guidance: {
+          type: "string",
+          description: "Specific, explicit direction for how to escalate, deepen, or redirect the scene for maximum erotic impact — including concrete beats, actions, dialogue, or sensory details to incorporate.",
+        },
+        missed_opportunities: {
+          type: "string",
+          description: "Kink elements, power dynamics, emotional beats, or sensory details that the scene is leaving on the table and could exploit for greater satisfaction.",
+        },
+        heat_level: {
+          type: "string",
+          enum: ["smoldering", "heated", "blazing", "volcanic", "supernova"],
+          description: "Current intensity assessment of the scene (smoldering = tension/buildup phase, heated = actively escalating, blazing = peak action, volcanic = overwhelming intensity, supernova = transcendent climax).",
+        },
+      },
+      required: ["scene_analysis", "escalation_guidance"],
     },
   },
 };
