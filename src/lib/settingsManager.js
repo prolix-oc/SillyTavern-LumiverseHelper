@@ -100,6 +100,7 @@ const DEFAULT_SETTINGS = {
       temperature: 0.7,
       topP: 1.0,
       maxTokens: 4096,
+      providerProfiles: {},
     },
   },
   sovereignHand: {
@@ -155,6 +156,8 @@ const DEFAULT_SETTINGS = {
   drawerSettings: {
     side: 'right',         // 'left' or 'right' - which side of screen the drawer docks to
     verticalPosition: 15,  // Percentage from top (0-100) for tab vertical position
+    panelWidthMode: 'default',  // 'default' | 'stChat' | 'custom' - desktop panel width mode
+    customPanelWidth: 35,       // vw percentage (25-60), only used when panelWidthMode is 'custom'
   },
   // Landing page override setting
   enableLandingPage: true, // When true, show custom Lumiverse landing page instead of default welcome
@@ -164,6 +167,12 @@ const DEFAULT_SETTINGS = {
   // Toggle binding default state restoration
   disableDefaultStateRestore: true, // When true, skip restoring default toggle states for unbound chats (opt-in feature)
   capturedDefaultToggles: null, // Persisted default toggle state (survives page refresh)
+  // Lucid Loom Preset Builder
+  loomBuilder: {
+    activePresetId: null,
+    registry: {},
+    bindings: { characters: {}, chats: {} },
+  },
 };
 
 // Settings state - module-level singleton
@@ -624,6 +633,24 @@ export function migrateSettings() {
   }
   if (!settings.councilTools.llm.maxTokens || settings.councilTools.llm.maxTokens < 256) {
     settings.councilTools.llm.maxTokens = 4096;
+  }
+  // Ensure providerProfiles exists (per-provider model & sampler persistence)
+  if (!settings.councilTools.llm.providerProfiles) {
+    const llm = settings.councilTools.llm;
+    const profile = {
+      model: llm.model || "",
+      temperature: llm.temperature ?? 0.7,
+      topP: llm.topP ?? 1.0,
+      maxTokens: llm.maxTokens || 4096,
+    };
+    if (llm.provider === "custom") {
+      profile.endpoint = llm.endpoint || "";
+      profile.apiKey = llm.apiKey || "";
+    }
+    settings.councilTools.llm.providerProfiles = {
+      [llm.provider || "anthropic"]: profile,
+    };
+    migrated = true;
   }
   // Ensure context enrichment toggles exist
   if (settings.councilTools.includeUserPersona === undefined) {

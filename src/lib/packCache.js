@@ -33,6 +33,10 @@ import {
     deleteToggleState,
     createToggleStateRegistryEntry,
     deleteAllLumiverseFiles,
+    getLoomPresetFileKey,
+    saveLoomPreset as saveLoomPresetFile,
+    loadLoomPreset as loadLoomPresetFile,
+    deleteLoomPreset as deleteLoomPresetFile,
 } from "./fileStorage.js";
 import { MODULE_NAME } from "./settingsManager.js";
 
@@ -1096,6 +1100,165 @@ export function migrateSelectionsFromSettings(legacySettings) {
 }
 
 // ============================================================================
+// LOOM PRESETS (Lucid Loom Preset Builder)
+// ============================================================================
+
+/** @type {Map<string, Object>} Map of presetId -> full loom preset data */
+const loomPresetCache = new Map();
+
+/**
+ * Get the Loom preset registry from the cached index.
+ * @returns {Object} Registry object { [presetId]: { name, fileKey, blockCount, ... } }
+ */
+export function getLoomPresetRegistry() {
+    return cachedIndex?.loomPresets?.registry || {};
+}
+
+/**
+ * Get the active Loom preset ID.
+ * @returns {string|null}
+ */
+export function getActiveLoomPresetId() {
+    return cachedIndex?.loomPresets?.activePresetId || null;
+}
+
+/**
+ * Set the active Loom preset ID.
+ * @param {string|null} presetId
+ */
+export function setActiveLoomPresetId(presetId) {
+    if (!cachedIndex) return;
+    if (!cachedIndex.loomPresets) {
+        cachedIndex.loomPresets = { registry: {}, activePresetId: null, bindings: { characters: {}, chats: {} } };
+    }
+    cachedIndex.loomPresets.activePresetId = presetId;
+    debouncedIndexSave();
+    notifyListeners();
+}
+
+/**
+ * Get Loom preset bindings.
+ * @returns {{ characters: Object, chats: Object }}
+ */
+export function getLoomBindings() {
+    if (!cachedIndex?.loomPresets?.bindings) {
+        return { characters: {}, chats: {} };
+    }
+    return cachedIndex.loomPresets.bindings;
+}
+
+/**
+ * Set Loom preset bindings.
+ * @param {{ characters: Object, chats: Object }} bindings
+ */
+export async function setLoomBindings(bindings) {
+    if (!cachedIndex) return;
+    if (!cachedIndex.loomPresets) {
+        cachedIndex.loomPresets = { registry: {}, activePresetId: null, bindings: { characters: {}, chats: {} } };
+    }
+    cachedIndex.loomPresets.bindings = bindings;
+    await flushIndexSave();
+    notifyListeners();
+}
+
+/**
+ * Get a Loom preset synchronously from cache.
+ * @param {string} presetId
+ * @returns {Object|null}
+ */
+export function getLoomPresetSync(presetId) {
+    return loomPresetCache.get(presetId) || null;
+}
+
+/**
+ * Get a Loom preset (async, loads from file if not cached).
+ * @param {string} presetId
+ * @returns {Promise<Object|null>}
+ */
+export async function getLoomPreset(presetId) {
+    if (loomPresetCache.has(presetId)) {
+        return loomPresetCache.get(presetId);
+    }
+
+    const registryEntry = cachedIndex?.loomPresets?.registry?.[presetId];
+    if (!registryEntry?.fileKey) return null;
+
+    try {
+        const data = await loadLoomPresetFile(registryEntry.fileKey);
+        if (data) {
+            loomPresetCache.set(presetId, data);
+        }
+        return data;
+    } catch (err) {
+        console.warn(`[${MODULE_NAME}] Failed to load loom preset ${presetId}:`, err);
+        return null;
+    }
+}
+
+/**
+ * Add or update a Loom preset in cache, file storage, and registry.
+ * @param {string} presetId
+ * @param {Object} presetData - Full preset data
+ * @param {Object} registryEntry - Registry metadata { name, fileKey, blockCount, ... }
+ */
+export async function upsertLoomPreset(presetId, presetData, registryEntry) {
+    if (!cachedIndex) return;
+    if (!cachedIndex.loomPresets) {
+        cachedIndex.loomPresets = { registry: {}, activePresetId: null, bindings: { characters: {}, chats: {} } };
+    }
+
+    // Update cache
+    loomPresetCache.set(presetId, presetData);
+
+    // Save to file
+    await saveLoomPresetFile(registryEntry.fileKey, presetData);
+
+    // Update registry
+    cachedIndex.loomPresets.registry[presetId] = registryEntry;
+
+    debouncedIndexSave();
+    notifyListeners();
+}
+
+/**
+ * Remove a Loom preset from cache, file, and registry.
+ * @param {string} presetId
+ */
+export async function removeLoomPreset(presetId) {
+    if (!cachedIndex?.loomPresets) return;
+
+    const registryEntry = cachedIndex.loomPresets.registry[presetId];
+
+    // Remove from cache
+    loomPresetCache.delete(presetId);
+
+    // Delete file
+    if (registryEntry?.fileKey) {
+        await deleteLoomPresetFile(registryEntry.fileKey);
+    }
+
+    // Remove from registry
+    delete cachedIndex.loomPresets.registry[presetId];
+
+    // Clear active if it was this preset
+    if (cachedIndex.loomPresets.activePresetId === presetId) {
+        cachedIndex.loomPresets.activePresetId = null;
+    }
+
+    // Clear bindings referencing this preset
+    const bindings = cachedIndex.loomPresets.bindings || { characters: {}, chats: {} };
+    for (const [key, val] of Object.entries(bindings.characters || {})) {
+        if (val === presetId) delete bindings.characters[key];
+    }
+    for (const [key, val] of Object.entries(bindings.chats || {})) {
+        if (val === presetId) delete bindings.chats[key];
+    }
+
+    debouncedIndexSave();
+    notifyListeners();
+}
+
+// ============================================================================
 // DEBUG UTILITIES
 // ============================================================================
 
@@ -1120,6 +1283,7 @@ export async function clearAllData() {
     // Clear all in-memory state
     cachedIndex = null;
     packCache.clear();
+    loomPresetCache.clear();
     loadingPacks.clear();
     initialized = false;
     allPacksLoaded = false;

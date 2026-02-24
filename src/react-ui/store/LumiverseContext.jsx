@@ -141,6 +141,7 @@ const initialState = {
             temperature: 0.7,
             topP: 1.0,
             maxTokens: 4096,
+            providerProfiles: {},
         },
     },
 
@@ -166,6 +167,8 @@ const initialState = {
         side: 'right',         // 'left' or 'right' - which side of screen the drawer docks to
         verticalPosition: 15,  // Percentage from top (0-100) for tab vertical position
         tabSize: 'large',      // 'large' or 'compact' - size of the drawer tab
+        panelWidthMode: 'default',  // 'default' | 'stChat' | 'custom' - desktop panel width mode
+        customPanelWidth: 35,       // vw percentage (25-60), only used when panelWidthMode is 'custom'
     },
 
     // Landing page setting
@@ -177,6 +180,14 @@ const initialState = {
 
     // Toggle binding default state restoration
     disableDefaultStateRestore: true, // When true, skip restoring default toggle states for unbound chats (opt-in feature)
+
+    // Lucid Loom Preset Builder
+    loomBuilder: {
+        activePresetId: null,
+        registry: {},               // { [id]: { name, blockCount, sourceSlug, ... } }
+        bindings: { characters: {}, chats: {} },
+        tokenUsage: null,           // { promptTokens, maxContext, maxTokens, timestamp } — transient, not persisted
+    },
 
     // Chat change tracking (React-only, incremented on syncFromExtension)
     // Components can subscribe to this to reload when chat changes
@@ -194,6 +205,10 @@ const initialState = {
         error: null,
         viewingPack: null,      // Pack name currently being viewed in detail modal
         viewingLoomPack: null,  // Pack name currently being viewed in loom detail modal
+        settingsModal: {
+            isOpen: false,
+            activeView: 'general',  // Active navigation view key
+        },
     },
 
     // Update notifications (React-only, not saved to extension)
@@ -1161,6 +1176,61 @@ const actions = {
     },
 
     /**
+     * Switch council tools LLM provider with profile snapshot/restore.
+     * Saves the current {model, temperature, topP, maxTokens} under the old
+     * provider key, then restores the new provider's saved profile (or defaults).
+     * @param {string} newProvider - The provider key to switch to
+     */
+    switchCouncilToolsProvider: (newProvider) => {
+        const state = store.getState();
+        const currentTools = state.councilTools || {};
+        const currentLLM = currentTools.llm || {};
+        const oldProvider = currentLLM.provider || 'anthropic';
+        const profiles = { ...(currentLLM.providerProfiles || {}) };
+
+        if (newProvider === oldProvider) return;
+
+        // Snapshot current settings under the old provider key
+        const snapshot = {
+            model: currentLLM.model || '',
+            temperature: currentLLM.temperature ?? 0.7,
+            topP: currentLLM.topP ?? 1.0,
+            maxTokens: currentLLM.maxTokens || 4096,
+        };
+        if (oldProvider === 'custom') {
+            snapshot.endpoint = currentLLM.endpoint || '';
+            snapshot.apiKey = currentLLM.apiKey || '';
+        }
+        profiles[oldProvider] = snapshot;
+
+        // Restore saved profile for new provider, or clean defaults
+        const saved = profiles[newProvider];
+        const restored = saved || {
+            model: '',
+            temperature: 0.7,
+            topP: 1.0,
+            maxTokens: 4096,
+        };
+
+        store.setState({
+            councilTools: {
+                ...currentTools,
+                llm: {
+                    ...currentLLM,
+                    provider: newProvider,
+                    model: restored.model || '',
+                    temperature: restored.temperature ?? 0.7,
+                    topP: restored.topP ?? 1.0,
+                    maxTokens: restored.maxTokens || 4096,
+                    endpoint: newProvider === 'custom' ? (restored.endpoint || '') : '',
+                    apiKey: newProvider === 'custom' ? (restored.apiKey || '') : '',
+                    providerProfiles: profiles,
+                },
+            },
+        });
+    },
+
+    /**
      * Set sidecar context window size (number of messages to include)
      * @param {number} sidecarContextWindow - Number of chat messages to include in sidecar mode context
      */
@@ -1420,6 +1490,25 @@ const actions = {
         });
     },
 
+    // Settings modal actions
+    openSettingsModal: (initialView = 'general') => {
+        store.setState({
+            ui: { ...store.getState().ui, settingsModal: { isOpen: true, activeView: initialView } },
+        });
+    },
+
+    closeSettingsModal: () => {
+        store.setState({
+            ui: { ...store.getState().ui, settingsModal: { isOpen: false, activeView: store.getState().ui.settingsModal.activeView } },
+        });
+    },
+
+    setSettingsModalView: (viewKey) => {
+        store.setState({
+            ui: { ...store.getState().ui, settingsModal: { ...store.getState().ui.settingsModal, activeView: viewKey } },
+        });
+    },
+
     // Update notification actions
     setExtensionUpdate: (updateInfo) => {
         const state = store.getState();
@@ -1535,6 +1624,27 @@ const actions = {
         store.setState({ theme: null });
         saveToExtension();
     },
+
+    // Loom Builder actions
+    setLoomBuilderState: (partial) => {
+        const current = store.getState().loomBuilder || {};
+        store.setState({ loomBuilder: { ...current, ...partial } });
+    },
+
+    setActiveLoomPreset: (presetId) => {
+        const current = store.getState().loomBuilder || {};
+        store.setState({ loomBuilder: { ...current, activePresetId: presetId } });
+    },
+
+    updateLoomRegistry: (registry) => {
+        const current = store.getState().loomBuilder || {};
+        store.setState({ loomBuilder: { ...current, registry } });
+    },
+
+    updateLoomBindings: (bindings) => {
+        const current = store.getState().loomBuilder || {};
+        store.setState({ loomBuilder: { ...current, bindings } });
+    },
 };
 
 /**
@@ -1573,6 +1683,11 @@ function syncFromExtension(extensionSettings) {
 function exportForExtension() {
     // Return everything except the React-only UI state
     const { ui, councilToolResults, ...settingsToExport } = store.getState();
+    // Strip transient tokenUsage from loomBuilder before persisting
+    if (settingsToExport.loomBuilder) {
+        const { tokenUsage, ...lbRest } = settingsToExport.loomBuilder;
+        settingsToExport.loomBuilder = lbRest;
+    }
     return settingsToExport;
 }
 

@@ -1782,7 +1782,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     transition: all 0.2s ease;
 }
 
-.lumia-side-btn:first-child {
+.lumia-side-btn:not(:last-child) {
     border-right: 1px solid var(--lumiverse-primary-015);
 }
 
@@ -1861,6 +1861,97 @@ details.lumia-panel[open] .lumia-panel-chevron {
     cursor: pointer;
     border: 2px solid var(--lumiverse-border-neutral-hover);
     box-shadow: 0 2px 6px var(--lumiverse-primary-040);
+}
+
+/* Div-based slider — immune to global input[type="range"] overrides */
+.lumiverse-slider-track {
+    position: relative;
+    width: 100%;
+    height: 4px;
+    background: var(--lumiverse-fill-moderate, rgba(128,128,128,0.25));
+    border-radius: 2px;
+    cursor: pointer;
+    touch-action: none;
+    user-select: none;
+    /* Expand click target without changing visual size */
+    padding: 8px 0;
+    background-clip: content-box;
+}
+
+.lumiverse-slider-fill {
+    position: absolute;
+    top: 8px;
+    left: 0;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--lumiverse-primary);
+    pointer-events: none;
+}
+
+.lumiverse-slider-thumb {
+    position: absolute;
+    top: 50%;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--lumiverse-primary-100);
+    border: 2px solid var(--lumiverse-border-neutral-hover);
+    box-shadow: 0 2px 6px var(--lumiverse-primary-040);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    transition: box-shadow 0.15s ease;
+}
+
+.lumiverse-slider-track:hover .lumiverse-slider-thumb {
+    box-shadow: 0 2px 10px var(--lumiverse-primary-muted);
+}
+
+.lumiverse-slider-track:active .lumiverse-slider-thumb {
+    transform: translate(-50%, -50%) scale(1.1);
+}
+
+/* Context Token Meter — compact bar between Generation Settings and block list */
+.lumiverse-context-meter {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 5px 16px 6px;
+    border-bottom: 1px solid var(--lumiverse-border);
+    flex-shrink: 0;
+    transition: opacity 0.3s;
+}
+
+.lumiverse-context-meter-labels {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    font-size: 11px;
+    line-height: 1;
+}
+
+.lumiverse-context-meter-value {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--lumiverse-text);
+}
+
+.lumiverse-context-meter-budget {
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+    color: var(--lumiverse-text-dim);
+}
+
+.lumiverse-context-meter-track {
+    height: 3px;
+    border-radius: 2px;
+    background: var(--lumiverse-fill-moderate, rgba(0, 0, 0, 0.15));
+    overflow: hidden;
+}
+
+.lumiverse-context-meter-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.4s ease, background 0.3s ease;
 }
 
 .lumia-drawer-vpos-value {
@@ -2225,6 +2316,242 @@ details.lumia-panel[open] .lumia-panel-chevron {
     flex-direction: column;
     gap: 8px;
     margin-top: 12px;
+}
+
+/* ----------------------------------------
+   Settings Modal
+   ---------------------------------------- */
+.lumiverse-settings-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: var(--lumiverse-fill-deepest);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 24px;
+    box-sizing: border-box;
+    animation: lumiverse-settings-fade-in 0.2s ease;
+}
+
+@keyframes lumiverse-settings-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.lumiverse-settings-modal {
+    display: grid;
+    grid-template-columns: 210px 1fr;
+    width: 900px;
+    max-width: 95vw;
+    height: 80vh;
+    max-height: 80vh;
+    background: var(--lumiverse-bg);
+    border-radius: var(--lumiverse-radius-lg);
+    border: 1px solid var(--lumiverse-border);
+    box-shadow: var(--lumiverse-shadow-lg);
+    overflow: hidden;
+    animation: lumiverse-settings-slide-in 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@keyframes lumiverse-settings-slide-in {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* --- Sidebar nav --- */
+.lumiverse-settings-nav {
+    display: flex;
+    flex-direction: column;
+    background: var(--lumiverse-bg-deep, var(--lumiverse-bg));
+    border-right: 1px solid var(--lumiverse-border);
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.lumiverse-settings-nav-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 16px;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--lumiverse-text);
+    border-bottom: 1px solid var(--lumiverse-border);
+    flex-shrink: 0;
+}
+
+.lumiverse-settings-nav-close {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--lumiverse-text-muted);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: var(--lumiverse-radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s, background 0.15s;
+}
+
+.lumiverse-settings-nav-close:hover {
+    color: var(--lumiverse-text);
+    background: var(--lumiverse-fill-subtle);
+}
+
+.lumiverse-settings-nav-items {
+    padding: 8px 0;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.lumiverse-settings-nav-group {
+    margin-bottom: 4px;
+}
+
+.lumiverse-settings-nav-group-label {
+    padding: 8px 16px 4px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--lumiverse-text-muted);
+    user-select: none;
+}
+
+.lumiverse-settings-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 7px 16px;
+    border: none;
+    background: none;
+    color: var(--lumiverse-text-secondary, var(--lumiverse-text-muted));
+    font-size: 12.5px;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+    text-align: left;
+    border-radius: 0;
+}
+
+.lumiverse-settings-nav-item:hover {
+    background: var(--lumiverse-fill-subtle);
+    color: var(--lumiverse-text);
+}
+
+.lumiverse-settings-nav-item--active {
+    background: var(--lumiverse-fill-light, var(--lumiverse-fill-subtle));
+    color: var(--lumiverse-primary);
+    font-weight: 500;
+    position: relative;
+}
+
+.lumiverse-settings-nav-item--active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 4px;
+    bottom: 4px;
+    width: 3px;
+    background: var(--lumiverse-primary);
+    border-radius: 0 2px 2px 0;
+}
+
+/* --- Content area --- */
+.lumiverse-settings-content {
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 20px 24px;
+    min-height: 0;
+}
+
+/* Reset the settings panel styles when inside the settings modal */
+.lumiverse-settings-content .lumia-injector-settings {
+    margin: 0;
+    padding: 0;
+}
+
+/* --- Mobile responsive --- */
+@media (max-width: 600px) {
+    .lumiverse-settings-modal-backdrop {
+        padding: 0;
+    }
+
+    .lumiverse-settings-modal {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+        width: 100vw;
+        height: 100dvh;
+        max-width: 100vw;
+        max-height: 100dvh;
+        border-radius: 0;
+    }
+
+    .lumiverse-settings-nav {
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: hidden;
+        border-right: none;
+        border-bottom: 1px solid var(--lumiverse-border);
+    }
+
+    .lumiverse-settings-nav-header {
+        display: none;
+    }
+
+    .lumiverse-settings-nav-items {
+        display: flex;
+        flex-direction: row;
+        padding: 0 8px;
+        gap: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .lumiverse-settings-nav-items::-webkit-scrollbar {
+        display: none;
+    }
+
+    .lumiverse-settings-nav-group {
+        display: flex;
+        flex-direction: row;
+        margin-bottom: 0;
+        flex-shrink: 0;
+    }
+
+    .lumiverse-settings-nav-group-label {
+        display: none;
+    }
+
+    .lumiverse-settings-nav-item {
+        padding: 10px 14px;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .lumiverse-settings-nav-item--active::before {
+        left: 8px;
+        right: 8px;
+        top: auto;
+        bottom: 0;
+        width: auto;
+        height: 2px;
+        border-radius: 2px 2px 0 0;
+    }
+
+    .lumiverse-settings-content {
+        padding: 16px;
+    }
 }
 
 /* ----------------------------------------
@@ -5141,7 +5468,9 @@ details.lumia-panel[open] .lumia-panel-chevron {
     display: flex;
     flex-direction: row;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    pointer-events: auto;
+    /* Panel itself is pass-through; children opt-in via pointer-events: auto.
+       Prevents the DrawerTab's flex column dead zone from blocking clicks on ST content. */
+    pointer-events: none;
 }
 
 .lumiverse-viewport-panel--collapsed {
@@ -5156,8 +5485,12 @@ details.lumia-panel[open] .lumia-panel-chevron {
     box-sizing: border-box; /* Ensure width includes border */
     background: linear-gradient(180deg, var(--lumiverse-bg-098) 0%, var(--lumiverse-bg-deep) 100%);
     border-left: 1px solid var(--lumiverse-primary-020);
-    padding: 8px 0; /* Minimal padding - panel is at top of screen */
+    padding: 8px 2px; /* Horizontal padding absorbs old button margin */
     gap: 4px;
+    /* Isolate from glow/shadow overrides set by other extensions on broad selectors */
+    box-shadow: none;
+    text-shadow: none;
+    filter: none;
 }
 
 .lumiverse-vp-tab {
@@ -5165,15 +5498,19 @@ details.lumia-panel[open] .lumia-panel-chevron {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 52px;
+    width: 100%; /* Fill container so the entire row is clickable */
     height: 52px;
-    margin: 0 2px;
+    margin: 0;
     background: transparent;
     border: none;
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
     color: var(--lumiverse-text-muted);
+    /* Isolate from glow/shadow overrides set by other extensions */
+    box-shadow: none;
+    text-shadow: none;
+    filter: none;
 }
 
 .lumiverse-vp-tab:hover {
@@ -5205,13 +5542,35 @@ details.lumia-panel[open] .lumia-panel-chevron {
     flex: 1;
 }
 
+.lumiverse-vp-settings-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: none;
+    color: var(--lumiverse-text-muted);
+    cursor: pointer;
+    border-radius: var(--lumiverse-radius-sm);
+    padding: 0;
+    margin: 2px auto;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.lumiverse-vp-settings-btn:hover {
+    background: var(--lumiverse-primary-015);
+    color: var(--lumiverse-primary);
+}
+
 .lumiverse-vp-collapse-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 52px;
+    width: 100%;
     height: 40px;
-    margin: 0 2px;
+    margin: 0;
     background: transparent;
     border: none;
     border-radius: 8px;
@@ -9048,11 +9407,8 @@ details.lumia-panel[open] .lumia-panel-chevron {
     -webkit-tap-highlight-color: transparent;
 }
 
-/* When panel IS visible, restore normal pointer events */
-.lumiverse-viewport-wrapper--visible .lumiverse-viewport-panel {
-    pointer-events: auto;
-}
-
+/* When panel IS visible, restore pointer events on children only.
+   Panel itself stays none so the DrawerTab's empty flex column doesn't block ST content. */
 .lumiverse-viewport-wrapper--visible .lumiverse-vp-tabs,
 .lumiverse-viewport-wrapper--visible .lumiverse-vp-main {
     pointer-events: auto;

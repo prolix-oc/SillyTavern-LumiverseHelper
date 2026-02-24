@@ -1,12 +1,12 @@
 import React, { useState, useMemo, useSyncExternalStore, useCallback } from 'react';
 import clsx from 'clsx';
-import { Bookmark, Trash2, RefreshCw, Plus, Check, X, Clock, FileText, Zap, Heart, Users, Brain, Link2, Edit3 } from 'lucide-react';
+import { Bookmark, Trash2, RefreshCw, Plus, Check, X, Clock, FileText, Zap, Heart, Users, Brain, Link2, Edit3, Layers } from 'lucide-react';
 import { useLumiverseStore, useLumiverseActions, saveToExtension } from '../../store/LumiverseContext';
 import { CollapsibleSection } from '../shared/CollapsibleSection';
 import { ReasoningSettingsContent } from '../shared/ReasoningSettings';
 import { ToggleBindingsContent } from '../shared/ToggleBindingsContent';
 import { useChatPresetSettings } from '../../hooks/useChatPresetSettings';
-import { usePresetEditor } from '../../hooks/usePresetEditor';
+
 
 // Get store for direct state access
 const store = useLumiverseStore;
@@ -330,8 +330,6 @@ function PresetManager() {
     } = useChatPresetSettings();
 
     // Preset editor hook
-    const { openPresetEditor } = usePresetEditor();
-
     // Convert presets object to sorted array
     const presetList = useMemo(() => {
         return Object.values(presets).sort((a, b) => {
@@ -418,18 +416,18 @@ function PresetManager() {
                 <ToggleBindingsContent compact={true} />
             </CollapsibleSection>
 
-            {/* Preset Editor Trigger */}
+            {/* Loom Builder Trigger */}
             <div className="lumiverse-preset-editor-trigger">
                 <button
                     className="lumia-btn lumia-btn-secondary lumia-btn-full"
-                    onClick={openPresetEditor}
+                    onClick={() => actions.openModal('loomBuilder')}
                     type="button"
                 >
-                    <Edit3 size={14} strokeWidth={2} />
-                    Open Chat Preset Editor
+                    <Layers size={14} strokeWidth={2} />
+                    Open Loom Builder
                 </button>
                 <p className="lumiverse-preset-editor-hint">
-                    Edit the full SillyTavern chat preset with all available options.
+                    Build and manage Lucid Loom presets with full prompt assembly control.
                 </p>
             </div>
         </div>

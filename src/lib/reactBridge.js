@@ -25,6 +25,11 @@ import {
   savePack,
   deletePack,
 } from "./settingsManager.js";
+import {
+  getLoomPresetRegistry,
+  getActiveLoomPresetId,
+  getLoomBindings,
+} from "./packCache.js";
 import { applyTheme, removeThemeOverrides } from "./themeManager.js";
 import { getEventSource, getEventTypes, getRequestHeaders, triggerExtensionUpdate, getExtensionGitVersion } from "../stContext.js";
 
@@ -112,6 +117,12 @@ export function settingsToReactFormat() {
     return {
       ...settings,
       packs: getPacks(),
+      // Populate loomBuilder state from packCache
+      loomBuilder: {
+        activePresetId: getActiveLoomPresetId(),
+        registry: getLoomPresetRegistry(),
+        bindings: getLoomBindings(),
+      },
     };
   }
 

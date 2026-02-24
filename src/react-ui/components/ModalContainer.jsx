@@ -15,12 +15,11 @@ import CouncilSelectModal from './modals/CouncilSelectModal';
 import PresetEditor from './panels/PresetEditor';
 
 // New React modals (converted from jQuery)
-import OOCSettingsModal from './modals/OOCSettingsModal';
-import SummarizationModal from './modals/SummarizationModal';
-import PromptSettingsModal from './modals/PromptSettingsModal';
+// OOCSettingsModal, SummarizationModal, PromptSettingsModal moved to in-modal views in SettingsModal
 import LucidCardsModal from './modals/LucidCardsModal';
 import LoomSummaryModal from './modals/LoomSummaryModal';
 import PresetManageModal from './modals/PresetManageModal';
+import LoomBuilderModal from './modals/LoomBuilderModal';
 
 /**
  * Modal wrapper that provides backdrop and close functionality
@@ -238,30 +237,8 @@ const MODAL_CONFIG = {
         hasCustomHeader: false, // PresetEditor renders its own header
         props: {},
     },
-    // OOC Settings (converted from jQuery showMiscFeaturesModal)
-    oocSettings: {
-        component: OOCSettingsModal,
-        modalType: 'settings',
-        size: 'medium',
-        hasCustomHeader: true,
-        props: {},
-    },
-    // Summarization Settings (converted from jQuery showSummarizationModal)
-    summarization: {
-        component: SummarizationModal,
-        modalType: 'settings',
-        size: 'large',
-        hasCustomHeader: true,
-        props: {},
-    },
-    // Prompt Settings (converted from jQuery showPromptSettingsModal)
-    promptSettings: {
-        component: PromptSettingsModal,
-        modalType: 'settings',
-        size: 'large',
-        hasCustomHeader: true,
-        props: {},
-    },
+    // OOC Settings, Summarization, and Prompt Settings are now in-modal views
+    // within the SettingsModal — accessed via openSettingsModal('ooc'|'summarization'|'promptSettings')
     // Lucid Cards Browser (converted from jQuery showLucidCardsModal)
     lucidCards: {
         component: LucidCardsModal,
@@ -284,6 +261,14 @@ const MODAL_CONFIG = {
         modalType: 'settings',
         size: 'medium',
         hasCustomHeader: false, // PresetManageModal renders its own header
+        props: {},
+    },
+    // Lucid Loom Preset Builder
+    loomBuilder: {
+        component: LoomBuilderModal,
+        modalType: 'editor',
+        size: 'large',
+        hasCustomHeader: true,
         props: {},
     },
 };

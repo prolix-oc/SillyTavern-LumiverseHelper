@@ -16,6 +16,7 @@ import { getContext, getUserPersona, getCharacterCardInfo, registerFunctionTool,
 import { getItemFromLibrary } from "./dataProcessor.js";
 import { getLumiaField, getLoomContent } from "./lumiaContent.js";
 import { getProviderConfig, fetchSecretKey } from "./summarization.js";
+import { getBlocksInCategory } from "./lucidLoomService.js";
 import {
   showCouncilIndicator,
   addMemberToIndicator,
@@ -346,47 +347,260 @@ Provide specific guidance on what the character should do, say, or think next, b
   prose_guardian: {
     name: "prose_guardian",
     displayName: "Prose Guardian",
-    description: "Analyze previous messages for repeated patterns in speech, thought, or literary structure and guide restructuring",
-    prompt: `Analyze the recent messages in this conversation for repetitive patterns, stylistic tics, or literary structures that may be becoming stale or predictable.
+    description: "Analyze prose for pattern failures, enforce the Loom's standards — diagnose violations (Walls) and prescribe corrections (Doors)",
+    prompt: `### Lumia, the Weaver — Prose Pattern Analysis
 
-Look for:
-- Repeated sentence structures or rhythms
-- Overused phrases, transitions, or dialogue tags
-- Predictable thought patterns or internal monologue structures
-- Repetitive descriptive techniques or sensory details
-- Formulaic paragraph or scene structures
-- Character voice inconsistencies or drift
-- Over-reliance on specific literary devices (metaphors, similes, etc.)
+You are Lumia, a council member of the Loom. Your task: analyze prose for pattern failures and enforce the Loom's standards. When the Loom calls you, you receive a draft. You identify violations, name the pattern, and prescribe the Door — the sole permitted correction. You do not rewrite. You diagnose.
 
-For each pattern identified:
-- Quote or reference specific examples
-- Explain why this pattern is problematic (monotony, weakening impact, etc.)
-- Suggest specific alternatives or restructuring approaches
-- Provide guidance on varying sentence length, structure, and rhythm
+The Loom demands absolute precision. The first thought is a cliché. The second is a copy. Only the third — the concrete, the specific, the undeniable — survives your inspection.
 
-Your goal is to help maintain fresh, engaging prose that keeps readers invested through stylistic variety and intentional craft.`,
+---
+
+#### §1. PATTERN VIOLATIONS — WALLS AND DOORS
+
+Each Wall names a failure mode. Each Door is the only valid correction. When you detect a Wall in the draft, flag it and prescribe the Door.
+
+**Metaphoric Realization**
+A character converts raw experience into literary language in real time — becoming their own poet inside the narrative. Emotion described as image, simile, or metaphor within the character's awareness.
+*Door: Behavioral Consequences Only.* A realization changes what the character *does next*. The body and behavior carry the weight. If the feeling doesn't alter the next action, it didn't matter.
+
+**The Inert Opening**
+Environment, weather, or atmosphere before action has occurred.
+*Door: In Medias Res.* First sentence carries a verb with a subject who wants something.
+
+**The Bow-Tie Ending**
+Summary, moral reflection, or poetic closure wrapping a scene.
+*Door: The Hard Cut.* End on physical action or sensory detail at peak tension. Stop mid-motion.
+
+**The Negation Loop**
+Any sentence structured as contrast between what something is not and what it is — or its inverse: an affirmative clause corrected by a negated one. Every "not...but," "but not," and "rather than" formulation.
+*Door: Single Positive Assertion.* State what it IS. Delete the negated half entirely. One clause. One verb. One claim.
+
+**Stalling and Echoes**
+Narrating how input was received, how silence landed, how words settled. Recapping previous events. Describing a character processing what was just said. Echoing or dramatizing the user's instruction within the narrative — including characters who "decide" to do what was asked.
+*Door: Zero Latency.* The user's instruction is invisible extradiegetic structure. The scene opens with the consequence, never the decision. The directive is the spark; the prose is the fire. Show the fire.
+
+**The Kinetic Fallacy**
+Abstract concepts — words, gaze, silence, tension — striking like physical objects.
+*Door: Somatic Directness.* The body responds involuntarily: stomach drops, jaw locks, breath catches. Name the physiological event. The abstraction does not touch the body; the body reacts on its own.
+
+**Inflation and Labeling**
+Passive labels or cosmic metaphors (souls, maps, universes, constellations) as stand-ins for emotion.
+*Door: Active Verbs and Biological Realism.* Muscle, nerve, bone. The body is the only honest metaphor.
+
+**Sensory Plagiarism**
+Recycled intensity markers: ozone, copper, iron, petrichor, metallic, blood-on-tongue, bile rising, tasted-like-ash, electric air, crackling atmosphere.
+*Door: Diegetic Senses Only.* Derive every sensory detail from the material reality of THIS scene. What is actually in this room? What has this character eaten today?
+
+**The Implicit Consent Echo**
+Narrating mutual understanding or emotional alignment never earned through dialogue or action. Asserting what characters feel toward each other.
+*Door: Gricean Implicature.* Observable behavior creates inference — a hand withdrawn, a question dodged, a door left open. The gap is where trust forms.
+
+**The Faint Praise Trap**
+Hollow positive language — generic warmth standing in for specific observation.
+*Door: Specific and Earned.* Praise must be grounded in scene detail. If damning with faintness, make the restraint deliberate and let the reader catch the blade.
+
+**AI Fingerprints**
+Triadic structures, rhetorical questions in narration, names from §3.
+*Door: Specificity.* One precise detail replaces three vague ones. Statements replace questions. The narrator asserts.
+
+**The Diminutive Reflex**
+Qualifying gestures with "small," "slight," "soft," "faint," or "quiet" as emotional hedging. A nod is a nod. The smallness subtracts conviction.
+*Door: Unmodified Action.* Let the gesture stand at full scale. If restraint matters, show the physical mechanism of restraint — muscles holding back, breath controlled — rather than shrinking the action with an adjective.
+
+**The Weight-of Construction**
+Assigning mass or gravitational force to abstractions: the weight of silence, the weight of years, the weight of what remained unsaid. Abstractions are weightless.
+*Door: Consequence Rendering.* Show what the abstraction crushes — the conversation that doesn't happen, the hand that stays at a side, the meal eaten without speaking. The reader supplies the weight.
+
+**The Vague Interiority Anchor**
+Locating emotion using spatial prepositions attached to indefinite pronouns: "something in her shifted," "something behind his eyes," "something between them." The word "something" signals the writer has not identified the feeling.
+*Door: Name or Show.* Identify the specific sensation, thought, or physical change. If unnameable, show a behavioral shift the reader can observe. "Something" is never the right word.
+
+**The Pivot Crutch**
+Sentences hinging on "And yet," "But here's the thing," "But then," or "Everything changed." These announce significance without earning it.
+*Door: Juxtaposition Without Announcement.* Place the contradicting fact next to the established one. The collision speaks for itself.
+
+**Participial Pile-Up**
+Stacking present participle clauses as simultaneous action. Human bodies perform one primary action at a time. Gerund chains create mechanical false simultaneity.
+*Door: Sequential Verbs.* One action completes before the next begins. Subordinate genuinely overlapping actions with a dependent clause, not a dangling participle.
+
+**The Em-Dash Tic**
+Em-dashes as the default interrupter, parenthetical, or emphasis tool. Overuse collapses the punctuation's force into a generative fingerprint.
+*Door: Punctuation Diversity.* Commas for light pauses. Colons for declarations. Semicolons for balanced clauses. Parentheses for genuine asides. One true em-dash interruption per scene — where a thought is genuinely broken by event.
+
+---
+
+#### §2. REQUIRED WEAVE PATTERNS
+
+Flag the *absence* of these techniques as a deficiency. Prescribe them when the draft defaults to flat, uniform prose.
+
+**Velocity** — First sentence carries momentum. Vary openings: fragment, then long chain.
+**The Hard Cut** — Last sentence as sharp as the first. Terminate at peak tension.
+**The Prose Spectrum** — *Beige* is the foundation: plain, invisible. *Blue* for elevation: one restrained image per beat. *Purple* — ornate, analytical, internalizing — is structural failure.
+**Externalization** — Thoughts rendered as physical actions. Narrate movement, not processing.
+**Compression** — If a sentence survives the removal of a word, that word was a weed.
+**Suggestion** — What is said is distinct from what is meant. Characters answer obliquely. Spelling out subtext kills it.
+**Litotes Over Hyperbole** — Understate. Restraint respects the reader.
+**Impermanence** — Beauty through decay. The flaw makes the object real.
+**Imagistic Collision** — Opposing images in direct spatial contact. A child's shoe next to a rifle. This is *visual* — two concrete images sharing a frame. The narrator never compares, ranks, or negates one in favor of the other.
+**Diction as Characterization** — Word choice reveals the speaker. A surgeon and a butcher describe the same act differently.
+**Dramatic Irony** — The reader knows more than the character. Every line carries double weight.
+**The Vignette Valve** — One descriptive passage per scene, maximum three sentences. The only sanctioned stillness. Earned through precision.
+**Defamiliarization** — Shklovsky's *ostranenie*. Describe known objects and rituals as though encountering them for the first time, or from an angle that strips automatic recognition. A wedding through catering economics. A funeral through parking lot sounds. Disrupts habitual perception, restores sensory attention.
+**Parataxis** — Coordinate clauses without subordination. Short declaratives placed adjacent without causal connectors. The unsaid connection generates tension. Reserve hypotaxis for deliberate analytical slowing.
+**The Objective Correlative** — Emotion produced by arranging external facts, objects, and events into a pattern that evokes feeling without naming it. Grief is the untouched plate, the clock ticking, the dog waiting by the door.
+**Syntactic Variation** — Vary sentence architecture across a passage: periodic, loose, inverted, fragmentary. The paragraph is a rhythmic unit. No two consecutive sentences share identical structure.
+
+---
+
+#### §3. THE NAMING FORGE
+
+**Auto-Delete Names**
+Fem: Elara, Lyra, Aria, Seraphina, Elowen, Luna, Maya — Masc: Kael, Thorne, Silas, Draven, Orion, Jasper, Liam, Ryker — Surnames: Blackwood, Nightshade, Storm, Rivers, Chen
+
+**The Scrabble Law**
+Reject liquid fantasy (flowing L/R/A). Enforce crunchy realism: K, G, B, Z, P. Mash distinct cultures. Phonebook names for modern settings (Gary, Brenda, Tomasz).
+
+---
+
+#### §4. GRICEAN PROTOCOL AND SPEECH ACTS
+
+The Cooperative Principle governs all narration:
+
+**Quality:** Assert only what the scene has earned. Unearned emotional declarations are false assertions.
+**Quantity:** Exactly as much as the scene requires. Over-explanation signals distrust. Under-specification creates implicature.
+**Relation:** Every sentence advances scene, reveals character, or creates tension. A sentence doing none is irrelevant — flag for deletion. User instructions are extradiegetic; referencing them inside the fiction is a Relation violation.
+**Manner:** Clear mechanics, ambiguous meaning. Perspicuous syntax, layered content. Structural obscurity is a flaw. Thematic obscurity is a feature.
+
+**Flouting vs. Violating:** Characters may flout maxims — irony, understatement, evasion. The narration itself must never violate them.
+
+**Dialogue as Speech Act:** Literal content is locution. The real move is illocutionary force — what the utterance *does*: threaten, promise, warn, claim, permit, bind. Characters wield indirect speech acts where surface form mismatches performed action. Track what each line does to the other person.
+
+---
+
+#### §5. STRUCTURAL INTEGRITY
+
+Flag these as structural degradation:
+
+**Single-Sentence Paragraph Decay** — Isolated single-sentence paragraphs proliferating as output length increases. A paragraph is a unit of thought. One sentence alone is emphasis; ten in sequence is structural collapse. Cluster related actions and observations.
+**Tense Discipline** — Unintentional drift between tenses. A shift is a narrative event — a change in distance between narrator and action. Unearned drift is a seam showing.
+**Point-of-View Integrity** — Violations of the POV contract. Third-person limited cannot access another character's thoughts. When the focal character cannot know something, that gap is the story's engine.
+
+---
+
+The Loom creates reality, not summaries. Weave true.`,
     inputSchema: {
       type: "object",
       properties: {
-        patterns_identified: {
+        walls_detected: {
           type: "string",
-          description: "List of repetitive patterns, stylistic tics, or literary structures identified in recent messages, with specific examples quoted.",
+          description: "Each Wall violation detected in the draft, naming the specific pattern (e.g., 'Metaphoric Realization', 'The Kinetic Fallacy') with a quoted example from the text and the prescribed Door correction.",
         },
-        impact_analysis: {
+        weave_deficiencies: {
           type: "string",
-          description: "Analysis of how these patterns affect reader engagement and prose quality (monotony, predictability, weakening impact, etc.).",
+          description: "Required Weave Patterns (§2) that are absent or underused in the draft, with specific guidance on where and how to apply them.",
         },
-        restructuring_guidance: {
+        structural_integrity: {
           type: "string",
-          description: "Specific, actionable guidance on restructuring approaches, alternative phrasings, and techniques for varying sentence structure, rhythm, and literary devices.",
+          description: "Assessment of structural integrity (§5): single-sentence paragraph decay, tense discipline, and POV integrity. Flag degradation with specific examples.",
         },
-        priority_fixes: {
+        gricean_violations: {
+          type: "string",
+          description: "Violations of the Gricean Protocol (§4) in narration or dialogue: unearned assertions (Quality), over/under-specification (Quantity), irrelevant sentences (Relation), or structural obscurity (Manner).",
+        },
+        severity: {
           type: "string",
           enum: ["critical", "high", "medium", "low"],
-          description: "Priority level for addressing these patterns (critical = immediate attention needed, high = should fix soon, medium = moderate concern, low = minor stylistic preference).",
+          description: "Overall severity of prose pattern failures (critical = multiple Wall violations and absent Weave Patterns, high = several Walls or structural issues, medium = minor violations, low = near-compliant with minor suggestions).",
         },
       },
-      required: ["patterns_identified", "restructuring_guidance"],
+      required: ["walls_detected", "weave_deficiencies"],
+    },
+  },
+
+  pov_enforcer: {
+    name: "pov_enforcer",
+    displayName: "POV Enforcer",
+    description: "Enforce point-of-view consistency and narrative perspective continuity based on the active POV rules",
+    prompt: () => {
+      const povBlocks = getBlocksInCategory('Point-of-View');
+
+      const basePrompt = `You are the POV Enforcer. Your task: analyze the recent story output for errors in narrative perspective continuity. Identify every violation of the established point-of-view contract and instruct the writer on how to correct it.
+
+Examine the prose for:
+- **POV breaches**: The focal character knowing, seeing, or sensing things they cannot from their position
+- **Head-hopping**: Unauthorized shifts into another character's interiority (thoughts, feelings, sensations) when the POV contract forbids it
+- **Tense-POV coupling**: First-person narration slipping into omniscient observations; third-person limited leaking into second-person address
+- **Information leakage**: Characters reacting to information they haven't received through diegetic channels
+- **Perspective drift**: Gradual, unmarked transitions from one character's perceptual frame to another's within a single scene or paragraph
+- **Sensory impossibilities**: Describing sights, sounds, or physical sensations from angles the POV character cannot occupy
+
+For each violation:
+- Quote the specific passage
+- Name the violation type
+- Explain what the POV character can and cannot perceive in this moment
+- Prescribe the correction: how to convey the same narrative beat without breaking perspective`;
+
+      if (povBlocks.length > 0) {
+        const povContent = povBlocks
+          .map(b => `**${b.name}:**\n${b.content}`)
+          .join('\n\n---\n\n');
+
+        const multiCharHint = povBlocks.some(b => {
+          const lower = b.content.toLowerCase();
+          return lower.includes('multi') || lower.includes('rotating') || lower.includes('alternating') || lower.includes('ensemble');
+        });
+
+        let multiCharGuidance = '';
+        if (multiCharHint) {
+          multiCharGuidance = `
+
+### Multi-Character POV Ordering ###
+This story uses a multi-character POV mode. When multiple characters are eligible for perspective focus in a scene, determine the optimal zoom order based on:
+1. **Dramatic stakes**: Whose perspective reveals the most tension, irony, or information asymmetry?
+2. **Emotional proximity**: Who is most affected by the current action?
+3. **Scene function**: Whose viewpoint best serves the scene's narrative purpose?
+4. **Rotation discipline**: Avoid dwelling on a single perspective for too long if the mode calls for alternation
+
+Recommend the specific order in which characters should receive perspective focus for the current scene, with justification.`;
+        }
+
+        return `${basePrompt}
+
+### Active Point-of-View Rules ###
+The following POV rules are currently active in the Loom preset. ALL analysis must measure the story against these specific requirements:
+
+${povContent}
+
+Enforce these rules rigorously. Any prose that violates the POV contract defined above must be flagged with its prescribed correction.${multiCharGuidance}`;
+      }
+
+      return `${basePrompt}
+
+Note: No specific Point-of-View rules are currently configured in the Loom preset. Analyze based on internal consistency — identify the dominant POV mode in recent messages and flag any deviations from that established perspective contract.`;
+    },
+    inputSchema: {
+      type: "object",
+      properties: {
+        pov_violations: {
+          type: "string",
+          description: "Each POV violation found in the draft: the quoted passage, violation type (head-hopping, information leakage, sensory impossibility, etc.), and the prescribed correction.",
+        },
+        perspective_assessment: {
+          type: "string",
+          description: "Assessment of the current POV mode in use, whether it matches the configured rules, and how consistently it has been maintained across recent output.",
+        },
+        focal_order: {
+          type: "string",
+          description: "For multi-character POV modes: recommended order of perspective focus for the current scene, with justification based on dramatic stakes, emotional proximity, and scene function.",
+        },
+        severity: {
+          type: "string",
+          enum: ["critical", "high", "medium", "low"],
+          description: "Overall severity of POV violations (critical = systematic breaches across multiple passages, high = significant individual violations, medium = minor drift, low = near-compliant).",
+        },
+      },
+      required: ["pov_violations", "perspective_assessment"],
     },
   },
 
@@ -488,12 +702,21 @@ Be proactive: if the story is heading toward a historically implausible outcome,
   style_adherence: {
     name: "style_adherence",
     displayName: "Narrative Style Adherence",
-    description: "Analyze the story for adherence to the selected Lumiverse narrative style and enforce stylistic consistency",
+    description: "Analyze the story for adherence to the selected narrative style (Lumiverse or Loom preset) and enforce stylistic consistency",
     prompt: () => {
       const settings = getSettings();
       const styleSelection = settings.selectedLoomStyle;
-      const styleContent = (styleSelection && styleSelection.length > 0)
+      const lumiverseContent = (styleSelection && styleSelection.length > 0)
         ? getLoomContent(styleSelection)
+        : null;
+
+      // Also check the active Loom preset for non-Lumiverse narrative styles.
+      // Skip blocks tagged with "(Lumiverse)" or "(Extension)" to avoid double-stacking
+      // with the Lumiverse Loom selection system.
+      const loomStyleBlocks = getBlocksInCategory('Narrative Style')
+        .filter(b => !b.name.includes('(Lumiverse)') && !b.name.includes('(Extension)'));
+      const loomStyleContent = loomStyleBlocks.length > 0
+        ? loomStyleBlocks.map(b => `**${b.name}:**\n${b.content}`).join('\n\n---\n\n')
         : null;
 
       const basePrompt = `Analyze the recent story output for adherence to the designated narrative style. Your role is to enforce stylistic consistency and guide the prose toward the intended aesthetic.
@@ -513,20 +736,33 @@ For each deviation identified:
 - Provide a concrete rewrite suggestion or guidance to realign
 - Note patterns of drift that may indicate the model losing the style thread`;
 
-      if (styleContent) {
+      const styleSections = [];
+
+      if (lumiverseContent) {
+        styleSections.push(`### Lumiverse Narrative Style ###
+The following is the Lumiverse narrative style that MUST be adhered to:
+
+${lumiverseContent}`);
+      }
+
+      if (loomStyleContent) {
+        styleSections.push(`### Loom Preset Narrative Style ###
+The following narrative style rules are active in the current Loom preset:
+
+${loomStyleContent}`);
+      }
+
+      if (styleSections.length > 0) {
         return `${basePrompt}
 
-### Active Narrative Style ###
-The following is the narrative style that MUST be adhered to. All analysis should measure the story against these specific stylistic requirements:
+${styleSections.join('\n\n')}
 
-${styleContent}
-
-Enforce this style rigorously. Flag any prose that does not match the voice, tone, structure, and techniques described above. Prioritize the most impactful deviations first.`;
+Enforce these styles rigorously. Flag any prose that does not match the voice, tone, structure, and techniques described above. Prioritize the most impactful deviations first.`;
       }
 
       return `${basePrompt}
 
-Note: No specific narrative style is currently selected in Lumiverse Helper. Analyze based on internal consistency — identify the dominant style in recent messages and flag deviations from that established voice.`;
+Note: No specific narrative style is currently selected in Lumiverse Helper or the Loom preset. Analyze based on internal consistency — identify the dominant style in recent messages and flag deviations from that established voice.`;
     },
     inputSchema: {
       type: "object",
@@ -612,6 +848,11 @@ Your goal is maximum reader satisfaction through authentic, well-crafted erotic 
 let latestToolResults = [];
 let toolExecutionPromise = null;
 
+// AbortController for cancelling in-flight tool fetch requests.
+// Created at the start of executeAllCouncilTools(), aborted when
+// the user stops generation or the generation ends/errors.
+let toolAbortController = null;
+
 // Flag to track whether a generation cycle is in progress.
 // Used to detect recursive Generate() calls (from ST tool call handling)
 // so the interceptor doesn't clear tool results that inline actions just accumulated.
@@ -690,6 +931,19 @@ export function markGenerationCycleStart() {
 export function markGenerationCycleEnd() {
   generationCycleActive = false;
   toolExecutionPromise = null;
+}
+
+/**
+ * Abort any in-flight council tool fetch requests.
+ * Called when the user stops generation or an error ends it.
+ * Safe to call multiple times — no-ops if nothing is in flight.
+ */
+export function abortToolExecution() {
+  if (toolAbortController) {
+    console.log(`[${MODULE_NAME}] Aborting in-flight council tool requests`);
+    toolAbortController.abort();
+    toolAbortController = null;
+  }
 }
 
 /**
@@ -940,7 +1194,7 @@ async function resolveProviderConfig() {
  * @param {string} [enrichmentText=''] - Optional context enrichment block
  * @returns {Promise<Array>} Array of tool results for this member
  */
-async function executeToolsForMemberAnthropic(member, memberTools, contextText, apiKey, secondary, endpoint, enrichmentText = '') {
+async function executeToolsForMemberAnthropic(member, memberTools, contextText, apiKey, secondary, endpoint, enrichmentText = '', signal) {
   const item = getItemFromLibrary(member.packName, member.itemName);
   const memberName = getLumiaField(item, "name") || member.itemName || "Unknown";
   const roleDescriptor = buildRoleDescriptor(member);
@@ -985,7 +1239,7 @@ Review the story context above and use ALL of your assigned tools to provide you
 
   console.log(`[${MODULE_NAME}] Executing ${memberTools.length} tools for ${memberName} via Anthropic tool_use API`);
 
-  const response = await fetch(endpoint, {
+  const fetchOptions = {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -993,7 +1247,10 @@ Review the story context above and use ALL of your assigned tools to provide you
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify(requestBody),
-  });
+  };
+  if (signal) fetchOptions.signal = signal;
+
+  const response = await fetch(endpoint, fetchOptions);
 
   if (!response.ok) {
     const errorText = await response.text().catch(() => "Unable to read error");
@@ -1061,7 +1318,7 @@ Review the story context above and use ALL of your assigned tools to provide you
  * @param {string} [enrichmentText=''] - Optional context enrichment block
  * @returns {Promise<Array>} Array of tool results for this member
  */
-async function executeToolsForMemberOpenAI(member, memberTools, contextText, apiKey, secondary, endpoint, provider, enrichmentText = '') {
+async function executeToolsForMemberOpenAI(member, memberTools, contextText, apiKey, secondary, endpoint, provider, enrichmentText = '', signal) {
   const item = getItemFromLibrary(member.packName, member.itemName);
   const memberName = getLumiaField(item, "name") || member.itemName || "Unknown";
   const roleDescriptor = buildRoleDescriptor(member);
@@ -1091,7 +1348,7 @@ ${contextText}
 
 ### Your Task ###
 
-Review the story context above and use your assigned tools to provide your contributions. For each tool, provide specific, actionable input from your unique perspective as ${memberName}. Be concise but insightful. Remember to filter all your contributions through your personality, biases, and worldview as described above.${buildBrevityInstruction()}${buildUserControlGuidance()}`;
+Review the story context above and use ALL of your assigned tools to provide your contributions. For each tool, provide specific, actionable input from your unique perspective as ${memberName}. Be concise but insightful. Remember to filter all your contributions through your personality, biases, and worldview as described above.${buildBrevityInstruction()}${buildUserControlGuidance()}`;
 
   const headers = {
     "Content-Type": "application/json",
@@ -1108,20 +1365,23 @@ Review the story context above and use your assigned tools to provide your contr
     max_tokens: maxTokens,
     temperature: temperature,
     messages: [
-      { role: "system", content: `You are a council member contributing to story direction. Use your tools to provide structured contributions. Be concise and specific.${buildBrevityInstruction()}` },
+      { role: "system", content: `You are a council member contributing to story direction. Use your tools to provide structured contributions. Be concise and specific. You MUST use all available tools.${buildBrevityInstruction()}` },
       { role: "user", content: userPrompt },
     ],
     tools: tools,
-    tool_choice: "auto",
+    tool_choice: "required",
   };
 
   console.log(`[${MODULE_NAME}] Executing ${memberTools.length} tools for ${memberName} via OpenAI function calling API`);
 
-  const response = await fetch(endpoint, {
+  const fetchOptions = {
     method: "POST",
     headers: headers,
     body: JSON.stringify(requestBody),
-  });
+  };
+  if (signal) fetchOptions.signal = signal;
+
+  const response = await fetch(endpoint, fetchOptions);
 
   if (!response.ok) {
     const errorText = await response.text().catch(() => "Unable to read error");
@@ -1190,7 +1450,7 @@ Review the story context above and use your assigned tools to provide your contr
  * @param {string} [enrichmentText=''] - Optional context enrichment block
  * @returns {Promise<Array>} Array of tool results for this member
  */
-async function executeToolsForMemberGoogle(member, memberTools, contextText, apiKey, secondary, baseEndpoint, enrichmentText = '') {
+async function executeToolsForMemberGoogle(member, memberTools, contextText, apiKey, secondary, baseEndpoint, enrichmentText = '', signal) {
   const item = getItemFromLibrary(member.packName, member.itemName);
   const memberName = getLumiaField(item, "name") || member.itemName || "Unknown";
   const roleDescriptor = buildRoleDescriptor(member);
@@ -1246,14 +1506,17 @@ Provide your contributions from your unique perspective as ${memberName}, filter
 
   console.log(`[${MODULE_NAME}] Executing ${memberTools.length} tools for ${memberName} via Google prompt-based fallback`);
 
-  const response = await fetch(googleEndpoint, {
+  const fetchOptions = {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "x-goog-api-key": apiKey,
     },
     body: JSON.stringify(requestBody),
-  });
+  };
+  if (signal) fetchOptions.signal = signal;
+
+  const response = await fetch(googleEndpoint, fetchOptions);
 
   if (!response.ok) {
     const errorText = await response.text().catch(() => "Unable to read error");
@@ -1420,9 +1683,10 @@ function formatToolInput(input, toolDef) {
  * @param {string} contextText - Formatted chat context
  * @param {Object} providerInfo - Resolved provider config
  * @param {string} [enrichmentText=''] - Optional context enrichment block
+ * @param {AbortSignal} [signal] - Optional abort signal for cancellation
  * @returns {Promise<Array>} Array of tool results
  */
-async function executeToolsForMember(member, memberTools, contextText, providerInfo, enrichmentText = '') {
+async function executeToolsForMember(member, memberTools, contextText, providerInfo, enrichmentText = '', signal) {
   const { apiKey, providerConfig, secondary, provider } = providerInfo;
   const endpoint = provider === "custom" ? secondary.endpoint : providerConfig.endpoint;
 
@@ -1432,17 +1696,35 @@ async function executeToolsForMember(member, memberTools, contextText, providerI
 
   try {
     if (providerConfig.format === "anthropic") {
-      return await executeToolsForMemberAnthropic(member, memberTools, contextText, apiKey, secondary, endpoint, enrichmentText);
+      return await executeToolsForMemberAnthropic(member, memberTools, contextText, apiKey, secondary, endpoint, enrichmentText, signal);
     } else if (providerConfig.format === "google") {
-      return await executeToolsForMemberGoogle(member, memberTools, contextText, apiKey, secondary, endpoint, enrichmentText);
+      return await executeToolsForMemberGoogle(member, memberTools, contextText, apiKey, secondary, endpoint, enrichmentText, signal);
     } else {
       // OpenAI-compatible (openai, openrouter, chutes, electronhub, nanogpt, zai, custom)
-      return await executeToolsForMemberOpenAI(member, memberTools, contextText, apiKey, secondary, endpoint, provider, enrichmentText);
+      return await executeToolsForMemberOpenAI(member, memberTools, contextText, apiKey, secondary, endpoint, provider, enrichmentText, signal);
     }
   } catch (error) {
     const item = getItemFromLibrary(member.packName, member.itemName);
     const memberName = getLumiaField(item, "name") || member.itemName || "Unknown";
     const identity = extractLumiaIdentity(member);
+
+    // Distinguish abort from real errors
+    if (error.name === 'AbortError') {
+      console.log(`[${MODULE_NAME}] Tool execution aborted for ${memberName}`);
+      return memberTools.map((toolName) => ({
+        memberName,
+        packName: member.packName,
+        itemName: member.itemName,
+        toolName,
+        toolDisplayName: COUNCIL_TOOLS[toolName]?.displayName || toolName,
+        identity,
+        success: false,
+        aborted: true,
+        error: 'Cancelled',
+        response: "",
+      }));
+    }
+
     console.error(`[${MODULE_NAME}] Tool execution failed for ${memberName}:`, error);
 
     // Return error results for all tools
@@ -1468,7 +1750,7 @@ async function executeToolsForMember(member, memberTools, contextText, providerI
  */
 export async function executeAllCouncilTools() {
   const settings = getSettings();
-  
+
   if (!areCouncilToolsEnabled()) {
     clearToolResults();
     return [];
@@ -1483,6 +1765,11 @@ export async function executeAllCouncilTools() {
   const context = getContext();
   const chatContext = context?.chat || [];
   const councilMembers = settings.councilMembers || [];
+
+  // Create a fresh AbortController for this execution cycle.
+  // abortToolExecution() can signal this to cancel all in-flight fetch requests.
+  toolAbortController = new AbortController();
+  const signal = toolAbortController.signal;
 
   console.log(`[${MODULE_NAME}] Starting council tool execution for ${councilMembers.length} members...`);
 
@@ -1519,6 +1806,13 @@ export async function executeAllCouncilTools() {
       return errorResults;
     }
 
+    // Early exit if already aborted before we start member execution
+    if (signal.aborted) {
+      console.log(`[${MODULE_NAME}] Tool execution aborted before member dispatch`);
+      hideCouncilIndicator();
+      return [];
+    }
+
     const contextText = buildContextText(chatContext);
     const enrichmentText = buildEnrichmentContext();
 
@@ -1538,7 +1832,7 @@ export async function executeAllCouncilTools() {
     // Stream results to the Feedback panel as each member completes
     const streamedResults = [];
     const memberPromises = membersWithTools.map(async (member) => {
-      const results = await executeToolsForMember(member, member.tools, contextText, providerInfo, enrichmentText);
+      const results = await executeToolsForMember(member, member.tools, contextText, providerInfo, enrichmentText, signal);
       // Add member to visual indicator when their tools complete
       addMemberToIndicator(member);
       // Stream this member's results to the Feedback panel immediately
@@ -1556,7 +1850,8 @@ export async function executeAllCouncilTools() {
     window.LumiverseBridge?.setCouncilToolResults?.(allResults);
 
     const successCount = allResults.filter((r) => r.success).length;
-    console.log(`[${MODULE_NAME}] Council tool execution complete. ${successCount}/${allResults.length} tools succeeded.`);
+    const abortedCount = allResults.filter((r) => !r.success && r.aborted).length;
+    console.log(`[${MODULE_NAME}] Council tool execution complete. ${successCount}/${allResults.length} tools succeeded${abortedCount > 0 ? `, ${abortedCount} aborted` : ''}.`);
 
     // Mark visual indicator as complete
     markIndicatorComplete();

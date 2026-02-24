@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 import clsx from 'clsx';
-import { User, Package, MessageSquare, Sliders, FileText, ChevronRight, ChevronLeft, X, Sparkles, Bookmark, Users, BarChart2 } from 'lucide-react';
-import { useLumiverseStore, useUpdates } from '../store/LumiverseContext';
+import { User, Package, MessageSquare, Sliders, FileText, ChevronRight, ChevronLeft, X, Sparkles, Bookmark, Users, BarChart2, Layers, Settings } from 'lucide-react';
+import { useLumiverseStore, useLumiverseActions, useUpdates } from '../store/LumiverseContext';
 import { UpdateDot } from './UpdateBanner';
 import UpdateBanner from './UpdateBanner';
 
@@ -9,7 +9,7 @@ import UpdateBanner from './UpdateBanner';
 const store = useLumiverseStore;
 
 // Stable fallback constants for useSyncExternalStore
-const DEFAULT_DRAWER_SETTINGS = { side: 'right', verticalPosition: 15, tabSize: 'large' };
+const DEFAULT_DRAWER_SETTINGS = { side: 'right', verticalPosition: 15, tabSize: 'large', panelWidthMode: 'default', customPanelWidth: 35 };
 const EMPTY_ARRAY = [];
 
 // Stable selector functions
@@ -21,6 +21,7 @@ const selectChatChangeCounter = () => store.getState().chatChangeCounter || 0;
 
 // Panel dimensions
 const DESKTOP_PANEL_WIDTH = 376; // 56px tabs + 320px content
+const TAB_SIDEBAR_WIDTH = 56; // Width of the icon tab sidebar
 const DRAWER_TAB_WIDTH = 48; // Width of the flush-mounted tab (desktop)
 const DRAWER_TAB_WIDTH_COMPACT = 32; // Width of the compact tab
 const MOBILE_DRAWER_TAB_WIDTH = 40; // Width of the flush-mounted tab (mobile)
@@ -169,6 +170,12 @@ const ALL_PANEL_TABS = [
         title: 'Lumia Presets',
     },
     {
+        id: 'loom',
+        Icon: Layers,
+        label: 'Loom',
+        title: 'Lucid Loom Builder',
+    },
+    {
         id: 'browser',
         Icon: Package,
         label: 'Packs',
@@ -222,6 +229,7 @@ function ViewportPanel({
     // Tab content components passed as props
     ProfileContent,
     PresetsContent,
+    LoomContent,
     BrowserContent,
     OOCContent,
     PromptContent,
@@ -233,6 +241,20 @@ function ViewportPanel({
     const [isCollapsed, setIsCollapsed] = useState(false);
     const isMobile = useIsMobile();
     const { hasAnyUpdate } = useUpdates();
+    const storeActions = useLumiverseActions();
+
+    // Track viewport width for responsive panel sizing on desktop
+    const [viewportWidth, setViewportWidth] = useState(() =>
+        typeof window !== 'undefined' ? window.innerWidth : 1024
+    );
+    // Force re-render counter for --sheldWidth CSS variable changes
+    const [, sheldForceUpdate] = useState(0);
+
+    useEffect(() => {
+        const handler = () => setViewportWidth(window.innerWidth);
+        window.addEventListener('resize', handler);
+        return () => window.removeEventListener('resize', handler);
+    }, []);
 
     // Subscribe to state needed for conditional tab visibility
     const councilMode = useSyncExternalStore(store.subscribe, selectCouncilMode, selectCouncilMode);
@@ -283,26 +305,87 @@ function ViewportPanel({
     const side = drawerSettings?.side || 'right';
     const verticalPosition = drawerSettings?.verticalPosition ?? 15;
     const tabSize = drawerSettings?.tabSize || 'large';
+    const panelWidthMode = drawerSettings?.panelWidthMode || 'default';
+    const customPanelWidthVw = drawerSettings?.customPanelWidth || 35;
     const isLeft = side === 'left';
 
-    // Panel dimensions based on viewport
-    // On mobile, we use CSS calc() for fluid sizing; on desktop, fixed pixel values
-    const panelWidth = isMobile ? window.innerWidth : DESKTOP_PANEL_WIDTH;
+    // Watch for --sheldWidth CSS variable changes when in stChat mode
+    // Uses both MutationObserver (catches inline style changes) and ST's settings_updated event
+    useEffect(() => {
+        if (panelWidthMode !== 'stChat') return;
+
+        const forceRecompute = () => sheldForceUpdate(n => n + 1);
+
+        // Watch for style attribute mutations on <html> (catches applyChatWidth calls)
+        const observer = new MutationObserver(forceRecompute);
+        observer.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['style'],
+        });
+
+        // Also subscribe to ST's settings_updated event for reliable chat width change detection
+        let eventSource = null;
+        try {
+            if (typeof SillyTavern !== 'undefined') {
+                const ctx = SillyTavern.getContext();
+                eventSource = ctx?.eventSource ?? null;
+                eventSource?.on('settings_updated', forceRecompute);
+            }
+        } catch { /* ignore */ }
+
+        return () => {
+            observer.disconnect();
+            eventSource?.removeListener('settings_updated', forceRecompute);
+        };
+    }, [panelWidthMode]);
+
+    // Compute dynamic panel dimensions based on width mode
+    // Mobile always uses 100vw regardless of mode
+    let panelWidth, mainContentWidth;
+    if (isMobile) {
+        panelWidth = viewportWidth;
+        mainContentWidth = 320; // CSS flex handles actual sizing on mobile
+    } else {
+        switch (panelWidthMode) {
+            case 'stChat': {
+                // --sheldWidth is the centered chat column width (e.g. 50vw).
+                // Available side space = (100% - sheldWidth) / 2
+                const raw = getComputedStyle(document.documentElement)
+                    .getPropertyValue('--sheldWidth')?.trim();
+                let sidePx = DESKTOP_PANEL_WIDTH;
+                if (raw?.endsWith('vw')) {
+                    const sheldVw = parseFloat(raw);
+                    sidePx = Math.round(((100 - sheldVw) / 2) * viewportWidth / 100);
+                } else if (raw?.endsWith('px')) {
+                    const sheldPx = parseInt(raw, 10);
+                    sidePx = Math.round((viewportWidth - sheldPx) / 2);
+                }
+                panelWidth = Math.max(DESKTOP_PANEL_WIDTH, sidePx);
+                mainContentWidth = panelWidth - TAB_SIDEBAR_WIDTH;
+                break;
+            }
+            case 'custom': {
+                panelWidth = Math.max(DESKTOP_PANEL_WIDTH, Math.round(customPanelWidthVw * viewportWidth / 100));
+                mainContentWidth = panelWidth - TAB_SIDEBAR_WIDTH;
+                break;
+            }
+            default:
+                panelWidth = DESKTOP_PANEL_WIDTH;
+                mainContentWidth = 320;
+        }
+    }
 
     // Tab width (the drawer handle)
     const isCompact = tabSize === 'compact';
-    const tabWidth = isMobile 
+    const tabWidth = isMobile
         ? (isCompact ? MOBILE_DRAWER_TAB_WIDTH_COMPACT : MOBILE_DRAWER_TAB_WIDTH)
         : (isCompact ? DRAWER_TAB_WIDTH_COMPACT : DRAWER_TAB_WIDTH);
 
-    // Desktop: fixed width for main content. Mobile: CSS flex handles it
-    const mainContentWidth = 320;
-
-    // Wrapper width: on mobile use calc(100vw + tab), on desktop use fixed pixels
-    const wrapperWidth = isMobile 
+    // Wrapper width: on mobile use calc(100vw + tab), on desktop use computed panel width + tab
+    const wrapperWidth = isMobile
         ? `calc(100vw + ${tabWidth}px)`
-        : (DESKTOP_PANEL_WIDTH + tabWidth);
-    
+        : (panelWidth + tabWidth);
+
     // Collapse only applies to desktop (mobile has no collapse button)
     // Right side: positive translateX to slide content off-screen right
     // Left side: negative translateX to slide content off-screen left
@@ -326,13 +409,14 @@ function ViewportPanel({
     const tabPanels = useMemo(() => ({
         profile: ProfileContent ? <ProfileContent onTabChange={handleTabClick} /> : <PlaceholderContent tab="profile" />,
         presets: PresetsContent ? <PresetsContent /> : <PlaceholderContent tab="presets" />,
+        loom: LoomContent ? <LoomContent compact /> : <PlaceholderContent tab="loom" />,
         browser: BrowserContent ? <BrowserContent /> : <PlaceholderContent tab="browser" />,
         ooc: OOCContent ? <OOCContent /> : <PlaceholderContent tab="ooc" />,
         prompt: PromptContent ? <PromptContent /> : <PlaceholderContent tab="prompt" />,
         council: CouncilContent ? <CouncilContent /> : <PlaceholderContent tab="council" />,
         summary: SummaryContent ? <SummaryContent /> : <PlaceholderContent tab="summary" />,
         feedback: FeedbackContent ? <FeedbackContent /> : <PlaceholderContent tab="feedback" />,
-    }), [ProfileContent, PresetsContent, BrowserContent, OOCContent, PromptContent, CouncilContent, SummaryContent, FeedbackContent, handleTabClick]);
+    }), [ProfileContent, PresetsContent, LoomContent, BrowserContent, OOCContent, PromptContent, CouncilContent, SummaryContent, FeedbackContent, handleTabClick]);
 
     // Calculate wrapper positioning based on side
     const getWrapperStyle = () => {
@@ -392,9 +476,9 @@ function ViewportPanel({
                 style={{
                     transform: isCollapsed ? `translateX(${collapseOffset}px)` : 'translateX(0)',
                     transition: 'transform 0.2s ease',
-                    // Explicit pointer-events for Android WebView compatibility
-                    // Some Android browsers don't properly inherit through nested pointer-events containers
-                    pointerEvents: 'auto',
+                    // Panel is pass-through; children (DrawerTab, vp-tabs, vp-main) opt-in.
+                    // This prevents the DrawerTab's empty flex column from blocking clicks on ST content.
+                    pointerEvents: 'none',
                 }}
             >
                 {/* Drawer tab - stays at the edge of the wrapper during slide animation */}
@@ -419,6 +503,14 @@ function ViewportPanel({
                         />
                     ))}
                     <div className="lumiverse-vp-tabs-spacer" />
+                    <button
+                        className="lumiverse-vp-settings-btn"
+                        onClick={() => storeActions.openSettingsModal()}
+                        title="Lumiverse Settings"
+                        type="button"
+                    >
+                        <Settings size={18} strokeWidth={1.5} />
+                    </button>
                     {!isMobile && (
                         <CollapseButton
                             isCollapsed={isCollapsed}

@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
-import { useSettings, useLumiverseActions, useUI, useUpdates } from './store/LumiverseContext';
-import SettingsPanel from './components/SettingsPanel';
+import { useLumiverseActions, useUI, useUpdates } from './store/LumiverseContext';
+import SettingsPanelStub from './components/SettingsPanelStub';
 import ModalContainer from './components/ModalContainer';
 import PackDetailModal from './components/modals/PackDetailModal';
 import LoomPackDetailModal from './components/modals/LoomPackDetailModal';
@@ -14,7 +14,6 @@ import { useUpdateChecker } from './hooks/useUpdateChecker';
  * This serves as the root of the React UI
  */
 function App() {
-    const settings = useSettings();
     const actions = useLumiverseActions();
     const ui = useUI();
     const { extensionUpdate } = useUpdates();
@@ -36,7 +35,7 @@ function App() {
             {/* Update notification banner */}
             <UpdateBanner variant="full" onDismiss={handleDismissUpdate} />
 
-            <SettingsPanel />
+            <SettingsPanelStub />
 
             {/* Modal portal - modals render here */}
             <ModalContainer />

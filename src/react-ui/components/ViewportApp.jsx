@@ -8,15 +8,17 @@ import PromptSettings from './panels/PromptSettings';
 import CouncilManager from './panels/CouncilManager';
 import SummaryEditor from './panels/SummaryEditor';
 import FeedbackPanel from './panels/FeedbackPanel';
+import LoomBuilder from './panels/LoomBuilder';
 import PackDetailModal from './modals/PackDetailModal';
 import LoomPackDetailModal from './modals/LoomPackDetailModal';
+import SettingsModal from './modals/SettingsModal';
 import { useLumiverseStore } from '../store/LumiverseContext';
 
 // Get the store for direct access
 const store = useLumiverseStore;
 
 // Default drawer settings
-const DEFAULT_DRAWER_SETTINGS = { side: 'right', verticalPosition: 15, tabSize: 'large' };
+const DEFAULT_DRAWER_SETTINGS = { side: 'right', verticalPosition: 15, tabSize: 'large', panelWidthMode: 'default', customPanelWidth: 35 };
 
 /**
  * Main viewport application component
@@ -48,32 +50,31 @@ function ViewportApp() {
         setIsPanelVisible(false);
     }, []);
 
-    // Don't render anything if drawer is disabled
-    if (!showDrawer) {
-        return null;
-    }
-
     return (
         <>
-            <ViewportPanel
-                isVisible={isPanelVisible}
-                onToggle={handleToggle}
-                onClose={handleClose}
-                defaultTab="profile"
-                drawerSettings={drawerSettings}
-                ProfileContent={CharacterProfile}
-                PresetsContent={PresetManager}
-                BrowserContent={PackBrowser}
-                OOCContent={OOCSettings}
-                PromptContent={PromptSettings}
-                CouncilContent={CouncilManager}
-                SummaryContent={SummaryEditor}
-                FeedbackContent={FeedbackPanel}
-            />
-            {/* Pack detail modal - rendered when viewingPack is set */}
+            {/* Drawer + viewport panel (hidden when drawer is disabled) */}
+            {showDrawer && (
+                <ViewportPanel
+                    isVisible={isPanelVisible}
+                    onToggle={handleToggle}
+                    onClose={handleClose}
+                    defaultTab="profile"
+                    drawerSettings={drawerSettings}
+                    ProfileContent={CharacterProfile}
+                    PresetsContent={PresetManager}
+                    LoomContent={LoomBuilder}
+                    BrowserContent={PackBrowser}
+                    OOCContent={OOCSettings}
+                    PromptContent={PromptSettings}
+                    CouncilContent={CouncilManager}
+                    SummaryContent={SummaryEditor}
+                    FeedbackContent={FeedbackPanel}
+                />
+            )}
+            {/* These portals must always render regardless of drawer visibility */}
             <PackDetailModal />
-            {/* Loom pack detail modal - rendered when viewingLoomPack is set */}
             <LoomPackDetailModal />
+            <SettingsModal />
         </>
     );
 }

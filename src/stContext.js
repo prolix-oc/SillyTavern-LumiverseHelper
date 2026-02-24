@@ -488,6 +488,26 @@ export function getCurrentCharacter() {
 }
 
 /**
+ * Get the substituteParams function for resolving all registered macros.
+ * This is the canonical macro resolver that handles both legacy and Macros 2.0,
+ * resolving ST built-in macros, extension macros, and third-party macros.
+ * @returns {Function|null} substituteParams(text) function, or null if unavailable
+ */
+export function getSubstituteParams() {
+  const ctx = getContext();
+  return typeof ctx?.substituteParams === 'function' ? ctx.substituteParams : null;
+}
+
+/**
+ * Get the async token counting function from ST's tokenizer.
+ * @returns {Function|null} getTokenCountAsync(text, padding?) function, or null if unavailable
+ */
+export function getTokenCountAsync() {
+  const ctx = getContext();
+  return typeof ctx?.getTokenCountAsync === 'function' ? ctx.getTokenCountAsync : null;
+}
+
+/**
  * Get the current chat array.
  * @returns {Array} Array of chat messages
  */

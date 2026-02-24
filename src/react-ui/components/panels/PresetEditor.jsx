@@ -283,7 +283,7 @@ function SortablePromptItem({ prompt, index, onEdit, onDelete, onToggleEnabled, 
                     </div>
                     {!isCategory && (
                         <div style={{ fontSize: '11px', color: 'var(--lumiverse-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {prompt.content.substring(0, 80)}
+                            {(prompt.content || '').substring(0, 80)}
                         </div>
                     )}
                 </div>

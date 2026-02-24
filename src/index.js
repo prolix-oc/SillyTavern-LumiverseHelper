@@ -14,6 +14,7 @@ import {
   getMacrosParser,
   getSlashCommand,
   getSlashCommandParser,
+  getTokenCountAsync,
 } from "./stContext.js";
 
 // Import DOM utilities
@@ -58,6 +59,7 @@ import {
   executeAllCouncilTools, clearToolResults, areCouncilToolsEnabled,
   getCouncilToolsMode, registerSTTools, unregisterSTTools,
   isGenerationCycleActive, markGenerationCycleStart, markGenerationCycleEnd,
+  abortToolExecution,
   captureWorldInfoEntries, clearWorldInfoEntries } from "./lib/councilTools.js";
 import { resetIndicator } from "./lib/councilVisuals.js";
 
@@ -96,6 +98,8 @@ import {
 } from "./lib/reactBridge.js";
 
 import { initPresetBindingService } from "./lib/presetBindingService.js";
+import { resolveActivePreset, assembleMessages, resolveBinding, setActivePreset, setStoredCoreChat, preResolveMedia, applySamplerOverrides, applyCustomBody, applyCompletionSettings, applyAdvancedSettings, getProfileKey, saveCurrentModelProfile, loadModelProfile, savePreset } from "./lib/lucidLoomService.js";
+import { handleLoomPresetTransition, isLoomControlActive, syncContextSize } from "./lib/oaiPresetSync.js";
 
 import {
     isLandingPageEnabled,
@@ -262,6 +266,121 @@ function trimEmptyMacroNewlines(content) {
   return result;
 }
 
+// --- CONTEXT METER: Live token estimation ---
+// Debounced helper that counts chat tokens and pushes an estimate to the store.
+// Called on CHAT_CHANGED and CHARACTER_MESSAGE_RENDERED to keep the meter live.
+let _ctxMeterTimer = null;
+function updateContextMeterTokens() {
+  clearTimeout(_ctxMeterTimer);
+  _ctxMeterTimer = setTimeout(async () => {
+    try {
+      const tokenCounter = getTokenCountAsync();
+      const store = window.LumiverseUI?.getStore?.();
+      if (!tokenCounter || !store) return;
+
+      const ctx = getContext();
+      const chat = ctx?.chat;
+      if (!chat || chat.length === 0) return;
+
+      // Priority: Loom Builder contextSize override > ST API-specific context > fallback
+      const loomPreset = resolveActivePreset();
+      const loomContextSize = loomPreset?.samplerOverrides?.enabled
+        ? loomPreset.samplerOverrides.contextSize : null;
+      const maxContext = loomContextSize
+        || (ctx?.mainApi === 'openai'
+          ? (ctx?.chatCompletionSettings?.openai_max_context || ctx?.maxContext || 0)
+          : (ctx?.maxContext || 0));
+      const maxTokens = ctx?.chatCompletionSettings?.openai_max_tokens || 0;
+      if (maxContext <= 0) return;
+
+      const chatText = chat.map(m => (m.content || m.mes || '')).join('\n');
+      const promptTokens = await tokenCounter(chatText);
+
+      store.setState(prev => ({
+        loomBuilder: {
+          ...prev.loomBuilder,
+          tokenUsage: { promptTokens, maxContext, maxTokens, timestamp: Date.now(), isEstimate: true },
+        },
+      }));
+    } catch (err) {
+      // Non-critical — silently ignore
+    }
+  }, 500);
+}
+
+// --- CONTEXT OVERFLOW WARNING ---
+/**
+ * Show a themed confirmation dialog when the prompt may exceed the context window.
+ * Returns a promise that resolves to true (proceed) or false (cancel).
+ * Uses vanilla DOM to avoid React dependency in the interceptor path.
+ */
+function showContextOverflowWarning(chatTokens, maxContext, maxTokens) {
+  return new Promise((resolve) => {
+    const budget = maxContext - maxTokens;
+    const overflow = chatTokens - budget;
+    const pct = Math.round((chatTokens / budget) * 100);
+
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position: fixed; inset: 0; z-index: 10001;
+      background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--lumiverse-font, system-ui, sans-serif);
+    `;
+
+    overlay.innerHTML = `
+      <div style="
+        background: var(--lumiverse-bg-elevated, #1e1e2e);
+        border: 1px solid var(--lumiverse-border, rgba(255,255,255,0.1));
+        border-radius: 12px; padding: 24px; width: 380px; max-width: 90vw;
+        color: var(--lumiverse-text, #e0e0e0);
+        box-shadow: 0 16px 48px rgba(0,0,0,0.4);
+      ">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--lumiverse-warning, #f59e0b)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+            <path d="M12 9v4"/><path d="M12 17h.01"/>
+          </svg>
+          <span style="font-size:16px; font-weight:600;">Context Overflow</span>
+        </div>
+        <p style="font-size:13px; line-height:1.5; margin:0 0 6px; color:var(--lumiverse-text-muted, #aaa);">
+          Your chat history alone uses <strong style="color:var(--lumiverse-text, #e0e0e0)">${chatTokens.toLocaleString()}</strong> tokens, which
+          ${overflow > 0
+            ? `exceeds your available budget of <strong style="color:var(--lumiverse-text, #e0e0e0)">${budget.toLocaleString()}</strong> by <strong style="color:var(--lumiverse-danger, #ef4444)">${overflow.toLocaleString()}</strong> tokens.`
+            : `combined with system prompts will likely exceed your budget of <strong style="color:var(--lumiverse-text, #e0e0e0)">${budget.toLocaleString()}</strong>.`
+          }
+        </p>
+        <p style="font-size:12px; line-height:1.4; margin:0 0 18px; color:var(--lumiverse-text-dim, #888);">
+          Context: ${maxContext.toLocaleString()} max &minus; ${maxTokens.toLocaleString()} response = ${budget.toLocaleString()} budget (${pct}% used by chat alone)
+        </p>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+          <button id="lumi-ctx-cancel" style="
+            padding:8px 16px; border-radius:6px; font-size:13px; font-weight:500; cursor:pointer;
+            border:1px solid var(--lumiverse-border, rgba(255,255,255,0.1));
+            background:var(--lumiverse-bg, #181825); color:var(--lumiverse-text, #e0e0e0);
+          ">Cancel</button>
+          <button id="lumi-ctx-proceed" style="
+            padding:8px 16px; border-radius:6px; font-size:13px; font-weight:500; cursor:pointer;
+            border:1px solid var(--lumiverse-warning, #f59e0b);
+            background:var(--lumiverse-warning, #f59e0b); color:#000;
+          ">Proceed Anyway</button>
+        </div>
+      </div>
+    `;
+
+    const cleanup = (result) => {
+      overlay.remove();
+      resolve(result);
+    };
+
+    overlay.querySelector('#lumi-ctx-cancel').addEventListener('click', () => cleanup(false));
+    overlay.querySelector('#lumi-ctx-proceed').addEventListener('click', () => cleanup(true));
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) cleanup(false); });
+
+    document.body.appendChild(overlay);
+  });
+}
+
 // --- GENERATION INTERCEPTOR ---
 // CRITICAL: Must be exposed on globalThis for ST to find it via manifest.json
 globalThis.lumiverseHelperGenInterceptor = async function (chat, contextSize, abort, type) {
@@ -285,9 +404,47 @@ globalThis.lumiverseHelperGenInterceptor = async function (chat, contextSize, ab
     console.log(`[${MODULE_NAME}] Recursive interceptor call detected — preserving tool results`);
   }
 
+  // === CONTEXT OVERFLOW CHECK (before council tools) ===
+  // On first call for user-initiated generations, estimate token usage from the
+  // chat array. If chatTokens + maxResponseTokens >= maxContext, warn the user.
+  const isUserGeneration = type === 'normal' || type === 'swipe' || type === 'regenerate' || !type;
+  if (!isRecursiveCall && isUserGeneration) {
+    const tokenCounter = getTokenCountAsync();
+    if (tokenCounter) {
+      try {
+        const ctx = getContext();
+        // Priority: Loom Builder contextSize override > ST API-specific context > fallback
+        const loomCtxPreset = resolveActivePreset();
+        const loomCtxSize = loomCtxPreset?.samplerOverrides?.enabled
+          ? loomCtxPreset.samplerOverrides.contextSize : null;
+        const maxContext = loomCtxSize
+          || (ctx?.mainApi === 'openai'
+            ? (ctx?.chatCompletionSettings?.openai_max_context || ctx?.maxContext || 0)
+            : (ctx?.maxContext || 0));
+        const maxTokens = ctx?.chatCompletionSettings?.openai_max_tokens || 0;
+
+        if (maxContext > 0) {
+          const chatText = chat.map(m => (m.content || m.mes || '')).join('\n');
+          const chatTokens = await tokenCounter(chatText);
+
+          if (chatTokens + maxTokens >= maxContext) {
+            console.log(`[${MODULE_NAME}] Context overflow detected: ${chatTokens} chat tokens + ${maxTokens} max response >= ${maxContext} max context`);
+            const proceed = await showContextOverflowWarning(chatTokens, maxContext, maxTokens);
+            if (!proceed) {
+              console.log(`[${MODULE_NAME}] User cancelled generation due to context overflow`);
+              return { chat: [], contextSize: 0, abort: true };
+            }
+          }
+        }
+      } catch (err) {
+        console.warn(`[${MODULE_NAME}] Context overflow check failed (non-blocking):`, err);
+      }
+    }
+  }
+
   // Execute council tools if enabled (only on first call, not recursive passes)
   // Run for normal sends, swipes, and regenerations (but not continue/impersonate/quiet)
-  const shouldRunTools = type === 'normal' || type === 'swipe' || type === 'regenerate' || !type;
+  const shouldRunTools = isUserGeneration;
   console.log(`[${MODULE_NAME}] Council tools check: type="${type}", isRecursive=${isRecursiveCall}, shouldRunTools=${shouldRunTools}, enabled=${areCouncilToolsEnabled()}`);
   
   if (!isRecursiveCall && shouldRunTools && areCouncilToolsEnabled()) {
@@ -295,7 +452,9 @@ globalThis.lumiverseHelperGenInterceptor = async function (chat, contextSize, ab
 
     if (toolMode === 'sidecar') {
       // Sidecar mode: execute tools via direct fetch with dedicated LLM before generation
-      // CRITICAL: This must complete before returning to ST to stall the generation
+      // CRITICAL: This must complete before returning to ST to stall the generation.
+      // If the user stops generation, abortToolExecution() cancels all in-flight fetches
+      // and this await resolves promptly via AbortError.
       try {
         console.log(`[${MODULE_NAME}] Council tools (sidecar mode) executing - STALLING generation...`);
         const startTime = Date.now();
@@ -303,8 +462,12 @@ globalThis.lumiverseHelperGenInterceptor = async function (chat, contextSize, ab
         const duration = Date.now() - startTime;
         console.log(`[${MODULE_NAME}] Council tools (sidecar) execution COMPLETE in ${duration}ms - ${results.length} results obtained, resuming generation`);
       } catch (error) {
-        console.error(`[${MODULE_NAME}] Council tools (sidecar) execution failed:`, error);
-        // Continue with generation even if tools fail
+        if (error?.name === 'AbortError') {
+          console.log(`[${MODULE_NAME}] Council tools (sidecar) aborted by user — generation will not proceed`);
+        } else {
+          console.error(`[${MODULE_NAME}] Council tools (sidecar) execution failed:`, error);
+        }
+        // Continue — ST's stop mechanism handles the rest
       }
     } else if (toolMode === 'inline') {
       // Inline mode: tools are registered with ST's ToolManager and will be
@@ -312,6 +475,33 @@ globalThis.lumiverseHelperGenInterceptor = async function (chat, contextSize, ab
       // Tool action callbacks accumulate results into latestToolResults.
       console.log(`[${MODULE_NAME}] Council tools (inline mode) — tools registered with ST ToolManager, LLM will invoke during generation`);
     }
+  }
+
+  // === LOOM PRESET BUILDER: Store coreChat reference ===
+  // The actual prompt assembly happens in CHAT_COMPLETION_SETTINGS_READY handler,
+  // which fires later with the full generate_data.messages array.
+  // Here we just store the processed coreChat so it can be used at assembly time.
+  const loomPreset = resolveActivePreset();
+  if (loomPreset) {
+    // Store a snapshot of the chat array BEFORE we apply filters below.
+    // The CHAT_COMPLETION_SETTINGS_READY handler will use this as the chat history.
+    const chatSnapshot = chat.map(m => ({ ...m }));
+    setStoredCoreChat(chatSnapshot);
+
+    // Pre-resolve media URLs for inline media support.
+    // Images are stored as server paths on chat[i].extra.media; this fetches
+    // them and converts to data: URLs so the synchronous assembler can include them.
+    if (loomPreset.completionSettings?.sendInlineMedia !== false) {
+      try {
+        await preResolveMedia(chatSnapshot);
+      } catch (e) {
+        console.warn(`[${MODULE_NAME}] Loom Builder: Media pre-resolution failed (non-blocking):`, e);
+      }
+    }
+
+    console.log(`[${MODULE_NAME}] Loom Builder: Preset "${loomPreset.name}" active — stored ${chat.length} chat messages for assembly`);
+  } else {
+    setStoredCoreChat(null);
   }
 
   const settings = getSettings();
@@ -640,6 +830,7 @@ jQuery(async () => {
       markGenerationCycleEnd();
       captureLoomSummary();
       checkAutoSummarization();
+      updateContextMeterTokens();
 
       // Track the AI message index for swipe/regenerate detection
       // This helps getOOCTriggerText() calculate consistent triggers across swipes
@@ -715,10 +906,32 @@ jQuery(async () => {
       setLastAIMessageIndex(-1);
       captureLoomSummary();
       scheduleOOCProcessingAfterRender();
+      updateContextMeterTokens();
       requestAnimationFrame(() => {
         restoreSummaryMarkers();
         updateLoomSummaryButtonState();
       });
+
+      // Resolve Loom preset binding for the new chat/character
+      try {
+        const resolvedPresetId = resolveBinding();
+        const store = window.LumiverseUI?.getStore?.();
+        const currentId = store?.getState()?.loomBuilder?.activePresetId;
+        if (resolvedPresetId !== currentId) {
+          setActivePreset(resolvedPresetId);
+          if (store) {
+            const lb = store.getState().loomBuilder || {};
+            store.setState({ loomBuilder: { ...lb, activePresetId: resolvedPresetId } });
+          }
+          console.log(`[${MODULE_NAME}] Loom Builder: Binding resolved to preset ${resolvedPresetId || '(none)'}`);
+        }
+
+        // Sync ST OAI preset based on Loom preset transition
+        const loomSyncPreset = resolvedPresetId ? resolveActivePreset() : null;
+        handleLoomPresetTransition(resolvedPresetId, loomSyncPreset);
+      } catch (err) {
+        // Binding resolution is best-effort
+      }
     });
 
     eventSource.on(event_types.GENERATION_STARTED, () => {
@@ -731,6 +944,8 @@ jQuery(async () => {
       // setIsGenerating(false) triggers setStreamingState(false) which auto-flushes pending updates
       // No need for explicit flushPendingUpdates() call - avoid double flush
       setIsGenerating(false);
+      // Abort any in-flight council tool requests — they're no longer needed
+      abortToolExecution();
       // Reset generation cycle flag so next generation starts fresh
       markGenerationCycleEnd();
     });
@@ -740,6 +955,8 @@ jQuery(async () => {
       // setIsGenerating(false) triggers setStreamingState(false) which auto-flushes pending updates
       // No need for explicit flushPendingUpdates() call - avoid double flush
       setIsGenerating(false);
+      // Abort any in-flight council tool requests — user wants to stop everything
+      abortToolExecution();
       // Reset generation cycle flag so next generation starts fresh
       markGenerationCycleEnd();
     });
@@ -750,6 +967,144 @@ jQuery(async () => {
         captureWorldInfoEntries(entries);
       });
       console.log(`[${MODULE_NAME}] Subscribed to WORLD_INFO_ACTIVATED for council tools enrichment`);
+    }
+
+    // === MODEL PROFILE SWITCHING ===
+    // When the user changes API or model, save the current profile and load the new one.
+    function handleModelChange() {
+      const newKey = getProfileKey();
+      const store = window.LumiverseUI?.getStore?.();
+      const currentPresetId = store?.getState()?.loomBuilder?.activePresetId;
+      if (!currentPresetId) return;
+
+      let preset = resolveActivePreset();
+      if (!preset) return;
+
+      const oldKey = preset.lastProfileKey;
+      if (oldKey === newKey) return; // Same model, no switch needed
+
+      console.log(`[${MODULE_NAME}] Model profile switch: ${oldKey || '(none)'} → ${newKey}`);
+
+      // 1. Save current settings to the old profile
+      let updated = saveCurrentModelProfile(preset, oldKey || newKey);
+
+      // 2. Load settings from the new profile (if exists)
+      updated = loadModelProfile(updated, newKey);
+
+      // 3. Persist the updated preset
+      savePreset(updated);
+
+      // 4. Update React store so UI reflects new samplers
+      if (store) {
+        store.setState(prev => ({
+          loomBuilder: { ...prev.loomBuilder, _profileSwitchTs: Date.now() },
+        }));
+      }
+
+      // 5. Re-sync context size after model profile switch
+      if (isLoomControlActive()) {
+        const freshPreset = resolveActivePreset();
+        if (freshPreset) syncContextSize(freshPreset);
+      }
+    }
+
+    // Listen for API/model change events (defensive — only subscribe if event exists)
+    if (event_types.MAIN_API_CHANGED) {
+      eventSource.on(event_types.MAIN_API_CHANGED, () => {
+        console.log(`[${MODULE_NAME}] MAIN_API_CHANGED event`);
+        handleModelChange();
+      });
+      console.log(`[${MODULE_NAME}] Subscribed to MAIN_API_CHANGED for model profiles`);
+    }
+    if (event_types.CONNECTION_PROFILE_LOADED) {
+      eventSource.on(event_types.CONNECTION_PROFILE_LOADED, () => {
+        console.log(`[${MODULE_NAME}] CONNECTION_PROFILE_LOADED event`);
+        handleModelChange();
+      });
+      console.log(`[${MODULE_NAME}] Subscribed to CONNECTION_PROFILE_LOADED for model profiles`);
+    }
+
+    // === LOOM PRESET BUILDER: Full prompt assembly ===
+    // Hook into CHAT_COMPLETION_SETTINGS_READY to replace the fully assembled
+    // messages array when a Loom preset is active. This fires right before
+    // the API call with the complete generate_data object.
+    if (event_types.CHAT_COMPLETION_SETTINGS_READY) {
+      eventSource.on(event_types.CHAT_COMPLETION_SETTINGS_READY, (generateData) => {
+        let activePreset = resolveActivePreset();
+        if (!activePreset) return;
+
+        // Fallback model profile detection: catch model changes that
+        // events may have missed (e.g., if events aren't available)
+        const currentKey = getProfileKey();
+        if (activePreset.lastProfileKey && activePreset.lastProfileKey !== currentKey) {
+          handleModelChange();
+          activePreset = resolveActivePreset();
+          if (!activePreset) return;
+        }
+
+        try {
+          // 1. Assemble messages from preset blocks
+          console.log(`[${MODULE_NAME}] Loom Builder: Assembling messages from preset "${activePreset.name}" (${activePreset.blocks?.length} blocks)`);
+          const assembled = assembleMessages(activePreset, generateData);
+          if (assembled && assembled.length > 0) {
+            generateData.messages = assembled;
+            console.log(`[${MODULE_NAME}] Loom Builder: Replaced generate_data.messages with ${assembled.length} assembled messages`);
+          }
+
+          // 2. Apply sampler overrides (temperature, top_p, max_tokens, etc.)
+          const samplerApplied = applySamplerOverrides(activePreset, generateData);
+          if (samplerApplied.length > 0) {
+            console.log(`[${MODULE_NAME}] Loom Builder: Applied sampler overrides: ${samplerApplied.join(', ')}`);
+          }
+
+          // 3. Apply custom body JSON (raw_body, extra_body, thinking, etc.)
+          const bodyApplied = applyCustomBody(activePreset, generateData);
+          if (bodyApplied.length > 0) {
+            console.log(`[${MODULE_NAME}] Loom Builder: Applied custom body keys: ${bodyApplied.join(', ')}`);
+          }
+
+          // 4. Apply completion settings (prefill, names, squash, continue postfix)
+          const completionApplied = applyCompletionSettings(activePreset, generateData);
+          if (completionApplied.length > 0) {
+            console.log(`[${MODULE_NAME}] Loom Builder: Applied completion settings: ${completionApplied.join(', ')}`);
+          }
+
+          // 5. Apply advanced settings (seed, custom stop strings)
+          const advancedApplied = applyAdvancedSettings(activePreset, generateData);
+          if (advancedApplied.length > 0) {
+            console.log(`[${MODULE_NAME}] Loom Builder: Applied advanced settings: ${advancedApplied.join(', ')}`);
+          }
+
+          // 6. Count tokens for the context meter (fire-and-forget, non-blocking)
+          const tokenCounter = getTokenCountAsync();
+          if (tokenCounter && window.LumiverseUI?.getStore) {
+            const ctx = getContext();
+            // generateData.max_context_length already reflects Loom Builder overrides
+            const maxContext = generateData.max_context_length
+              || (ctx?.mainApi === 'openai'
+                ? (ctx?.chatCompletionSettings?.openai_max_context || ctx?.maxContext || 0)
+                : (ctx?.maxContext || 0));
+            const maxTokens = generateData.max_tokens || 0;
+            const msgs = generateData.messages || [];
+
+            const fullText = msgs.map(m => m.content || '').join('\n');
+            tokenCounter(fullText).then(promptTokens => {
+              const store = window.LumiverseUI.getStore();
+              if (store) {
+                store.setState(prev => ({
+                  loomBuilder: {
+                    ...prev.loomBuilder,
+                    tokenUsage: { promptTokens, maxContext, maxTokens, timestamp: Date.now(), isEstimate: false },
+                  },
+                }));
+              }
+            }).catch(() => {});
+          }
+        } catch (err) {
+          console.error(`[${MODULE_NAME}] Loom Builder: Assembly failed, using ST native assembly:`, err);
+        }
+      });
+      console.log(`[${MODULE_NAME}] Subscribed to CHAT_COMPLETION_SETTINGS_READY for Loom Builder assembly`);
     }
   }
 

@@ -199,7 +199,10 @@ async function deleteFile(filename) {
  * }
  */
 
-const INDEX_SCHEMA_VERSION = 4;
+const INDEX_SCHEMA_VERSION = 5;
+
+// Loom preset file prefix
+const LOOM_PRESET_PREFIX = `${FILE_PREFIX}loom_`;
 
 /**
  * Create a default index structure.
@@ -235,6 +238,11 @@ function createDefaultIndex() {
         toggleBindings: { // Prompt toggle state bindings per chat/character
             chats: {},
             characters: {},
+        },
+        loomPresets: { // Lucid Loom Preset Builder
+            registry: {},
+            activePresetId: null,
+            bindings: { characters: {}, chats: {} },
         },
     };
 }
@@ -294,7 +302,21 @@ function migrateIndex(index) {
         migrated = true;
         console.log(`[${MODULE_NAME}] Migrated index to v4 (added toggleBindings)`);
     }
-    
+
+    // v4 -> v5: Add loomPresets section for Lucid Loom Preset Builder
+    if (index.version < 5) {
+        if (!index.loomPresets) {
+            index.loomPresets = {
+                registry: {},
+                activePresetId: null,
+                bindings: { characters: {}, chats: {} },
+            };
+        }
+        index.version = 5;
+        migrated = true;
+        console.log(`[${MODULE_NAME}] Migrated index to v5 (added loomPresets)`);
+    }
+
     return { index, migrated };
 }
 
@@ -642,6 +664,48 @@ export function createToggleStateRegistryEntry(stateName, sourcePreset = null) {
 }
 
 // ============================================================================
+// LOOM PRESET FILE OPERATIONS
+// ============================================================================
+
+/**
+ * Generate the file key for a Loom preset based on its name.
+ * @param {string} presetName - The preset name
+ * @returns {string} File key (e.g., "lumiverse_loom_a1b2c3d4.json")
+ */
+export function getLoomPresetFileKey(presetName) {
+    return `${LOOM_PRESET_PREFIX}${hashString(presetName)}.json`;
+}
+
+/**
+ * Save a Loom preset to file storage.
+ * @param {string} fileKey - The file key
+ * @param {Object} presetData - The preset data
+ * @returns {Promise<void>}
+ */
+export async function saveLoomPreset(fileKey, presetData) {
+    await uploadFile(fileKey, presetData);
+    console.log(`[${MODULE_NAME}] Loom preset saved to ${fileKey}`);
+}
+
+/**
+ * Load a Loom preset from file storage.
+ * @param {string} fileKey - The file key
+ * @returns {Promise<Object|null>} The preset data or null
+ */
+export async function loadLoomPreset(fileKey) {
+    return await loadFile(fileKey);
+}
+
+/**
+ * Delete a Loom preset from file storage.
+ * @param {string} fileKey - The file key
+ * @returns {Promise<boolean>} True if deleted
+ */
+export async function deleteLoomPreset(fileKey) {
+    return await deleteFile(fileKey);
+}
+
+// ============================================================================
 // NUCLEAR RESET - DELETE ALL LUMIVERSE FILES
 // ============================================================================
 
@@ -686,6 +750,25 @@ export async function deleteAllLumiverseFiles() {
         }
     }
     
+    // Delete all loom preset files from the registry
+    if (index?.loomPresets?.registry) {
+        for (const entry of Object.values(index.loomPresets.registry)) {
+            if (entry.fileKey) {
+                try {
+                    const success = await deleteLoomPreset(entry.fileKey);
+                    if (success) {
+                        deleted.push(entry.fileKey);
+                    } else {
+                        failed.push(entry.fileKey);
+                    }
+                } catch (err) {
+                    console.warn(`[${MODULE_NAME}] Failed to delete loom preset file ${entry.fileKey}:`, err);
+                    failed.push(entry.fileKey);
+                }
+            }
+        }
+    }
+
     // Delete all toggle state files from the registry
     if (index?.toggleStateRegistry) {
         for (const stateName of Object.keys(index.toggleStateRegistry)) {

@@ -979,6 +979,57 @@ export function setPostProcessing(strategy) {
     notifyReasoningChange();
 }
 
+// --- Reasoning Snapshot (for Model Profiles) ---
+
+/**
+ * Capture the current reasoning/CoT state from ST globals into a plain object.
+ * Used by the model profile system to save settings when switching models.
+ * @returns {{ reasoning: Object, apiReasoning: { enabled: boolean, effort: string }, startReplyWith: string, postProcessing: string }}
+ */
+export function captureReasoningSnapshot() {
+    return {
+        reasoning: getReasoningSettings() || {},
+        apiReasoning: getAPIReasoningSettings(),
+        startReplyWith: getStartReplyWith(),
+        postProcessing: getPostProcessing(),
+    };
+}
+
+/**
+ * Apply a previously captured reasoning snapshot to ST globals.
+ * Used by the model profile system to restore settings when switching models.
+ * @param {Object} snapshot - Snapshot from captureReasoningSnapshot()
+ */
+export function applyReasoningSnapshot(snapshot) {
+    if (!snapshot) return;
+
+    if (snapshot.reasoning) {
+        configureReasoning({
+            autoParse: snapshot.reasoning.auto_parse,
+            prefix: snapshot.reasoning.prefix,
+            suffix: snapshot.reasoning.suffix,
+            showHidden: snapshot.reasoning.show_hidden,
+            autoExpand: snapshot.reasoning.auto_expand,
+            addToPrompts: snapshot.reasoning.add_to_prompts,
+        });
+    }
+
+    if (snapshot.apiReasoning !== undefined) {
+        setIncludeReasoning(snapshot.apiReasoning.enabled);
+        if (snapshot.apiReasoning.enabled && snapshot.apiReasoning.effort) {
+            setReasoningEffort(snapshot.apiReasoning.effort);
+        }
+    }
+
+    if (snapshot.startReplyWith !== undefined) {
+        setStartReplyWith(snapshot.startReplyWith);
+    }
+
+    if (snapshot.postProcessing !== undefined) {
+        setPostProcessing(snapshot.postProcessing);
+    }
+}
+
 // --- Preset Templates ---
 
 /**

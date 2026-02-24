@@ -704,6 +704,11 @@ function CouncilToolsConfig() {
         saveToExtension();
     }, [actions]);
 
+    const handleProviderChange = useCallback((newProvider) => {
+        actions.switchCouncilToolsProvider(newProvider);
+        saveToExtension();
+    }, [actions]);
+
     const handleModeChange = useCallback((newMode) => {
         actions.setCouncilToolsMode(newMode);
         saveToExtension();
@@ -913,7 +918,7 @@ function CouncilToolsConfig() {
                         <select
                             className="lumiverse-council-llm-select"
                             value={llm.provider || 'anthropic'}
-                            onChange={(e) => updateLLM({ provider: e.target.value })}
+                            onChange={(e) => handleProviderChange(e.target.value)}
                         >
                             {Object.entries(COUNCIL_PROVIDER_CONFIG).map(([key, config]) => (
                                 <option key={key} value={key}>{config.name}</option>

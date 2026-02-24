@@ -17,7 +17,8 @@ import {
     Clock,
     Settings2,
     ArrowUpCircle,
-    Edit2
+    Edit2,
+    Layers
 } from 'lucide-react';
 import { 
     fetchAvailablePresets, 
@@ -238,11 +239,11 @@ export function ChatPresetsPanel() {
                 </button>
                 <button
                     className="lumia-btn lumia-btn-secondary lumia-btn-full"
-                    onClick={() => actions.openModal('presetEditor')}
+                    onClick={() => actions.openModal('loomBuilder')}
                     type="button"
                 >
-                    <Edit2 size={14} strokeWidth={2} />
-                    Preset Editor
+                    <Layers size={14} strokeWidth={2} />
+                    Loom Builder
                 </button>
             </div>
 
