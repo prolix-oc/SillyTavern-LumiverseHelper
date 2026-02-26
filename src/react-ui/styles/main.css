@@ -7372,6 +7372,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     margin-top: 64px;
     width: 48px;
     box-sizing: border-box; /* Ensure width includes border */
+    position: relative; /* Contain ::before glow overlay and absolute-positioned UpdateDot */
 
     /* Vertical layout */
     display: flex;
