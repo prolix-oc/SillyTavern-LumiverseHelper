@@ -49,12 +49,10 @@ export function usePresetEditor() {
             }
 
             const preset = chatPresetService.getCurrentPreset();
-            console.log('[usePresetEditor] Loaded preset:', preset);
             if (preset) {
                 setCurrentPreset(preset);
                 // Ensure every prompt has a unique UI ID for drag and drop
                 const rawPrompts = preset.settings.prompts || [];
-                console.log('[usePresetEditor] Raw prompts length:', rawPrompts.length);
                 
                 const loadedPrompts = rawPrompts.map(p => ({
                     ...p,
@@ -132,7 +130,6 @@ export function usePresetEditor() {
             const result = chatPresetService.applyTogglesToPromptOrder(toggleChanges);
             if (result.matched > 0) {
                 chatPresetService.refreshPromptManagerUI();
-                console.log(`[usePresetEditor] Applied ${result.matched} toggle changes to runtime`);
             }
         }
         

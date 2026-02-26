@@ -138,6 +138,8 @@ const initialState = {
             model: '',
             endpoint: '',
             apiKey: '',
+            proxyEndpoint: '',
+            proxyKey: '',
             temperature: 0.7,
             topP: 1.0,
             maxTokens: 4096,
@@ -180,6 +182,24 @@ const initialState = {
 
     // Toggle binding default state restoration
     disableDefaultStateRestore: true, // When true, skip restoring default toggle states for unbound chats (opt-in feature)
+
+    // Chat Sheld override (glassmorphic chat redesign)
+    enableChatSheld: false,
+    chatSheldDisplayMode: 'minimal', // 'minimal' | 'immersive' | 'bubble'
+    authorNotePanelSide: 'right', // 'left' | 'right' — persisted
+
+    // Chat Sheld runtime state (React-only, not persisted)
+    chatSheld: {
+        messages: [],           // Transformed message objects from chat[]
+        isStreaming: false,     // Whether LLM is currently streaming
+        streamingContent: '',   // Current streaming content for last message
+        activeChat: null,       // Current chat ID
+        totalChatLength: 0,    // Total messages in chat[] (may differ from messages.length during tail-first sync)
+        summaryMarkers: {},     // { [mesId]: 'loading'|'complete'|'error' }
+        batchDeleteMode: false, // Whether batch delete mode is active
+        batchDeleteFromId: null, // mesId from which to truncate (all from here onward)
+        authorNotePanelOpen: false, // Whether the Author's Note side panel is open
+    },
 
     // Lucid Loom Preset Builder
     loomBuilder: {
@@ -1201,6 +1221,10 @@ const actions = {
             snapshot.endpoint = currentLLM.endpoint || '';
             snapshot.apiKey = currentLLM.apiKey || '';
         }
+        if (oldProvider === 'anthropic' || oldProvider === 'google') {
+            snapshot.proxyEndpoint = currentLLM.proxyEndpoint || '';
+            snapshot.proxyKey = currentLLM.proxyKey || '';
+        }
         profiles[oldProvider] = snapshot;
 
         // Restore saved profile for new provider, or clean defaults
@@ -1211,6 +1235,9 @@ const actions = {
             topP: 1.0,
             maxTokens: 4096,
         };
+
+        // Determine proxy fields based on provider type
+        const supportsProxy = newProvider === 'anthropic' || newProvider === 'google';
 
         store.setState({
             councilTools: {
@@ -1224,6 +1251,8 @@ const actions = {
                     maxTokens: restored.maxTokens || 4096,
                     endpoint: newProvider === 'custom' ? (restored.endpoint || '') : '',
                     apiKey: newProvider === 'custom' ? (restored.apiKey || '') : '',
+                    proxyEndpoint: supportsProxy ? (restored.proxyEndpoint || '') : '',
+                    proxyKey: supportsProxy ? (restored.proxyKey || '') : '',
                     providerProfiles: profiles,
                 },
             },
@@ -1584,7 +1613,6 @@ const actions = {
             if (result.success) {
                 const { clearUpdateCache } = await import('../../lib/updateService.js');
                 clearUpdateCache();
-                console.log('[LumiverseHelper] Update cache cleared after successful update');
             }
 
             const currentState = store.getState();
@@ -1669,6 +1697,8 @@ function syncFromExtension(extensionSettings) {
         ui: currentState.ui,
         // Preserve React-only council tool results
         councilToolResults: currentState.councilToolResults,
+        // Preserve Chat Sheld runtime state (messages, streaming, etc.)
+        chatSheld: currentState.chatSheld,
         // Increment chat change counter so components know to reload
         chatChangeCounter: (currentState.chatChangeCounter || 0) + 1,
     });
@@ -1681,8 +1711,8 @@ function syncFromExtension(extensionSettings) {
  * No transformation - just exclude the React-only UI state.
  */
 function exportForExtension() {
-    // Return everything except the React-only UI state
-    const { ui, councilToolResults, ...settingsToExport } = store.getState();
+    // Return everything except React-only runtime state
+    const { ui, councilToolResults, chatSheld, ...settingsToExport } = store.getState();
     // Strip transient tokenUsage from loomBuilder before persisting
     if (settingsToExport.loomBuilder) {
         const { tokenUsage, ...lbRest } = settingsToExport.loomBuilder;
@@ -1737,17 +1767,14 @@ export function LumiverseProvider({ children, initialSettings = null }) {
 
             if (initialSettings) {
                 // Settings provided by reactBridge - already in React format (packs as array)
-                console.log('[LumiverseProvider] Using initialSettings from bridge');
                 syncFromExtension(initialSettings);
             } else if (typeof LumiverseBridge !== 'undefined' && LumiverseBridge.getSettings) {
                 // Fallback: Get settings via the bridge
-                console.log('[LumiverseProvider] Fetching settings via LumiverseBridge');
                 const settings = LumiverseBridge.getSettings();
                 if (settings) {
                     syncFromExtension(settings);
                 }
             } else {
-                console.warn('[LumiverseProvider] No settings source available');
             }
         }
     }, [initialSettings]);
@@ -2007,128 +2034,6 @@ export function useUpdates() {
 // Export the store object for external access
 export { useLumiverseStore, saveToExtension, saveToExtensionImmediate };
 
-/**
- * DEBUG FUNCTION: Logs all pack data for debugging purposes.
- * Call this from the browser console via: window.debugLumiverseData()
- *
- * This will output all items in a format you can copy/paste for analysis.
- */
-function debugLumiverseData() {
-    const state = store.getState();
-
-    console.log('='.repeat(80));
-    console.log('LUMIVERSE DEBUG DATA DUMP');
-    console.log('='.repeat(80));
-
-    // 1. Show raw packs from store (should be OBJECT, not array)
-    console.log('\n--- STORE STATE: packs ---');
-    console.log('Type:', typeof state.packs, Array.isArray(state.packs) ? '(Array - WRONG!)' : '(Object - correct)');
-    console.log('Pack names:', state.packs ? Object.keys(state.packs) : 'null');
-    console.log('Packs:', JSON.stringify(state.packs, null, 2));
-
-    // 2. Show current selections (format: { packName, itemName })
-    console.log('\n--- CURRENT SELECTIONS ---');
-    console.log('selectedDefinition:', JSON.stringify(state.selectedDefinition, null, 2));
-    console.log('selectedBehaviors:', JSON.stringify(state.selectedBehaviors, null, 2));
-    console.log('selectedPersonalities:', JSON.stringify(state.selectedPersonalities, null, 2));
-    console.log('dominantBehavior:', JSON.stringify(state.dominantBehavior, null, 2));
-    console.log('dominantPersonality:', JSON.stringify(state.dominantPersonality, null, 2));
-
-    // 3. Show Loom selections
-    console.log('\n--- LOOM SELECTIONS ---');
-    console.log('selectedLoomStyle:', JSON.stringify(state.selectedLoomStyle, null, 2));
-    console.log('selectedLoomUtils:', JSON.stringify(state.selectedLoomUtils, null, 2));
-    console.log('selectedLoomRetrofits:', JSON.stringify(state.selectedLoomRetrofits, null, 2));
-
-    // 4. Try to get settings from the bridge
-    console.log('\n--- SETTINGS FROM LUMIVERSE BRIDGE ---');
-    try {
-        if (typeof LumiverseBridge !== 'undefined' && LumiverseBridge.getSettings) {
-            const bridgeSettings = LumiverseBridge.getSettings();
-            if (bridgeSettings) {
-                console.log('Bridge packs type:', typeof bridgeSettings.packs, Array.isArray(bridgeSettings.packs) ? '(Array)' : '(Object)');
-                console.log('Bridge pack names:', bridgeSettings.packs ? Object.keys(bridgeSettings.packs) : 'null');
-                console.log('Full bridge settings:', JSON.stringify(bridgeSettings, null, 2));
-            } else {
-                console.log('LumiverseBridge.getSettings() returned null');
-            }
-        } else {
-            console.log('LumiverseBridge not available');
-        }
-    } catch (e) {
-        console.log('Error reading bridge settings:', e.message);
-    }
-
-    // 5. Analyze pack structure (packs is an object, use Object.entries)
-    console.log('\n--- PACK STRUCTURE ANALYSIS ---');
-    const packsObj = state.packs || {};
-    const packEntries = Object.entries(packsObj);
-    console.log('Total packs:', packEntries.length);
-
-    packEntries.forEach(([packName, pack]) => {
-        console.log(`\nPack "${packName}":`);
-        console.log('  - Pack keys:', Object.keys(pack));
-        const isNewFormat = !!(pack.lumiaItems || pack.loomItems);
-        console.log('  - Format:', isNewFormat ? 'v2 (lumiaItems/loomItems)' : 'v1 (mixed items[])');
-
-        if (isNewFormat) {
-            // New format: separate lumiaItems and loomItems arrays
-            console.log('  - lumiaItems count:', pack.lumiaItems?.length || 0);
-            console.log('  - loomItems count:', pack.loomItems?.length || 0);
-
-            if (pack.lumiaItems?.length > 0) {
-                console.log('  - Lumia items:');
-                pack.lumiaItems.forEach((item, idx) => {
-                    const name = item.lumiaName || 'NONE';
-                    const hasDef = item.lumiaDefinition ? 'YES' : 'NO';
-                    const hasBehavior = item.lumiaBehavior ? 'YES' : 'NO';
-                    const hasPersonality = item.lumiaPersonality ? 'YES' : 'NO';
-                    const gender = item.genderIdentity ?? 'NONE';
-                    console.log(`    [${idx}] lumiaName="${name}", hasDef=${hasDef}, hasBehavior=${hasBehavior}, hasPersonality=${hasPersonality}, gender=${gender}`);
-                });
-            }
-
-            if (pack.loomItems?.length > 0) {
-                console.log('  - Loom items:');
-                pack.loomItems.forEach((item, idx) => {
-                    console.log(`    [${idx}] loomName="${item.loomName}", loomCategory="${item.loomCategory}"`);
-                });
-            }
-        } else {
-            // Legacy format: mixed items array
-            console.log('  - items count:', pack.items?.length || 0);
-
-            if (pack.items && pack.items.length > 0) {
-                console.log('  - First item keys:', Object.keys(pack.items[0]));
-                console.log('  - Items with lumiaDefName:', pack.items.filter(i => i.lumiaDefName).length);
-                console.log('  - Items with loomCategory:', pack.items.filter(i => i.loomCategory).length);
-
-                // Show all items
-                console.log('  - All items:');
-                pack.items.forEach((item, itemIndex) => {
-                    const lumiaName = item.lumiaDefName || 'NONE';
-                    const loomCat = item.loomCategory || 'NONE';
-                    const hasDef = item.lumiaDef ? 'YES' : 'NO';
-                    const hasBehavior = item.lumia_behavior ? 'YES' : 'NO';
-                    const hasPersonality = item.lumia_personality ? 'YES' : 'NO';
-                    console.log(`    [${itemIndex}] lumiaDefName="${lumiaName}", loomCategory="${loomCat}", hasDef=${hasDef}, hasBehavior=${hasBehavior}, hasPersonality=${hasPersonality}`);
-                });
-            }
-        }
-    });
-
-    console.log('\n' + '='.repeat(80));
-    console.log('END DEBUG DUMP - Copy everything above for analysis');
-    console.log('='.repeat(80));
-
-    // Return a copyable JSON object (full state minus React-only ui)
-    const { ui, ...settingsState } = state;
-    return {
-        storeState: settingsState
-    };
-}
-
 // Expose to window for console access
 if (typeof window !== 'undefined') {
-    window.debugLumiverseData = debugLumiverseData;
 }

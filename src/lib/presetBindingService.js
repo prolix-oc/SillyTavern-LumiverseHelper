@@ -70,7 +70,6 @@ function savePresetBindings(bindings) {
  */
 export function setCharacterBinding(avatarName, presetName) {
     if (!avatarName) {
-        console.warn(`[${MODULE_NAME}] Cannot set binding: no avatar name provided`);
         return;
     }
 
@@ -78,10 +77,8 @@ export function setCharacterBinding(avatarName, presetName) {
     
     if (presetName) {
         bindings.characters[avatarName] = presetName;
-        console.log(`[${MODULE_NAME}] Bound character "${avatarName}" to preset "${presetName}"`);
     } else {
         delete bindings.characters[avatarName];
-        console.log(`[${MODULE_NAME}] Removed binding for character "${avatarName}"`);
     }
     
     savePresetBindings(bindings);
@@ -94,7 +91,6 @@ export function setCharacterBinding(avatarName, presetName) {
  */
 export function setChatBinding(chatId, presetName) {
     if (!chatId) {
-        console.warn(`[${MODULE_NAME}] Cannot set binding: no chat ID provided`);
         return;
     }
 
@@ -102,10 +98,8 @@ export function setChatBinding(chatId, presetName) {
     
     if (presetName) {
         bindings.chats[chatId] = presetName;
-        console.log(`[${MODULE_NAME}] Bound chat "${chatId}" to preset "${presetName}"`);
     } else {
         delete bindings.chats[chatId];
-        console.log(`[${MODULE_NAME}] Removed binding for chat "${chatId}"`);
     }
     
     savePresetBindings(bindings);
@@ -159,7 +153,6 @@ export function removeBindingsForPreset(presetName) {
 
     if (changed) {
         savePresetBindings(bindings);
-        console.log(`[${MODULE_NAME}] Removed all bindings for deleted preset "${presetName}"`);
     }
 }
 
@@ -289,7 +282,6 @@ export function captureDefaultToggleState() {
     saveSettings();
 
     isCurrentlyOnDefaults = true;
-    console.log(`[${MODULE_NAME}] Captured default toggle state with ${Object.keys(toggles).length} toggles`);
     return true;
 }
 
@@ -352,7 +344,6 @@ function restoreDefaultToggleState() {
     const capturedDefaultToggles = settings.capturedDefaultToggles;
 
     if (!capturedDefaultToggles) {
-        console.warn(`[${MODULE_NAME}] No default toggle state captured - cannot restore`);
         return { applied: false, matched: 0 };
     }
 
@@ -371,7 +362,6 @@ function restoreDefaultToggleState() {
 
     const orderEntry = oaiSettings.prompt_order.find(entry => entry.character_id === activeCharId);
     if (!orderEntry?.order) {
-        console.warn(`[${MODULE_NAME}] Cannot restore defaults - no prompt_order entry for character ${activeCharId}`);
         return { applied: false, matched: 0 };
     }
 
@@ -392,7 +382,6 @@ function restoreDefaultToggleState() {
         }
         
         isCurrentlyOnDefaults = true;
-        console.log(`[${MODULE_NAME}] Restored ${matched} toggles to default state`);
     }
 
     return { applied: matched > 0, matched };
@@ -418,7 +407,6 @@ function restoreDefaultToggleState() {
  */
 export async function applyBindingForCurrentContext() {
     if (isSwitching) {
-        console.log(`[${MODULE_NAME}] Already switching, skipping...`);
         return false;
     }
 
@@ -432,24 +420,20 @@ export async function applyBindingForCurrentContext() {
         // Check if default state restoration is disabled
         const settings = getSettings();
         if (settings.disableDefaultStateRestore) {
-            console.log(`[${MODULE_NAME}] No bindings for current context - default state restoration is disabled, skipping`);
             return false;
         }
         
         // If we don't have captured defaults, nothing to restore
         if (!hasDefaultToggleState()) {
-            console.log(`[${MODULE_NAME}] No bindings for current context and no defaults captured - leaving preset state untouched`);
             return false;
         }
         
         // If already on defaults, skip redundant reapplication
         if (isCurrentlyOnDefaults && areCurrentTogglesMatchingDefaults()) {
-            console.log(`[${MODULE_NAME}] No bindings for current context - already on defaults, skipping`);
             return false;
         }
         
         // Restore defaults
-        console.log(`[${MODULE_NAME}] No bindings for current context - restoring default toggle state`);
         const result = restoreDefaultToggleState();
         
         if (result.applied && typeof toastr !== 'undefined') {
@@ -469,12 +453,10 @@ export async function applyBindingForCurrentContext() {
     
     // We have at least one type of binding - reset to defaults first for clean slate
     // This only happens when we KNOW we're going to apply bindings
-    console.log(`[${MODULE_NAME}] Bindings detected (preset: ${bindingCheck.hasPresetBinding}, toggle: ${bindingCheck.hasToggleBinding}) - resetting to defaults`);
     chatPresetService.resetPromptsToDefault();
     
     // No preset binding but we have toggle binding
     if (!binding.presetName) {
-        console.log(`[${MODULE_NAME}] No preset binding, but toggle binding exists - applying toggles only`);
         lastAppliedBinding = null;
         await applyToggleStatesForCurrentContext();
         return false;
@@ -483,7 +465,6 @@ export async function applyBindingForCurrentContext() {
     // Already applied this binding
     const bindingKey = `${binding.bindingType}:${binding.bindingId}:${binding.presetName}`;
     if (lastAppliedBinding === bindingKey) {
-        console.log(`[${MODULE_NAME}] Preset binding already applied, checking toggle states...`);
         // Still apply toggle states even if preset is same (they were reset above)
         await applyToggleStatesForCurrentContext();
         return false;
@@ -492,7 +473,6 @@ export async function applyBindingForCurrentContext() {
     // Verify preset still exists
     const availablePresets = chatPresetService.getAvailablePresets();
     if (!availablePresets.includes(binding.presetName)) {
-        console.warn(`[${MODULE_NAME}] Bound preset "${binding.presetName}" no longer exists`);
         // Optionally remove the stale binding
         if (binding.bindingType === 'chat') {
             setChatBinding(binding.bindingId, null);
@@ -505,12 +485,10 @@ export async function applyBindingForCurrentContext() {
     // Apply the preset
     isSwitching = true;
     try {
-        console.log(`[${MODULE_NAME}] Applying ${binding.bindingType} binding: "${binding.presetName}" for ${binding.bindingId}`);
         const success = await chatPresetService.selectPreset(binding.presetName);
         
         if (success) {
             lastAppliedBinding = bindingKey;
-            console.log(`[${MODULE_NAME}] Successfully switched to preset "${binding.presetName}"`);
             
             // Show toast notification
             if (typeof toastr !== 'undefined') {
@@ -555,7 +533,6 @@ export async function applyToggleStatesForCurrentContext() {
     if (chatId) {
         const chatToggleState = getChatToggleBinding(chatId);
         if (chatToggleState) {
-            console.log(`[${MODULE_NAME}] Found chat toggle binding for "${chatId}", applying...`);
             const result = await applyToggleStateToCurrentPreset(chatToggleState);
             if (result.applied) {
                 if (typeof toastr !== 'undefined') {
@@ -573,7 +550,6 @@ export async function applyToggleStatesForCurrentContext() {
     if (avatar) {
         const charToggleState = getCharacterToggleBinding(avatar);
         if (charToggleState) {
-            console.log(`[${MODULE_NAME}] Found character toggle binding for "${avatar}", applying...`);
             const result = await applyToggleStateToCurrentPreset(charToggleState);
             if (result.applied) {
                 if (typeof toastr !== 'undefined') {
@@ -587,7 +563,6 @@ export async function applyToggleStatesForCurrentContext() {
         }
     }
 
-    console.log(`[${MODULE_NAME}] No toggle bindings to apply`);
     return { applied: false, source: null, matched: 0 };
 }
 
@@ -608,12 +583,10 @@ export async function applyToggleStatesForCurrentContext() {
  */
 async function applyToggleStateToCurrentPreset(toggleState) {
     if (!toggleState?.toggles) {
-        console.log(`[${MODULE_NAME}] applyToggleStateToCurrentPreset: No toggles in state`);
         return { applied: false, matched: 0 };
     }
 
     const toggleCount = Object.keys(toggleState.toggles).length;
-    console.log(`[${MODULE_NAME}] applyToggleStateToCurrentPreset: Applying ${toggleCount} toggles`);
 
     // Access oai_settings via the correct path: context.chatCompletionSettings
     const ctx = getContext();
@@ -640,12 +613,10 @@ async function applyToggleStateToCurrentPreset(toggleState) {
     const isGlobalStrategy = !oaiSettings.prompt_manager_settings?.showCharacterPromptOrder;
     const activeCharId = isGlobalStrategy ? OPENAI_DUMMY_ID : ctx?.characterId;
     
-    console.log(`[${MODULE_NAME}] Strategy: ${isGlobalStrategy ? 'Global' : 'Character'}, activeCharId: ${activeCharId}`);
 
     // Find the prompt_order entry for this character
     const orderEntry = promptOrder.find(entry => entry.character_id === activeCharId);
     if (!orderEntry || !Array.isArray(orderEntry.order)) {
-        console.warn(`[${MODULE_NAME}] No prompt_order entry for character ${activeCharId}`);
         return { applied: false, matched: 0 };
     }
 
@@ -664,7 +635,6 @@ async function applyToggleStateToCurrentPreset(toggleState) {
     }
 
     if (matched > 0) {
-        console.log(`[${MODULE_NAME}] Applied ${matched} toggles, ${unmatched} unmatched.`);
         
         // IMPORTANT: Do NOT trigger #update_oai_preset - that saves the ENTIRE preset to file,
         // which would overwrite the preset's reasoning/CoT settings with current values.
@@ -676,11 +646,9 @@ async function applyToggleStateToCurrentPreset(toggleState) {
             ctx.saveSettingsDebounced();
         }
         
-        console.log(`[${MODULE_NAME}] Toggle state applied successfully (runtime only, preset file unchanged)`);
         return { applied: true, matched };
     }
 
-    console.log(`[${MODULE_NAME}] No prompts matched toggle state (${unmatched} unmatched)`);
     return { applied: false, matched: 0 };
 }
 
@@ -769,7 +737,6 @@ export function initPresetBindingService() {
     }
 
     eventSource.on(event_types.CHAT_CHANGED, () => {
-        console.log(`[${MODULE_NAME}] CHAT_CHANGED detected, checking bindings...`);
         // Delay to ensure ST context is fully updated before reading chatId/characterId
         // 500ms provides reliable context stabilization after chat switch
         setTimeout(() => {
@@ -777,7 +744,6 @@ export function initPresetBindingService() {
         }, 500);
     });
 
-    console.log(`[${MODULE_NAME}] Preset binding service initialized`);
     return true;
 }
 
@@ -787,7 +753,6 @@ export function initPresetBindingService() {
 export function clearAllBindings() {
     savePresetBindings({ characters: {}, chats: {} });
     lastAppliedBinding = null;
-    console.log(`[${MODULE_NAME}] All bindings cleared`);
 }
 
 /**

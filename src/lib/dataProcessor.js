@@ -144,12 +144,6 @@ export function processWorldBook(data) {
 
     if (type === "definition") {
       const meta = extractMetadata(entry.content);
-      console.log(`[Lumia Debug] Processing definition for "${name}":`, {
-        comment: comment,
-        type: type,
-        extractedImage: meta.image,
-        contentPreview: entry.content.substring(0, 100),
-      });
       lumia.lumiaDef = meta.content;
       if (meta.image) lumia.lumia_img = meta.image;
       if (meta.author) lumia.defAuthor = meta.author;
@@ -179,14 +173,6 @@ export function processWorldBook(data) {
 
   // Combine Lumia items and Loom items
   const result = [...Array.from(lumiaMap.values()), ...loomItems];
-  console.log(
-    "[Lumia Debug] Final processed items:",
-    result.map((item) => ({
-      name: item.lumiaDefName || item.loomName,
-      hasImage: !!item.lumia_img,
-      image: item.lumia_img,
-    })),
-  );
   return result;
 }
 
@@ -383,7 +369,6 @@ export async function importPack(data, sourceName, isURL = false) {
     // Use packName from data if available, otherwise fall back to sourceName (filename/URL)
     // This ensures the storage key matches what the UI uses for selections
     const packKey = data.packName || sourceName;
-    console.log(`[${MODULE_NAME}] Importing native format pack: ${packKey} (source: ${sourceName})`);
 
     // Check if pack exists
     const existingPack = getPackByName(packKey);

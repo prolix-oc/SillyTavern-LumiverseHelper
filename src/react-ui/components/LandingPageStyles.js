@@ -72,14 +72,8 @@ export const landingPageStyles = `
 }
 
 @keyframes lumiverse-lp-glow-pulse {
-  0%, 100% {
-    opacity: 0.3;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.5;
-    transform: scale(1.1);
-  }
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.5; }
 }
 
 /* Grid pattern overlay */
@@ -311,14 +305,24 @@ export const landingPageStyles = `
   box-shadow: 0 6px 24px var(--lumiverse-primary-035);
 }
 
-/* Spin animation for refresh */
+/* Spin animation for refresh and loading indicators */
 .lumiverse-lp-spin {
-  animation: lumiverse-lp-spin 1s linear infinite;
+  animation: lumiverse-lp-spin 0.75s linear infinite;
 }
 
 @keyframes lumiverse-lp-spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+/* Border-ring spinner — matches Chat Sheld skeleton spinner */
+.lumiverse-lp-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--lumiverse-fill, rgba(255,255,255,0.06));
+  border-top-color: var(--lumiverse-primary-050, rgba(140, 130, 255, 0.5));
+  border-radius: 50%;
+  animation: lumiverse-lp-spin 0.75s linear infinite;
 }
 
 /* Main content area */
@@ -407,6 +411,7 @@ export const landingPageStyles = `
     0 12px 40px rgba(0, 0, 0, 0.3),
     0 0 0 1px var(--lumiverse-primary-015) inset,
     0 0 60px var(--lumiverse-primary-010);
+  will-change: transform;
 }
 
 /* Glass shimmer effect on hover */
@@ -470,6 +475,18 @@ export const landingPageStyles = `
 
 .lumiverse-lp-card:hover .lumiverse-lp-card-glow {
   opacity: 1;
+}
+
+/* Avatar loading spinner — crossfades with the image */
+.lumiverse-lp-card-avatar-spinner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
 }
 
 /* Avatar image */
@@ -549,6 +566,8 @@ export const landingPageStyles = `
   align-items: center;
   justify-content: center;
   color: var(--lumiverse-primary-050);
+  transition: opacity 0.3s ease;
+  pointer-events: none;
 }
 
 .lumiverse-lp-group-stack-avatars {
@@ -1204,6 +1223,28 @@ export const landingPageStyles = `
   }
 }
 
+/* Scroll performance — suppress expensive compositing during active scroll.
+   backdrop-filter is the #1 cost: each card forces a full-region blur every frame.
+   Also suppresses hover effects to prevent GPU spikes from incidental pointer-over. */
+.lumiverse-lp-scrolling .lumiverse-lp-grid-cards {
+  pointer-events: none;
+}
+
+.lumiverse-lp-scrolling .lumiverse-lp-card {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  will-change: auto;
+}
+
+.lumiverse-lp-scrolling .lumiverse-lp-card-time-badge {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.lumiverse-lp-container.lumiverse-lp-scrolling .lumiverse-lp-bg-glow {
+  animation-play-state: paused;
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .lumiverse-lp-bg-glow {
@@ -1396,5 +1437,22 @@ export const landingPageStyles = `
   .lumiverse-lp-version-info {
     opacity: 1 !important;
   }
+}
+
+/* ── Inside Joke Easter Egg ──────────────────────────────────────────── */
+
+.lumiverse-lp-joke {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0.75;
+  font-size: 14px;
+  font-style: italic;
+  color: var(--lumiverse-text, rgba(255,255,255,0.7));
+  max-width: 80%;
+  text-align: center;
+  pointer-events: none;
+  line-height: 1.4;
 }
 `;

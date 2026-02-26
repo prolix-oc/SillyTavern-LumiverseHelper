@@ -1,7 +1,7 @@
 import React, { useMemo, useSyncExternalStore, useState, useCallback } from 'react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
-import { BarChart2, CheckCircle, XCircle, Users, ChevronDown, ChevronUp, Briefcase, Eye, EyeOff } from 'lucide-react';
+import { BarChart2, CheckCircle, XCircle, Users, ChevronDown, ChevronUp, Briefcase, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 import { useLumiverseStore, usePacks } from '../../store/LumiverseContext';
 
 // Get store for direct access
@@ -9,6 +9,85 @@ const store = useLumiverseStore;
 
 // Stable fallback constants
 const EMPTY_ARRAY = [];
+
+/**
+ * User-friendly error descriptions keyed by HTTP status code.
+ */
+const HTTP_ERROR_MAP = {
+  400: "The request contained an invalid parameter. This usually means a model name, setting, or tool schema was rejected by the provider.",
+  401: "Authentication failed. Please check that your API key is correct and active in the Council Tools LLM settings.",
+  403: "Access denied. Your API key may have been revoked, expired, or your account may be restricted by the provider.",
+  429: "Rate limited by the provider. Too many requests were sent in a short period — please wait a moment and try again.",
+  500: "The provider experienced an internal error. The service may be temporarily unavailable.",
+  501: "The provider does not support this request type. The model or feature you selected may not be available on this endpoint.",
+  502: "The provider is not responding. The upstream service may be down or experiencing connectivity issues.",
+  503: "The provider is not accepting connections. The model you specified may be temporarily unavailable or the service is under maintenance.",
+};
+
+/**
+ * Parse a raw error string from council tool execution into a user-friendly message.
+ * Handles HTTP status codes, JSON parse failures, and generic errors.
+ * @param {string} rawError - The raw error message from the tool execution
+ * @returns {{ statusCode: number|null, friendlyMessage: string, rawDetail: string|null }}
+ */
+function parseToolError(rawError) {
+  if (!rawError) return { statusCode: null, friendlyMessage: "An unknown error occurred.", rawDetail: null };
+
+  // Detect JSON parse failures (truncated or malformed responses)
+  const jsonParsePatterns = [
+    /unexpected end of json/i,
+    /unexpected token/i,
+    /json\.parse/i,
+    /syntaxerror/i,
+    /unterminated string/i,
+    /not valid json/i,
+  ];
+  for (const pattern of jsonParsePatterns) {
+    if (pattern.test(rawError)) {
+      return {
+        statusCode: null,
+        friendlyMessage: "The provider returned a malformed or truncated response that could not be parsed. This typically happens when the model's output was cut off mid-stream. Try again, or reduce the number of tools assigned to this member.",
+        rawDetail: rawError,
+      };
+    }
+  }
+
+  // Extract HTTP status code from common error formats:
+  // "Anthropic API error: 429 - {...}"
+  // "openai API error: 401 - Unauthorized"
+  // "Google AI Studio API error: 500 - ..."
+  const statusMatch = rawError.match(/(?:API error|error):\s*(\d{3})\b/i);
+  if (statusMatch) {
+    const code = parseInt(statusMatch[1], 10);
+    const friendly = HTTP_ERROR_MAP[code];
+    if (friendly) {
+      return { statusCode: code, friendlyMessage: friendly, rawDetail: null };
+    }
+    // Known HTTP error but no specific mapping
+    return {
+      statusCode: code,
+      friendlyMessage: `The provider returned an error (HTTP ${code}).`,
+      rawDetail: rawError,
+    };
+  }
+
+  // Check for network-level failures
+  if (/failed to fetch|networkerror|net::err/i.test(rawError)) {
+    return {
+      statusCode: null,
+      friendlyMessage: "Could not reach the provider. Check your internet connection and verify the API endpoint is correct.",
+      rawDetail: null,
+    };
+  }
+
+  // Check for timeout / abort
+  if (/abort|cancel|timeout/i.test(rawError)) {
+    return { statusCode: null, friendlyMessage: "The request was cancelled or timed out.", rawDetail: null };
+  }
+
+  // Fallback: return the raw message
+  return { statusCode: null, friendlyMessage: rawError, rawDetail: null };
+}
 
 // Stable selector for council tool results
 const selectCouncilToolResults = () => store.getState().councilToolResults || EMPTY_ARRAY;
@@ -115,6 +194,34 @@ function IdentityContext({ identity }) {
 }
 
 /**
+ * Parsed, user-friendly error display for tool failures
+ */
+function ToolError({ error }) {
+    const parsed = useMemo(() => parseToolError(error), [error]);
+
+    return (
+        <div className="lumiverse-feedback-tool-error">
+            <div className="lumiverse-feedback-tool-error-header">
+                <AlertTriangle size={13} />
+                {parsed.statusCode
+                    ? <strong>{parsed.statusCode}</strong>
+                    : <strong>Error</strong>
+                }
+            </div>
+            <div className="lumiverse-feedback-tool-error-message">
+                {parsed.friendlyMessage}
+            </div>
+            {parsed.rawDetail && (
+                <details className="lumiverse-feedback-tool-error-details">
+                    <summary>Raw error detail</summary>
+                    <pre>{parsed.rawDetail}</pre>
+                </details>
+            )}
+        </div>
+    );
+}
+
+/**
  * Individual tool result display
  */
 function ToolResult({ result, isLast }) {
@@ -158,9 +265,7 @@ function ToolResult({ result, isLast }) {
                                 {result.response || '(No response content)'}
                             </div>
                         ) : (
-                            <div className="lumiverse-feedback-tool-error">
-                                {result.error || 'Unknown error'}
-                            </div>
+                            <ToolError error={result.error} />
                         )}
                     </motion.div>
                 )}

@@ -39,7 +39,6 @@ import { getEventSource, getEventTypes, getRequestHeaders, triggerExtensionUpdat
 const myUrl = import.meta.url;
 const pathParts = myUrl.split('/');
 const EXTENSION_FOLDER_NAME = pathParts[pathParts.length - 4] || 'SillyTavern-LumiverseHelper';
-console.log('[ReactBridge] Extension folder detected:', EXTENSION_FOLDER_NAME);
 
 // Track if React UI is loaded
 let reactUILoaded = false;
@@ -87,7 +86,6 @@ export function registerCallback(name, fn) {
   if (name in extensionCallbacks) {
     extensionCallbacks[name] = fn;
   } else {
-    console.warn(`[ReactBridge] Unknown callback: ${name}`);
   }
 }
 
@@ -198,6 +196,9 @@ export async function reactFormatToSettings(reactState, immediate = false) {
         'activePresetName',
         'dismissedUpdateVersion',
         'theme',
+        'enableChatSheld',
+        'chatSheldDisplayMode',
+        'authorNotePanelSide',
       ];
       for (const field of preferenceFields) {
         if (reactState[field] !== undefined) {
@@ -240,7 +241,6 @@ async function syncPackChangesToFileStorage(reactPacks) {
   // Find deleted packs (in current but not in react)
   for (const packName of currentPackNames) {
     if (!reactPackNames.has(packName)) {
-      console.log(`[${MODULE_NAME}] Deleting pack from file storage: ${packName}`);
       try {
         await deletePack(packName);
       } catch (err) {
@@ -259,7 +259,6 @@ async function syncPackChangesToFileStorage(reactPacks) {
     const isModified = currentPack && JSON.stringify(reactPack) !== JSON.stringify(currentPack);
     
     if (isNew || isModified) {
-      console.log(`[${MODULE_NAME}] ${isNew ? 'Saving new' : 'Updating'} pack to file storage: ${packName}`);
       try {
         await savePack(reactPack);
       } catch (err) {
@@ -300,11 +299,8 @@ function setupEventSync() {
  * @returns {Promise<boolean>} Success status
  */
 export async function initializeReactUI(container) {
-  console.log("[ReactBridge] initializeReactUI called, container:", container);
-  console.log("[ReactBridge] window.LumiverseUI exists:", !!window.LumiverseUI);
 
   if (reactUILoaded) {
-    console.warn("[ReactBridge] React UI already initialized");
     return true;
   }
 
@@ -315,12 +311,8 @@ export async function initializeReactUI(container) {
       return false;
     }
 
-    console.log("[ReactBridge] LumiverseUI API:", window.LumiverseUI);
-    console.log("[ReactBridge] mountSettingsPanel exists:", typeof window.LumiverseUI.mountSettingsPanel);
-
     // Provide initial settings to React
     const initialSettings = settingsToReactFormat();
-    console.log("[ReactBridge] Initial settings prepared");
 
     // Apply saved theme before mounting UI to prevent flash of default colors
     if (initialSettings.theme) {
@@ -351,17 +343,13 @@ export async function initializeReactUI(container) {
         if (isSavingFromReact) {
           return;
         }
-        console.log("[ReactBridge] Pack cache changed, syncing to React...");
         notifyReactOfSettingsChange();
       },
     };
-    console.log("[ReactBridge] Bridge API exposed on window.LumiverseBridge");
 
     // Mount the React settings panel
     if (container && window.LumiverseUI.mountSettingsPanel) {
-      console.log("[ReactBridge] Calling mountSettingsPanel...");
       cleanupFn = window.LumiverseUI.mountSettingsPanel("lumiverse-react-root", initialSettings);
-      console.log("[ReactBridge] mountSettingsPanel returned:", cleanupFn);
     } else {
       console.error(
         "[ReactBridge] Cannot mount: container=",
@@ -373,9 +361,7 @@ export async function initializeReactUI(container) {
 
     // Mount the viewport panel (sidebar with profile, browser, analytics)
     if (window.LumiverseUI.mountViewportPanel) {
-      console.log("[ReactBridge] Mounting viewport panel...");
       viewportCleanupFn = window.LumiverseUI.mountViewportPanel(initialSettings);
-      console.log("[ReactBridge] Viewport panel mounted");
     }
 
     // Subscribe to theme changes from the React store for live updates
@@ -398,7 +384,6 @@ export async function initializeReactUI(container) {
     setupEventSync();
 
     reactUILoaded = true;
-    console.log("[ReactBridge] React UI initialized successfully");
     return true;
   } catch (error) {
     console.error("[ReactBridge] Failed to initialize React UI:", error);
@@ -425,7 +410,6 @@ export function destroyReactUI() {
   }
 
   reactUILoaded = false;
-  console.log("[ReactBridge] React UI destroyed");
 }
 
 /**

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useSyncExternalStore, useCallback, useEffect 
 import { createPortal } from 'react-dom';
 import { X, Package, Layers, Wrench, Sparkles, ChevronDown, ChevronUp, Check, Plus } from 'lucide-react';
 import { useLumiverseStore, useLumiverseActions, useLoomSelections, saveToExtension } from '../../store/LumiverseContext';
+import useFixedPositionFix from '../../hooks/useFixedPositionFix';
 
 /* global toastr */
 
@@ -422,6 +423,9 @@ function LoomPackDetailModal() {
         if (!viewingLoomPack) return null;
         return packs[viewingLoomPack] || null;
     }, [viewingLoomPack, packs]);
+
+    // Neutralize SillyTavern's html transform/perspective that breaks position:fixed
+    useFixedPositionFix(!!viewingLoomPack && !!pack);
 
     // Get Loom items grouped by category
     const loomCategories = useMemo(() => {

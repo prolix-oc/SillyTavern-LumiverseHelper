@@ -85,7 +85,6 @@ const pendingUpdates = {
  */
 export async function initPackCache() {
     if (initialized) {
-        console.log(`[${MODULE_NAME}] Pack cache already initialized`);
         return true;
     }
 
@@ -100,23 +99,14 @@ export async function initPackCache() {
         // Load the index
         const { index, isNew, migrated } = await loadIndex();
         cachedIndex = index;
-        console.log(`[${MODULE_NAME}] Index loaded:`, {
-            packCount: Object.keys(cachedIndex.packRegistry).length,
-            hasSelections: !!cachedIndex.selections?.selectedDefinition,
-            presetCount: Object.keys(cachedIndex.presets || {}).length,
-            isNew,
-            migrated,
-        });
 
         // If this is a fresh index or was migrated, save it to create/update the file
         if (isNew || migrated) {
-            console.log(`[${MODULE_NAME}] ${isNew ? 'Creating initial' : 'Saving migrated'} index file...`);
             await saveIndex(cachedIndex);
         }
 
         // Determine which packs to load immediately (those with active selections)
         const activePackIds = getActivePackIds(cachedIndex.selections);
-        console.log(`[${MODULE_NAME}] Active pack IDs:`, activePackIds);
 
         if (activePackIds.length > 0) {
             // Get file keys for active packs
@@ -133,7 +123,22 @@ export async function initPackCache() {
                 packCache.set(packId, pack);
             }
 
-            console.log(`[${MODULE_NAME}] Loaded ${packCache.size} active packs into cache`);
+        }
+
+        // Pre-load all Loom presets into cache so the sync lookup in
+        // CHAT_COMPLETION_SETTINGS_READY works on the very first generation
+        // (before the user ever opens the Loom Builder UI).
+        const loomRegistry = cachedIndex?.loomPresets?.registry || {};
+        const loomEntries = Object.entries(loomRegistry).filter(([_, e]) => e?.fileKey);
+        if (loomEntries.length > 0) {
+            for (const [presetId, entry] of loomEntries) {
+                try {
+                    const data = await loadLoomPresetFile(entry.fileKey);
+                    if (data) loomPresetCache.set(presetId, data);
+                } catch (err) {
+                    console.warn(`[${MODULE_NAME}] Failed to pre-load Loom preset ${presetId}:`, err);
+                }
+            }
         }
 
         initialized = true;
@@ -209,7 +214,6 @@ function getActivePackIds(selections) {
  */
 function applyPendingUpdates() {
     if (pendingUpdates.selections && cachedIndex) {
-        console.log(`[${MODULE_NAME}] Applying pending selection updates`);
         cachedIndex.selections = {
             ...cachedIndex.selections,
             ...pendingUpdates.selections,
@@ -218,7 +222,6 @@ function applyPendingUpdates() {
     }
 
     if (pendingUpdates.preferences && cachedIndex) {
-        console.log(`[${MODULE_NAME}] Applying pending preference updates`);
         cachedIndex.preferences = {
             ...cachedIndex.preferences,
             ...pendingUpdates.preferences,
@@ -248,8 +251,6 @@ async function loadRemainingPacksBackground() {
         return;
     }
 
-    console.log(`[${MODULE_NAME}] Background loading ${remainingIds.length} remaining packs...`);
-
     // Use requestIdleCallback if available, otherwise setTimeout
     const scheduleLoad = (callback) => {
         if (typeof requestIdleCallback !== 'undefined') {
@@ -266,7 +267,6 @@ async function loadRemainingPacksBackground() {
     const loadNextBatch = async () => {
         if (index >= remainingIds.length) {
             allPacksLoaded = true;
-            console.log(`[${MODULE_NAME}] All packs loaded into cache`);
             notifyListeners();
             return;
         }
@@ -444,7 +444,6 @@ export async function removePack(packId) {
         // Compute file key from pack ID (which is the pack name)
         // This handles cases where pack was in cache but not yet in registry
         fileKey = getPackFileKey(packId);
-        console.log(`[${MODULE_NAME}] No registry entry for pack "${packId}", computed fileKey: ${fileKey}`);
     }
 
     // Remove from cache
@@ -452,10 +451,8 @@ export async function removePack(packId) {
 
     // Delete file - always attempt if we have a fileKey
     if (fileKey) {
-        console.log(`[${MODULE_NAME}] Deleting pack file: ${fileKey}`);
         const deleted = await deletePack(fileKey);
         if (deleted) {
-            console.log(`[${MODULE_NAME}] Successfully deleted pack file: ${fileKey}`);
         } else {
             console.warn(`[${MODULE_NAME}] Failed to delete pack file: ${fileKey}`);
         }
@@ -481,7 +478,6 @@ export async function removePack(packId) {
  */
 export function updateSelections(newSelections) {
     if (!cachedIndex) {
-        console.warn(`[${MODULE_NAME}] updateSelections called before cache initialized, queuing update`);
         // Queue the update for when cache is ready
         pendingUpdates.selections = { ...pendingUpdates.selections, ...newSelections };
         return;
@@ -502,7 +498,6 @@ export function updateSelections(newSelections) {
  */
 export function updatePreferences(newPreferences) {
     if (!cachedIndex) {
-        console.warn(`[${MODULE_NAME}] updatePreferences called before cache initialized, queuing update`);
         // Queue the update for when cache is ready
         pendingUpdates.preferences = { ...pendingUpdates.preferences, ...newPreferences };
         return;
@@ -525,7 +520,6 @@ export function updatePreferences(newPreferences) {
  */
 export async function updatePreferencesImmediate(newPreferences) {
     if (!cachedIndex) {
-        console.warn(`[${MODULE_NAME}] updatePreferencesImmediate called before cache initialized, queuing update`);
         pendingUpdates.preferences = { ...pendingUpdates.preferences, ...newPreferences };
         return;
     }
@@ -752,10 +746,8 @@ export async function setChatToggleBinding(chatId, toggleData) {
             savedAt: Date.now(),
             sourcePreset: toggleData.sourcePreset || null,
         };
-        console.log(`[${MODULE_NAME}] Set chat toggle binding for "${chatId}"`);
     } else {
         delete cachedIndex.toggleBindings.chats[chatId];
-        console.log(`[${MODULE_NAME}] Removed chat toggle binding for "${chatId}"`);
     }
     
     // CRITICAL: Use immediate flush instead of debounced save to prevent
@@ -794,10 +786,8 @@ export async function setCharacterToggleBinding(avatar, toggleData) {
             savedAt: Date.now(),
             sourcePreset: toggleData.sourcePreset || null,
         };
-        console.log(`[${MODULE_NAME}] Set character toggle binding for "${avatar}"`);
     } else {
         delete cachedIndex.toggleBindings.characters[avatar];
-        console.log(`[${MODULE_NAME}] Removed character toggle binding for "${avatar}"`);
     }
     
     // CRITICAL: Use immediate flush instead of debounced save to prevent
@@ -964,8 +954,6 @@ export async function migratePacksFromSettings(legacyPacks) {
         return { migrated: 0, failed: 0 };
     }
 
-    console.log(`[${MODULE_NAME}] Migrating ${packEntries.length} packs to file storage...`);
-
     let migrated = 0;
     let failed = 0;
 
@@ -1041,7 +1029,6 @@ export async function migratePacksFromSettings(legacyPacks) {
     // Save updated index
     await saveIndex(cachedIndex);
 
-    console.log(`[${MODULE_NAME}] Migration complete: ${migrated} succeeded, ${failed} failed`);
     return { migrated, failed };
 }
 
@@ -1076,11 +1063,14 @@ export function migrateSelectionsFromSettings(legacySettings) {
         'chimeraMode',
         'councilMode',
         'councilChatStyle',
+        'councilTools',
         'lumiaQuirks',
         'lumiaQuirksEnabled',
         'lumiaOOCInterval',
         'lumiaOOCStyle',
         'activePresetName',
+        'dismissedUpdateVersion',
+        'theme',
     ];
 
     for (const field of preferenceFields) {
@@ -1095,7 +1085,6 @@ export function migrateSelectionsFromSettings(legacySettings) {
             cachedIndex.presets = {};
         }
         Object.assign(cachedIndex.presets, legacySettings.presets);
-        console.log(`[${MODULE_NAME}] Migrated ${Object.keys(legacySettings.presets).length} presets`);
     }
 }
 
@@ -1272,7 +1261,6 @@ export async function removeLoomPreset(presetId) {
  * @returns {Promise<{deleted: string[], failed: string[]}>} Results from file deletion
  */
 export async function clearAllData() {
-    console.log(`[${MODULE_NAME}] NUCLEAR: Clearing all Lumiverse data...`);
     
     // Cancel any pending index save
     if (indexSaveTimer) {
@@ -1296,7 +1284,6 @@ export async function clearAllData() {
     // Notify listeners that cache has been cleared
     notifyListeners();
     
-    console.log(`[${MODULE_NAME}] NUCLEAR: All Lumiverse data cleared`);
     
     return result;
 }
@@ -1310,12 +1297,6 @@ export async function clearAllData() {
  */
 export function debugDumpCache() {
     console.group(`[${MODULE_NAME}] Pack Cache State`);
-    console.log('Initialized:', initialized);
-    console.log('All packs loaded:', allPacksLoaded);
-    console.log('Cached index:', cachedIndex);
-    console.log('Pack cache size:', packCache.size);
-    console.log('Cached pack IDs:', Array.from(packCache.keys()));
-    console.log('Loading packs:', Array.from(loadingPacks));
     console.groupEnd();
 }
 

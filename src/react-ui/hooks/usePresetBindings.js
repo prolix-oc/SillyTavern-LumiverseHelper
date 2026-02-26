@@ -100,7 +100,6 @@ export function usePresetBindings() {
     const bindCurrentCharacter = useCallback((presetName) => {
         const avatar = contextInfo.characterAvatar;
         if (!avatar) {
-            console.warn('[usePresetBindings] No current character to bind');
             return false;
         }
         setCharacterBinding(avatar, presetName);
@@ -112,7 +111,6 @@ export function usePresetBindings() {
     const bindCurrentChat = useCallback((presetName) => {
         const chatId = contextInfo.chatId;
         if (!chatId) {
-            console.warn('[usePresetBindings] No current chat to bind');
             return false;
         }
         setChatBinding(chatId, presetName);
@@ -171,7 +169,6 @@ export function usePresetBindings() {
         
         const chatId = chatPresetService.getCurrentChatId();
         if (!chatId) {
-            console.warn('[usePresetBindings] No current chat to bind toggles');
             return false;
         }
         
@@ -185,7 +182,6 @@ export function usePresetBindings() {
         });
         
         setHasChatToggleBinding(true);
-        console.log(`[usePresetBindings] Saved ${Object.keys(toggles).length} toggle states to chat "${chatId}"`);
         return true;
     }, []);
 
@@ -217,7 +213,6 @@ export function usePresetBindings() {
         
         const avatar = chatPresetService.getCurrentCharacterAvatar();
         if (!avatar) {
-            console.warn('[usePresetBindings] No current character to bind toggles');
             return false;
         }
         
@@ -231,7 +226,6 @@ export function usePresetBindings() {
         });
         
         setHasCharacterToggleBinding(true);
-        console.log(`[usePresetBindings] Saved ${Object.keys(toggles).length} toggle states to character "${avatar}"`);
         return true;
     }, []);
 

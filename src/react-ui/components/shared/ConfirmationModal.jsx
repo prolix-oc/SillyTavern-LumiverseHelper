@@ -2,6 +2,7 @@ import React, { useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { AlertTriangle, AlertCircle, Info, X } from 'lucide-react';
+import useFixedPositionFix from '../../hooks/useFixedPositionFix';
 
 /**
  * Reusable Confirmation Modal Component
@@ -33,6 +34,9 @@ const ConfirmationModal = ({
     cancelText = 'Cancel',
     icon: customIcon,
 }) => {
+    // Neutralize SillyTavern's html transform/perspective that breaks position:fixed
+    useFixedPositionFix(isOpen);
+
     // Handle escape key
     useEffect(() => {
         const handleEscape = (e) => {

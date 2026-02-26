@@ -709,9 +709,7 @@ function SummaryTextEditor() {
             }
 
             // Call the summary generation function
-            console.log('[SummaryEditor] Calling generateSummary callback...');
             const result = await callbacks.generateSummary();
-            console.log('[SummaryEditor] generateSummary returned:', result ? 'success' : 'no result');
 
             if (result) {
                 setSummary(result);

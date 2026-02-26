@@ -78,16 +78,10 @@ export function setStreamingState(isStreaming) {
   // This ensures the first update gets immediate rendering
   if (isStreaming && !wasStreaming) {
     isFirstRenderPending = true;
-    console.log(
-      `[${MODULE_NAME}] RAF: Streaming started, first render will be immediate`,
-    );
   }
 
   if (wasStreaming && !isStreaming) {
     // Streaming ended - flush any pending updates immediately
-    console.log(
-      `[${MODULE_NAME}] RAF: Streaming ended, flushing pending updates`,
-    );
     flushPendingUpdates();
   }
 }
@@ -210,7 +204,6 @@ async function flushUpdates() {
 
   // Guard against concurrent chunked processing
   if (isChunkedProcessingActive) {
-    console.log(`[${MODULE_NAME}] RAF: Skipping flush - chunked processing active`);
     return;
   }
 
@@ -220,7 +213,6 @@ async function flushUpdates() {
   const scrollY = window.scrollY;
 
   const updateCount = hasFullReprocess ? "full" : pendingOOCUpdates.size;
-  console.log(`[${MODULE_NAME}] RAF: Flushing ${updateCount} update(s) [chunked]`);
 
   const startTime = performance.now();
 
@@ -261,7 +253,6 @@ async function flushUpdates() {
   window.scrollTo(window.scrollX, scrollY);
 
   const duration = performance.now() - startTime;
-  console.log(`[${MODULE_NAME}] RAF: Flush completed in ${duration.toFixed(2)}ms`);
 }
 
 /**
@@ -337,7 +328,6 @@ export function cancelAllPendingUpdates() {
   }
 }
 
-
 /**
  * Check if there are any pending updates
  * @returns {boolean} True if updates are pending
@@ -357,7 +347,6 @@ export function resetRAFState() {
   // Reset first render flag so next update is immediate
   isFirstRenderPending = true;
 
-  console.log(`[${MODULE_NAME}] RAF: State reset for fresh processing`);
 }
 
 /**

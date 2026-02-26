@@ -6,6 +6,7 @@ import { CollapsibleSection } from '../shared/CollapsibleSection';
 import { ReasoningSettingsContent } from '../shared/ReasoningSettings';
 import { ToggleBindingsContent } from '../shared/ToggleBindingsContent';
 import { useChatPresetSettings } from '../../hooks/useChatPresetSettings';
+import { detectConnectionProfile } from '../../../lib/lucidLoomService';
 
 
 // Get store for direct state access
@@ -319,15 +320,20 @@ function PresetManager() {
         startReplyWith,
         apiReasoning,
         postProcessing,
+        adaptiveThinking,
         handleApplyReasoningPreset,
         handleStartReplyWithChange,
         handleReasoningToggle,
         handleAPIReasoningToggle,
         handleReasoningEffortChange,
         handlePostProcessingChange,
+        handleAdaptiveThinkingToggle,
         REASONING_EFFORT_LEVELS,
         POST_PROCESSING_OPTIONS
     } = useChatPresetSettings();
+
+    // Connection profile for adaptive thinking model detection
+    const [connectionProfile] = useState(() => detectConnectionProfile());
 
     // Preset editor hook
     // Convert presets object to sorted array
@@ -392,12 +398,15 @@ function PresetManager() {
                     startReplyWith={startReplyWith}
                     apiReasoning={apiReasoning}
                     postProcessing={postProcessing}
+                    adaptiveThinking={adaptiveThinking}
+                    connectionProfile={connectionProfile}
                     onApplyReasoningPreset={handleApplyReasoningPreset}
                     onStartReplyWithChange={handleStartReplyWithChange}
                     onReasoningToggle={handleReasoningToggle}
                     onAPIReasoningToggle={handleAPIReasoningToggle}
                     onReasoningEffortChange={handleReasoningEffortChange}
                     onPostProcessingChange={handlePostProcessingChange}
+                    onAdaptiveThinkingToggle={handleAdaptiveThinkingToggle}
                     effortLevels={REASONING_EFFORT_LEVELS}
                     postProcessingOptions={POST_PROCESSING_OPTIONS}
                     compact={true}

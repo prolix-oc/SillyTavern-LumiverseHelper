@@ -65,6 +65,7 @@ function notifyReasoningChange() {
         startReplyWith: getStartReplyWith(),
         apiReasoning: getAPIReasoningSettings(),
         postProcessing: getPostProcessingValue(),
+        adaptiveThinking: _adaptiveThinkingEnabled,
     };
     reasoningListeners.forEach(listener => {
         try {
@@ -252,7 +253,6 @@ export function trackPresetVersion(presetSlug, presetInfo, versionInfo) {
     };
     
     saveSettings();
-    console.log(`[${MODULE_NAME}] Tracked preset: ${presetSlug} v${formatVersion(versionInfo?.version)}`);
     notifyTrackingChange();
 }
 
@@ -514,7 +514,6 @@ export async function importPreset(presetData, presetName, options = {}) {
             const safePresetData = hydratePresetWithConnectionSettings(presetData, currentSettings);
             
             // Debug: verify hydration added required keys
-            console.log(`[${MODULE_NAME}] Hydrated preset has mistralai_model:`, typeof safePresetData.mistralai_model, safePresetData.mistralai_model);
             
             const manager = context.getPresetManager("openai");
             
@@ -525,12 +524,10 @@ export async function importPreset(presetData, presetName, options = {}) {
             // ST's getCompletionPresetByName returns reference to the stored object
             const storedPreset = manager.getCompletionPresetByName?.(presetName);
             if (storedPreset) {
-                console.log(`[${MODULE_NAME}] Stored preset has mistralai_model:`, typeof storedPreset.mistralai_model, storedPreset.mistralai_model);
                 // Patch directly on the stored object if missing
                 REQUIRED_KEYS.forEach(key => {
                     if (typeof storedPreset[key] === 'undefined') {
                         storedPreset[key] = "";
-                        console.log(`[${MODULE_NAME}] Patched stored preset with ${key}`);
                     }
                 });
             } else {
@@ -552,7 +549,6 @@ export async function importPreset(presetData, presetName, options = {}) {
                 
                 // Use findPreset to get the correct option value (numeric index)
                 const optionValue = manager.findPreset?.(presetName);
-                console.log(`[${MODULE_NAME}] selectPreset - name: "${presetName}", optionValue: "${optionValue}"`);
                 
                 if (optionValue !== undefined && optionValue !== null) {
                     await manager.selectPreset(optionValue);
@@ -678,12 +674,6 @@ export async function downloadAndImportPreset(presetSlug, versionSlug = "latest"
         const result = await importPreset(response.data, presetName, importOptions);
 
         // Track the version for update notifications if import succeeded
-        console.log(`[${MODULE_NAME}] Import result:`, { 
-            success: result.success, 
-            trackVersion, 
-            hasVersion: !!versionInfo,
-            versionInfo
-        });
         
         if (result.success && trackVersion) {
             // Track with version info from latestVersion, or fallback
@@ -756,7 +746,6 @@ export function configureReasoning(config) {
     }
 
     context.saveSettingsDebounced();
-    console.log(`[${MODULE_NAME}] Reasoning settings updated`);
     notifyReasoningChange();
 }
 
@@ -815,7 +804,6 @@ export function setStartReplyWith(text, options = {}) {
     }
 
     context.saveSettingsDebounced();
-    console.log(`[${MODULE_NAME}] Start Reply With set to: "${text.substring(0, 50)}..."`);
     notifyReasoningChange();
 }
 
@@ -852,9 +840,12 @@ export function getAPIReasoningSettings() {
     if (!context?.chatCompletionSettings) {
         return { enabled: false, effort: 'auto' };
     }
+    const enabled = !!context.chatCompletionSettings.show_thoughts;
     return {
-        enabled: !!context.chatCompletionSettings.show_thoughts,
-        effort: context.chatCompletionSettings.reasoning_effort || 'auto',
+        enabled,
+        // Normalize: when reasoning is off, effort is always 'auto'.
+        // ST's native UI may leave a stale effort value after unchecking reasoning.
+        effort: enabled ? (context.chatCompletionSettings.reasoning_effort || 'auto') : 'auto',
     };
 }
 
@@ -887,7 +878,6 @@ export function setIncludeReasoning(enabled) {
     }
 
     context.saveSettingsDebounced();
-    console.log(`[${MODULE_NAME}] Include Reasoning set to: ${enabled}`);
     notifyReasoningChange();
 }
 
@@ -918,7 +908,6 @@ export function setReasoningEffort(level) {
     }
 
     context.saveSettingsDebounced();
-    console.log(`[${MODULE_NAME}] Reasoning Effort set to: ${level}`);
     notifyReasoningChange();
 }
 
@@ -975,7 +964,27 @@ export function setPostProcessing(strategy) {
     }
 
     context.saveSettingsDebounced();
-    console.log(`[${MODULE_NAME}] Post-processing set to: ${strategy || '(none)'}`);
+    notifyReasoningChange();
+}
+
+// --- Adaptive Thinking Toggle (Lumiverse-only, per-model-profile) ---
+
+let _adaptiveThinkingEnabled = true;
+
+/**
+ * Get whether adaptive thinking is enabled for Claude 4.6 models.
+ * @returns {boolean}
+ */
+export function getAdaptiveThinkingEnabled() {
+    return _adaptiveThinkingEnabled;
+}
+
+/**
+ * Set whether adaptive thinking is enabled for Claude 4.6 models.
+ * @param {boolean} enabled
+ */
+export function setAdaptiveThinkingEnabled(enabled) {
+    _adaptiveThinkingEnabled = !!enabled;
     notifyReasoningChange();
 }
 
@@ -992,6 +1001,7 @@ export function captureReasoningSnapshot() {
         apiReasoning: getAPIReasoningSettings(),
         startReplyWith: getStartReplyWith(),
         postProcessing: getPostProcessing(),
+        adaptiveThinking: _adaptiveThinkingEnabled,
     };
 }
 
@@ -1028,6 +1038,9 @@ export function applyReasoningSnapshot(snapshot) {
     if (snapshot.postProcessing !== undefined) {
         setPostProcessing(snapshot.postProcessing);
     }
+
+    // Restore adaptive thinking (default true for backward compat with old snapshots)
+    _adaptiveThinkingEnabled = snapshot.adaptiveThinking !== undefined ? !!snapshot.adaptiveThinking : true;
 }
 
 // --- Preset Templates ---
@@ -1069,7 +1082,6 @@ export const REASONING_PRESETS = {
 export function applyReasoningPreset(presetName) {
     const preset = REASONING_PRESETS[presetName];
     if (!preset) {
-        console.warn(`[${MODULE_NAME}] Unknown reasoning preset: ${presetName}`);
         return;
     }
     configureReasoning(preset);
@@ -1083,7 +1095,6 @@ export function applyReasoningPreset(presetName) {
 export function applyReasoningWithBias(presetName, customBias = null) {
     const preset = REASONING_PRESETS[presetName];
     if (!preset) {
-        console.warn(`[${MODULE_NAME}] Unknown reasoning preset: ${presetName}`);
         return;
     }
 

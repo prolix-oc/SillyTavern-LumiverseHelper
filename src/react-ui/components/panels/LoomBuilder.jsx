@@ -3,7 +3,8 @@ import {
     DndContext,
     closestCenter,
     KeyboardSensor,
-    PointerSensor,
+    MouseSensor,
+    TouchSensor,
     useSensor,
     useSensors,
 } from '@dnd-kit/core';
@@ -163,6 +164,9 @@ const styles = {
         minHeight: 0,
         overflowY: 'auto',
         padding: '12px',
+        paddingBottom: 'calc(24px + env(safe-area-inset-bottom, 0px))',
+        WebkitOverflowScrolling: 'touch',
+        overscrollBehavior: 'contain',
     },
     form: {
         display: 'flex',
@@ -226,7 +230,6 @@ const styles = {
         borderRadius: '8px',
         marginBottom: '4px',
         transition: 'all 0.15s ease',
-        touchAction: 'none',
         gap: '8px',
     },
     itemDragging: {
@@ -289,6 +292,21 @@ const styles = {
         alignItems: 'center',
         justifyContent: 'center',
         flexShrink: 0,
+    },
+    dragHandle: {
+        padding: '10px 8px',
+        borderRadius: '6px',
+        background: 'transparent',
+        border: 'none',
+        color: 'var(--lumiverse-text-muted)',
+        cursor: 'grab',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        touchAction: 'none',
+        // Negative margin compensates the extra padding so the row height doesn't grow
+        margin: '-4px -2px -4px -2px',
     },
     btn: {
         display: 'flex',
@@ -491,7 +509,7 @@ function SortableCategoryItem({ block, isCollapsed, onToggleCollapse, onEdit, on
             {/* Drag handle */}
             <span
                 {...listeners}
-                style={{ ...styles.iconBtn, cursor: 'grab', touchAction: 'none' }}
+                style={styles.dragHandle}
                 title="Drag to reorder (moves all items in this category)"
             >
                 <GripVertical size={14} />
@@ -588,7 +606,7 @@ function SortableBlockItem({ block, onEdit, onDelete, onToggle, indented }) {
             {/* Drag handle */}
             <span
                 {...listeners}
-                style={{ ...styles.iconBtn, cursor: 'grab', touchAction: 'none' }}
+                style={styles.dragHandle}
                 title="Drag to reorder"
             >
                 <GripVertical size={14} />
@@ -2195,9 +2213,13 @@ export default function LoomBuilder({ compact, onClose }) {
     const importTypeRef = useRef('st');
     const lastCollapsedPresetRef = useRef(null);
 
-    // DnD setup
+    // DnD setup — split mouse/touch sensors so touch scrolling isn't hijacked.
+    // MouseSensor: desktop dragging with a small distance threshold.
+    // TouchSensor: requires a deliberate press-and-hold before drag activates,
+    //   letting normal scroll/swipe gestures pass through to the scroll container.
     const sensors = useSensors(
-        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+        useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+        useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
     );
 

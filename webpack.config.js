@@ -17,6 +17,7 @@ module.exports = (env, argv) => {
         "@lib": path.resolve(__dirname, "src/lib"),
         "@react": path.resolve(__dirname, "src/react-ui"),
         "@helpers": path.resolve(__dirname, "src/sthelpers"),
+        "@chat": path.resolve(__dirname, "src/react-ui/components/chat"),
         // Ensure single React instance within the bundle (prevents Error #158)
         react: path.resolve(__dirname, "node_modules/react"),
         "react-dom": path.resolve(__dirname, "node_modules/react-dom"),

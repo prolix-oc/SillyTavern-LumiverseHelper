@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useUI, useLumiverseActions } from '../../store/LumiverseContext';
+import useFixedPositionFix from '../../hooks/useFixedPositionFix';
 import SettingsNav from '../settings/SettingsNav';
 import GeneralSettingsView from '../settings/GeneralSettingsView';
 import PacksView from '../settings/PacksView';
@@ -14,6 +15,7 @@ import { PresetBindingsPanel } from '../panels/PresetBindings';
 import OOCSettings from '../panels/OOCSettings';
 import PromptSettings from '../panels/PromptSettings';
 import SummarizationView from '../settings/SummarizationView';
+import QuickRepliesView from '../settings/QuickRepliesView';
 
 /**
  * View router — renders the active settings view based on the nav selection.
@@ -30,6 +32,7 @@ function SettingsViewRouter({ activeView }) {
         case 'ooc':            return <div className="lumiverse-settings-view"><OOCSettings /></div>;
         case 'summarization':  return <SummarizationView />;
         case 'promptSettings': return <div className="lumiverse-settings-view"><PromptSettings /></div>;
+        case 'quickReplies':   return <QuickRepliesView />;
         case 'macros':         return <MacroReferenceView />;
         case 'danger':         return <DangerZoneView />;
         default:               return <GeneralSettingsView />;
@@ -38,15 +41,26 @@ function SettingsViewRouter({ activeView }) {
 
 /**
  * Full settings modal — renders the Lumiverse settings in a dedicated
- * modal with sidebar navigation. Portals to document.body at z-index 9999,
- * sitting below overlay modals (z-index 10000).
+ * modal with sidebar navigation. Portals directly to document.body with
+ * useFixedPositionFix to neutralize SillyTavern's html transforms that
+ * break position:fixed.
  */
-export default function SettingsModal() {
+export default function SettingsModal({ onDismissDrawer }) {
     const ui = useUI();
     const actions = useLumiverseActions();
 
     const isOpen = ui.settingsModal?.isOpen;
     const activeView = ui.settingsModal?.activeView || 'general';
+
+    // Neutralize SillyTavern's html transform/perspective that breaks position:fixed
+    useFixedPositionFix(isOpen);
+
+    // Auto-dismiss the drawer on mobile when settings modal opens
+    useEffect(() => {
+        if (isOpen && onDismissDrawer && window.innerWidth <= 600) {
+            onDismissDrawer();
+        }
+    }, [isOpen, onDismissDrawer]);
 
     // ESC handler — only close if no overlay modal is open on top
     const handleKeyDown = useCallback((e) => {

@@ -9,7 +9,7 @@
 import { getContext, getSubstituteParams } from "../stContext.js";
 import { MODULE_NAME } from "./settingsManager.js";
 import { getLoomPresetFileKey } from "./fileStorage.js";
-import { captureReasoningSnapshot, applyReasoningSnapshot } from "./presetsService.js";
+import { captureReasoningSnapshot, applyReasoningSnapshot, getAdaptiveThinkingEnabled } from "./presetsService.js";
 import {
     getLoomPresetRegistry,
     getActiveLoomPresetId,
@@ -211,6 +211,21 @@ export const SAMPLER_PARAMS = [
 let _storedCoreChat = null;
 
 /**
+ * Last assembly breakdown — per-block itemization captured during assembleMessages().
+ * Used by the prompt itemization modal to show Loom-specific breakdowns.
+ * @type {Object|null}
+ */
+let _lastAssemblyBreakdown = null;
+
+/**
+ * Get the breakdown from the most recent assembleMessages() call.
+ * @returns {Object|null} { presetName, presetId, entries: [{type, ...}] }
+ */
+export function getLastAssemblyBreakdown() {
+    return _lastAssemblyBreakdown;
+}
+
+/**
  * Store the processed coreChat from the generation interceptor.
  * Called in index.js when a Loom preset is active.
  * @param {Array|null} chat - Processed coreChat array (or null to clear)
@@ -275,7 +290,6 @@ export async function preResolveMedia(chatMessages) {
     if (promises.length > 0) {
         await Promise.all(promises);
         const resolved = chatMessages.filter(m => m._resolvedMedia?.length).length;
-        console.log(`[${MODULE_NAME}] Loom: Pre-resolved media on ${resolved} messages (${promises.length} items)`);
     }
 }
 
@@ -388,26 +402,18 @@ export async function createPreset(name, description = '') {
  */
 function migratePreset(preset) {
     if (!preset) return preset;
-    if (!preset.samplerOverrides) {
-        preset.samplerOverrides = { ...DEFAULT_SAMPLER_OVERRIDES };
-    }
-    if (!preset.customBody) {
-        preset.customBody = { ...DEFAULT_CUSTOM_BODY };
-    }
+    // Key-level merge: spread defaults first, then existing values on top.
+    // This ensures new keys get their defaults while preserving user customization.
+    preset.samplerOverrides = { ...DEFAULT_SAMPLER_OVERRIDES, ...(preset.samplerOverrides || {}) };
+    preset.customBody = { ...DEFAULT_CUSTOM_BODY, ...(preset.customBody || {}) };
+    preset.promptBehavior = { ...DEFAULT_PROMPT_BEHAVIOR, ...(preset.promptBehavior || {}) };
+    preset.completionSettings = { ...DEFAULT_COMPLETION_SETTINGS, ...(preset.completionSettings || {}) };
+    preset.advancedSettings = { ...DEFAULT_ADVANCED_SETTINGS, ...(preset.advancedSettings || {}) };
     if (!preset.modelProfiles) {
         preset.modelProfiles = {};
     }
     if (!preset.lastProfileKey) {
         preset.lastProfileKey = null;
-    }
-    if (!preset.promptBehavior) {
-        preset.promptBehavior = { ...DEFAULT_PROMPT_BEHAVIOR };
-    }
-    if (!preset.completionSettings) {
-        preset.completionSettings = { ...DEFAULT_COMPLETION_SETTINGS };
-    }
-    if (!preset.advancedSettings) {
-        preset.advancedSettings = { ...DEFAULT_ADVANCED_SETTINGS };
     }
     // Backfill injectionTrigger on blocks
     if (Array.isArray(preset.blocks)) {
@@ -902,8 +908,9 @@ export function assembleMessages(preset, generateData) {
     const behavior = preset.promptBehavior || {};
     const completion = preset.completionSettings || {};
 
-    // Build messages array in block order
+    // Build messages array in block order, tracking per-block breakdown
     const result = [];
+    const breakdown = [];
 
     for (const block of enabledBlocks) {
         // Category markers are visual-only, skip
@@ -922,13 +929,22 @@ export function assembleMessages(preset, generateData) {
                 const resolved = resolveMacros(behavior.newGroupChatPrompt);
                 if (resolved?.trim()) {
                     result.push({ role: 'system', content: resolved });
+                    breakdown.push({ type: 'separator', name: 'New Chat Separator', content: resolved });
                 }
             } else if (!isGroupChat && behavior.newChatPrompt) {
                 const resolved = resolveMacros(behavior.newChatPrompt);
                 if (resolved?.trim()) {
                     result.push({ role: 'system', content: resolved });
+                    breakdown.push({ type: 'separator', name: 'New Chat Separator', content: resolved });
                 }
             }
+            // Flatten chat messages to text for itemization
+            const chatText = chatMessages.map(m => {
+                if (typeof m.content === 'string') return m.content;
+                if (Array.isArray(m.content)) return m.content.filter(p => p.type === 'text').map(p => p.text).join('\n');
+                return '';
+            }).join('\n');
+            breakdown.push({ type: 'chat_history', messageCount: chatMessages.length, content: chatText });
             result.push(...chatMessages);
             continue;
         }
@@ -947,6 +963,15 @@ export function assembleMessages(preset, generateData) {
         }
 
         result.push({ role, content });
+        breakdown.push({
+            type: 'block',
+            blockId: block.id,
+            blockName: block.name,
+            marker: block.marker || null,
+            role,
+            content,
+            color: block.color || null,
+        });
     }
 
     // Inject utility prompts based on generation type
@@ -956,6 +981,7 @@ export function assembleMessages(preset, generateData) {
             const resolved = resolveMacros(nudge);
             if (resolved?.trim()) {
                 result.push({ role: 'system', content: resolved });
+                breakdown.push({ type: 'utility', name: 'Continue Nudge', content: resolved });
             }
         }
     } else if (genType === 'impersonate') {
@@ -964,6 +990,7 @@ export function assembleMessages(preset, generateData) {
             const resolved = resolveMacros(prompt);
             if (resolved?.trim()) {
                 result.push({ role: 'system', content: resolved });
+                breakdown.push({ type: 'utility', name: 'Impersonation Prompt', content: resolved });
             }
         }
     } else if (isGroupChat && genType !== 'impersonate') {
@@ -972,6 +999,7 @@ export function assembleMessages(preset, generateData) {
             const resolved = resolveMacros(nudge);
             if (resolved?.trim()) {
                 result.push({ role: 'system', content: resolved });
+                breakdown.push({ type: 'utility', name: 'Group Nudge', content: resolved });
             }
         }
     }
@@ -984,9 +1012,17 @@ export function assembleMessages(preset, generateData) {
             const resolved = resolveMacros(behavior.sendIfEmpty);
             if (resolved?.trim()) {
                 result.push({ role: 'user', content: resolved });
+                breakdown.push({ type: 'utility', name: 'Send If Empty', content: resolved });
             }
         }
     }
+
+    // Store breakdown for prompt itemization
+    _lastAssemblyBreakdown = {
+        presetName: preset.name,
+        presetId: preset.id,
+        entries: breakdown,
+    };
 
     return result;
 }
@@ -1344,6 +1380,94 @@ export function applyCustomBody(preset, generateData) {
         console.warn(`[${MODULE_NAME}] Loom Builder: Failed to parse custom body JSON:`, e.message);
         return [];
     }
+}
+
+// ============================================================================
+// ADAPTIVE THINKING (Claude 4.6)
+// ============================================================================
+
+/** Regex matching Claude models that support adaptive thinking */
+const ADAPTIVE_THINKING_REGEX = /^claude-(opus-4-6|sonnet-4-6)/;
+
+/** Regex matching Claude Opus 4.5 (supports effort but not adaptive thinking) */
+const OPUS_45_EFFORT_REGEX = /^claude-opus-4-5/;
+
+/** Valid effort levels for Opus 4.5 (subset of 4.6 levels) */
+const OPUS_45_EFFORT_LEVELS = new Set(['low', 'medium', 'high']);
+
+/**
+ * Check if a model supports adaptive thinking (thinking.type: 'adaptive').
+ * @param {string} model - Model ID string
+ * @returns {boolean}
+ */
+export function isAdaptiveThinkingModel(model) {
+    return !!model && ADAPTIVE_THINKING_REGEX.test(model);
+}
+
+/**
+ * Apply adaptive thinking configuration for Claude 4.6 models, and
+ * effort-only configuration for Opus 4.5.
+ *
+ * Claude 4.6 (adaptive):
+ * - Sets thinking.type = 'adaptive'
+ * - Maps reasoning_effort to output_config.effort
+ * - Removes top_k (incompatible with adaptive thinking)
+ *
+ * Opus 4.5 (effort only):
+ * - Maps reasoning_effort to output_config.effort (low/medium/high only)
+ *
+ * Both paths respect the user's adaptive thinking toggle.
+ *
+ * @param {Object} preset - The active Loom preset
+ * @param {Object} generateData - The generate_data object (mutated in place)
+ * @param {Object} [profile] - Connection profile (auto-detected if not provided)
+ * @returns {string[]} List of applied changes for logging
+ */
+export function applyAdaptiveThinking(preset, generateData, profile) {
+    if (!generateData) return [];
+
+    // Respect user toggle
+    if (!getAdaptiveThinkingEnabled()) return [];
+
+    const p = profile || detectConnectionProfile();
+    // Only applies to Claude direct or OpenRouter
+    if (p.source !== 'claude' && p.source !== 'openrouter') return [];
+
+    const model = generateData.model || p.model || '';
+
+    // Reasoning must be enabled
+    if (!generateData.show_thoughts) return [];
+
+    const effort = generateData.reasoning_effort || 'auto';
+
+    // Claude 4.6: full adaptive thinking
+    if (isAdaptiveThinkingModel(model)) {
+        const applied = [];
+
+        generateData.thinking = { type: 'adaptive' };
+        applied.push('thinking: { type: "adaptive" }');
+
+        if (effort && effort !== 'auto') {
+            generateData.output_config = { effort };
+            applied.push(`output_config.effort: "${effort}"`);
+        }
+
+        // Remove top_k — incompatible with adaptive thinking
+        if ('top_k' in generateData) {
+            delete generateData.top_k;
+            applied.push('removed top_k (incompatible)');
+        }
+
+        return applied;
+    }
+
+    // Opus 4.5: effort only (low/medium/high)
+    if (OPUS_45_EFFORT_REGEX.test(model) && OPUS_45_EFFORT_LEVELS.has(effort)) {
+        generateData.output_config = { effort };
+        return [`output_config.effort: "${effort}" (Opus 4.5)`];
+    }
+
+    return [];
 }
 
 // ============================================================================

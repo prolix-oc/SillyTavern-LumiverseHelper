@@ -1,5 +1,6 @@
 import React, { useCallback, useSyncExternalStore } from 'react';
 import clsx from 'clsx';
+import { Minimize2, Sparkles, MessageCircle } from 'lucide-react';
 import { useLumiverseStore, saveToExtension } from '../../store/LumiverseContext';
 
 const store = useLumiverseStore;
@@ -9,12 +10,16 @@ const selectShowDrawer = () => store.getState().showLumiverseDrawer ?? true;
 const selectDrawerSettings = () => store.getState().drawerSettings ?? DEFAULT_DRAWER_SETTINGS;
 const selectEnableLandingPage = () => store.getState().enableLandingPage ?? true;
 const selectLandingPageChatsDisplayed = () => store.getState().landingPageChatsDisplayed ?? 12;
+const selectEnableChatSheld = () => store.getState().enableChatSheld ?? false;
+const selectChatSheldDisplayMode = () => store.getState().chatSheldDisplayMode || 'minimal';
 
 export default function GeneralSettingsView() {
     const showDrawer = useSyncExternalStore(store.subscribe, selectShowDrawer, selectShowDrawer);
     const drawerSettings = useSyncExternalStore(store.subscribe, selectDrawerSettings, selectDrawerSettings);
     const enableLandingPage = useSyncExternalStore(store.subscribe, selectEnableLandingPage, selectEnableLandingPage);
     const landingPageChatsDisplayed = useSyncExternalStore(store.subscribe, selectLandingPageChatsDisplayed, selectLandingPageChatsDisplayed);
+    const enableChatSheld = useSyncExternalStore(store.subscribe, selectEnableChatSheld, selectEnableChatSheld);
+    const chatSheldDisplayMode = useSyncExternalStore(store.subscribe, selectChatSheldDisplayMode, selectChatSheldDisplayMode);
 
     const handleDrawerToggle = useCallback((enabled) => {
         store.setState({ showLumiverseDrawer: enabled });
@@ -55,6 +60,16 @@ export default function GeneralSettingsView() {
 
     const handleChatsDisplayedChange = useCallback((value) => {
         store.setState({ landingPageChatsDisplayed: parseInt(value, 10) || 12 });
+        saveToExtension();
+    }, []);
+
+    const handleChatSheldToggle = useCallback((enabled) => {
+        store.setState({ enableChatSheld: enabled });
+        saveToExtension();
+    }, []);
+
+    const handleDisplayModeChange = useCallback((mode) => {
+        store.setState({ chatSheldDisplayMode: mode });
         saveToExtension();
     }, []);
 
@@ -227,6 +242,61 @@ export default function GeneralSettingsView() {
                             min="1"
                             max="50"
                         />
+                    </div>
+                )}
+            </div>
+
+            {/* Chat Sheld Toggle */}
+            <div className="lumia-drawer-toggle-container">
+                <label className="lumiverse-toggle-wrapper">
+                    <div className="lumiverse-toggle-text">
+                        <span className="lumiverse-toggle-label">Glassmorphic Chat</span>
+                        <span className="lumiverse-toggle-description">
+                            Replace the default chat display with a glassmorphic React-based interface (experimental)
+                        </span>
+                    </div>
+                    <div className={clsx('lumiverse-toggle', enableChatSheld && 'lumiverse-toggle--on')}>
+                        <input
+                            type="checkbox"
+                            className="lumiverse-toggle-input"
+                            checked={enableChatSheld}
+                            onChange={(e) => handleChatSheldToggle(e.target.checked)}
+                        />
+                        <span className="lumiverse-toggle-slider"></span>
+                    </div>
+                </label>
+                {enableChatSheld && (
+                    <div className="lumiverse-mode-selector">
+                        <span className="lumiverse-mode-selector-label">Chat Style</span>
+                        <div className="lumiverse-mode-selector-btns">
+                            <button
+                                type="button"
+                                className={clsx('lumiverse-mode-btn', chatSheldDisplayMode === 'minimal' && 'lumiverse-mode-btn--active')}
+                                onClick={() => handleDisplayModeChange('minimal')}
+                                title="Minimal"
+                            >
+                                <Minimize2 size={14} />
+                                <span>Minimal</span>
+                            </button>
+                            <button
+                                type="button"
+                                className={clsx('lumiverse-mode-btn', chatSheldDisplayMode === 'immersive' && 'lumiverse-mode-btn--active')}
+                                onClick={() => handleDisplayModeChange('immersive')}
+                                title="Immersive"
+                            >
+                                <Sparkles size={14} />
+                                <span>Immersive</span>
+                            </button>
+                            <button
+                                type="button"
+                                className={clsx('lumiverse-mode-btn', chatSheldDisplayMode === 'bubble' && 'lumiverse-mode-btn--active')}
+                                onClick={() => handleDisplayModeChange('bubble')}
+                                title="Bubble"
+                            >
+                                <MessageCircle size={14} />
+                                <span>Bubble</span>
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>

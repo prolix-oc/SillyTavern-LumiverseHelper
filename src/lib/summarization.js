@@ -16,6 +16,11 @@ import {
   isGroupChat,
   getGroupMemberNames,
 } from "./loomSystem.js";
+import {
+  isChatSheldActive,
+  setSummaryMarker,
+  clearSummaryLoading,
+} from "./chatSheldService.js";
 
 // Metadata key for tracking last summarized message count
 export const LOOM_LAST_SUMMARIZED_KEY = "loom_last_summarized_at";
@@ -103,7 +108,25 @@ function showSummaryIndicator(status, message = "") {
   // Remove any existing temporary indicator (spinner)
   hideSummaryIndicator();
 
-  // Find the last message's timestamp element
+  // ── Chat Sheld mode: push state to store for React rendering ──
+  if (isChatSheldActive()) {
+    const context = getContext();
+    const lastMesId = context?.chat?.length ? context.chat.length - 1 : null;
+    if (lastMesId !== null) {
+      if (status === "loading") {
+        setSummaryMarker(lastMesId, "loading");
+      } else if (status === "complete") {
+        clearSummaryLoading();
+        setSummaryMarker(lastMesId, "complete");
+      } else if (status === "error") {
+        clearSummaryLoading();
+        setSummaryMarker(lastMesId, "error");
+      }
+    }
+    // Also continue with DOM approach below — it targets hidden #chat for metadata persistence
+  }
+
+  // ── Standard mode: manipulate DOM ──
   const chatElement = document.getElementById("chat");
   if (!chatElement) return;
 
@@ -205,6 +228,12 @@ export function restoreSummaryMarkers() {
   const markerInfo = context.chatMetadata.loom_summary_marker;
   if (!markerInfo.mesId) return;
 
+  // Chat Sheld mode: push to store
+  if (isChatSheldActive()) {
+    setSummaryMarker(markerInfo.mesId, markerInfo.type);
+  }
+
+  // Standard mode: DOM manipulation
   const messageElement = findMessageByMesId(markerInfo.mesId);
   if (messageElement) {
     addPersistentSummaryMarker(messageElement, markerInfo.type);
@@ -343,9 +372,6 @@ export async function fetchSecretKey(secretKey) {
     });
 
     if (!response.ok) {
-      console.warn(
-        `[${MODULE_NAME}] Could not fetch secret key: ${secretKey} (status: ${response.status})`,
-      );
       return null;
     }
 
@@ -483,8 +509,6 @@ export async function generateSummaryWithMainAPI(sumSettings, messageContext) {
     throw new Error("No chat messages to summarize");
   }
 
-  console.log(`[${MODULE_NAME}] Generating summary with Main API...`);
-
   const result = await generateRaw({
     systemPrompt: prompts.systemPrompt,
     prompt: prompts.userPrompt,
@@ -551,10 +575,6 @@ export async function generateSummaryWithSecondaryLLM(
     throw new Error("No endpoint specified for secondary LLM");
   }
 
-  console.log(
-    `[${MODULE_NAME}] Generating summary with ${providerConfig.name}...`,
-  );
-
   let response;
 
   if (providerConfig.format === "anthropic") {
@@ -592,7 +612,6 @@ export async function generateSummaryWithSecondaryLLM(
     // Add beta header for prompt caching API when cache control is being used
     if (currentSettings.disableAnthropicCache) {
       headers["anthropic-beta"] = "prompt-caching-2024-07-31";
-      console.log(`[${MODULE_NAME}] Cache busting enabled for this request (Lumia config v${lumiaVersion})`);
     }
 
     response = await fetch(endpoint, {
@@ -736,13 +755,11 @@ export async function generateLoomSummary(
   const sumSettings = overrideSettings || settings.summarization;
 
   if (!sumSettings) {
-    console.log(`[${MODULE_NAME}] Summarization not configured`);
     return null;
   }
 
   const context = getContext();
   if (!context || !context.chat || context.chat.length === 0) {
-    console.log(`[${MODULE_NAME}] No chat to summarize`);
     return null;
   }
 
@@ -750,10 +767,6 @@ export async function generateLoomSummary(
   const messageContext = isManual
     ? sumSettings.manualMessageContext || 10
     : sumSettings.autoMessageContext || 10;
-
-  console.log(
-    `[${MODULE_NAME}] Using ${isManual ? "manual" : "auto"} message context: ${messageContext} messages`,
-  );
 
   // Show loading indicator if visual feedback is enabled
   if (showVisualFeedback) {
@@ -788,7 +801,6 @@ export async function generateLoomSummary(
       storeLastSummarizedCount(context.chat.length);
 
       await context.saveMetadata();
-      console.log(`[${MODULE_NAME}] Summary saved to chat metadata at message ${context.chat.length}`);
 
       // Show completion indicator
       if (showVisualFeedback) {
@@ -841,9 +853,6 @@ export function checkAutoSummarization() {
   // Trigger if we've accumulated enough new messages since last summary
   // Also ensure we have at least 'interval' messages total (don't trigger on tiny chats)
   if (currentMessageCount >= interval && messagesSinceLastSummary >= interval) {
-    console.log(
-      `[${MODULE_NAME}] Auto-summarization triggered: ${messagesSinceLastSummary} messages since last summary (at ${lastSummarizedAt}), current count: ${currentMessageCount}`,
-    );
 
     // Set summarizing state for UI feedback
     isSummarizing = true;

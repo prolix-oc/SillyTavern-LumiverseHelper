@@ -217,9 +217,6 @@ function generateCouncilHandles(councilMembers, useLeet = true) {
     const name = getLumiaField(item, "name") || member.itemName || "Unknown";
     // If useLeet is true, apply l33tspeak; otherwise just replace spaces with underscores
     const handle = useLeet ? toLeetSpeak(name) : name.trim().replace(/\s+/g, "_");
-    console.log(
-      `[LumiverseHelper] generateCouncilHandles: "${name}" → "${handle}" (leet=${useLeet})`,
-    );
     return {
       name: name,
       handle: handle,
@@ -241,10 +238,6 @@ function buildOOCPromptCouncilIRC() {
   // Generate handles for all council members
   const memberHandles = generateCouncilHandles(councilMembers, useLeet);
   const handleList = memberHandles.map((m) => m.handle).join(", ");
-
-  console.log(
-    `[LumiverseHelper] buildOOCPromptCouncilIRC: Active users = ${handleList} (leet=${useLeet})`,
-  );
 
   return `### Loom Utility: Council IRC Link
 **STATUS: CONNECTED** via #LumiaCouncil
@@ -902,7 +895,6 @@ function parseVariable(context) {
  * @param {Object} MacrosParser - The SillyTavern MacrosParser instance
  */
 export function registerLumiaMacros(MacrosParser) {
-  console.log("[LumiverseHelper] Registering Lumia macros (Macros 2.0 format)...");
 
   // ============================================
   // randomLumia macro - handles all variants
@@ -925,7 +917,6 @@ export function registerLumiaMacros(MacrosParser) {
       if (!currentRandomLumia) return "";
 
       const variant = (property || "").toLowerCase();
-      console.log("[LumiverseHelper] randomLumia macro called with variant:", variant || "(none)");
 
       let result;
       switch (variant) {
@@ -944,7 +935,6 @@ export function registerLumiaMacros(MacrosParser) {
         default:
           // No variant or unrecognized = return definition
           result = getLumiaField(currentRandomLumia, "def") || "";
-          console.log("[LumiverseHelper] randomLumia result length:", result.length);
           break;
       }
       // Resolve any nested macros in the content (e.g., {{char}}, {{user}})
@@ -993,29 +983,22 @@ export function registerLumiaMacros(MacrosParser) {
       }
 
       // Default: return definition content
-      console.log("[LumiverseHelper] lumiaDef macro called, councilMode:", currentSettings.councilMode, "chimeraMode:", currentSettings.chimeraMode);
 
       let result;
 
       // Council mode takes priority: multiple independent Lumias
       if (currentSettings.councilMode && currentSettings.councilMembers?.length > 0) {
-        console.log("[LumiverseHelper] lumiaDef: Council mode with", currentSettings.councilMembers.length, "members");
         result = getCouncilDefContent(currentSettings.councilMembers);
-        console.log("[LumiverseHelper] lumiaDef Council result length:", result.length);
       }
       // Chimera mode: fuse multiple definitions
       else if (currentSettings.chimeraMode && currentSettings.selectedDefinitions?.length > 0) {
-        console.log("[LumiverseHelper] lumiaDef: Chimera mode with", currentSettings.selectedDefinitions.length, "definitions");
         result = getChimeraContent(currentSettings.selectedDefinitions);
-        console.log("[LumiverseHelper] lumiaDef Chimera result length:", result.length);
       }
       // Normal single definition
       else if (!currentSettings.selectedDefinition) {
-        console.log("[LumiverseHelper] lumiaDef: No definition selected, returning empty");
         return "";
       } else {
         result = getLumiaContent("def", currentSettings.selectedDefinition);
-        console.log("[LumiverseHelper] lumiaDef result length:", result.length);
       }
 
       // Resolve any nested macros in the content (e.g., {{char}}, {{user}})
@@ -1237,15 +1220,12 @@ export function registerLumiaMacros(MacrosParser) {
       if (currentSettings.councilMode && currentSettings.councilMembers?.length > 0) {
         // Check if IRC chat style is enabled for council mode
         if (currentSettings.councilChatStyle?.enabled) {
-          console.log("[LumiverseHelper] lumiaOOC: Using council IRC mode prompt");
           result = buildOOCPromptCouncilIRC();
         } else {
-          console.log("[LumiverseHelper] lumiaOOC: Using council mode prompt");
           result = buildOOCPromptCouncil();
         }
       } else {
         // Return normal OOC prompt
-        console.log("[LumiverseHelper] lumiaOOC: Using normal mode prompt");
         result = buildOOCPromptNormal();
       }
       // Resolve any nested macros in the content (e.g., {{char}}, {{user}})
@@ -1268,11 +1248,9 @@ export function registerLumiaMacros(MacrosParser) {
       let result;
       // Return council erotic prompt if in council mode with members
       if (currentSettings.councilMode && currentSettings.councilMembers?.length > 0) {
-        console.log("[LumiverseHelper] lumiaOOCErotic: Using council mode prompt");
         result = buildOOCPromptEroticCouncil();
       } else {
         // Return normal erotic OOC prompt
-        console.log("[LumiverseHelper] lumiaOOCErotic: Using normal mode prompt");
         result = buildOOCPromptEroticNormal();
       }
       // Resolve any nested macros in the content (e.g., {{char}}, {{user}})
@@ -1295,11 +1273,9 @@ export function registerLumiaMacros(MacrosParser) {
       let result;
       // Return council bleed prompt if in council mode with members
       if (currentSettings.councilMode && currentSettings.councilMembers?.length > 0) {
-        console.log("[LumiverseHelper] lumiaOOCEroticBleed: Using council mode prompt");
         result = buildOOCPromptEroticBleedCouncil();
       } else {
         // Return normal bleed prompt
-        console.log("[LumiverseHelper] lumiaOOCEroticBleed: Using normal mode prompt");
         result = buildOOCPromptEroticBleedNormal();
       }
       // Resolve any nested macros in the content (e.g., {{char}}, {{user}})
@@ -1319,7 +1295,6 @@ export function registerLumiaMacros(MacrosParser) {
       if (!currentSettings.councilMode || !currentSettings.councilMembers?.length) {
         return "";
       }
-      console.log("[LumiverseHelper] lumiaCouncilInst: Council mode active, returning instruction");
 
       // Build list of council member names
       const memberNames = currentSettings.councilMembers
@@ -1382,7 +1357,6 @@ export function registerLumiaMacros(MacrosParser) {
       const isCouncil = currentSettings.councilMode && currentSettings.councilMembers?.length > 0;
       const result = isCouncil ? pronouns[1] : pronouns[0];
 
-      console.log(`[LumiverseHelper] lumiaSelf::${variant}: ${result} (council: ${isCouncil})`);
       return result;
     },
     description: "Returns self-address pronouns that adapt to Council mode (singular vs plural).",
@@ -1576,8 +1550,6 @@ Assess each active personality component. Affirm synthesis: My body is [details,
         return "";
       }
 
-      console.log(`[LumiverseHelper] lumiaCouncilDeliberation: Formatting ${results.length} tool results`);
-
       // Format results and add deliberation instructions
       const formattedResults = formatToolResultsForDeliberation(results);
       const instructions = getCouncilDeliberationInstructions();
@@ -1600,7 +1572,6 @@ Assess each active personality component. Affirm synthesis: My body is [details,
   MacrosParser.registerMacro("lumiaCouncilToolsActive", {
     handler: () => {
       const isActive = areCouncilToolsEnabled();
-      console.log(`[LumiverseHelper] lumiaCouncilToolsActive: ${isActive ? 'yes' : 'no'}`);
       return isActive ? "yes" : "no";
     },
     description: "Returns Council Tools status indicator. 'yes' if council mode and tools are enabled with members, 'no' otherwise. ST Conditional Compatible.",

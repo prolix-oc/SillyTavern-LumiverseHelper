@@ -94,14 +94,8 @@ export function getMacrosParser() {
   const hasLegacyParser = typeof ctx.MacrosParser?.registerMacro === "function";
 
   // Log what's available for debugging
-  console.log("[LumiverseHelper] Macro API detection:", {
-    "ctx.macros.register": hasNewMacrosAPI,
-    "ctx.registerMacro": hasRegisterMacro,
-    "ctx.MacrosParser": hasLegacyParser,
-  });
 
   if (!hasNewMacrosAPI && !hasRegisterMacro && !hasLegacyParser) {
-    console.warn("[LumiverseHelper] No macro registration API found");
     return null;
   }
 
@@ -173,7 +167,6 @@ export function getMacrosParser() {
           if (options.delayArgResolution !== undefined) macros2Options.delayArgResolution = options.delayArgResolution;
 
           ctx.macros.register(name, macros2Options);
-          console.log(`[LumiverseHelper] Registered macro via macros.register: ${name}`);
           return; // Success - don't try other methods
         } catch (e) {
           console.warn(`[LumiverseHelper] macros.register failed for ${name}, trying fallback:`, e.message);
@@ -184,7 +177,6 @@ export function getMacrosParser() {
       if (hasRegisterMacro) {
         try {
           ctx.registerMacro(name, handler);
-          console.log(`[LumiverseHelper] Registered macro via registerMacro: ${name}`);
           return; // Success
         } catch (e) {
           console.warn(`[LumiverseHelper] registerMacro failed for ${name}, trying fallback:`, e.message);
@@ -195,7 +187,6 @@ export function getMacrosParser() {
       if (hasLegacyParser) {
         try {
           ctx.MacrosParser.registerMacro(name, handler);
-          console.log(`[LumiverseHelper] Registered macro via MacrosParser: ${name}`);
           return; // Success
         } catch (e) {
           console.error(`[LumiverseHelper] All macro registration methods failed for ${name}:`, e.message);
@@ -329,7 +320,6 @@ export async function triggerExtensionUpdate(extensionName) {
     }
 
     const isGlobal = myEntry.type === 'global';
-    console.log(`[LumiverseHelper] Attempting update for '${cleanName}' (Global: ${isGlobal})...`);
 
     const response = await fetch('/api/extensions/update', {
       method: 'POST',
@@ -353,10 +343,8 @@ export async function triggerExtensionUpdate(extensionName) {
     const data = await response.json();
 
     if (data.isUpToDate) {
-      console.log(`[LumiverseHelper] Extension '${cleanName}' is already up to date.`);
       return { success: false, message: 'Already up to date', isUpToDate: true };
     } else {
-      console.log(`[LumiverseHelper] Extension '${cleanName}' updated successfully to ${data.shortCommitHash}.`);
       return { 
         success: true, 
         message: `Updated to ${data.shortCommitHash}. Reload to apply changes.`,
@@ -400,8 +388,6 @@ export async function getExtensionGitVersion(extensionName) {
     return null;
   }
 }
-
-
 
 /**
  * Get the ToolManager class for ST-native tool calling integration.
@@ -505,6 +491,138 @@ export function getSubstituteParams() {
 export function getTokenCountAsync() {
   const ctx = getContext();
   return typeof ctx?.getTokenCountAsync === 'function' ? ctx.getTokenCountAsync : null;
+}
+
+/**
+ * Get the createBranch function for chat forking.
+ * Creates a new chat branch ending at a given message index.
+ * @returns {Function|null} createBranch(mesId) function, or null if unavailable
+ */
+export function getCreateBranch() {
+  const ctx = getContext();
+  if (typeof ctx?.createBranch === 'function') return ctx.createBranch;
+  // Try global scope fallback
+  if (typeof globalThis.createBranch === 'function') return globalThis.createBranch;
+  return null;
+}
+
+/**
+ * Get itemized prompt data for prompt breakdown analysis.
+ * Tries context first, then falls back to localforage.
+ * @returns {Promise<Array|null>} Itemized prompts array or null
+ */
+export async function getItemizedPrompts() {
+  const ctx = getContext();
+
+  // Try 1: Direct context access
+  if (ctx?.itemizedPrompts && Array.isArray(ctx.itemizedPrompts)) {
+    return ctx.itemizedPrompts;
+  }
+
+  // Try 2: localforage instance
+  try {
+    if (typeof localforage !== 'undefined') {
+      const instance = localforage.createInstance({ name: 'SillyTavern_Prompts' });
+      const chatId = ctx?.chatId;
+      if (chatId) {
+        const data = await instance.getItem(chatId);
+        if (Array.isArray(data)) return data;
+      }
+    }
+  } catch (e) {
+    console.warn('[LumiverseHelper] Failed to read itemized prompts from localforage:', e.message);
+  }
+
+  return null;
+}
+
+/**
+ * Get the deleteMessage function for programmatic message deletion.
+ * Handles chat.splice, DOM removal, updateViewMessageIds, deleteItemizedPromptForMessage,
+ * chat_metadata.tainted, emitting MESSAGE_DELETED, and saving chat.
+ * @returns {Function|null} deleteMessage(id, swipeDeletionIndex?, askConfirmation?) function
+ */
+export function getDeleteMessage() {
+  const ctx = getContext();
+  return typeof ctx?.deleteMessage === 'function' ? ctx.deleteMessage : null;
+}
+
+/**
+ * Get the saveChat function for persisting chat to disk.
+ * Alias for saveChatConditional in ST.
+ * @returns {Function|null} saveChat() async function
+ */
+export function getSaveChat() {
+  const ctx = getContext();
+  return typeof ctx?.saveChat === 'function' ? ctx.saveChat : null;
+}
+
+/**
+ * Get the updateMessageBlock function for re-rendering a message in ST's DOM.
+ * @returns {Function|null} updateMessageBlock(messageId, message, options?) function
+ */
+export function getUpdateMessageBlock() {
+  const ctx = getContext();
+  return typeof ctx?.updateMessageBlock === 'function' ? ctx.updateMessageBlock : null;
+}
+
+/**
+ * Get the swipe API for programmatic swipe control.
+ * Provides left(), right(), and to() methods — no DOM clicks needed.
+ * @returns {{ left: Function, right: Function, to: Function } | null}
+ */
+export function getSwipeAPI() {
+  const ctx = getContext();
+  if (!ctx?.swipe) return null;
+  return ctx.swipe;
+}
+
+/**
+ * Get the Generate function for triggering LLM generations.
+ * Supports types: 'normal', 'regenerate', 'continue', 'impersonate', 'swipe'.
+ * @returns {Function|null} Generate(type, options?, dryRun?) async function
+ */
+export function getGenerate() {
+  const ctx = getContext();
+  return typeof ctx?.generate === 'function' ? ctx.generate : null;
+}
+
+/**
+ * Get the stopGeneration function to abort an in-progress generation.
+ * @returns {Function|null} stopGeneration() function
+ */
+export function getStopGeneration() {
+  const ctx = getContext();
+  return typeof ctx?.stopGeneration === 'function' ? ctx.stopGeneration : null;
+}
+
+/**
+ * Get the addOneMessage function for inserting a message into ST's DOM.
+ * Used for rendering user messages in the hidden #chat to keep ST state consistent.
+ * @returns {Function|null} addOneMessage(message, options?) function
+ */
+export function getAddOneMessage() {
+  const ctx = getContext();
+  return typeof ctx?.addOneMessage === 'function' ? ctx.addOneMessage : null;
+}
+
+/**
+ * Get the substituteParams function for macro resolution on message text.
+ * @returns {Function|null} substituteParams(text) function
+ */
+export function getSubstituteParamsFunc() {
+  const ctx = getContext();
+  return typeof ctx?.substituteParams === 'function' ? ctx.substituteParams : null;
+}
+
+/**
+ * Get the executeSlashCommandsWithOptions function for running ST slash commands programmatically.
+ * @returns {Function|null} executeSlashCommandsWithOptions(command) async function
+ */
+export function getExecuteSlashCommands() {
+  const ctx = getContext();
+  return typeof ctx?.executeSlashCommandsWithOptions === 'function'
+    ? ctx.executeSlashCommandsWithOptions : null;
 }
 
 /**

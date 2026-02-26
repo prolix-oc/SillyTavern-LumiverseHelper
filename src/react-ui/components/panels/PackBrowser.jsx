@@ -553,7 +553,6 @@ function PackBrowser() {
 
     const handleSelectItem = useCallback((item, type) => {
         // Handle item selection - could open a detail modal or add to selections
-        console.log('[PackBrowser] Selected item:', item, type);
 
         // Selections use itemName - get from both new and legacy field names
         const selection = {

@@ -53,7 +53,6 @@ export class ChatPresetService {
 
         // Get the name of the currently active preset
         const presetName = manager.getSelectedPresetName();
-        console.log('[ChatPresetService] Active preset name:', presetName);
         
         let settings = null;
 
@@ -62,7 +61,6 @@ export class ChatPresetService {
         if (API_ID === 'openai') {
             const list = manager.getPresetList();
             if (list && list.settings) {
-                console.log('[ChatPresetService] Using getPresetList().settings for OpenAI');
                 settings = list.settings;
             }
         }
@@ -72,7 +70,6 @@ export class ChatPresetService {
             settings = manager.getPresetSettings(presetName);
         }
         
-        console.log('[ChatPresetService] Raw settings found:', !!settings, settings ? Object.keys(settings) : 'null');
         
         if (!settings) return null;
 
@@ -257,7 +254,6 @@ export class ChatPresetService {
         }
 
         await upsertToggleState(stateName, toggles, sourcePreset);
-        console.log(`[ChatPresetService] Saved toggle state "${stateName}" with ${Object.keys(toggles).length} prompts`);
     }
 
     /**
@@ -295,7 +291,6 @@ export class ChatPresetService {
             return prompt;
         });
 
-        console.log(`[ChatPresetService] Applied toggle state "${stateName}": ${matched} matched, ${unmatched} unmatched`);
         return { prompts: newPrompts, matched, unmatched };
     }
 
@@ -306,7 +301,6 @@ export class ChatPresetService {
      */
     async deleteToggleState(stateName) {
         await removeToggleState(stateName);
-        console.log(`[ChatPresetService] Deleted toggle state "${stateName}"`);
     }
 
     // =========================================================================
@@ -347,7 +341,6 @@ export class ChatPresetService {
     async saveToggleStateToChat(prompts) {
         const chatId = this.getCurrentChatId();
         if (!chatId) {
-            console.warn('[ChatPresetService] No chat ID available');
             return false;
         }
 
@@ -367,7 +360,6 @@ export class ChatPresetService {
             sourcePreset: this.getCurrentPreset()?.name || null,
         });
 
-        console.log(`[ChatPresetService] Saved toggle state to chat "${chatId}" with ${Object.keys(toggles).length} prompts`);
         return true;
     }
 
@@ -390,7 +382,6 @@ export class ChatPresetService {
         if (!chatId) return false;
 
         await clearChatToggleBindingCache(chatId);
-        console.log(`[ChatPresetService] Cleared toggle state for chat "${chatId}"`);
         return true;
     }
 
@@ -428,7 +419,6 @@ export class ChatPresetService {
     async saveToggleStateToCharacter(prompts) {
         const avatar = this.getCurrentCharacterAvatar();
         if (!avatar) {
-            console.warn('[ChatPresetService] No character avatar available');
             return false;
         }
 
@@ -448,7 +438,6 @@ export class ChatPresetService {
             sourcePreset: this.getCurrentPreset()?.name || null,
         });
 
-        console.log(`[ChatPresetService] Saved toggle state for character "${avatar}" with ${Object.keys(toggles).length} prompts`);
         return true;
     }
 
@@ -481,7 +470,6 @@ export class ChatPresetService {
         if (!avatar) return false;
 
         await clearCharacterToggleBindingCache(avatar);
-        console.log(`[ChatPresetService] Cleared toggle state for character "${avatar}"`);
         return true;
     }
 
@@ -575,7 +563,6 @@ export class ChatPresetService {
     setPromptEnabled(promptId, enabled) {
         const orderEntry = this.getActivePromptOrderEntry();
         if (!orderEntry?.order) {
-            console.warn('[ChatPresetService] No prompt_order entry found');
             return false;
         }
 
@@ -603,7 +590,6 @@ export class ChatPresetService {
 
         const orderEntry = this.getActivePromptOrderEntry();
         if (!orderEntry?.order) {
-            console.warn('[ChatPresetService] No prompt_order entry found');
             return { matched: 0, unmatched: 0 };
         }
 
@@ -653,13 +639,11 @@ export class ChatPresetService {
     resetPromptsToDefault() {
         const current = this.getCurrentPreset();
         if (!current?.settings?.prompts) {
-            console.warn('[ChatPresetService] Cannot reset - no current preset or prompts');
             return false;
         }
 
         const orderEntry = this.getActivePromptOrderEntry();
         if (!orderEntry?.order) {
-            console.warn('[ChatPresetService] Cannot reset - no prompt_order entry');
             return false;
         }
 
@@ -682,7 +666,6 @@ export class ChatPresetService {
             }
         }
 
-        console.log(`[ChatPresetService] Reset ${resetCount} prompts to default enabled states`);
         return resetCount > 0;
     }
 
@@ -703,7 +686,6 @@ export class ChatPresetService {
         
         if (result.matched > 0) {
             this.refreshPromptManagerUI();
-            console.log(`[ChatPresetService] Applied toggle state "${stateName}" to runtime: ${result.matched} matched, ${result.unmatched} unmatched`);
             return { applied: true, ...result };
         }
 

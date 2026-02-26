@@ -98,14 +98,29 @@ import {
 } from "./lib/reactBridge.js";
 
 import { initPresetBindingService } from "./lib/presetBindingService.js";
-import { resolveActivePreset, assembleMessages, resolveBinding, setActivePreset, setStoredCoreChat, preResolveMedia, applySamplerOverrides, applyCustomBody, applyCompletionSettings, applyAdvancedSettings, getProfileKey, saveCurrentModelProfile, loadModelProfile, savePreset } from "./lib/lucidLoomService.js";
-import { handleLoomPresetTransition, isLoomControlActive, syncContextSize } from "./lib/oaiPresetSync.js";
+import { resolveActivePreset, assembleMessages, resolveBinding, setActivePreset, setStoredCoreChat, preResolveMedia, applySamplerOverrides, applyCustomBody, applyCompletionSettings, applyAdvancedSettings, applyAdaptiveThinking, getProfileKey, saveCurrentModelProfile, loadModelProfile, savePreset, getLastAssemblyBreakdown, loadPreset, captureModelProfile } from "./lib/lucidLoomService.js";
+import { captureReasoningSnapshot } from "./lib/presetsService.js";
+import { storeLoomBreakdown, loadLoomBreakdowns } from "./lib/chatSheldService.js";
+import { handleLoomPresetTransition, isLoomControlActive, syncContextSize, subscribeToOAIPresetEvents, reapplyLoomReasoningSettings } from "./lib/oaiPresetSync.js";
 
 import {
     isLandingPageEnabled,
     getRecentChats,
     getCharacterPreset,
 } from "./lib/landingPageService.js";
+
+import { initJokesCache } from "./lib/jokesService.js";
+
+import {
+    isChatSheldEnabled,
+    activateChatSheld,
+    deactivateChatSheld,
+    isChatSheldActive,
+    setStoreRef as setChatSheldStoreRef,
+    syncFullChat,
+    syncTailChat,
+    resetStreamingState,
+} from "./lib/chatSheldService.js";
 
 // Import React UI - this bundles it together and exposes window.LumiverseUI
 import "./react-ui/index.jsx";
@@ -384,7 +399,6 @@ function showContextOverflowWarning(chatTokens, maxContext, maxTokens) {
 // --- GENERATION INTERCEPTOR ---
 // CRITICAL: Must be exposed on globalThis for ST to find it via manifest.json
 globalThis.lumiverseHelperGenInterceptor = async function (chat, contextSize, abort, type) {
-  console.log(`[${MODULE_NAME}] Generation interceptor called with type: ${type}`);
 
   // Detect recursive Generate() calls from ST's tool call handling.
   // When the LLM invokes inline tools, ST calls Generate() recursively, which
@@ -401,7 +415,6 @@ globalThis.lumiverseHelperGenInterceptor = async function (chat, contextSize, ab
     clearWorldInfoEntries();
     resetIndicator();
   } else {
-    console.log(`[${MODULE_NAME}] Recursive interceptor call detected — preserving tool results`);
   }
 
   // === CONTEXT OVERFLOW CHECK (before council tools) ===
@@ -428,10 +441,8 @@ globalThis.lumiverseHelperGenInterceptor = async function (chat, contextSize, ab
           const chatTokens = await tokenCounter(chatText);
 
           if (chatTokens + maxTokens >= maxContext) {
-            console.log(`[${MODULE_NAME}] Context overflow detected: ${chatTokens} chat tokens + ${maxTokens} max response >= ${maxContext} max context`);
             const proceed = await showContextOverflowWarning(chatTokens, maxContext, maxTokens);
             if (!proceed) {
-              console.log(`[${MODULE_NAME}] User cancelled generation due to context overflow`);
               return { chat: [], contextSize: 0, abort: true };
             }
           }
@@ -445,7 +456,6 @@ globalThis.lumiverseHelperGenInterceptor = async function (chat, contextSize, ab
   // Execute council tools if enabled (only on first call, not recursive passes)
   // Run for normal sends, swipes, and regenerations (but not continue/impersonate/quiet)
   const shouldRunTools = isUserGeneration;
-  console.log(`[${MODULE_NAME}] Council tools check: type="${type}", isRecursive=${isRecursiveCall}, shouldRunTools=${shouldRunTools}, enabled=${areCouncilToolsEnabled()}`);
   
   if (!isRecursiveCall && shouldRunTools && areCouncilToolsEnabled()) {
     const toolMode = getCouncilToolsMode();
@@ -456,14 +466,11 @@ globalThis.lumiverseHelperGenInterceptor = async function (chat, contextSize, ab
       // If the user stops generation, abortToolExecution() cancels all in-flight fetches
       // and this await resolves promptly via AbortError.
       try {
-        console.log(`[${MODULE_NAME}] Council tools (sidecar mode) executing - STALLING generation...`);
         const startTime = Date.now();
         const results = await executeAllCouncilTools();
         const duration = Date.now() - startTime;
-        console.log(`[${MODULE_NAME}] Council tools (sidecar) execution COMPLETE in ${duration}ms - ${results.length} results obtained, resuming generation`);
       } catch (error) {
         if (error?.name === 'AbortError') {
-          console.log(`[${MODULE_NAME}] Council tools (sidecar) aborted by user — generation will not proceed`);
         } else {
           console.error(`[${MODULE_NAME}] Council tools (sidecar) execution failed:`, error);
         }
@@ -473,7 +480,6 @@ globalThis.lumiverseHelperGenInterceptor = async function (chat, contextSize, ab
       // Inline mode: tools are registered with ST's ToolManager and will be
       // included in the main generation request. The LLM decides when to call them.
       // Tool action callbacks accumulate results into latestToolResults.
-      console.log(`[${MODULE_NAME}] Council tools (inline mode) — tools registered with ST ToolManager, LLM will invoke during generation`);
     }
   }
 
@@ -499,7 +505,6 @@ globalThis.lumiverseHelperGenInterceptor = async function (chat, contextSize, ab
       }
     }
 
-    console.log(`[${MODULE_NAME}] Loom Builder: Preset "${loomPreset.name}" active — stored ${chat.length} chat messages for assembly`);
   } else {
     setStoredCoreChat(null);
   }
@@ -515,7 +520,6 @@ globalThis.lumiverseHelperGenInterceptor = async function (chat, contextSize, ab
     if (chat.length > keepCount) {
       const removedCount = chat.length - keepCount;
       chat.splice(0, removedCount);
-      console.log(`[${MODULE_NAME}] Message Truncation: Removed ${removedCount} older messages, keeping last ${keepCount}`);
     }
   }
 
@@ -536,16 +540,13 @@ globalThis.lumiverseHelperGenInterceptor = async function (chat, contextSize, ab
 
       setLastUserMessageContent(messageContent);
       setCapturedUserMessageFlag(true);
-      console.log(`[${MODULE_NAME}] Sovereign Hand: Captured last user message at index ${lastUserIndex}`);
 
       if (excludeLastMessage) {
         chat.splice(lastUserIndex, 1);
-        console.log(`[${MODULE_NAME}] Sovereign Hand: Removed last user message from context array`);
       }
     } else {
       setLastUserMessageContent("");
       setCapturedUserMessageFlag(false);
-      console.log(`[${MODULE_NAME}] Sovereign Hand: No user message found (continuation mode)`);
     }
   } else {
     setLastUserMessageContent("");
@@ -647,13 +648,10 @@ function registerAllMacros() {
     exampleUsage: ["{{lumiaOOCTrigger}}"],
   });
 
-  console.log(`[${MODULE_NAME}] Macros registered successfully (Macros 2.0 format)`);
 }
 
 // --- INITIALIZATION ---
 jQuery(async () => {
-  console.log(`[${MODULE_NAME}] jQuery initialization starting...`);
-  console.log(`[${MODULE_NAME}] window.LumiverseUI available:`, !!window.LumiverseUI);
 
   // Get ST APIs
   const eventSource = getEventSource();
@@ -687,7 +685,6 @@ jQuery(async () => {
   try {
     const usingFileStorage = await initPackFileStorage();
     if (usingFileStorage) {
-      console.log(`[${MODULE_NAME}] Pack file storage initialized`);
     }
   } catch (err) {
     console.error(`[${MODULE_NAME}] Failed to initialize pack file storage:`, err);
@@ -701,7 +698,6 @@ jQuery(async () => {
   // so registering eagerly is safe — they only appear in generation requests when conditions are met.
   try {
     registerSTTools();
-    console.log(`[${MODULE_NAME}] Council tools registered with ST ToolManager (shouldRegister gate active)`);
   } catch (err) {
     console.warn(`[${MODULE_NAME}] Failed to register ST council tools:`, err);
   }
@@ -763,14 +759,11 @@ jQuery(async () => {
   });
 
   // Initialize React UI (bundled together, should be available immediately)
-  console.log(`[${MODULE_NAME}] About to initialize React UI...`);
   const reactContainer = document.getElementById("extensions_settings");
-  console.log(`[${MODULE_NAME}] extensions_settings container:`, reactContainer);
 
   if (reactContainer) {
     const reactInitialized = await initializeReactUI(reactContainer);
     if (reactInitialized) {
-      console.log(`[${MODULE_NAME}] React UI initialized successfully`);
     } else {
       console.error(`[${MODULE_NAME}] React UI failed to initialize - check console for errors`);
     }
@@ -825,7 +818,6 @@ jQuery(async () => {
   // --- SILLYTAVERN EVENT HANDLERS ---
   if (eventSource && event_types) {
     eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, (mesId) => {
-      console.log(`[${MODULE_NAME}] CHARACTER_MESSAGE_RENDERED event for mesId ${mesId}`);
       setIsGenerating(false);
       markGenerationCycleEnd();
       captureLoomSummary();
@@ -837,66 +829,70 @@ jQuery(async () => {
       const context = getContext();
       if (context?.chat) {
         setLastAIMessageIndex(context.chat.length - 1);
-        console.log(`[${MODULE_NAME}] Tracked last AI message at index ${context.chat.length - 1}`);
       }
 
-      const messageElement = query(`div[mesid="${mesId}"] .mes_text`);
-      if (messageElement) {
-        hideLoomSumBlocks(messageElement);
-        unhideAndProcessOOCMarkers(messageElement);
+      // Skip DOM work when Chat Sheld is active — #chat is hidden and React
+      // handles OOC rendering via parseOOCTags() in the React path
+      if (!isChatSheldActive()) {
+        const messageElement = query(`div[mesid="${mesId}"] .mes_text`);
+        if (messageElement) {
+          hideLoomSumBlocks(messageElement);
+          unhideAndProcessOOCMarkers(messageElement);
 
-        // Check for OOC tags in raw content - ONLY tag-based detection
-        // Legacy font-based detection has been removed
-        const chatMessage = context?.chat?.[mesId];
-        const rawContent = chatMessage?.mes || chatMessage?.content || "";
-        const hasOOCTags = /<lumi[ao]_?ooc[^>]*>/i.test(rawContent);
+          // Check for OOC tags in raw content - ONLY tag-based detection
+          // Legacy font-based detection has been removed
+          const chatMessage = context?.chat?.[mesId];
+          const rawContent = chatMessage?.mes || chatMessage?.content || "";
+          const hasOOCTags = /<lumi[ao]_?ooc[^>]*>/i.test(rawContent);
 
-        if (hasOOCTags) {
-          console.log(`[${MODULE_NAME}] Found OOC tags in raw content, scheduling OOC processing for message ${mesId}`);
-          processLumiaOOCComments(mesId);
+          if (hasOOCTags) {
+            processLumiaOOCComments(mesId);
+          }
         }
       }
     });
 
     eventSource.on(event_types.MESSAGE_EDITED, (mesId) => {
-      console.log(`[${MODULE_NAME}] MESSAGE_EDITED event for mesId ${mesId}`);
       // Clear cached user message to prevent stale data on regenerate
       setLastUserMessageContent("");
       setCapturedUserMessageFlag(false);
       // Clear tracked texts to avoid stuck states
       clearProcessedTexts(mesId);
-      const messageElement = query(`div[mesid="${mesId}"] .mes_text`);
-      if (messageElement) {
-        const existingBoxes = queryAll("[data-lumia-ooc]", messageElement);
-        existingBoxes.forEach((box) => box.remove());
+      // Skip DOM OOC work when Chat Sheld is active — React handles OOC rendering
+      if (!isChatSheldActive()) {
+        const messageElement = query(`div[mesid="${mesId}"] .mes_text`);
+        if (messageElement) {
+          const existingBoxes = queryAll("[data-lumia-ooc]", messageElement);
+          existingBoxes.forEach((box) => box.remove());
+        }
+        // Force reprocess since content may have changed
+        processLumiaOOCComments(mesId, true);
       }
-      // Force reprocess since content may have changed
-      processLumiaOOCComments(mesId, true);
     });
 
     eventSource.on(event_types.MESSAGE_SWIPED, (mesId) => {
-      console.log(`[${MODULE_NAME}] MESSAGE_SWIPED event for mesId ${mesId}`);
       // Clear cached user message to prevent stale data on regenerate
       setLastUserMessageContent("");
       setCapturedUserMessageFlag(false);
       // Clear tracked texts and force reprocess for the new swipe
       clearProcessedTexts(mesId);
-      const messageElement = query(`div[mesid="${mesId}"] .mes_text`);
-      if (messageElement) {
-        const existingBoxes = queryAll("[data-lumia-ooc]", messageElement);
-        existingBoxes.forEach((box) => box.remove());
+      // Skip DOM OOC work when Chat Sheld is active — React handles OOC rendering
+      if (!isChatSheldActive()) {
+        const messageElement = query(`div[mesid="${mesId}"] .mes_text`);
+        if (messageElement) {
+          const existingBoxes = queryAll("[data-lumia-ooc]", messageElement);
+          existingBoxes.forEach((box) => box.remove());
+        }
+        processLumiaOOCComments(mesId, true);
       }
-      processLumiaOOCComments(mesId, true);
       // CRITICAL: Reset generation cycle on swipe to ensure council tools can fire
       // Swipe is a fresh generation, not a recursive call
       markGenerationCycleEnd();
       clearToolResults();
       resetIndicator();
-      console.log(`[${MODULE_NAME}] Reset generation cycle and cleared tool results for swipe`);
     });
 
     eventSource.on(event_types.CHAT_CHANGED, () => {
-      console.log(`[${MODULE_NAME}] CHAT_CHANGED event - resetting state and scheduling OOC reprocessing`);
       // Clear cached user message state for fresh start
       setLastUserMessageContent("");
       setCapturedUserMessageFlag(false);
@@ -905,7 +901,12 @@ jQuery(async () => {
       // Reset AI message tracking for swipe/regen detection
       setLastAIMessageIndex(-1);
       captureLoomSummary();
-      scheduleOOCProcessingAfterRender();
+      // Skip DOM OOC scheduling when Chat Sheld is active — the 2000ms polling
+      // loop scans the hidden #chat for DOM stability, completely wasted work.
+      // React handles OOC rendering via parseOOCTags() in MessageContent.
+      if (!isChatSheldActive()) {
+        scheduleOOCProcessingAfterRender();
+      }
       updateContextMeterTokens();
       requestAnimationFrame(() => {
         restoreSummaryMarkers();
@@ -923,7 +924,12 @@ jQuery(async () => {
             const lb = store.getState().loomBuilder || {};
             store.setState({ loomBuilder: { ...lb, activePresetId: resolvedPresetId } });
           }
-          console.log(`[${MODULE_NAME}] Loom Builder: Binding resolved to preset ${resolvedPresetId || '(none)'}`);
+        }
+
+        // Pre-warm Loom preset cache for sync access during generation
+        // (belt-and-suspenders in case initPackCache didn't load it yet)
+        if (resolvedPresetId) {
+          loadPreset(resolvedPresetId).catch(() => {});
         }
 
         // Sync ST OAI preset based on Loom preset transition
@@ -935,12 +941,10 @@ jQuery(async () => {
     });
 
     eventSource.on(event_types.GENERATION_STARTED, () => {
-      console.log(`[${MODULE_NAME}] GENERATION_STARTED - disabling OOC observer processing`);
       setIsGenerating(true);
     });
 
     eventSource.on(event_types.GENERATION_ENDED, () => {
-      console.log(`[${MODULE_NAME}] GENERATION_ENDED (error case) - resetting state`);
       // setIsGenerating(false) triggers setStreamingState(false) which auto-flushes pending updates
       // No need for explicit flushPendingUpdates() call - avoid double flush
       setIsGenerating(false);
@@ -951,7 +955,6 @@ jQuery(async () => {
     });
 
     eventSource.on(event_types.GENERATION_STOPPED, () => {
-      console.log(`[${MODULE_NAME}] GENERATION_STOPPED (user cancel) - resetting state`);
       // setIsGenerating(false) triggers setStreamingState(false) which auto-flushes pending updates
       // No need for explicit flushPendingUpdates() call - avoid double flush
       setIsGenerating(false);
@@ -966,12 +969,11 @@ jQuery(async () => {
       eventSource.on(event_types.WORLD_INFO_ACTIVATED, (entries) => {
         captureWorldInfoEntries(entries);
       });
-      console.log(`[${MODULE_NAME}] Subscribed to WORLD_INFO_ACTIVATED for council tools enrichment`);
     }
 
     // === MODEL PROFILE SWITCHING ===
     // When the user changes API or model, save the current profile and load the new one.
-    function handleModelChange() {
+    async function handleModelChange() {
       const newKey = getProfileKey();
       const store = window.LumiverseUI?.getStore?.();
       const currentPresetId = store?.getState()?.loomBuilder?.activePresetId;
@@ -983,16 +985,14 @@ jQuery(async () => {
       const oldKey = preset.lastProfileKey;
       if (oldKey === newKey) return; // Same model, no switch needed
 
-      console.log(`[${MODULE_NAME}] Model profile switch: ${oldKey || '(none)'} → ${newKey}`);
-
       // 1. Save current settings to the old profile
       let updated = saveCurrentModelProfile(preset, oldKey || newKey);
 
       // 2. Load settings from the new profile (if exists)
       updated = loadModelProfile(updated, newKey);
 
-      // 3. Persist the updated preset
-      savePreset(updated);
+      // 3. Persist the updated preset (await to prevent data loss on reload)
+      await savePreset(updated);
 
       // 4. Update React store so UI reflects new samplers
       if (store) {
@@ -1011,17 +1011,13 @@ jQuery(async () => {
     // Listen for API/model change events (defensive — only subscribe if event exists)
     if (event_types.MAIN_API_CHANGED) {
       eventSource.on(event_types.MAIN_API_CHANGED, () => {
-        console.log(`[${MODULE_NAME}] MAIN_API_CHANGED event`);
         handleModelChange();
       });
-      console.log(`[${MODULE_NAME}] Subscribed to MAIN_API_CHANGED for model profiles`);
     }
     if (event_types.CONNECTION_PROFILE_LOADED) {
       eventSource.on(event_types.CONNECTION_PROFILE_LOADED, () => {
-        console.log(`[${MODULE_NAME}] CONNECTION_PROFILE_LOADED event`);
         handleModelChange();
       });
-      console.log(`[${MODULE_NAME}] Subscribed to CONNECTION_PROFILE_LOADED for model profiles`);
     }
 
     // === LOOM PRESET BUILDER: Full prompt assembly ===
@@ -1044,38 +1040,140 @@ jQuery(async () => {
 
         try {
           // 1. Assemble messages from preset blocks
-          console.log(`[${MODULE_NAME}] Loom Builder: Assembling messages from preset "${activePreset.name}" (${activePreset.blocks?.length} blocks)`);
           const assembled = assembleMessages(activePreset, generateData);
           if (assembled && assembled.length > 0) {
             generateData.messages = assembled;
-            console.log(`[${MODULE_NAME}] Loom Builder: Replaced generate_data.messages with ${assembled.length} assembled messages`);
+          }
+
+          // 1b. Store Loom assembly breakdown for prompt itemization
+          const loomBreakdown = getLastAssemblyBreakdown();
+          if (loomBreakdown) {
+            const ctx2 = getContext();
+            const chatLen = ctx2.chat?.length || 0;
+            const genType = generateData.type || 'normal';
+            // Estimate mesId: regen/swipe/continue target last message; normal/impersonate create new
+            const estimatedMesId = (genType === 'regenerate' || genType === 'swipe' || genType === 'continue')
+              ? chatLen - 1
+              : chatLen;
+            // Build raw prompt display from assembled messages
+            const rawPrompt = assembled.map(m => {
+              const text = typeof m.content === 'string' ? m.content : JSON.stringify(m.content, null, 2);
+              return `[${m.role}]\n${text}`;
+            }).join('\n\n');
+            storeLoomBreakdown(estimatedMesId, {
+              ...loomBreakdown,
+              api: ctx2.mainApi || 'unknown',
+              model: generateData.model || '',
+              tokenizer: generateData.tokenizer || '',
+              maxContext: generateData.max_context_length || ctx2.maxContext || 0,
+              maxTokens: generateData.max_tokens || 0,
+              rawPrompt,
+            });
           }
 
           // 2. Apply sampler overrides (temperature, top_p, max_tokens, etc.)
           const samplerApplied = applySamplerOverrides(activePreset, generateData);
           if (samplerApplied.length > 0) {
-            console.log(`[${MODULE_NAME}] Loom Builder: Applied sampler overrides: ${samplerApplied.join(', ')}`);
           }
 
           // 3. Apply custom body JSON (raw_body, extra_body, thinking, etc.)
           const bodyApplied = applyCustomBody(activePreset, generateData);
           if (bodyApplied.length > 0) {
-            console.log(`[${MODULE_NAME}] Loom Builder: Applied custom body keys: ${bodyApplied.join(', ')}`);
           }
 
           // 4. Apply completion settings (prefill, names, squash, continue postfix)
           const completionApplied = applyCompletionSettings(activePreset, generateData);
           if (completionApplied.length > 0) {
-            console.log(`[${MODULE_NAME}] Loom Builder: Applied completion settings: ${completionApplied.join(', ')}`);
           }
 
           // 5. Apply advanced settings (seed, custom stop strings)
           const advancedApplied = applyAdvancedSettings(activePreset, generateData);
           if (advancedApplied.length > 0) {
-            console.log(`[${MODULE_NAME}] Loom Builder: Applied advanced settings: ${advancedApplied.join(', ')}`);
           }
 
-          // 6. Count tokens for the context meter (fire-and-forget, non-blocking)
+          // 6. Apply and sync reasoning/CoT settings from the Loom model profile.
+          //
+          //    The Loom model profile is the source of truth for reasoning settings.
+          //    Apply saved reasoning to both ST globals and generateData to ensure:
+          //    a) The generation uses correct reasoning settings regardless of what
+          //       ST's OAI preset may have overwritten
+          //    b) The UI reflects the correct state
+          //
+          //    After applying, capture any user-initiated changes (made since last
+          //    profile save) and persist them.
+          //
+          //    Also normalize: when reasoning is off, force effort to 'auto' in
+          //    both ST globals and generate_data.
+          const currentProfileKey = getProfileKey();
+          if (currentProfileKey) {
+            if (!activePreset.modelProfiles) activePreset.modelProfiles = {};
+            const savedProfile = activePreset.modelProfiles[currentProfileKey];
+
+            if (savedProfile) {
+              // Apply saved reasoning to ST globals and generateData
+              reapplyLoomReasoningSettings();
+
+              // Mirror apiReasoning onto generateData directly (belt-and-suspenders:
+              // generateData may have been assembled from stale ST globals)
+              if (savedProfile.apiReasoning) {
+                if (savedProfile.apiReasoning.enabled !== undefined) {
+                  generateData.show_thoughts = savedProfile.apiReasoning.enabled;
+                }
+                if (savedProfile.apiReasoning.effort) {
+                  generateData.reasoning_effort = savedProfile.apiReasoning.effort;
+                }
+              }
+
+              // Now capture current state — if user changed reasoning in ST UI
+              // since last save, those changes will show up here
+              const currentReasoning = captureReasoningSnapshot();
+              const reasoningChanged =
+                JSON.stringify(savedProfile.reasoning) !== JSON.stringify(currentReasoning.reasoning) ||
+                JSON.stringify(savedProfile.apiReasoning) !== JSON.stringify(currentReasoning.apiReasoning) ||
+                savedProfile.startReplyWith !== currentReasoning.startReplyWith ||
+                savedProfile.postProcessing !== currentReasoning.postProcessing;
+
+              if (reasoningChanged) {
+                activePreset.modelProfiles[currentProfileKey] = {
+                  ...savedProfile,
+                  ...currentReasoning,
+                };
+                activePreset.lastProfileKey = currentProfileKey;
+                savePreset(activePreset);
+              }
+            } else {
+              // No profile yet for this model — create one with current state
+              activePreset.modelProfiles[currentProfileKey] = captureModelProfile(activePreset);
+              activePreset.lastProfileKey = currentProfileKey;
+              savePreset(activePreset);
+            }
+          }
+
+          // Normalize stale reasoning_effort when reasoning is disabled
+          {
+            const ctx3 = getContext();
+            if (ctx3?.chatCompletionSettings && !ctx3.chatCompletionSettings.show_thoughts) {
+              if (ctx3.chatCompletionSettings.reasoning_effort && ctx3.chatCompletionSettings.reasoning_effort !== 'auto') {
+                ctx3.chatCompletionSettings.reasoning_effort = 'auto';
+                const $ = window.jQuery;
+                if ($) $('#openai_reasoning_effort').val('auto');
+              }
+              if (generateData.reasoning_effort && generateData.reasoning_effort !== 'auto') {
+                generateData.reasoning_effort = 'auto';
+              }
+            }
+            // Also normalize on generateData when show_thoughts is explicitly off
+            if (generateData.show_thoughts === false && generateData.reasoning_effort && generateData.reasoning_effort !== 'auto') {
+              generateData.reasoning_effort = 'auto';
+            }
+          }
+
+          // 6b. Apply adaptive thinking for Claude 4.6 models
+          const adaptiveApplied = applyAdaptiveThinking(activePreset, generateData);
+          if (adaptiveApplied.length > 0) {
+          }
+
+          // 7. Count tokens for the context meter (fire-and-forget, non-blocking)
           const tokenCounter = getTokenCountAsync();
           if (tokenCounter && window.LumiverseUI?.getStore) {
             const ctx = getContext();
@@ -1104,15 +1202,20 @@ jQuery(async () => {
           console.error(`[${MODULE_NAME}] Loom Builder: Assembly failed, using ST native assembly:`, err);
         }
       });
-      console.log(`[${MODULE_NAME}] Subscribed to CHAT_COMPLETION_SETTINGS_READY for Loom Builder assembly`);
     }
+
+    // Subscribe to OAI preset change events persistently.
+    // This ensures Loom reasoning settings are restored whenever ST applies a preset.
+    subscribeToOAIPresetEvents();
   }
+
+  // Initialize inside jokes cache (fire-and-forget, non-blocking)
+  initJokesCache().catch(() => {});
 
   // Set up MutationObserver for streaming support
   setupLumiaOOCObserver();
 
   // Process any existing OOC comments on initial load
-  console.log(`[${MODULE_NAME}] Initial load - scheduling OOC processing`);
   scheduleOOCProcessingAfterRender();
 
   // --- CUSTOM LANDING PAGE ---
@@ -1124,11 +1227,9 @@ jQuery(async () => {
   let originalBodyOverflow = '';
 
   function renderCustomLanding() {
-    console.log(`[${MODULE_NAME}] renderCustomLanding called`);
 
     // Check if landing page is enabled
     if (!isLandingPageEnabled()) {
-      console.log(`[${MODULE_NAME}] Landing page disabled, using default welcome screen`);
       restoreSheld();
       return;
     }
@@ -1149,31 +1250,19 @@ jQuery(async () => {
                        ctx?.name2 === ctx?.neutralCharacterName;
     
     const isChatOpen = hasChatId || isTempChat;
-    console.log(`[${MODULE_NAME}] Context:`, { 
-      chatId: ctx?.chatId, 
-      characterId: ctx?.characterId, 
-      groupId: ctx?.groupId, 
-      name2: ctx?.name2,
-      neutralCharacterName: ctx?.neutralCharacterName,
-      chatLength: ctx?.chat?.length 
-    });
-    console.log(`[${MODULE_NAME}] isChatOpen:`, isChatOpen, `(hasChatId: ${hasChatId}, isTempChat: ${isTempChat})`);
 
     if (isChatOpen) {
       // Chat is open - restore sheld and remove landing page
-      console.log(`[${MODULE_NAME}] Chat is open, hiding landing page`);
       restoreSheld();
       removeLandingPage();
       return;
     }
 
     // No chat open - show landing page
-    console.log(`[${MODULE_NAME}] No chat open, showing landing page`);
     showLandingPage();
   }
 
   function showLandingPage() {
-    console.log(`[${MODULE_NAME}] showLandingPage called`);
 
     // Lock body scroll to prevent underlying content from scrolling
     if (!originalBodyOverflow) {
@@ -1184,7 +1273,6 @@ jQuery(async () => {
     // Hide the default sheld per developer guide
     const sheld = document.querySelector('#sheld');
     if (sheld) {
-      console.log(`[${MODULE_NAME}] Hiding #sheld`);
       sheld.style.opacity = '0';
       sheld.style.pointerEvents = 'none';
     } else {
@@ -1193,7 +1281,6 @@ jQuery(async () => {
 
     // Check if landing page already exists
     if (lumiverseLandingContainer) {
-      console.log(`[${MODULE_NAME}] Landing page container already exists, triggering refresh`);
       // Trigger refresh in React component to ensure data is up to date (e.g. on APP_READY)
       window.dispatchEvent(new Event('lumiverse:landing-refresh'));
       return;
@@ -1215,13 +1302,10 @@ jQuery(async () => {
       pointer-events: none;
     `;
     document.body.appendChild(lumiverseLandingContainer);
-    console.log(`[${MODULE_NAME}] Landing page container created and appended to body`, lumiverseLandingContainer);
 
     // Mount the landing page React component
     if (window.LumiverseUI?.renderLandingPage) {
-      console.log(`[${MODULE_NAME}] Calling window.LumiverseUI.renderLandingPage`);
       window.LumiverseUI.renderLandingPage(lumiverseLandingContainer);
-      console.log(`[${MODULE_NAME}] Custom landing page rendered (full-screen)`);
     } else {
       console.warn(`[${MODULE_NAME}] window.LumiverseUI.renderLandingPage not found, using fallback`);
       // Fallback: render simple HTML landing page
@@ -1233,7 +1317,6 @@ jQuery(async () => {
     if (lumiverseLandingContainer) {
       lumiverseLandingContainer.remove();
       lumiverseLandingContainer = null;
-      console.log(`[${MODULE_NAME}] Landing page removed`);
       
       // Restore body scroll
       document.body.style.overflow = originalBodyOverflow || '';
@@ -1450,7 +1533,6 @@ jQuery(async () => {
         });
       }
 
-      console.log(`[${MODULE_NAME}] Simple landing page rendered with ${allItems.length} chats`);
     } catch (err) {
       console.error(`[${MODULE_NAME}] Error rendering simple landing page:`, err);
     }
@@ -1467,6 +1549,78 @@ jQuery(async () => {
     // Trigger immediately in case we missed APP_READY or want to render ASAP
     // This ensures the landing page appears as soon as the script loads
     renderCustomLanding();
+  }
+
+  // --- CHAT SHELD OVERRIDE ---
+  // Glassmorphic chat redesign that replaces ST's default chat display.
+  // Coordination with landing page: mutually exclusive — landing page hides #sheld entirely,
+  // chat sheld activates only when a chat IS open (landing page is removed).
+  {
+    // Give the chat sheld service access to the store for state updates
+    if (window.LumiverseUI?.getStore) {
+      setChatSheldStoreRef(window.LumiverseUI.getStore());
+    }
+
+    let chatSheldCleanup = null;
+
+    function manageChatSheld() {
+      if (!isChatSheldEnabled()) {
+        // Setting disabled — ensure deactivated
+        if (isChatSheldActive()) {
+          deactivateChatSheld();
+          if (chatSheldCleanup) {
+            chatSheldCleanup();
+            chatSheldCleanup = null;
+          }
+          // OOC DOM processing was skipped while chat sheld was active —
+          // reprocess now that #chat is visible again
+          scheduleOOCProcessingAfterRender();
+        }
+        return;
+      }
+
+      const ctx = getContext();
+      const hasChatId = ctx?.chatId !== undefined && ctx?.chatId !== null && ctx?.chatId !== '';
+      const isTempChat = ctx?.characterId === undefined &&
+                         ctx?.name2 &&
+                         ctx?.name2 === ctx?.neutralCharacterName;
+      const isChatOpen = hasChatId || isTempChat;
+
+      if (isChatOpen) {
+        // Chat is open — activate chat sheld if not already
+        if (!isChatSheldActive()) {
+          const container = activateChatSheld();
+          if (container && window.LumiverseUI?.mountChatSheld) {
+            chatSheldCleanup = window.LumiverseUI.mountChatSheld(container);
+          }
+          // Restore persisted Loom breakdowns on first activation (page refresh)
+          loadLoomBreakdowns();
+        } else {
+          // Already active — reset stale streaming state from previous chat,
+          // then tail-first sync for fast visual feedback on chat switch
+          resetStreamingState();
+          syncTailChat();
+          // Restore persisted Loom breakdowns for prompt itemization
+          loadLoomBreakdowns();
+        }
+      } else {
+        // No chat open — deactivate chat sheld (landing page handles this state)
+        if (isChatSheldActive()) {
+          deactivateChatSheld();
+          if (chatSheldCleanup) {
+            chatSheldCleanup();
+            chatSheldCleanup = null;
+          }
+        }
+      }
+    }
+
+    // Hook into the same events as the landing page
+    if (eventSource && event_types) {
+      eventSource.on(event_types.CHAT_CHANGED, manageChatSheld);
+      // Also check on APP_READY in case a chat is already open
+      eventSource.on(event_types.APP_READY, manageChatSheld);
+    }
   }
 
   // --- SLASH COMMANDS ---
@@ -1516,5 +1670,4 @@ jQuery(async () => {
     }
   });
 
-  console.log(`${MODULE_NAME} initialized`);
 });

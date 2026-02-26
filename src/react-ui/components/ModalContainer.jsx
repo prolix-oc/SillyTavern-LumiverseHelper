@@ -1,6 +1,7 @@
 import React, { useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useUI, useLumiverseActions } from '../store/LumiverseContext';
+import useFixedPositionFix from '../hooks/useFixedPositionFix';
 import clsx from 'clsx';
 
 // Import modal components
@@ -20,6 +21,9 @@ import LucidCardsModal from './modals/LucidCardsModal';
 import LoomSummaryModal from './modals/LoomSummaryModal';
 import PresetManageModal from './modals/PresetManageModal';
 import LoomBuilderModal from './modals/LoomBuilderModal';
+import ManageChatsModal from './modals/ManageChatsModal';
+import PromptItemizationModal from './modals/PromptItemizationModal';
+import { AuthorsNoteModalContent } from './chat/AuthorsNotePanel';
 
 /**
  * Modal wrapper that provides backdrop and close functionality
@@ -271,6 +275,30 @@ const MODAL_CONFIG = {
         hasCustomHeader: true,
         props: {},
     },
+    // Chat file manager
+    manageChats: {
+        component: ManageChatsModal,
+        modalType: 'settings',
+        size: 'large',
+        hasCustomHeader: true,
+        props: {},
+    },
+    // Prompt itemization breakdown
+    promptItemization: {
+        component: PromptItemizationModal,
+        modalType: 'settings',
+        size: 'large',
+        hasCustomHeader: true,
+        props: {},
+    },
+    // Author's Note (mobile modal — desktop uses side panel via AuthorsNotePortal)
+    authorsNote: {
+        component: AuthorsNoteModalContent,
+        modalType: 'settings',
+        size: 'medium',
+        hasCustomHeader: true,
+        props: {},
+    },
 };
 
 /**
@@ -280,6 +308,9 @@ function ModalContainer() {
     const ui = useUI();
     const actions = useLumiverseActions();
 
+    // Neutralize SillyTavern's html transform/perspective that breaks position:fixed
+    useFixedPositionFix(!!ui.activeModal);
+
     if (!ui.activeModal) {
         return null;
     }
@@ -288,7 +319,6 @@ function ModalContainer() {
     const config = MODAL_CONFIG[name];
 
     if (!config) {
-        console.warn(`[LumiverseUI] Unknown modal: ${name}`);
         return null;
     }
 

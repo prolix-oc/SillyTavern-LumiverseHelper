@@ -6,6 +6,7 @@ import { useLumiverseStore } from '../store/LumiverseContext';
 import { getTopBarHeight } from '../../lib/domUtils.js';
 import ConfirmationModal from './shared/ConfirmationModal.jsx';
 import { getLumiverseVersion, getSillyTavernVersion, isPrerelease } from '../../lib/version.js';
+import { getRandomJoke, onJokesReady } from '../../lib/jokesService.js';
 
 /* global toastr */
 
@@ -97,36 +98,44 @@ const GroupAvatarStack = React.memo(({ members, groupName }) => {
     useEffect(() => {
         let cancelled = false;
         setLoadedCount(0);
+        setAvatarUrls([]);
 
         Promise.all(
             membersToShow.map(memberFile => getAvatarUrl(memberFile))
         ).then(urls => {
-            if (!cancelled) setAvatarUrls(urls);
+            if (cancelled) return;
+            // Preload all images, replacing broken ones with fallback
+            const preloaded = urls.map(url => new Promise(resolve => {
+                const img = new Image();
+                img.onload = () => resolve(url);
+                img.onerror = () => resolve('/img/fa-solid-user.svg');
+                img.src = url;
+            }));
+            return Promise.all(preloaded);
+        }).then(validUrls => {
+            if (!cancelled && validUrls) {
+                setAvatarUrls(validUrls);
+                setLoadedCount(validUrls.length);
+            }
         });
 
         return () => { cancelled = true; };
     }, [members]);
 
-    const handleImageLoad = useCallback(() => {
-        setLoadedCount(prev => prev + 1);
-    }, []);
-
-    const allLoaded = loadedCount >= membersToShow.length;
+    const allLoaded = loadedCount >= membersToShow.length && avatarUrls.length > 0;
 
     return (
         <div className="lumiverse-lp-group-stack">
-            {!allLoaded && (
-                <div className="lumiverse-lp-group-stack-loading">
-                    <Loader2 className="lumiverse-lp-spin" size={24} />
-                </div>
-            )}
-            <div 
+            <div className="lumiverse-lp-group-stack-loading" style={{ opacity: allLoaded ? 0 : 1 }}>
+                <Loader2 className="lumiverse-lp-spin" size={24} />
+            </div>
+            <div
                 className="lumiverse-lp-group-stack-avatars"
                 data-count={getCountAttr()}
                 style={{ opacity: allLoaded ? 1 : 0 }}
             >
                 {avatarUrls.map((url, index) => (
-                    <motion.div
+                    <div
                         key={`${membersToShow[index]}-${index}`}
                         className="lumiverse-lp-group-avatar-wrapper"
                         style={{
@@ -134,27 +143,15 @@ const GroupAvatarStack = React.memo(({ members, groupName }) => {
                             '--stack-total': membersToShow.length,
                             zIndex: maxAvatars - index,
                         }}
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ 
-                            delay: index * 0.05,
-                            type: "spring",
-                            stiffness: 400,
-                            damping: 25
-                        }}
                     >
                         <img
                             src={url}
                             alt={`Group member ${index + 1}`}
                             className="lumiverse-lp-group-avatar-img"
                             draggable={false}
-                            onLoad={handleImageLoad}
-                            onError={(e) => {
-                                e.target.src = '/img/fa-solid-user.svg';
-                                handleImageLoad();
-                            }}
+                            onError={(e) => { e.target.src = '/img/fa-solid-user.svg'; }}
                         />
-                    </motion.div>
+                    </div>
                 ))}
                 {overflow > 0 && (
                     <div 
@@ -186,12 +183,11 @@ const containerVariants = {
 };
 
 const cardVariants = {
-    hidden: { opacity: 0, y: 20, scale: 0.95 },
-    visible: { 
-        opacity: 1, 
-        y: 0, 
-        scale: 1,
-        transition: { 
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+        opacity: 1,
+        y: 0,
+        transition: {
             default: { type: "spring", stiffness: 300, damping: 24 },
             opacity: { duration: 0.3, ease: "easeOut" }
         }
@@ -252,11 +248,27 @@ const ChatCard = React.memo(({ item, presetName, onClick, onDelete, index }) => 
 
     useEffect(() => {
         let cancelled = false;
-        // Reset load state only when the underlying avatar source changes
         setImageLoaded(false);
+
         getAvatarUrl(item).then(url => {
-            if (!cancelled) setAvatarUrl(url);
+            if (cancelled) return;
+            // Preload image off-screen to avoid broken icon flash
+            const img = new Image();
+            img.onload = () => {
+                if (!cancelled) {
+                    setAvatarUrl(url);
+                    setImageLoaded(true);
+                }
+            };
+            img.onerror = () => {
+                if (!cancelled) {
+                    setAvatarUrl('/img/fa-solid-user.svg');
+                    setImageLoaded(true);
+                }
+            };
+            img.src = url;
         });
+
         return () => { cancelled = true; };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [stableAvatarKey, stableIsGroup]);
@@ -268,10 +280,9 @@ const ChatCard = React.memo(({ item, presetName, onClick, onDelete, index }) => 
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={handleMouseLeave}
             variants={cardVariants}
-            whileHover={shouldReduceMotion ? {} : { y: -8, scale: 1.02, transition: { duration: 0.2 } }}
-            whileTap={shouldReduceMotion ? {} : { scale: 0.98 }}
+            whileHover={shouldReduceMotion ? {} : { y: -8, transition: { duration: 0.2 } }}
+            whileTap={shouldReduceMotion ? {} : { y: -2, transition: { duration: 0.1 } }}
             layout={false} // Explicitly disable layout animations to prevent thrashing
-            style={{ willChange: 'transform, opacity' }} // Performance hint
         >
             {/* Glass shimmer effect */}
             {!shouldReduceMotion && (
@@ -305,36 +316,18 @@ const ChatCard = React.memo(({ item, presetName, onClick, onDelete, index }) => 
                     />
                 ) : (
                     <>
-                        {!imageLoaded && (
-                            <div style={{
-                                position: 'absolute',
-                                inset: 0,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                zIndex: 1
-                            }}>
-                                <Loader2 className="lumiverse-lp-spin" size={24} color="rgba(255,255,255,0.5)" />
-                            </div>
-                        )}
-                        <motion.img
+                        <div
+                            className="lumiverse-lp-card-avatar-spinner"
+                            style={{ opacity: imageLoaded ? 0 : 1 }}
+                        >
+                            <Loader2 className="lumiverse-lp-spin" size={24} color="rgba(255,255,255,0.5)" />
+                        </div>
+                        <img
                             src={avatarUrl}
                             alt={item.name}
                             className="lumiverse-lp-card-avatar"
                             draggable={false}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: imageLoaded ? 1 : 0 }}
-                            transition={{ duration: 0.3 }}
-                            onLoad={() => setImageLoaded(true)}
-                            style={{
-                                width: '75%',
-                                height: '75%',
-                                maxWidth: '100%',
-                                maxHeight: '100%',
-                                objectFit: 'cover',
-                                borderRadius: '50%'
-                            }}
-                            onError={(e) => { e.target.src = '/img/fa-solid-user.svg'; setImageLoaded(true); }}
+                            style={{ opacity: imageLoaded ? 1 : 0 }}
                         />
                     </>
                 )}
@@ -500,6 +493,26 @@ function VersionInfo() {
 }
 
 /**
+ * InsideJoke — Subtle easter egg text shown during loading states.
+ * Tries synchronously first; if the cache hasn't loaded yet,
+ * subscribes via onJokesReady and retries once available.
+ */
+function InsideJoke() {
+    const [joke, setJoke] = useState(() => getRandomJoke());
+
+    useEffect(() => {
+        if (joke) return;
+        return onJokesReady(() => {
+            const j = getRandomJoke();
+            if (j) setJoke(j);
+        });
+    }, [joke]);
+
+    if (!joke) return null;
+    return <span className="lumiverse-lp-joke">{joke}</span>;
+}
+
+/**
  * Loading Skeleton Card
  */
 function SkeletonCard({ index }) {
@@ -527,10 +540,12 @@ function LandingPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [presetBindings, setPresetBindings] = useState({});
-    const [paddingTop, setPaddingTop] = useState(50);
+    const [paddingTop, setPaddingTop] = useState(25);
     const [isAppReady, setIsAppReady] = useState(!!window.lumiverseAppReady);
     const mountTimeRef = React.useRef(Date.now());
-    
+    const scrollContainerRef = useRef(null);
+    const scrollTimerRef = useRef(null);
+
     // Delete confirmation modal state
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [pendingDeleteItem, setPendingDeleteItem] = useState(null);
@@ -547,7 +562,7 @@ function LandingPage() {
     // Inject styles and set padding, handle resize
     useLayoutEffect(() => {
         const updatePadding = () => {
-            setPaddingTop(getTopBarHeight());
+            setPaddingTop(Math.round(getTopBarHeight() / 2));
         };
 
         const updateGrid = () => {
@@ -619,25 +634,53 @@ function LandingPage() {
         };
     }, []);
 
-    // Re-run grid update when items change (to ensure grid exists)
+    // Defer card hover effects during active scroll to avoid GPU spikes
+    // from incidental hovers. Toggles a CSS class via DOM ref (zero re-renders).
     useEffect(() => {
-        // Run updateGrid logic immediately after render
+        const container = scrollContainerRef.current;
+        if (!container) return;
+
+        // Also toggle on the root container so CSS can reach sibling elements (bg glows)
+        const rootContainer = container.closest('.lumiverse-lp-container');
+
+        const onScroll = () => {
+            if (!container.classList.contains('lumiverse-lp-scrolling')) {
+                container.classList.add('lumiverse-lp-scrolling');
+                if (rootContainer) rootContainer.classList.add('lumiverse-lp-scrolling');
+            }
+            clearTimeout(scrollTimerRef.current);
+            scrollTimerRef.current = setTimeout(() => {
+                container.classList.remove('lumiverse-lp-scrolling');
+                if (rootContainer) rootContainer.classList.remove('lumiverse-lp-scrolling');
+            }, 150);
+        };
+
+        container.addEventListener('scroll', onScroll, { passive: true });
+        return () => {
+            container.removeEventListener('scroll', onScroll);
+            clearTimeout(scrollTimerRef.current);
+        };
+    }, []);
+
+    // Re-run grid update when items change (to ensure grid exists)
+    const itemCount = items.length;
+    useEffect(() => {
+        if (itemCount === 0) return;
+        // Run updateGrid logic after render when cards are in the DOM
         const updateGrid = () => {
             const grids = document.querySelectorAll('.lumiverse-lp-grid-cards');
             if (grids.length) {
-                // Dispatch event to trigger the main listener (simpler than duplicating logic)
                 window.dispatchEvent(new Event('resize'));
             }
         };
-        
+
         updateGrid();
         // Also retry after a frame to catch layout settle
         requestAnimationFrame(updateGrid);
-    }, [items, loading]);
+    }, [itemCount]);
 
     // Fetch recent chats
     const fetchChats = useCallback(async (retryCount = 0) => {
-        console.log('[Lumiverse LP] fetchChats called, retry:', retryCount);
         // Only set loading true on the very first attempt of a sequence
         if (retryCount === 0) setLoading(true);
         setError(null);
@@ -645,7 +688,6 @@ function LandingPage() {
         try {
             const { characters } = await import(/* webpackIgnore: true */ '../../../../../script.js');
             const { groups } = await import(/* webpackIgnore: true */ '../../../../group-chats.js');
-            console.log('[Lumiverse LP] imports done - chars:', characters?.length, 'groups:', groups?.length, 'groups[0]:', groups?.[0]);
 
             const mappedChars = (characters || []).map((char, index) => ({
                 ...char,
@@ -665,39 +707,25 @@ function LandingPage() {
             // Combine and filter
             const allItems = [...mappedChars, ...mappedGroups]
                 .filter(item => item._sortDate > 0);
-            
-            const groupsInAll = allItems.filter(i => i._type === 'group');
-            console.log('[Lumiverse LP] allItems:', allItems.length, 'groups in allItems:', groupsInAll.length, 'chatsDisplayed:', chatsDisplayed);
-            if (groupsInAll.length > 0) {
-                console.log('[Lumiverse LP] group _sortDate:', groupsInAll[0]._sortDate, 'top 3 char dates:', allItems.filter(i => i._type === 'character').slice(0, 3).map(c => ({ name: c.name, date: c._sortDate })));
-            }
 
             const sortedItems = allItems
                 .sort((a, b) => b._sortDate - a._sortDate)
                 .slice(0, chatsDisplayed);
-            
-            const groupsInSorted = sortedItems.filter(i => i._type === 'group');
-            console.log('[Lumiverse LP] sortedItems:', sortedItems.length, 'groups in sorted:', groupsInSorted.length);
-            
+
             // SMART RETRY LOGIC:
             // If we found no chats, and we are within the first 4 seconds of mounting,
             // assume ST might still be lazy-loading and retry.
-            // This prevents the "Empty State" flash.
+            // Keep loading=true — do NOT fall through to setLoading(false).
             if (sortedItems.length === 0 && (Date.now() - mountTimeRef.current < 4000) && retryCount < 8) {
-                console.log(`[Lumiverse Landing] No items found, retrying (${retryCount + 1}/8)...`);
                 setTimeout(() => fetchChats(retryCount + 1), 500);
-                return; // Keep loading=true
+                return; // Exit early — loading stays true, finally is skipped via early return guard below
             }
 
             setItems(sortedItems);
+            setLoading(false);
         } catch (err) {
             console.error('[Lumiverse] Error fetching chats:', err);
             setError(err.message);
-        } finally {
-            // Only turn off loading if we are NOT retrying
-            // We check the same condition as above essentially
-            const shouldRetry = false; // logic handled inside try block via return
-            // If we reached here, we are done (success or error or gave up retrying)
             setLoading(false);
         }
     }, [chatsDisplayed]);
@@ -722,16 +750,15 @@ function LandingPage() {
 
         // Listen for external refresh triggers (e.g., from index.js on APP_READY)
         const handleRefresh = () => {
-            console.log('[Lumiverse Landing] External refresh triggered');
             setIsAppReady(true);
-            fetchChats();
+            // Re-fetch from scratch (retryCount=0), replacing any in-progress retries
+            fetchChats(0);
         };
         window.addEventListener('lumiverse:landing-refresh', handleRefresh);
 
         // Fallback: If APP_READY never fires (or we missed it), force ready state after a timeout
         const fallbackTimer = setTimeout(() => {
             if (!window.lumiverseAppReady) {
-                console.warn('[Lumiverse Landing] Force-enabling ready state (timeout)');
                 setIsAppReady(true);
             }
         }, 4000);
@@ -763,8 +790,19 @@ function LandingPage() {
         return binding?.presetName || null;
     }, [presetBindings]);
 
-    // Handle item click
+    // Handle item click — shows loading feedback immediately, then yields
+    // to the browser before starting ST's heavy chat-loading work.
+    // Without the yield, selectCharacterById blocks the main thread for
+    // 1-2s (loading chat, rendering #chat DOM) and nothing paints until done.
+    const [isNavigating, setIsNavigating] = useState(false);
     const handleItemClick = useCallback(async (item) => {
+        if (isNavigating) return; // Prevent double-click
+        setIsNavigating(true);
+
+        // Double-rAF yield: React re-renders with loading overlay → browser
+        // paints it → THEN we start the heavy synchronous ST work.
+        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
         try {
             if (item._type === 'group' || item.members) {
                 const { openGroupById } = await import(/* webpackIgnore: true */ '../../../../group-chats.js');
@@ -780,8 +818,9 @@ function LandingPage() {
         } catch (err) {
             console.error('[Lumiverse] Error opening chat:', err);
             toastr?.error('Failed to open chat');
+            setIsNavigating(false);
         }
-    }, []);
+    }, [isNavigating]);
 
     // Handle delete button click - opens confirmation modal
     const handleDeleteChat = useCallback((item) => {
@@ -865,7 +904,6 @@ function LandingPage() {
         // Defensive check: ensure system messages are loaded (APP_READY has fired)
         // See: developer_guides/12_troubleshoot_temp_chat.md - Race Condition section
         if (!window.lumiverseAppReady) {
-            console.warn('[Lumiverse] Temporary chat blocked: APP_READY has not fired yet');
             toastr?.warning('Please wait for the app to finish loading');
             return;
         }
@@ -894,6 +932,22 @@ function LandingPage() {
 
     return (
         <div className="lumiverse-lp-container" style={{ paddingTop: `${paddingTop}px`, pointerEvents: 'none' }}>
+            {/* Navigation loading overlay — shown immediately on chat click,
+                before ST's heavy selectCharacterById blocks the main thread */}
+            {isNavigating && (
+                <div style={{
+                    position: 'fixed', inset: 0, zIndex: 99999,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'var(--lcs-page-bg, var(--lumiverse-bg, rgba(10,8,20,0.97)))',
+                    pointerEvents: 'all',
+                }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', opacity: 0.7 }}>
+                        <div className="lumiverse-lp-spinner" />
+                        <span style={{ fontSize: '13px', color: 'var(--lumiverse-text, #ccc)' }}>Loading chat&hellip;</span>
+                    </div>
+                    <InsideJoke />
+                </div>
+            )}
             {/* Ambient background effects */}
             <div className="lumiverse-lp-bg" style={{ top: `${paddingTop}px`, pointerEvents: 'auto' }}>
                 <div className="lumiverse-lp-bg-glow lumiverse-lp-bg-glow-1" />
@@ -975,7 +1029,7 @@ function LandingPage() {
                 </motion.header>
 
                 {/* Main grid */}
-                <main className="lumiverse-lp-main">
+                <main className="lumiverse-lp-main" ref={scrollContainerRef}>
                     <AnimatePresence mode="wait">
                         {(() => {
                             // Show loading skeletons if:
@@ -991,10 +1045,12 @@ function LandingPage() {
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
                                         exit={{ opacity: 0 }}
+                                        style={{ position: 'relative' }}
                                     >
                                         {Array.from({ length: 8 }).map((_, i) => (
                                             <SkeletonCard key={i} index={i} />
                                         ))}
+                                        <InsideJoke />
                                     </motion.div>
                                 );
                             }

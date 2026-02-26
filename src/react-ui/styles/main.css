@@ -1258,7 +1258,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     background: var(--lumiverse-fill);
     border: 1px solid var(--lumiverse-border-neutral);
     border-radius: 8px;
-    transition: all 0.2s ease;
+    transition: background 0.2s ease, border-color 0.2s ease, border-radius 0.2s ease;
 }
 
 .lumia-pack-item:hover {
@@ -1353,7 +1353,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     background: var(--lumiverse-fill-subtle);
     border: 1px solid var(--lumiverse-border-neutral);
     border-radius: 6px;
-    transition: all 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .lumia-pack-lumia-item:hover {
@@ -1448,7 +1448,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     background: rgba(100, 130, 180, 0.08);
     border: 1px solid rgba(100, 130, 180, 0.15);
     border-radius: 6px;
-    transition: all 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .lumia-pack-loom-item:hover {
@@ -1910,6 +1910,63 @@ details.lumia-panel[open] .lumia-panel-chevron {
     transform: translate(-50%, -50%) scale(1.1);
 }
 
+/* Chat Sheld display mode selector */
+.lumiverse-mode-selector {
+    margin-top: 10px;
+    padding-left: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.lumiverse-mode-selector-label {
+    font-size: 0.85em;
+    font-weight: 500;
+    color: var(--lumiverse-text-muted);
+}
+
+.lumiverse-mode-selector-btns {
+    display: flex;
+    border-radius: var(--lumiverse-radius);
+    overflow: hidden;
+    border: 1px solid var(--lumiverse-primary-015, rgba(147, 112, 219, 0.15));
+}
+
+.lumiverse-mode-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 6px 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--lumiverse-text-muted);
+    background: var(--lumiverse-bg-060, rgba(28, 24, 38, 0.6));
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.lumiverse-mode-btn:not(:last-child) {
+    border-right: 1px solid var(--lumiverse-primary-015, rgba(147, 112, 219, 0.15));
+}
+
+.lumiverse-mode-btn:hover {
+    background: var(--lumiverse-primary-015, rgba(147, 112, 219, 0.15));
+    color: var(--lumiverse-text);
+}
+
+.lumiverse-mode-btn--active {
+    background: linear-gradient(135deg, var(--lumiverse-primary-035, rgba(147, 112, 219, 0.35)) 0%, var(--lumiverse-primary-035, rgba(147, 112, 219, 0.35)) 100%);
+    color: var(--lumiverse-text);
+    box-shadow: var(--lumiverse-highlight-inset);
+}
+
+.lumiverse-mode-btn--active:hover {
+    background: linear-gradient(135deg, var(--lumiverse-primary-045, rgba(147, 112, 219, 0.45)) 0%, var(--lumiverse-primary-045, rgba(147, 112, 219, 0.45)) 100%);
+}
+
 /* Context Token Meter — compact bar between Generation Settings and block list */
 .lumiverse-context-meter {
     display: flex;
@@ -2324,11 +2381,11 @@ details.lumia-panel[open] .lumia-panel-chevron {
 .lumiverse-settings-modal-backdrop {
     position: fixed;
     inset: 0;
+    z-index: 10001;
     background: var(--lumiverse-fill-deepest);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 9999;
     padding: 24px;
     box-sizing: border-box;
     animation: lumiverse-settings-fade-in 0.2s ease;
@@ -2406,6 +2463,13 @@ details.lumia-panel[open] .lumia-panel-chevron {
     background: var(--lumiverse-fill-subtle);
 }
 
+/* Hidden on desktop — mobile-only elements */
+.lumiverse-settings-nav-mobile-close,
+.lumiverse-settings-mobile-header,
+.lumiverse-settings-mobile-dropdown {
+    display: none;
+}
+
 .lumiverse-settings-nav-items {
     padding: 8px 0;
     flex: 1;
@@ -2479,78 +2543,203 @@ details.lumia-panel[open] .lumia-panel-chevron {
     padding: 0;
 }
 
-/* --- Mobile responsive --- */
+/* --- Mobile responsive: dropdown selector nav --- */
 @media (max-width: 600px) {
     .lumiverse-settings-modal-backdrop {
         padding: 0;
+        background: var(--lumiverse-bg, #1a1a2e);
     }
 
     .lumiverse-settings-modal {
         grid-template-columns: 1fr;
         grid-template-rows: auto 1fr;
         width: 100vw;
+        height: 100vh;
         height: 100dvh;
         max-width: 100vw;
+        max-height: 100vh;
         max-height: 100dvh;
         border-radius: 0;
+        border: none;
     }
 
+    /* Hide the desktop sidebar elements on mobile */
+    .lumiverse-settings-nav-header,
+    .lumiverse-settings-nav-items {
+        display: none;
+    }
+
+    /* Nav becomes a compact bar with relative positioning for the dropdown */
     .lumiverse-settings-nav {
-        flex-direction: row;
-        overflow-x: auto;
-        overflow-y: hidden;
+        position: relative;
+        z-index: 2;
+        flex-direction: column;
+        overflow: visible;
         border-right: none;
         border-bottom: 1px solid var(--lumiverse-border);
+        background: var(--lumiverse-bg-deep, var(--lumiverse-bg));
     }
 
-    .lumiverse-settings-nav-header {
-        display: none;
-    }
-
-    .lumiverse-settings-nav-items {
+    /* ---- Mobile header bar: [icon] Section Name [▼] [✕] ---- */
+    .lumiverse-settings-mobile-header {
         display: flex;
-        flex-direction: row;
-        padding: 0 8px;
+        align-items: center;
+        height: 48px;
+        padding: 0 4px 0 0;
         gap: 0;
-        overflow-x: auto;
-        overflow-y: hidden;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
     }
 
-    .lumiverse-settings-nav-items::-webkit-scrollbar {
-        display: none;
-    }
-
-    .lumiverse-settings-nav-group {
+    .lumiverse-settings-mobile-selector {
+        flex: 1;
         display: flex;
-        flex-direction: row;
-        margin-bottom: 0;
+        align-items: center;
+        gap: 8px;
+        padding: 0 12px;
+        height: 100%;
+        background: none;
+        border: none;
+        color: var(--lumiverse-text);
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        text-align: left;
+    }
+
+    .lumiverse-settings-mobile-selector > svg:first-child {
+        color: var(--lumiverse-primary);
         flex-shrink: 0;
     }
 
-    .lumiverse-settings-nav-group-label {
-        display: none;
-    }
-
-    .lumiverse-settings-nav-item {
-        padding: 10px 14px;
+    .lumiverse-settings-mobile-selector-label {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
         white-space: nowrap;
+    }
+
+    .lumiverse-settings-mobile-chevron {
+        color: var(--lumiverse-text-muted);
         flex-shrink: 0;
+        transition: transform 0.2s cubic-bezier(0.32, 0.72, 0, 1);
     }
 
-    .lumiverse-settings-nav-item--active::before {
-        left: 8px;
-        right: 8px;
-        top: auto;
-        bottom: 0;
-        width: auto;
-        height: 2px;
-        border-radius: 2px 2px 0 0;
+    .lumiverse-settings-mobile-chevron--open {
+        transform: rotate(180deg);
     }
 
+    .lumiverse-settings-mobile-close {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        width: 44px;
+        height: 44px;
+        background: none;
+        border: none;
+        border-left: 1px solid var(--lumiverse-border);
+        color: var(--lumiverse-text-muted);
+        cursor: pointer;
+        padding: 0;
+        transition: color 0.15s, background 0.15s;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .lumiverse-settings-mobile-close:active {
+        color: var(--lumiverse-text);
+        background: var(--lumiverse-fill-subtle);
+    }
+
+    /* ---- Dropdown panel: overlays the content area ---- */
+    .lumiverse-settings-mobile-dropdown {
+        display: block;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        z-index: 10;
+        background: var(--lumiverse-bg-elevated, var(--lumiverse-bg));
+        border-bottom: 1px solid var(--lumiverse-border);
+        box-shadow:
+            0 6px 20px rgba(0, 0, 0, 0.35),
+            0 1px 3px rgba(0, 0, 0, 0.2);
+        max-height: 65vh;
+        max-height: 65dvh;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        padding: 6px 0;
+        animation: lumiverse-mobile-dropdown-in 0.18s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    @keyframes lumiverse-mobile-dropdown-in {
+        from {
+            opacity: 0;
+            transform: translateY(-6px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .lumiverse-settings-mobile-group {
+        padding: 2px 0;
+    }
+
+    .lumiverse-settings-mobile-group + .lumiverse-settings-mobile-group {
+        border-top: 1px solid var(--lumiverse-border);
+        margin-top: 2px;
+        padding-top: 4px;
+    }
+
+    .lumiverse-settings-mobile-group-label {
+        padding: 6px 16px 3px;
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--lumiverse-text-muted);
+        user-select: none;
+    }
+
+    .lumiverse-settings-mobile-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 10px 16px;
+        border: none;
+        background: none;
+        color: var(--lumiverse-text-secondary, var(--lumiverse-text-muted));
+        font-size: 13px;
+        cursor: pointer;
+        text-align: left;
+        transition: background 0.1s;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .lumiverse-settings-mobile-item:active {
+        background: var(--lumiverse-fill-subtle);
+    }
+
+    .lumiverse-settings-mobile-item--active {
+        color: var(--lumiverse-primary);
+        font-weight: 500;
+        background: var(--lumiverse-fill-subtle);
+    }
+
+    .lumiverse-settings-mobile-item--active > svg:first-child {
+        color: var(--lumiverse-primary);
+    }
+
+    /* ---- Content area mobile adjustments ---- */
     .lumiverse-settings-content {
         padding: 16px;
+        padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
     }
 }
 
@@ -2606,15 +2795,15 @@ details.lumia-panel[open] .lumia-panel-chevron {
     .lumiverse-modal-backdrop {
         padding: 12px;
         align-items: flex-start; /* Align to top on mobile for long modals */
-        padding-top: max(12px, env(safe-area-inset-top));
-        padding-bottom: max(12px, env(safe-area-inset-bottom));
+        padding-top: max(12px, env(safe-area-inset-top, 0px));
+        padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
     }
 
     .lumiverse-modal {
         width: calc(100vw - 24px);
         max-width: calc(100vw - 24px);
+        max-height: calc(100vh - 24px);
         max-height: calc(100dvh - 24px);
-        max-height: calc(100vh - 24px); /* Fallback */
         margin: auto;
     }
 
@@ -2629,6 +2818,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     .lumiverse-modal-lumia-editor,
     .lumiverse-modal-loom-editor,
     .lumiverse-modal-pack-editor {
+        max-height: calc(100vh - 24px);
         max-height: calc(100dvh - 24px);
         height: auto; /* Content determines height */
         overflow: hidden; /* Contain the flex layout */
@@ -7824,6 +8014,24 @@ details.lumia-panel[open] .lumia-panel-chevron {
     padding: 12px 14px 14px 14px;
 }
 
+/* Preset editor trigger (Loom Builder button) */
+.lumiverse-preset-editor-trigger {
+    background: var(--lumiverse-primary-005);
+    border: 1px solid var(--lumiverse-primary-015);
+    border-radius: 10px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.lumiverse-preset-editor-hint {
+    font-size: 11px;
+    color: var(--lumiverse-text-muted);
+    line-height: 1.4;
+    margin: 0;
+}
+
 /* Info box */
 .lumiverse-vp-info-box {
     background: var(--lumiverse-primary-008);
@@ -10858,6 +11066,54 @@ details.lumia-panel[open] .lumia-panel-chevron {
 }
 
 /* ========================================
+   Reverse Proxy Section
+   Collapsible accordion for proxy endpoint + key
+   ======================================== */
+
+.lumiverse-council-proxy-section {
+    border: 1px solid var(--lumiverse-border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.lumiverse-council-proxy-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 8px 10px;
+    background: var(--lumiverse-fill-subtle);
+    border: none;
+    color: var(--lumiverse-text-muted);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+
+.lumiverse-council-proxy-toggle:hover {
+    color: var(--lumiverse-text);
+    background: var(--lumiverse-primary-006);
+}
+
+.lumiverse-council-proxy-chevron {
+    margin-left: auto;
+    transition: transform 0.2s ease;
+}
+
+.lumiverse-council-proxy-chevron--open {
+    transform: rotate(180deg);
+}
+
+.lumiverse-council-proxy-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    border-top: 1px solid var(--lumiverse-border);
+}
+
+/* ========================================
    Council Select Modal
    Mobile-friendly modal for selecting council members
    ======================================== */
@@ -11777,20 +12033,17 @@ details.lumia-panel[open] .lumia-panel-chevron {
     grid-template-rows: 1fr;
 }
 
+/* Fade applied to the container, not individual children,
+   to avoid compositing layer conflicts with child transitions and transforms */
 .lumiverse-collapsible-inner {
     overflow: hidden;
-    /* Ensure content is properly hidden when collapsed */
     min-height: 0;
-}
-
-/* Optional: Fade in content when opening */
-.lumiverse-collapsible .lumiverse-collapsible-inner > * {
     opacity: 0;
     transition: opacity calc(var(--collapsible-duration, 200ms) * 0.5) ease-out;
     transition-delay: calc(var(--collapsible-duration, 200ms) * 0.25);
 }
 
-.lumiverse-collapsible.is-open .lumiverse-collapsible-inner > * {
+.lumiverse-collapsible.is-open .lumiverse-collapsible-inner {
     opacity: 1;
 }
 
@@ -11800,12 +12053,12 @@ details.lumia-panel[open] .lumia-panel-chevron {
         transition: none;
     }
 
-    .lumiverse-collapsible .lumiverse-collapsible-inner > * {
+    .lumiverse-collapsible-inner {
         transition: none;
         opacity: 1;
     }
 
-    .lumiverse-collapsible:not(.is-open) .lumiverse-collapsible-inner > * {
+    .lumiverse-collapsible:not(.is-open) .lumiverse-collapsible-inner {
         opacity: 0;
     }
 }
@@ -16295,11 +16548,55 @@ details.lumia-panel[open] .lumia-panel-chevron {
     font-size: 12px;
     line-height: 1.5;
     color: var(--lumiverse-danger, #ef5350);
-    font-style: italic;
     background: rgba(239, 83, 80, 0.08);
     border-radius: 6px;
     padding: 8px 10px;
     border: 1px solid rgba(239, 83, 80, 0.15);
+}
+
+.lumiverse-feedback-tool-error-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+    font-size: 12px;
+    color: var(--lumiverse-danger, #ef5350);
+}
+
+.lumiverse-feedback-tool-error-header strong {
+    font-weight: 700;
+}
+
+.lumiverse-feedback-tool-error-message {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--lumiverse-text, rgba(255, 255, 255, 0.9));
+    font-style: normal;
+}
+
+.lumiverse-feedback-tool-error-details {
+    margin-top: 6px;
+}
+
+.lumiverse-feedback-tool-error-details summary {
+    font-size: 11px;
+    color: var(--lumiverse-text-muted, rgba(255, 255, 255, 0.5));
+    cursor: pointer;
+    user-select: none;
+}
+
+.lumiverse-feedback-tool-error-details pre {
+    font-size: 10px;
+    line-height: 1.4;
+    color: var(--lumiverse-text-muted, rgba(255, 255, 255, 0.5));
+    margin: 4px 0 0;
+    padding: 6px 8px;
+    background: var(--lumiverse-fill-subtle, rgba(0, 0, 0, 0.15));
+    border-radius: 4px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 120px;
+    overflow-y: auto;
 }
 
 /* Empty state */

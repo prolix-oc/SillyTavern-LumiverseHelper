@@ -4,15 +4,17 @@
  */
 import React from 'react';
 import clsx from 'clsx';
-import { 
-    Brain, 
-    Sparkles, 
-    Zap, 
-    X, 
+import {
+    Brain,
+    Sparkles,
+    Zap,
+    X,
     Tag,
     Gauge,
-    Layers
+    Layers,
+    Workflow
 } from 'lucide-react';
+import { isAdaptiveThinkingModel } from '../../../lib/lucidLoomService';
 
 /**
  * Reasoning Settings Content Component
@@ -23,12 +25,15 @@ export function ReasoningSettingsContent({
     startReplyWith,
     apiReasoning,
     postProcessing = '',
+    adaptiveThinking,
+    connectionProfile,
     onApplyReasoningPreset,
     onStartReplyWithChange,
     onReasoningToggle,
     onAPIReasoningToggle,
     onReasoningEffortChange,
     onPostProcessingChange,
+    onAdaptiveThinkingToggle,
     effortLevels = ['auto', 'low', 'medium', 'high', 'min', 'max'],
     postProcessingOptions = [
         { value: '', label: 'None (Default)' },
@@ -42,6 +47,10 @@ export function ReasoningSettingsContent({
     ],
     compact = false
 }) {
+    const showAdaptiveToggle = apiReasoning.enabled
+        && onAdaptiveThinkingToggle
+        && connectionProfile?.model
+        && isAdaptiveThinkingModel(connectionProfile.model);
     return (
         <div className={clsx('lumiverse-presets-reasoning', compact && 'lumiverse-presets-reasoning--compact')}>
             {/* Quick presets */}
@@ -137,8 +146,22 @@ export function ReasoningSettingsContent({
                         </select>
                     </div>
                 </div>
+                {showAdaptiveToggle && (
+                    <label className="lumiverse-presets-reasoning-checkbox" style={{ marginTop: '6px' }}>
+                        <input
+                            type="checkbox"
+                            checked={adaptiveThinking ?? true}
+                            onChange={(e) => onAdaptiveThinkingToggle(e.target.checked)}
+                        />
+                        <span className="lumiverse-presets-reasoning-checkmark"></span>
+                        <Workflow size={12} strokeWidth={2} style={{ opacity: 0.7 }} />
+                        <span>Adaptive Thinking</span>
+                    </label>
+                )}
                 <p className="lumiverse-presets-api-reasoning-hint">
-                    For o1/o3, Grok 3, DeepSeek R1, and other reasoning models
+                    {showAdaptiveToggle && adaptiveThinking
+                        ? 'Adaptive thinking mode active for this Claude 4.6 model'
+                        : 'For o1/o3, Grok 3, DeepSeek R1, and other reasoning models'}
                 </p>
             </div>
 

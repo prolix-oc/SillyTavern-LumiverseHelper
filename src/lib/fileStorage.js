@@ -255,7 +255,6 @@ function createDefaultIndex() {
 export async function saveIndex(indexData) {
     try {
         await uploadFile(INDEX_FILENAME, indexData);
-        console.log(`[${MODULE_NAME}] Index saved successfully`);
     } catch (err) {
         console.error(`[${MODULE_NAME}] Failed to save index:`, err);
         throw err;
@@ -277,7 +276,6 @@ function migrateIndex(index) {
         }
         index.version = 2;
         migrated = true;
-        console.log(`[${MODULE_NAME}] Migrated index to v2 (added presets)`);
     }
     
     // v2 -> v3: Add toggleStateRegistry field
@@ -287,7 +285,6 @@ function migrateIndex(index) {
         }
         index.version = 3;
         migrated = true;
-        console.log(`[${MODULE_NAME}] Migrated index to v3 (added toggleStateRegistry)`);
     }
     
     // v3 -> v4: Add toggleBindings field for persistent toggle state bindings
@@ -300,7 +297,6 @@ function migrateIndex(index) {
         }
         index.version = 4;
         migrated = true;
-        console.log(`[${MODULE_NAME}] Migrated index to v4 (added toggleBindings)`);
     }
 
     // v4 -> v5: Add loomPresets section for Lucid Loom Preset Builder
@@ -314,7 +310,6 @@ function migrateIndex(index) {
         }
         index.version = 5;
         migrated = true;
-        console.log(`[${MODULE_NAME}] Migrated index to v5 (added loomPresets)`);
     }
 
     return { index, migrated };
@@ -363,7 +358,6 @@ export async function savePack(pack) {
 
     try {
         await uploadFile(fileKey, pack);
-        console.log(`[${MODULE_NAME}] Pack "${packName}" saved to ${fileKey}`);
         return fileKey;
     } catch (err) {
         console.error(`[${MODULE_NAME}] Failed to save pack "${packName}":`, err);
@@ -608,7 +602,6 @@ export async function saveToggleState(stateName, toggles, sourcePreset = null) {
     };
     
     await uploadFile(fileKey, data);
-    console.log(`[${MODULE_NAME}] Saved toggle state "${stateName}" to ${fileKey}`);
     
     return { fileKey };
 }
@@ -632,7 +625,6 @@ export async function deleteToggleState(stateName) {
     const fileKey = getToggleStateFileKey(stateName);
     const result = await deleteFile(fileKey);
     if (result) {
-        console.log(`[${MODULE_NAME}] Deleted toggle state "${stateName}"`);
     }
     return result;
 }
@@ -684,7 +676,6 @@ export function getLoomPresetFileKey(presetName) {
  */
 export async function saveLoomPreset(fileKey, presetData) {
     await uploadFile(fileKey, presetData);
-    console.log(`[${MODULE_NAME}] Loom preset saved to ${fileKey}`);
 }
 
 /**
@@ -718,7 +709,6 @@ export async function deleteAllLumiverseFiles() {
     const deleted = [];
     const failed = [];
     
-    console.log(`[${MODULE_NAME}] NUCLEAR: Deleting all Lumiverse files from User Files API...`);
     
     // First, try to load the index to get the list of files
     let index = null;
@@ -799,7 +789,6 @@ export async function deleteAllLumiverseFiles() {
         failed.push(INDEX_FILENAME);
     }
     
-    console.log(`[${MODULE_NAME}] NUCLEAR: Deleted ${deleted.length} files, ${failed.length} failed`);
     
     return { deleted, failed };
 }

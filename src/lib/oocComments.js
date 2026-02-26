@@ -89,7 +89,7 @@ export function getIsGenerating() {
  * @param {string} html - The raw innerHTML content
  * @returns {string} Cleaned content with tags stripped and whitespace normalized
  */
-function cleanOOCContent(html) {
+export function cleanOOCContent(html) {
   if (!html) return "";
 
   // Remove <lumia_ooc>, <lumiaooc>, <lumio_ooc>, <lumioooc> tags (all formats, case insensitive), keeping inner content
@@ -277,8 +277,6 @@ function extractOOCFromRawMessage(rawText) {
     // Stage 2: Extract name from attributes
     const rawName = extractNameFromAttributes(attrString);
     const sanitizedName = sanitizeLumiaName(rawName);
-
-    console.log(`[${MODULE_NAME}] Extracted OOC: tag=${tagVariant}, attrs="${attrString.trim()}", name="${rawName}" → "${sanitizedName}", content length=${content.length}`);
 
     matches.push({
       name: sanitizedName,
@@ -506,9 +504,7 @@ function expandRangeForTagFragments(accumulatedText, contentStart, contentEnd) {
       if (proposedStart >= 0) {
         expandedStart = proposedStart;
         if (openTagMatch[2]) {
-          console.log(`[${MODULE_NAME}] expandRangeForTagFragments: Found opening tag "${openTagMatch[1]}" with ${openTagMatch[2].length} gap chars "${openTagMatch[2]}", expanding start by ${fullMatchLength}`);
         } else {
-          console.log(`[${MODULE_NAME}] expandRangeForTagFragments: Found opening tag "${openTagMatch[1]}", expanding start by ${fullMatchLength}`);
         }
       }
     }
@@ -541,9 +537,7 @@ function expandRangeForTagFragments(accumulatedText, contentStart, contentEnd) {
       if (proposedEnd <= accumulatedText.length) {
         expandedEnd = proposedEnd;
         if (closeTagMatch[1]) {
-          console.log(`[${MODULE_NAME}] expandRangeForTagFragments: Found closing tag "${closeTagMatch[2]}" with ${closeTagMatch[1].length} gap chars "${closeTagMatch[1]}", expanding end by ${fullMatchLength}`);
         } else {
-          console.log(`[${MODULE_NAME}] expandRangeForTagFragments: Found closing tag "${closeTagMatch[2]}", expanding end by ${fullMatchLength}`);
         }
       }
     } else {
@@ -560,7 +554,6 @@ function expandRangeForTagFragments(accumulatedText, contentStart, contentEnd) {
         // Safety: ensure we don't exceed text length
         if (proposedEnd <= accumulatedText.length) {
           expandedEnd = proposedEnd;
-          console.log(`[${MODULE_NAME}] expandRangeForTagFragments: Found PARTIAL closing tag "${partialMatch[0]}", expanding end by ${tagLength}`);
         }
       }
     }
@@ -749,13 +742,11 @@ function findAndWrapOOCContent(container, searchText, rawOOCContent) {
   // FALLBACK: If endNode is null but we found the start, the match end might be
   // falling in a virtual space between text nodes. Use the last text node before that position.
   if (startNode && !endNode && lastNodeBeforeEnd) {
-    console.log(`[${MODULE_NAME}] findAndWrapOOCContent: End position in virtual space, using fallback to last text node`);
     endNode = lastNodeBeforeEnd.node;
     endOffset = lastNodeBeforeEnd.text.length; // End at the end of this node
   }
 
   if (!startNode || !endNode) {
-    console.log(`[${MODULE_NAME}] findAndWrapOOCContent: Could not map match to text nodes (start: ${!!startNode}, end: ${!!endNode})`);
     return null;
   }
 
@@ -770,22 +761,6 @@ function findAndWrapOOCContent(container, searchText, rawOOCContent) {
     const safeEndOffset = Math.max(0, Math.min(endOffset, endNodeLength));
     
     // DEBUG: Log detailed match info to help diagnose orphan punctuation issues
-    console.log(`[${MODULE_NAME}] findAndWrapOOCContent DEBUG:`, {
-      searchTextLength: searchText.length,
-      normalizedSearchLength: normalizedSearch.length,
-      matchStart,
-      potentialEnd,
-      clampedPotentialEnd,
-      originalMatchStart,
-      originalMatchEnd,
-      accumulatedTextLength: accumulatedText.length,
-      positionMapLength: positionMap.length,
-      startNodeText: startNode.nodeValue?.substring(0, 50),
-      startOffset: safeStartOffset,
-      endNodeText: endNode.nodeValue?.substring(Math.max(0, safeEndOffset - 20)),
-      endOffset: safeEndOffset,
-      endNodeLength,
-    });
     
     range.setStart(startNode, safeStartOffset);
     range.setEnd(endNode, safeEndOffset);
@@ -798,8 +773,6 @@ function findAndWrapOOCContent(container, searchText, rawOOCContent) {
 
     // Delete the range content and return info for replacement
     range.deleteContents();
-
-    console.log(`[${MODULE_NAME}] findAndWrapOOCContent: Successfully isolated OOC content (${innerHTML.length} chars)`);
 
     return {
       range: range,
@@ -862,11 +835,9 @@ function findMatchingElement(container, searchText) {
     // If OOC is less than 70% of paragraph, skip (there's other content mixed in)
     const oocRatio = normalizedSearch.length / pTextLower.length;
     if (oocRatio < 0.7) {
-      console.log(`[${MODULE_NAME}] findMatchingElement: Skipping paragraph ${pIdx} - OOC is only ${Math.round(oocRatio * 100)}% of content`);
       continue;
     }
 
-    console.log(`[${MODULE_NAME}] findMatchingElement: Matched paragraph ${pIdx} (${Math.round(oocRatio * 100)}% OOC content)`);
     return {
       element: p,
       innerHTML: p.innerHTML,
@@ -927,7 +898,6 @@ function findOOCParagraphs(container, oocMatches) {
   // Get all paragraph elements in the container
   const paragraphs = queryAll("p", container);
   
-  console.log(`[${MODULE_NAME}] findOOCParagraphs: Scanning ${paragraphs.length} paragraphs for ${oocFingerprints.length} OOC patterns`);
 
   for (let pIdx = 0; pIdx < paragraphs.length; pIdx++) {
     const p = paragraphs[pIdx];
@@ -953,7 +923,6 @@ function findOOCParagraphs(container, oocMatches) {
         // Calculate overlap ratio - OOC should be at least 50% of paragraph (lowered from 60%)
         const oocRatio = fp.normalized.length / pText.length;
         
-        console.log(`[${MODULE_NAME}] findOOCParagraphs: Para ${pIdx} matches OOC ${fpIdx} (${fp.ooc.name || "unnamed"}), ratio=${(oocRatio * 100).toFixed(0)}%`);
         
         if (oocRatio >= 0.5) {
           results.push({
@@ -964,7 +933,6 @@ function findOOCParagraphs(container, oocMatches) {
           fp.matched = true;
           break; // This paragraph matched, move to next paragraph
         } else {
-          console.log(`[${MODULE_NAME}] findOOCParagraphs: Skipped - ratio too low (need 50%)`);
         }
       }
     }
@@ -973,9 +941,6 @@ function findOOCParagraphs(container, oocMatches) {
   // Log unmatched OOCs for debugging
   const unmatchedOOCs = oocFingerprints.filter(fp => !fp.matched);
   if (unmatchedOOCs.length > 0) {
-    console.log(`[${MODULE_NAME}] findOOCParagraphs: ${unmatchedOOCs.length} OOCs could not be matched to paragraphs:`,
-      unmatchedOOCs.map(fp => ({ name: fp.ooc.name, fingerprint: fp.fingerprint.substring(0, 30) }))
-    );
   }
 
   return results;
@@ -994,7 +959,7 @@ const processedOOCTexts = new Map();
  * @param {Array<{handle: string, content: string, avatarUrl: string|null}>} oocEntries - Array of OOC entries
  * @returns {HTMLElement} The IRC chat room container element
  */
-function createIRCChatRoom(oocEntries) {
+export function createIRCChatRoom(oocEntries) {
   const settings = getSettings();
   const showTimestamps = settings.councilChatStyle?.showTimestamps !== false;
 
@@ -1048,7 +1013,6 @@ function createIRCChatRoom(oocEntries) {
     bodyWrapper.style.setProperty("grid-template-rows", isCollapsed ? "0fr" : "1fr", "important");
     // Rotate button manually for immediate visual feedback
     toggleLabel.style.transform = isCollapsed ? "rotate(-90deg)" : "rotate(0deg)";
-    console.log(`[${MODULE_NAME}] IRC panel ${isCollapsed ? "collapsed" : "expanded"}`);
   });
   
   headerContent.appendChild(titleSpan);
@@ -1847,7 +1811,6 @@ function cleanupRangeSurroundings(range) {
         } else if (toCheck.nodeType === Node.TEXT_NODE && 
                    orphanPunctuationRegex.test(toCheck.textContent)) {
           // Orphan punctuation-only text node (like "!!" or "..." left behind)
-          console.log(`[${MODULE_NAME}] cleanupRangeSurroundings: Removing orphan punctuation: "${toCheck.textContent}"`);
           toCheck.remove();
         } else if (toCheck.nodeType === Node.ELEMENT_NODE && 
                    toCheck.matches?.("p, div, font") && 
@@ -1873,7 +1836,6 @@ function cleanupRangeSurroundings(range) {
         } else if (toCheck.nodeType === Node.TEXT_NODE && 
                    orphanPunctuationRegex.test(toCheck.textContent)) {
           // Orphan punctuation-only text node (like "!!" or "..." left behind)
-          console.log(`[${MODULE_NAME}] cleanupRangeSurroundings: Removing orphan punctuation: "${toCheck.textContent}"`);
           toCheck.remove();
         } else if (toCheck.nodeType === Node.ELEMENT_NODE && 
                    toCheck.matches?.("p, div, font") && 
@@ -1979,31 +1941,18 @@ function performOOCProcessing(mesId, force = false) {
 
     // Process <lumia_ooc> tags found in raw content
     if (oocMatches.length > 0) {
-      console.log(
-        `[${MODULE_NAME}] Found ${oocMatches.length} <lumia_ooc> tag(s) in raw content for message ${mesId}`,
-      );
 
       // DOM-FIRST MATCHING: Scan DOM paragraphs and match to OOC patterns
       // This is more robust than searching for OOC content in DOM, as it avoids
       // mesId/array index mismatches that can occur in SillyTavern
       const matchedParagraphs = findOOCParagraphs(messageElement, oocMatches);
       
-      console.log(
-        `[${MODULE_NAME}] DOM-first matching found ${matchedParagraphs.length} paragraph(s) matching OOC patterns`,
-      );
 
       for (const { element, oocMatch, plainText } of matchedParagraphs) {
         // Check if this text was already processed
         if (isTextProcessed(mesId, plainText)) {
-          console.log(
-            `[${MODULE_NAME}] Skipping OOC (${oocMatch.name || "unnamed"}): already processed`,
-          );
           continue;
         }
-
-        console.log(
-          `[${MODULE_NAME}] Processing OOC${oocMatch.name ? ` (${oocMatch.name})` : ""}: "${plainText.substring(0, 60)}..."`,
-        );
 
         // Get avatar: look up by name if provided, fallback to default Lumia avatar
         const avatarImg = oocMatch.name
@@ -2022,18 +1971,12 @@ function performOOCProcessing(mesId, force = false) {
           element.parentNode.replaceChild(commentBox, element);
           markTextProcessed(mesId, plainText);
           processedCount++;
-          console.log(
-            `[${MODULE_NAME}] Replaced OOC with styled box (DOM-first method)`,
-          );
         }
       }
 
       // FALLBACK: If DOM-first matching found nothing, try the legacy surgical method
       // This handles edge cases where OOC content is not in a clean <p> element
       if (matchedParagraphs.length === 0) {
-        console.log(
-          `[${MODULE_NAME}] DOM-first matching found no matches, falling back to surgical method`,
-        );
         
         oocMatches.forEach((ooc, index) => {
           const plainText = htmlToPlainText(ooc.content);
@@ -2053,9 +1996,6 @@ function performOOCProcessing(mesId, force = false) {
             cleanupOOCBoxSurroundings(commentBox);
             markTextProcessed(mesId, plainText);
             processedCount++;
-            console.log(
-              `[${MODULE_NAME}] Replaced OOC #${index + 1} with styled box (surgical fallback)`,
-            );
             return;
           }
 
@@ -2068,9 +2008,6 @@ function performOOCProcessing(mesId, force = false) {
             match.element.parentNode.replaceChild(commentBox, match.element);
             markTextProcessed(mesId, plainText);
             processedCount++;
-            console.log(
-              `[${MODULE_NAME}] Replaced OOC #${index + 1} with styled box (element fallback)`,
-            );
           }
         });
       }
@@ -2079,9 +2016,6 @@ function performOOCProcessing(mesId, force = false) {
     if (processedCount > 0) {
       // Styles are applied automatically on next paint via RAF batching
       // Removed forced reflow (offsetHeight) as it's a synchronous blocking operation
-      console.log(
-        `[${MODULE_NAME}] Finished processing ${processedCount} OOC comment(s) in message ${mesId}`,
-      );
     }
   } catch (error) {
     console.error(`[${MODULE_NAME}] Error processing OOC comments:`, error);
@@ -2278,14 +2212,10 @@ function findEscapedOOCElements(container, oocMatches) {
  * @param {Array} oocMatches - Array of OOC matches from extractOOCFromRawMessage
  */
 function performIRCOOCProcessing(mesId, messageElement, oocMatches) {
-  console.log(
-    `[${MODULE_NAME}] IRC MODE: Processing ${oocMatches.length} OOC comments as chatroom for message ${mesId}`,
-  );
 
   // Check if already processed (look for IRC container)
   const existingIRC = messageElement.querySelector("[data-lumia-irc]");
   if (existingIRC) {
-    console.log(`[${MODULE_NAME}] IRC container already exists for message ${mesId}`);
     return;
   }
 
@@ -2315,7 +2245,6 @@ function performIRCOOCProcessing(mesId, messageElement, oocMatches) {
     const surgicalMatch = findAndWrapOOCContent(messageElement, plainText, ooc.content);
 
     if (surgicalMatch && surgicalMatch.wrapperCreated) {
-      console.log(`[${MODULE_NAME}] IRC MODE: Found and removed OOC #${index + 1} from DOM`);
 
       // Clean up <br> tags and empty elements around the deleted content
       cleanupRangeSurroundings(surgicalMatch.range);
@@ -2334,7 +2263,6 @@ function performIRCOOCProcessing(mesId, messageElement, oocMatches) {
       // Try element-based fallback
       const match = findMatchingElement(messageElement, plainText);
       if (match && match.element) {
-        console.log(`[${MODULE_NAME}] IRC MODE: Found OOC #${index + 1} via element match`);
 
         // Get the parent to clean up after removal
         const parentToClean = match.element.parentNode;
@@ -2380,13 +2308,11 @@ function performIRCOOCProcessing(mesId, messageElement, oocMatches) {
 
         markTextProcessed(mesId, plainText);
       } else {
-        console.log(`[${MODULE_NAME}] IRC MODE: Could not find OOC #${index + 1} in DOM`);
       }
     }
   }
 
   if (ircEntries.length === 0) {
-    console.log(`[${MODULE_NAME}] No valid IRC entries to display for message ${mesId}`);
     return;
   }
 
@@ -2397,23 +2323,18 @@ function performIRCOOCProcessing(mesId, messageElement, oocMatches) {
   if (lastInsertionRange) {
     try {
       lastInsertionRange.insertNode(ircContainer);
-      console.log(`[${MODULE_NAME}] IRC MODE: Inserted container at last OOC position`);
     } catch (err) {
       console.error(`[${MODULE_NAME}] IRC MODE: Range insertion failed, using fallback:`, err);
       messageElement.appendChild(ircContainer);
     }
   } else {
     // Fallback: append to message element
-    console.log(`[${MODULE_NAME}] IRC MODE: Using fallback append for message ${mesId}`);
     messageElement.appendChild(ircContainer);
   }
 
   // Clean up surrounding DOM structure
   cleanupOOCBoxSurroundings(ircContainer);
 
-  console.log(
-    `[${MODULE_NAME}] IRC MODE: Created chatroom with ${ircEntries.length} messages for message ${mesId}`,
-  );
 }
 
 /**
@@ -2435,7 +2356,6 @@ export function processLumiaOOCComments(mesId, force = false) {
 async function performAllOOCProcessing(clearExisting = false) {
   // Guard against concurrent processing
   if (isProcessingAllOOC) {
-    console.log(`[${MODULE_NAME}] Skipping concurrent full OOC processing`);
     return;
   }
 
@@ -2446,9 +2366,6 @@ async function performAllOOCProcessing(clearExisting = false) {
 
   try {
     const chatLength = context.chat.length;
-    console.log(
-      `[${MODULE_NAME}] Processing all OOC comments in chat (${chatLength} messages)${clearExisting ? " [clearing existing]" : ""} [chunked]`,
-    );
 
     // PHASE 1: Synchronous atomic unwrap (must NOT yield to avoid race conditions)
     // If clearing existing OOC boxes (e.g., style change), remove them all first
@@ -2538,7 +2455,6 @@ export async function processAllOOCCommentsSynchronous() {
   // Restore scroll position after DOM changes
   window.scrollTo(window.scrollX, scrollY);
 
-  console.log(`[${MODULE_NAME}] Chunked OOC reprocessing complete`);
 }
 
 /**
@@ -2579,16 +2495,12 @@ export function scheduleOOCProcessingAfterRender() {
 
       // Timeout check
       if (Date.now() - startTime > maxWaitTime) {
-        console.log(
-          `[${MODULE_NAME}] Max wait time reached (context: ${contextMessageCount}, DOM: ${domMessageCount}), processing OOCs now`,
-        );
         processAllLumiaOOCComments();
         return;
       }
 
       // Empty chat case - process immediately (nothing to do)
       if (contextMessageCount === 0) {
-        console.log(`[${MODULE_NAME}] Empty chat detected, no OOC processing needed`);
         return;
       }
 
@@ -2607,9 +2519,6 @@ export function scheduleOOCProcessingAfterRender() {
         const lastMessageElement = query(`div[mesid="${lastMesId}"] .mes_text`);
 
         if (lastMessageElement && lastMessageElement.textContent?.trim()) {
-          console.log(
-            `[${MODULE_NAME}] DOM ready with ${domMessageCount}/${contextMessageCount} messages, scheduling OOC processing`,
-          );
           processAllLumiaOOCComments();
           return;
         }
@@ -2718,9 +2627,6 @@ export function setupLumiaOOCObserver() {
           const hasOOCTags = /<lumi[ao]_?ooc[^>]*>/i.test(rawContent);
 
           if (hasOOCTags) {
-            console.log(
-              `[${MODULE_NAME}] Observer: Processing OOC tags in message ${mesId}`,
-            );
             processLumiaOOCComments(mesId);
           }
         });
@@ -2742,10 +2648,6 @@ export function setupLumiaOOCObserver() {
     characterData: true,
   });
 
-  console.log(
-    `[${MODULE_NAME}] OOC observer started on ${chatElement ? "chat element" : "body (fallback)"}`,
-  );
-
   return observer;
 }
 
@@ -2754,7 +2656,6 @@ export function setupLumiaOOCObserver() {
  * Must be called during module initialization to register callbacks
  */
 export function initializeRAFBatchRenderer() {
-  console.log(`[${MODULE_NAME}] Initializing RAF batch renderer for OOC comments`);
   setOOCProcessingCallbacks(performOOCProcessing, performAllOOCProcessing);
 }
 

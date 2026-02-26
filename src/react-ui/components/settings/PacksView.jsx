@@ -4,7 +4,6 @@ import { Eye, Sparkles, Wrench, Layers, Trash2 } from 'lucide-react';
 import { useLumiverseActions, usePacks, saveToExtension } from '../../store/LumiverseContext';
 import { CollapsibleContent } from '../Collapsible';
 import { exportPack } from '../modals/PackEditorModal';
-import { motion } from 'motion/react';
 import ConfirmationModal from '../shared/ConfirmationModal';
 import {
     Icons, Panel, LumiaPackItem, LoomPackItem, getLoomItemsFromPack,
@@ -284,11 +283,9 @@ export default function PacksView() {
                             const hasAnyItems = lumiaItems.length > 0 || loomItems.length > 0;
 
                             return (
-                                <motion.div
+                                <div
                                     key={packKey}
                                     className={clsx('lumia-pack-item-container', isExpanded && 'lumia-pack-item-container--expanded')}
-                                    initial={{ opacity: 0, y: -10 }}
-                                    animate={{ opacity: 1, y: 0 }}
                                 >
                                     <div className="lumia-pack-item">
                                         <button
@@ -368,7 +365,7 @@ export default function PacksView() {
                                     <CollapsibleContent isOpen={isExpanded && !hasAnyItems} className="lumia-pack-items-empty" duration={200}>
                                         <span>No items in this pack yet</span>
                                     </CollapsibleContent>
-                                </motion.div>
+                                </div>
                             );
                         })}
                     </div>

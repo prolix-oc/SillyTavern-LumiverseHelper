@@ -5,6 +5,7 @@ import { LumiverseProvider, useLumiverseStore } from './store/LumiverseContext';
 import App from './App';
 import ViewportApp from './components/ViewportApp';
 import LandingPage from './components/LandingPage';
+import ChatSheld from './components/ChatSheld';
 import './styles/main.css';
 
 // Reference to the drawer header for dynamic updates
@@ -13,11 +14,6 @@ let accordionHeaderElement = null;
 // Check for React conflicts early (helps debug Error #158)
 function checkReactConflicts() {
     if (typeof window !== 'undefined' && window.React && window.React !== React) {
-        console.warn(
-            '[LumiverseUI] Warning: Multiple React instances detected. ' +
-            'This may cause "Invalid hook call" errors (Error #158). ' +
-            'The extension bundles its own React to ensure compatibility.'
-        );
         return true;
     }
     return false;
@@ -52,7 +48,6 @@ function mountSettingsPanel(containerId = 'lumiverse-settings-root', settings = 
 
     const existingRoot = document.getElementById(containerId);
     if (existingRoot) {
-        console.warn('[LumiverseUI] Settings panel already mounted');
         return () => unmount(containerId);
     }
 
@@ -109,7 +104,6 @@ function mountSettingsPanel(containerId = 'lumiverse-settings-root', settings = 
 
     // Store reference to the outer wrapper for cleanup
     mountedRoots.set(containerId, { root, element: drawerWrapper });
-    console.log('[LumiverseUI] Settings panel mounted with inline-drawer accordion');
 
     return () => unmount(containerId);
 }
@@ -126,7 +120,6 @@ function mountComponent(Component, container, props = {}, id = null) {
     const mountId = id || `lumiverse-mount-${Date.now()}`;
 
     if (mountedRoots.has(mountId)) {
-        console.warn(`[LumiverseUI] Component ${mountId} already mounted`);
         return () => unmount(mountId);
     }
 
@@ -160,7 +153,6 @@ function unmount(mountId) {
         mounted.root.unmount();
         mounted.element.remove();
         mountedRoots.delete(mountId);
-        console.log(`[LumiverseUI] Unmounted ${mountId}`);
     }
 }
 
@@ -192,20 +184,11 @@ function getSTContext() {
 function syncSettings(settings) {
     if (settings) {
         const packCount = settings.packs ? Object.keys(settings.packs).length : 0;
-        console.log('[LumiverseUI] syncSettings called with:', {
-            packsCount: packCount,
-            customPacksCount: settings.customPacks?.length || 0,
-        });
         useLumiverseStore.syncFromExtension(settings);
         // Verify the sync worked
         const newState = useLumiverseStore.getState();
         const newPackCount = newState.packs ? Object.keys(newState.packs).length : 0;
-        console.log('[LumiverseUI] After sync, store has:', {
-            packsCount: newPackCount,
-            customPacksCount: newState.customPacks?.length || 0,
-        });
     } else {
-        console.warn('[LumiverseUI] syncSettings called with null/undefined settings');
     }
 }
 
@@ -300,7 +283,6 @@ function mountViewportPanel(settings = null) {
     );
 
     mountedRoots.set(mountId, { root, element: rootElement });
-    console.log('[LumiverseUI] Viewport panel mounted with inline positioning');
 
     return () => unmount(mountId);
 }
@@ -339,9 +321,64 @@ function renderLandingPage(container) {
     );
 
     mountedRoots.set(mountId, { root, element: rootElement });
-    console.log('[LumiverseUI] Landing page rendered');
 
     return () => unmount(mountId);
+}
+
+/**
+ * Mount the Chat Sheld (glassmorphic chat override) into a light DOM container.
+ * The container should already exist in the DOM (created by chatSheldService.js).
+ * @param {HTMLElement} container - The host element (#lumiverse-chat-root)
+ * @returns {Function} Cleanup function to unmount
+ */
+function mountChatSheld(container) {
+    const mountId = 'lumiverse-chat-sheld';
+
+    // Clean up any existing mount
+    if (mountedRoots.has(mountId)) {
+        unmount(mountId);
+    }
+
+    if (!container) {
+        console.error('[LumiverseUI] Chat Sheld: No container provided');
+        return null;
+    }
+
+    // Create React root directly in the container (no shadow DOM)
+    const reactRoot = document.createElement('div');
+    reactRoot.className = 'lcs-app';
+    reactRoot.style.cssText = 'display:flex;flex-direction:column;flex:1 1 auto;min-height:0;width:100%;height:100%;';
+    container.appendChild(reactRoot);
+
+    const root = ReactDOM.createRoot(reactRoot);
+    const Wrapper = isDev ? React.StrictMode : React.Fragment;
+    root.render(
+        <Wrapper>
+            <LumiverseProvider>
+                <ChatSheld />
+            </LumiverseProvider>
+        </Wrapper>
+    );
+
+    mountedRoots.set(mountId, { root, element: container });
+
+    return () => unmountChatSheld();
+}
+
+/**
+ * Unmount the Chat Sheld and clean up.
+ */
+function unmountChatSheld() {
+    const mountId = 'lumiverse-chat-sheld';
+    const mounted = mountedRoots.get(mountId);
+    if (mounted) {
+        mounted.root.unmount();
+        // Clear the container's children
+        while (mounted.element.firstChild) {
+            mounted.element.removeChild(mounted.element.firstChild);
+        }
+        mountedRoots.delete(mountId);
+    }
 }
 
 // Export the public API
@@ -351,6 +388,8 @@ const LumiverseUI = {
     mountViewportPanel,
     mountComponent,
     renderLandingPage,
+    mountChatSheld,
+    unmountChatSheld,
     unmount,
     unmountAll,
 
@@ -368,7 +407,6 @@ const LumiverseUI = {
 };
 
 // Log when the bundle loads
-console.log('[LumiverseUI] Bundle loaded, API available:', Object.keys(LumiverseUI));
 
 // Explicitly assign to window for reliable global access
 // (webpack library config should do this, but being explicit ensures it works)

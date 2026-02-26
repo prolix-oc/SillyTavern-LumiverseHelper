@@ -52,7 +52,6 @@ export function captureWorldInfoEntries(entries) {
   capturedWorldInfoEntries = entries
     .filter(e => e.content && e.content.trim())
     .map(e => e.content.trim());
-  console.log(`[${MODULE_NAME}] Captured ${capturedWorldInfoEntries.length} world info entries for tool context enrichment`);
 }
 
 /**
@@ -384,13 +383,17 @@ Narrating how input was received, how silence landed, how words settled. Recappi
 Abstract concepts — words, gaze, silence, tension — striking like physical objects.
 *Door: Somatic Directness.* The body responds involuntarily: stomach drops, jaw locks, breath catches. Name the physiological event. The abstraction does not touch the body; the body reacts on its own.
 
+**The Somatic Deposit**
+Treating the body as a container and placing an abstraction inside it via simile — an abstract input located spatially within a body part and compared to a physical object. A dead instantiation of the body-as-container conceptual metaphor. The template is infinitely interchangeable and produces structurally identical sentences regardless of what fills each slot.
+*Door: Involuntary Response Without Transfer.* The body does not *receive* the emotion as a foreign object. The body *reacts* — autonomically, without simile. A throat tightens. Hands stop moving. Breathing changes rhythm. The physiological response IS the feeling. It does not need to be *like* anything else.
+
 **Inflation and Labeling**
 Passive labels or cosmic metaphors (souls, maps, universes, constellations) as stand-ins for emotion.
 *Door: Active Verbs and Biological Realism.* Muscle, nerve, bone. The body is the only honest metaphor.
 
 **Sensory Plagiarism**
 Recycled intensity markers: ozone, copper, iron, petrichor, metallic, blood-on-tongue, bile rising, tasted-like-ash, electric air, crackling atmosphere.
-*Door: Diegetic Senses Only.* Derive every sensory detail from the material reality of THIS scene. What is actually in this room? What has this character eaten today?
+*Door: Diegetic Senses Only.* Every scent, taste, and texture must have a **material source present in the scene**. Trace the sensory detail backward to its physical origin — the object emitting it, the substance causing it, the chemical process producing it. If the source is not physically present, the sensation cannot be. A server room smells like warm plastic and recycled air. A workshop smells like solvent and sawdust. Derive from what IS THERE.
 
 **The Implicit Consent Echo**
 Narrating mutual understanding or emotional alignment never earned through dialogue or action. Asserting what characters feel toward each other.
@@ -450,6 +453,17 @@ Flag the *absence* of these techniques as a deficiency. Prescribe them when the 
 **Parataxis** — Coordinate clauses without subordination. Short declaratives placed adjacent without causal connectors. The unsaid connection generates tension. Reserve hypotaxis for deliberate analytical slowing.
 **The Objective Correlative** — Emotion produced by arranging external facts, objects, and events into a pattern that evokes feeling without naming it. Grief is the untouched plate, the clock ticking, the dog waiting by the door.
 **Syntactic Variation** — Vary sentence architecture across a passage: periodic, loose, inverted, fragmentary. The paragraph is a rhythmic unit. No two consecutive sentences share identical structure.
+
+**The Flavor Palette — Lilac Devices**
+When a draft is technically clean but reads as flat, prescribe from this palette. Every device here operates on concrete nouns and physical verbs. They compress rather than expand. They are the permitted colorants — the space between beige and purple.
+
+*Synesthesia* — Cross sensory channels. A sound as a texture, a color as a temperature. Both sides of the transfer are physical, which makes purple impossible and forces novel pairings every time.
+*Transferred Epithet* — Attach the modifier to the wrong noun. The adjective belongs to the character but lands on an object in the scene. A nervous coffee. An angry email. Implies interior state through external objects in a single word.
+*Zeugma* — Yoke two unlike things to one verb. One verb, two meanings, zero elaboration. Adds wit and character voice in a construction shorter than the alternative. Compresses where purple expands.
+*Polysyndeton / Asyndeton* — Rhythm toggles. Polysyndeton chains "and" for accumulative saturation — each item lands with equal weight, reading as emotional pressure without naming the emotion. Asyndeton strips conjunctions for urgency. These add soul through rhythm, not vocabulary.
+*Metonymy* — Substitute a related concrete term based on what the character would actually notice. What a character calls things reveals how they see the world. A mechanic calls a car by its engine. A child calls a building by its color. The substitution is the characterization.
+*Prolepsis* — One sentence of flash-forward per scene maximum. Future-tense suggestion that adds gravitational weight to the present moment. The reader does the work of asking *why* this moment matters.
+*Domestic Anthropomorphism* — Objects as reluctant participants. A door that sticks. Stairs that complain. A car that refuses. Distinct from the Kinetic Fallacy because these are physical things behaving physically, described with agency. The environment becomes an uncooperative character rather than a passive backdrop.
 
 ---
 
@@ -940,7 +954,6 @@ export function markGenerationCycleEnd() {
  */
 export function abortToolExecution() {
   if (toolAbortController) {
-    console.log(`[${MODULE_NAME}] Aborting in-flight council tool requests`);
     toolAbortController.abort();
     toolAbortController = null;
   }
@@ -1110,6 +1123,44 @@ function buildEnrichmentContext() {
 }
 
 /**
+ * Build a mandatory tool enumeration block that explicitly lists every tool a member
+ * MUST call. Addresses the problem where models only fire 1 of N assigned tools.
+ * @param {Array<string>} memberTools - Tool names assigned to this member
+ * @returns {string} Formatted mandatory tool block for injection into prompts
+ */
+function buildMandatoryToolBlock(memberTools) {
+  if (memberTools.length <= 1) return "";
+
+  const toolList = memberTools
+    .map((tn, i) => {
+      const tool = COUNCIL_TOOLS[tn];
+      if (!tool) return null;
+      return `  ${i + 1}. **${tool.displayName}** (\`${tool.name}\`)`;
+    })
+    .filter(Boolean)
+    .join("\n");
+
+  return `\n\n### MANDATORY TOOL CALLS — ${memberTools.length} REQUIRED ###
+You are assigned exactly ${memberTools.length} tools. You MUST call ALL of them — not just one, not a subset. Each tool listed below is a separate, mandatory contribution. Respond with exactly ${memberTools.length} tool calls:
+${toolList}
+
+Failure to call every tool is a protocol violation. Do not combine multiple tools into a single call. Each tool must be invoked independently with its own structured input.`;
+}
+
+/**
+ * Build a system message with explicit tool mandate for sidecar execution.
+ * @param {number} toolCount - Number of tools assigned to this member
+ * @returns {string} System message text
+ */
+function buildSidecarSystemMessage(toolCount) {
+  const base = `You are a council member contributing to story direction. Use your tools to provide structured contributions. Be concise and specific.`;
+  if (toolCount <= 1) {
+    return `${base} You MUST use your assigned tool.${buildBrevityInstruction()}`;
+  }
+  return `${base} You are assigned ${toolCount} tools and you MUST call ALL ${toolCount} of them. Do not skip any tool. Each tool represents a distinct responsibility — invoke every single one with its own structured input.${buildBrevityInstruction()}`;
+}
+
+/**
  * Build Anthropic-format tools array from council tool names
  * @param {Array<string>} toolNames - Array of tool names to include
  * @returns {Array} Anthropic tools array
@@ -1151,10 +1202,11 @@ function buildOpenAITools(toolNames) {
 }
 
 /**
- * Resolve API key and provider config for council tools.
+ * Resolve API key, endpoint, and provider config for council tools.
  * Uses the dedicated council tools LLM configuration (settings.councilTools.llm).
  * Falls back to summarization secondary config for backwards compatibility.
- * @returns {Promise<{apiKey: string, providerConfig: Object, secondary: Object, provider: string}>}
+ * For non-custom providers, proxy fields override the default endpoint/key if set.
+ * @returns {Promise<{apiKey: string, endpoint: string, providerConfig: Object, secondary: Object, provider: string}>}
  */
 async function resolveProviderConfig() {
   const settings = getSettings();
@@ -1164,21 +1216,32 @@ async function resolveProviderConfig() {
   const providerConfig = getProviderConfig(provider);
 
   let apiKey;
+  let endpoint;
+
   if (provider === "custom") {
+    // Custom provider: use llmConfig endpoint + apiKey directly
     apiKey = llmConfig.apiKey;
+    endpoint = llmConfig.endpoint;
     if (!apiKey) {
       throw new Error("No API key specified for custom provider");
     }
   } else {
-    apiKey = await fetchSecretKey(providerConfig.secretKey);
+    // Non-custom: check for reverse proxy override, then fall back to defaults
+    if (llmConfig.proxyKey) {
+      apiKey = llmConfig.proxyKey;
+    } else {
+      apiKey = await fetchSecretKey(providerConfig.secretKey);
+    }
+    endpoint = llmConfig.proxyEndpoint || providerConfig.endpoint;
+
     if (!apiKey) {
       throw new Error(
-        `No API key found for ${providerConfig.name}. Please add your API key in SillyTavern's API settings.`,
+        `No API key found for ${providerConfig.name}. Please add your API key in SillyTavern's API settings or configure a reverse proxy key.`,
       );
     }
   }
 
-  return { apiKey, providerConfig, secondary: llmConfig, provider };
+  return { apiKey, endpoint, providerConfig, secondary: llmConfig, provider };
 }
 
 /**
@@ -1211,12 +1274,14 @@ async function executeToolsForMemberAnthropic(member, memberTools, contextText, 
   const toolDescriptions = memberTools
     .map((tn) => COUNCIL_TOOLS[tn])
     .filter(Boolean)
-    .map((t) => `- **${t.displayName}**: ${t.description}`)
+    .map((t) => `- **${t.displayName}** (\`${t.name}\`): ${t.description}`)
     .join("\n");
+
+  const mandatoryBlock = buildMandatoryToolBlock(memberTools);
 
   const userPrompt = `You are ${memberName}, a council member contributing to collaborative story direction.
 
-${lumiaContext ? lumiaContext + "\n\n" : ""}${roleDescriptor ? roleDescriptor + "\n\n" : ""}You have the following tools available:
+${lumiaContext ? lumiaContext + "\n\n" : ""}${roleDescriptor ? roleDescriptor + "\n\n" : ""}You have the following tools assigned to you:
 ${toolDescriptions}
 ${enrichmentText ? "\n" + enrichmentText + "\n" : ""}
 ### Current Story Context ###
@@ -1225,27 +1290,27 @@ ${contextText}
 
 ### Your Task ###
 
-Review the story context above and use ALL of your assigned tools to provide your contributions. For each tool, provide specific, actionable input from your unique perspective as ${memberName}. Be concise but insightful. Remember to filter all your contributions through your personality, biases, and worldview as described above.${buildBrevityInstruction()}${buildUserControlGuidance()}`;
+Review the story context above and use ALL of your assigned tools to provide your contributions. For each tool, provide specific, actionable input from your unique perspective as ${memberName}. Be concise but insightful. Remember to filter all your contributions through your personality, biases, and worldview as described above.${mandatoryBlock}${buildBrevityInstruction()}${buildUserControlGuidance()}`;
 
   const requestBody = {
     model: model,
     max_tokens: maxTokens,
     temperature: temperature,
-    system: `You are a council member contributing to story direction. Use your tools to provide structured contributions. Be concise and specific. You MUST use all available tools.${buildBrevityInstruction()}`,
+    system: buildSidecarSystemMessage(memberTools.length),
     messages: [{ role: "user", content: userPrompt }],
     tools: tools,
     tool_choice: { type: "any" },
   };
 
-  console.log(`[${MODULE_NAME}] Executing ${memberTools.length} tools for ${memberName} via Anthropic tool_use API`);
+  const headers = {
+    "Content-Type": "application/json",
+    "x-api-key": apiKey,
+    "anthropic-version": "2023-06-01",
+  };
 
   const fetchOptions = {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
+    headers,
     body: JSON.stringify(requestBody),
   };
   if (signal) fetchOptions.signal = signal;
@@ -1266,7 +1331,6 @@ Review the story context above and use ALL of your assigned tools to provide you
       if (block.type === "tool_use") {
         const toolDef = COUNCIL_TOOLS[block.name];
         if (toolDef) {
-          // Extract all input values into a readable response string
           const responseText = formatToolInput(block.input, toolDef);
           results.push({
             memberName,
@@ -1288,7 +1352,6 @@ Review the story context above and use ALL of your assigned tools to provide you
     const textBlocks = (data.content || []).filter((b) => b.type === "text");
     if (textBlocks.length > 0) {
       const fallbackText = normalizeToolText(textBlocks.map((b) => b.text).join("\n"));
-      // Attribute to first tool as a fallback
       const firstTool = COUNCIL_TOOLS[memberTools[0]];
       results.push({
         memberName,
@@ -1300,6 +1363,68 @@ Review the story context above and use ALL of your assigned tools to provide you
         response: fallbackText,
         identity,
       });
+    }
+  }
+
+  // Retry for missing tools — if the model skipped some, make a follow-up call
+  if (results.length > 0 && results.length < memberTools.length && memberTools.length > 1) {
+    const calledTools = new Set(results.map((r) => r.toolName));
+    const missingTools = memberTools.filter((tn) => !calledTools.has(tn));
+
+    if (missingTools.length > 0) {
+
+      const retryToolDefs = buildAnthropicTools(missingTools);
+      const missingNames = missingTools
+        .map((tn) => COUNCIL_TOOLS[tn]?.displayName || tn)
+        .join(", ");
+
+      const retryBody = {
+        model,
+        max_tokens: maxTokens,
+        temperature,
+        system: buildSidecarSystemMessage(missingTools.length),
+        messages: [
+          { role: "user", content: userPrompt },
+          // Feed back the original response so the model has continuity
+          { role: "assistant", content: data.content },
+          { role: "user", content: `You still need to call the following tools that you missed: ${missingNames}. Call each one now with structured input.` },
+        ],
+        tools: retryToolDefs,
+        tool_choice: { type: "any" },
+      };
+
+      try {
+        const retryOptions = { method: "POST", headers, body: JSON.stringify(retryBody) };
+        if (signal) retryOptions.signal = signal;
+
+        const retryResponse = await fetch(endpoint, retryOptions);
+        if (retryResponse.ok) {
+          const retryData = await retryResponse.json();
+          if (retryData.content && Array.isArray(retryData.content)) {
+            for (const block of retryData.content) {
+              if (block.type === "tool_use") {
+                const toolDef = COUNCIL_TOOLS[block.name];
+                if (toolDef && !calledTools.has(block.name)) {
+                  results.push({
+                    memberName,
+                    packName: member.packName,
+                    itemName: member.itemName,
+                    toolName: block.name,
+                    toolDisplayName: toolDef.displayName,
+                    success: true,
+                    response: formatToolInput(block.input, toolDef),
+                    identity,
+                  });
+                  calledTools.add(block.name);
+                }
+              }
+            }
+          }
+        }
+      } catch (retryErr) {
+        // Non-fatal: log but don't fail the whole member — partial results are still useful
+        console.warn(`[${MODULE_NAME}] Retry for missing tools failed for ${memberName}:`, retryErr.message);
+      }
     }
   }
 
@@ -1334,12 +1459,14 @@ async function executeToolsForMemberOpenAI(member, memberTools, contextText, api
   const toolDescriptions = memberTools
     .map((tn) => COUNCIL_TOOLS[tn])
     .filter(Boolean)
-    .map((t) => `- **${t.displayName}**: ${t.description}`)
+    .map((t) => `- **${t.displayName}** (\`${t.name}\`): ${t.description}`)
     .join("\n");
+
+  const mandatoryBlock = buildMandatoryToolBlock(memberTools);
 
   const userPrompt = `You are ${memberName}, a council member contributing to collaborative story direction.
 
-${lumiaContext ? lumiaContext + "\n\n" : ""}${roleDescriptor ? roleDescriptor + "\n\n" : ""}You have the following tools available:
+${lumiaContext ? lumiaContext + "\n\n" : ""}${roleDescriptor ? roleDescriptor + "\n\n" : ""}You have the following tools assigned to you:
 ${toolDescriptions}
 ${enrichmentText ? "\n" + enrichmentText + "\n" : ""}
 ### Current Story Context ###
@@ -1348,7 +1475,7 @@ ${contextText}
 
 ### Your Task ###
 
-Review the story context above and use ALL of your assigned tools to provide your contributions. For each tool, provide specific, actionable input from your unique perspective as ${memberName}. Be concise but insightful. Remember to filter all your contributions through your personality, biases, and worldview as described above.${buildBrevityInstruction()}${buildUserControlGuidance()}`;
+Review the story context above and use ALL of your assigned tools to provide your contributions. For each tool, provide specific, actionable input from your unique perspective as ${memberName}. Be concise but insightful. Remember to filter all your contributions through your personality, biases, and worldview as described above.${mandatoryBlock}${buildBrevityInstruction()}${buildUserControlGuidance()}`;
 
   const headers = {
     "Content-Type": "application/json",
@@ -1360,23 +1487,23 @@ Review the story context above and use ALL of your assigned tools to provide you
     headers["X-Title"] = "Lumia Injector";
   }
 
+  const systemMessage = buildSidecarSystemMessage(memberTools.length);
+
   const requestBody = {
     model: model,
     max_tokens: maxTokens,
     temperature: temperature,
     messages: [
-      { role: "system", content: `You are a council member contributing to story direction. Use your tools to provide structured contributions. Be concise and specific. You MUST use all available tools.${buildBrevityInstruction()}` },
+      { role: "system", content: systemMessage },
       { role: "user", content: userPrompt },
     ],
     tools: tools,
     tool_choice: "required",
   };
 
-  console.log(`[${MODULE_NAME}] Executing ${memberTools.length} tools for ${memberName} via OpenAI function calling API`);
-
   const fetchOptions = {
     method: "POST",
-    headers: headers,
+    headers,
     body: JSON.stringify(requestBody),
   };
   if (signal) fetchOptions.signal = signal;
@@ -1435,6 +1562,87 @@ Review the story context above and use ALL of your assigned tools to provide you
     });
   }
 
+  // Retry for missing tools — if the model skipped some, make a follow-up call
+  if (results.length > 0 && results.length < memberTools.length && memberTools.length > 1) {
+    const calledTools = new Set(results.map((r) => r.toolName));
+    const missingTools = memberTools.filter((tn) => !calledTools.has(tn));
+
+    if (missingTools.length > 0) {
+
+      const retryToolDefs = buildOpenAITools(missingTools);
+      const missingNames = missingTools
+        .map((tn) => COUNCIL_TOOLS[tn]?.displayName || tn)
+        .join(", ");
+
+      // Build assistant message from original response for continuity
+      const assistantMsg = { role: "assistant", content: message?.content || null };
+      if (message?.tool_calls) {
+        assistantMsg.tool_calls = message.tool_calls;
+      }
+
+      // Build tool result messages for each original tool call (OpenAI requires these)
+      const toolResultMsgs = (message?.tool_calls || []).map((tc) => ({
+        role: "tool",
+        tool_call_id: tc.id,
+        content: "Acknowledged.",
+      }));
+
+      const retryBody = {
+        model,
+        max_tokens: maxTokens,
+        temperature,
+        messages: [
+          { role: "system", content: systemMessage },
+          { role: "user", content: userPrompt },
+          assistantMsg,
+          ...toolResultMsgs,
+          { role: "user", content: `You still need to call the following tools that you missed: ${missingNames}. Call each one now with structured input.` },
+        ],
+        tools: retryToolDefs,
+        tool_choice: "required",
+      };
+
+      try {
+        const retryOptions = { method: "POST", headers, body: JSON.stringify(retryBody) };
+        if (signal) retryOptions.signal = signal;
+
+        const retryResponse = await fetch(endpoint, retryOptions);
+        if (retryResponse.ok) {
+          const retryData = await retryResponse.json();
+          const retryMessage = retryData.choices?.[0]?.message;
+          if (retryMessage?.tool_calls && Array.isArray(retryMessage.tool_calls)) {
+            for (const toolCall of retryMessage.tool_calls) {
+              if (toolCall.type === "function") {
+                const toolDef = COUNCIL_TOOLS[toolCall.function.name];
+                if (toolDef && !calledTools.has(toolCall.function.name)) {
+                  let parsedArgs = {};
+                  try {
+                    parsedArgs = JSON.parse(toolCall.function.arguments);
+                  } catch {
+                    parsedArgs = { response: toolCall.function.arguments };
+                  }
+                  results.push({
+                    memberName,
+                    packName: member.packName,
+                    itemName: member.itemName,
+                    toolName: toolCall.function.name,
+                    toolDisplayName: toolDef.displayName,
+                    success: true,
+                    response: formatToolInput(parsedArgs, toolDef),
+                    identity,
+                  });
+                  calledTools.add(toolCall.function.name);
+                }
+              }
+            }
+          }
+        }
+      } catch (retryErr) {
+        console.warn(`[${MODULE_NAME}] Retry for missing tools failed for ${memberName}:`, retryErr.message);
+      }
+    }
+  }
+
   return results;
 }
 
@@ -1473,6 +1681,10 @@ async function executeToolsForMemberGoogle(member, memberTools, contextText, api
     .filter(Boolean)
     .join("\n\n---\n\n");
 
+  const taskEnumeration = memberTools.length > 1
+    ? `\n\nYou have ${memberTools.length} mandatory tasks below. You MUST provide a labeled response for EVERY SINGLE ONE — do not skip any.\n`
+    : "";
+
   const fullPrompt = `You are ${memberName}, a council member contributing to collaborative story direction. Be concise and specific.${buildBrevityInstruction()}
 
 ${lumiaContext ? lumiaContext + "\n\n" : ""}${roleDescriptor ? roleDescriptor + "\n\n" : ""}${enrichmentText ? enrichmentText + "\n\n" : ""}### Current Story Context ###
@@ -1480,12 +1692,12 @@ ${lumiaContext ? lumiaContext + "\n\n" : ""}${roleDescriptor ? roleDescriptor + 
 ${contextText}
 
 ### Your Tasks ###
-
+${taskEnumeration}
 For each task below, provide a clearly labeled response:
 
 ${toolPrompts}
 
-Provide your contributions from your unique perspective as ${memberName}, filtering everything through your personality, biases, and worldview. Label each section clearly.${buildUserControlGuidance()}`;
+Provide your contributions from your unique perspective as ${memberName}, filtering everything through your personality, biases, and worldview. Label each section clearly with the exact task name as its heading. You MUST respond to ALL ${memberTools.length} tasks above.${buildUserControlGuidance()}`;
 
   const requestBody = {
     safetySettings: [
@@ -1503,8 +1715,6 @@ Provide your contributions from your unique perspective as ${memberName}, filter
       maxOutputTokens: maxTokens,
     },
   };
-
-  console.log(`[${MODULE_NAME}] Executing ${memberTools.length} tools for ${memberName} via Google prompt-based fallback`);
 
   const fetchOptions = {
     method: "POST",
@@ -1687,8 +1897,7 @@ function formatToolInput(input, toolDef) {
  * @returns {Promise<Array>} Array of tool results
  */
 async function executeToolsForMember(member, memberTools, contextText, providerInfo, enrichmentText = '', signal) {
-  const { apiKey, providerConfig, secondary, provider } = providerInfo;
-  const endpoint = provider === "custom" ? secondary.endpoint : providerConfig.endpoint;
+  const { apiKey, endpoint, providerConfig, secondary, provider } = providerInfo;
 
   if (!endpoint) {
     throw new Error("No endpoint configured for council tools");
@@ -1710,7 +1919,6 @@ async function executeToolsForMember(member, memberTools, contextText, providerI
 
     // Distinguish abort from real errors
     if (error.name === 'AbortError') {
-      console.log(`[${MODULE_NAME}] Tool execution aborted for ${memberName}`);
       return memberTools.map((toolName) => ({
         memberName,
         packName: member.packName,
@@ -1758,7 +1966,6 @@ export async function executeAllCouncilTools() {
 
   // Check if we already have a promise in flight (prevents duplicate execution)
   if (toolExecutionPromise) {
-    console.log(`[${MODULE_NAME}] Tool execution already in progress, awaiting...`);
     return toolExecutionPromise;
   }
 
@@ -1770,8 +1977,6 @@ export async function executeAllCouncilTools() {
   // abortToolExecution() can signal this to cancel all in-flight fetch requests.
   toolAbortController = new AbortController();
   const signal = toolAbortController.signal;
-
-  console.log(`[${MODULE_NAME}] Starting council tool execution for ${councilMembers.length} members...`);
 
   // Create the execution promise
   toolExecutionPromise = (async () => {
@@ -1808,7 +2013,6 @@ export async function executeAllCouncilTools() {
 
     // Early exit if already aborted before we start member execution
     if (signal.aborted) {
-      console.log(`[${MODULE_NAME}] Tool execution aborted before member dispatch`);
       hideCouncilIndicator();
       return [];
     }
@@ -1822,7 +2026,6 @@ export async function executeAllCouncilTools() {
     );
 
     if (membersWithTools.length === 0) {
-      console.log(`[${MODULE_NAME}] No council members have tools assigned`);
       hideCouncilIndicator();
       setLatestToolResults([]);
       return [];
@@ -1851,7 +2054,6 @@ export async function executeAllCouncilTools() {
 
     const successCount = allResults.filter((r) => r.success).length;
     const abortedCount = allResults.filter((r) => !r.success && r.aborted).length;
-    console.log(`[${MODULE_NAME}] Council tool execution complete. ${successCount}/${allResults.length} tools succeeded${abortedCount > 0 ? `, ${abortedCount} aborted` : ''}.`);
 
     // Mark visual indicator as complete
     markIndicatorComplete();
@@ -2037,8 +2239,6 @@ function buildInlineToolAction(toolDef, member) {
     // Accumulate into latestToolResults (inline tools may fire across recursive Generate cycles)
     latestToolResults.push(result);
 
-    console.log(`[${MODULE_NAME}] Inline tool ${toolDef.displayName} invoked by LLM for member ${memberName}`);
-
     // Return the attributed response — ST saves this as a system message for the LLM
     return responseText;
   };
@@ -2085,7 +2285,6 @@ export function registerSTTools() {
     for (const toolName of memberTools) {
       const toolDef = COUNCIL_TOOLS[toolName];
       if (!toolDef) {
-        console.warn(`[${MODULE_NAME}] Unknown tool "${toolName}" assigned to member ${member.itemName}, skipping`);
         continue;
       }
       
@@ -2129,7 +2328,6 @@ export function registerSTTools() {
     }
   }
 
-  console.log(`[${MODULE_NAME}] Registered ${registeredCount} council member-specific tools with ST ToolManager (inline mode)`);
 }
 
 /**
@@ -2150,7 +2348,6 @@ export function unregisterSTTools() {
   }
 
   registeredSTTools.clear();
-  console.log(`[${MODULE_NAME}] Unregistered ${removedCount} council tools from ST ToolManager`);
 }
 
 /**

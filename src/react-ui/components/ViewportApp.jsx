@@ -74,7 +74,7 @@ function ViewportApp() {
             {/* These portals must always render regardless of drawer visibility */}
             <PackDetailModal />
             <LoomPackDetailModal />
-            <SettingsModal />
+            <SettingsModal onDismissDrawer={handleClose} />
         </>
     );
 }

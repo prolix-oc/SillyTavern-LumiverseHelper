@@ -850,13 +850,6 @@ const DOMUtils = {
     };
     
     console.group(`📏 ${label} Measurements`);
-    console.log('Element:', element);
-    console.log('Dimensions:', measurements.dimensions);
-    console.log('Position:', measurements.position);
-    console.log('Distance to Viewport Edges:', measurements.distanceToViewport);
-    console.log('Viewport Size:', measurements.viewport);
-    console.log('Padding:', measurements.padding);
-    console.log('Margin:', measurements.margin);
     console.groupEnd();
     
     return measurements;

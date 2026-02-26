@@ -426,6 +426,22 @@ function generateThemeVariables(baseColors) {
     vars['--lumiverse-text-dim']   = hsla(text, 0.4);
     vars['--lumiverse-text-hint']  = hsla(text, 0.3);
 
+    // ── Prose color variants (Chat Sheld themed text) ──
+    // Dialogue: warm secondary tint — stands out as "spoken aloud"
+    const dialogueColor = light ? darken(secondary, 5) : lighten(secondary, 10);
+    vars['--lumiverse-prose-dialogue'] = hsla(dialogueColor, 0.88);
+
+    // Italic/thoughts: desaturated primary tint — quieter, introspective
+    const italicColor = light ? darken(desaturate(primary, 15), 5) : lighten(desaturate(primary, 15), 12);
+    vars['--lumiverse-prose-italic'] = hsla(italicColor, 0.78);
+
+    // Bold: slightly brighter base text for emphasis
+    const boldColor = light ? darken(text, 5) : lighten(text, 5);
+    vars['--lumiverse-prose-bold'] = hsla(boldColor, 0.95);
+
+    // Blockquote: muted primary
+    vars['--lumiverse-prose-blockquote'] = hsla(desaturate(primary, 20), 0.65);
+
     // ── Status colors ──
     vars['--lumiverse-danger']       = hsl(danger);
     vars['--lumiverse-danger-hover'] = hsl(darken(danger, 5));
@@ -589,13 +605,23 @@ export function applyTheme(theme) {
     }
     css += '}\n';
 
+    // Paint theme background onto ST's wallpaper div — background-color renders
+    // behind background-image by spec, so user wallpapers still show on top.
+    if (theme.baseColors.background) {
+        css += `\n#bg1 { background-color: ${hsl(theme.baseColors.background)}; }\n`;
+    }
+
     let styleEl = document.getElementById(STYLE_ID);
     if (!styleEl) {
         styleEl = document.createElement('style');
         styleEl.id = STYLE_ID;
-        document.head.appendChild(styleEl);
     }
     styleEl.textContent = css;
+    // Always (re-)append so theme overrides sit after any extension/ST stylesheets
+    document.head.appendChild(styleEl);
+
+    // Notify Chat Sheld of theme change
+    window.dispatchEvent(new Event('lumiverse:theme-changed'));
 }
 
 /**
@@ -605,6 +631,7 @@ export function removeThemeOverrides() {
     currentTheme = null;
     const el = document.getElementById(STYLE_ID);
     if (el) el.remove();
+    window.dispatchEvent(new Event('lumiverse:theme-changed'));
 }
 
 /**
@@ -633,6 +660,55 @@ export function getDefaultTheme() {
 export function getThemeColor(varName, fallback = '') {
     return getComputedStyle(document.documentElement)
         .getPropertyValue(varName).trim() || fallback;
+}
+
+/**
+ * Generate a CSS string with theme variable overrides scoped to .lcs-app.
+ * Used to inject theme variables into the Chat Sheld container.
+ * @param {Object} [theme] - Theme config. If null, uses the current applied theme.
+ * @returns {string} CSS text with .lcs-app { ... } declarations, or empty string if no theme.
+ */
+export function generateThemeCSSForChatSheld(theme) {
+    const t = theme || currentTheme;
+    if (!t || !t.baseColors) return '';
+
+    const vars = generateThemeVariables(t.baseColors);
+
+    // ── Chat Sheld glass surface overrides ──
+    // Derive --lcs-glass-* from the theme so message cards match the active theme.
+    const { primary, secondary, background } = t.baseColors;
+    const light = isLightMode(background);
+
+    // ── Page background — prevents black void behind transparent glass ──
+    vars['--lcs-page-bg'] = hsl(background);
+
+    if (light) {
+        // Light mode: solid tinted backgrounds, no transparency
+        vars['--lcs-glass-bg']            = hsl(darken(background, 3));
+        vars['--lcs-glass-bg-hover']      = hsl(darken(background, 6));
+        vars['--lcs-glass-border']        = hsla(darken(background, 15), 0.15);
+        vars['--lcs-glass-border-hover']  = hsla(darken(background, 20), 0.25);
+        vars['--lcs-glass-char-tint']     = hsla(primary, 0.04);
+        vars['--lcs-glass-user-tint']     = hsla(secondary, 0.04);
+    } else {
+        // Dark mode: semi-transparent surfaces tinted by background hue
+        const { r, g, b } = hslToRgb(background);
+        vars['--lcs-glass-bg']            = `rgba(${r}, ${g}, ${b}, 0.55)`;
+        vars['--lcs-glass-bg-hover']      = `rgba(${Math.min(255, r + 8)}, ${Math.min(255, g + 8)}, ${Math.min(255, b + 8)}, 0.65)`;
+        vars['--lcs-glass-border']        = `rgba(255, 255, 255, 0.06)`;
+        vars['--lcs-glass-border-hover']  = `rgba(255, 255, 255, 0.1)`;
+        const pRgb = hslToRgb(primary);
+        vars['--lcs-glass-char-tint']     = `rgba(${pRgb.r}, ${pRgb.g}, ${pRgb.b}, 0.03)`;
+        const sRgb = hslToRgb(secondary);
+        vars['--lcs-glass-user-tint']     = `rgba(${sRgb.r}, ${sRgb.g}, ${sRgb.b}, 0.03)`;
+    }
+
+    let css = '.lcs-app {\n';
+    for (const [prop, value] of Object.entries(vars)) {
+        css += `  ${prop}: ${value};\n`;
+    }
+    css += '}\n';
+    return css;
 }
 
 /**

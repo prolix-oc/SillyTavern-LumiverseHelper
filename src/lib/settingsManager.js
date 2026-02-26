@@ -11,6 +11,7 @@
  */
 
 import { getExtensionSettings, getSaveSettingsDebounced } from "../stContext.js";
+import { encryptValue, decryptValue } from "./cryptoUtils.js";
 import {
   initPackCache,
   isCacheInitialized,
@@ -97,6 +98,8 @@ const DEFAULT_SETTINGS = {
       model: "",
       endpoint: "",
       apiKey: "",
+      proxyEndpoint: "",
+      proxyKey: "",
       temperature: 0.7,
       topP: 1.0,
       maxTokens: 4096,
@@ -167,6 +170,10 @@ const DEFAULT_SETTINGS = {
   // Toggle binding default state restoration
   disableDefaultStateRestore: true, // When true, skip restoring default toggle states for unbound chats (opt-in feature)
   capturedDefaultToggles: null, // Persisted default toggle state (survives page refresh)
+  // Chat Sheld override (glassmorphic chat redesign)
+  enableChatSheld: false, // When true, replace ST's chat display with React glassmorphic chat
+  chatSheldDisplayMode: 'minimal', // 'minimal' | 'immersive' | 'bubble' — display mode for Chat Sheld
+  authorNotePanelSide: 'right', // 'left' | 'right' — which side the Author's Note panel docks to
   // Lucid Loom Preset Builder
   loomBuilder: {
     activePresetId: null,
@@ -291,15 +298,12 @@ function migratePacksToV2() {
     return false; // Already at current version
   }
 
-  console.log(`[${MODULE_NAME}] Migrating packs from schema v${currentVersion} to v${SCHEMA_VERSION}...`);
-
   // Migrate each pack
   for (const packName in settings.packs) {
     const pack = settings.packs[packName];
 
     // Check if pack needs migration (has old items[] array, no lumiaItems/loomItems)
     if (pack.items && !pack.lumiaItems && !pack.loomItems) {
-      console.log(`[${MODULE_NAME}] Migrating pack: ${packName}`);
       settings.packs[packName] = migratePackToV2(pack);
       migrated = true;
     }
@@ -309,7 +313,6 @@ function migratePacksToV2() {
   settings.schemaVersion = SCHEMA_VERSION;
 
   if (migrated) {
-    console.log(`[${MODULE_NAME}] Pack migration complete`);
   }
 
   return migrated;
@@ -330,7 +333,6 @@ export function migrateSettings() {
     (settings.lumiaLibrary || settings.worldBookData) &&
     Object.keys(settings.packs).length === 0
   ) {
-    console.log("Lumia Injector: Migrating legacy settings...");
     const legacyItems = settings.lumiaLibrary || [];
     let items = legacyItems;
 
@@ -339,9 +341,6 @@ export function migrateSettings() {
     if (items.length === 0 && settings.worldBookData) {
       // Legacy data exists but can't be processed here
       // This would require importing processWorldBook which creates circular dep
-      console.warn(
-        "Legacy worldBookData found but cannot be migrated automatically. Please re-import your world book.",
-      );
     }
 
     if (items.length > 0) {
@@ -410,14 +409,12 @@ export function migrateSettings() {
     if (pack.url) {
       // Has URL = external source = not custom
       if (pack.isCustom === true) {
-        console.log(`[${MODULE_NAME}] Fixing isCustom flag for URL pack: ${packName}`);
         pack.isCustom = false;
         migrated = true;
       }
     } else {
       // No URL = user upload = custom
       if (pack.isCustom !== true) {
-        console.log(`[${MODULE_NAME}] Fixing isCustom flag for local pack: ${packName}`);
         pack.isCustom = true;
         migrated = true;
       }
@@ -652,6 +649,14 @@ export function migrateSettings() {
     };
     migrated = true;
   }
+  // Ensure proxy fields exist on llm config
+  if (settings.councilTools.llm.proxyEndpoint === undefined) {
+    settings.councilTools.llm.proxyEndpoint = "";
+  }
+  if (settings.councilTools.llm.proxyKey === undefined) {
+    settings.councilTools.llm.proxyKey = "";
+  }
+
   // Ensure context enrichment toggles exist
   if (settings.councilTools.includeUserPersona === undefined) {
     settings.councilTools.includeUserPersona = false;
@@ -682,10 +687,93 @@ export function migrateSettings() {
   if (settings.enableLandingPage === undefined) settings.enableLandingPage = true;
   if (settings.landingPageChatsDisplayed === undefined) settings.landingPageChatsDisplayed = 12;
 
+  // Ensure chat sheld setting default (default to false, opt-in)
+  if (settings.enableChatSheld === undefined) settings.enableChatSheld = false;
+
+  // Ensure author note panel side default
+  if (settings.authorNotePanelSide === undefined) settings.authorNotePanelSide = 'right';
+
   // Ensure toggle binding default state restoration setting
   if (settings.disableDefaultStateRestore === undefined) settings.disableDefaultStateRestore = true;
 
   return migrated;
+}
+
+// ============================================================================
+// ENCRYPTION HELPERS — encrypt at persistence boundaries, plaintext in memory
+// ============================================================================
+
+/**
+ * Encrypt sensitive fields in a settings object for persistence.
+ * Returns a deep clone with encrypted values — does not mutate the input.
+ * @param {Object} obj - Settings object (or partial preferences slice)
+ * @returns {Object} Cloned object with sensitive fields encrypted
+ */
+export function encryptSensitiveFields(obj) {
+    const clone = JSON.parse(JSON.stringify(obj));
+
+    // councilTools.llm.apiKey + proxyKey
+    if (clone.councilTools?.llm) {
+        if (clone.councilTools.llm.apiKey) {
+            clone.councilTools.llm.apiKey = encryptValue(clone.councilTools.llm.apiKey);
+        }
+        if (clone.councilTools.llm.proxyKey) {
+            clone.councilTools.llm.proxyKey = encryptValue(clone.councilTools.llm.proxyKey);
+        }
+        // providerProfiles[*].apiKey + proxyKey
+        const profiles = clone.councilTools.llm.providerProfiles;
+        if (profiles) {
+            for (const key of Object.keys(profiles)) {
+                if (profiles[key].apiKey) {
+                    profiles[key].apiKey = encryptValue(profiles[key].apiKey);
+                }
+                if (profiles[key].proxyKey) {
+                    profiles[key].proxyKey = encryptValue(profiles[key].proxyKey);
+                }
+            }
+        }
+    }
+
+    // summarization.secondary.apiKey
+    if (clone.summarization?.secondary?.apiKey) {
+        clone.summarization.secondary.apiKey = encryptValue(clone.summarization.secondary.apiKey);
+    }
+
+    return clone;
+}
+
+/**
+ * Decrypt sensitive fields in a settings object after loading.
+ * Mutates in-place for efficiency. Safe on plaintext (prefix check).
+ * @param {Object} obj - Settings object to decrypt in-place
+ */
+export function decryptSensitiveFields(obj) {
+    // councilTools.llm.apiKey + proxyKey
+    if (obj.councilTools?.llm) {
+        if (obj.councilTools.llm.apiKey) {
+            obj.councilTools.llm.apiKey = decryptValue(obj.councilTools.llm.apiKey);
+        }
+        if (obj.councilTools.llm.proxyKey) {
+            obj.councilTools.llm.proxyKey = decryptValue(obj.councilTools.llm.proxyKey);
+        }
+        // providerProfiles[*].apiKey + proxyKey
+        const profiles = obj.councilTools?.llm?.providerProfiles;
+        if (profiles) {
+            for (const key of Object.keys(profiles)) {
+                if (profiles[key].apiKey) {
+                    profiles[key].apiKey = decryptValue(profiles[key].apiKey);
+                }
+                if (profiles[key].proxyKey) {
+                    profiles[key].proxyKey = decryptValue(profiles[key].proxyKey);
+                }
+            }
+        }
+    }
+
+    // summarization.secondary.apiKey
+    if (obj.summarization?.secondary?.apiKey) {
+        obj.summarization.secondary.apiKey = decryptValue(obj.summarization.secondary.apiKey);
+    }
 }
 
 /** @type {boolean} Whether file storage has been initialized */
@@ -701,6 +789,7 @@ export function loadSettings() {
   const extension_settings = getExtensionSettings();
   if (extension_settings[SETTINGS_KEY]) {
     settings = { ...settings, ...extension_settings[SETTINGS_KEY] };
+    decryptSensitiveFields(settings);
 
     if (migrateSettings()) {
       saveSettings();
@@ -721,8 +810,6 @@ export async function initPackFileStorage() {
     return isCacheInitialized();
   }
 
-  console.log(`[${MODULE_NAME}] Initializing pack file storage...`);
-
   // Check if we've already migrated (flag in settings)
   const alreadyMigrated = settings.packStorageMigrated === true;
 
@@ -737,7 +824,6 @@ export async function initPackFileStorage() {
 
   // If not migrated yet and we have packs in settings, migrate them
   if (!alreadyMigrated && settings.packs && Object.keys(settings.packs).length > 0) {
-    console.log(`[${MODULE_NAME}] Migrating packs to file storage...`);
 
     const { migrated, failed } = await migratePacksFromSettings(settings.packs);
 
@@ -756,7 +842,6 @@ export async function initPackFileStorage() {
       // Save the updated settings
       saveSettings();
 
-      console.log(`[${MODULE_NAME}] Migration complete: ${migrated} packs moved to file storage`);
       if (failed > 0) {
         console.warn(`[${MODULE_NAME}] ${failed} packs failed to migrate`);
       }
@@ -764,13 +849,11 @@ export async function initPackFileStorage() {
 
     packsMigrated = true;
   } else if (alreadyMigrated) {
-    console.log(`[${MODULE_NAME}] Packs already migrated to file storage`);
     packsMigrated = true;
     
     // One-time cleanup: remove duplicated selections/preferences from extension_settings
     // This handles users who migrated before we added this cleanup
     if (!settings.selectionsCleanedUp) {
-      console.log(`[${MODULE_NAME}] Cleaning up duplicated selections from extension_settings...`);
       settings.selectionsCleanedUp = true;
       saveSettings(); // This now excludes selections/preferences
     }
@@ -787,6 +870,7 @@ export async function initPackFileStorage() {
     }
     if (index.preferences) {
       Object.assign(settings, index.preferences);
+      decryptSensitiveFields(settings);
     }
     if (index.presets) {
       settings.presets = index.presets;
@@ -849,13 +933,15 @@ export function saveSettings() {
     delete settingsToSave.lumiaOOCInterval;
     delete settingsToSave.lumiaOOCStyle;
     delete settingsToSave.activePresetName;
+    delete settingsToSave.dismissedUpdateVersion;
+    delete settingsToSave.theme;
     
     // Remove presets - these are now in index.presets
     delete settingsToSave.presets;
     
-    extension_settings[SETTINGS_KEY] = settingsToSave;
+    extension_settings[SETTINGS_KEY] = encryptSensitiveFields(settingsToSave);
   } else {
-    extension_settings[SETTINGS_KEY] = settings;
+    extension_settings[SETTINGS_KEY] = encryptSensitiveFields(settings);
   }
 
   saveSettingsDebounced();
@@ -982,9 +1068,9 @@ export function getSelections() {
 export function savePreferences(newPreferences) {
   // Always update in-memory settings so getSettings() returns current values
   Object.assign(settings, newPreferences);
-  
+
   if (isUsingFileStorage()) {
-    updatePreferences(newPreferences);
+    updatePreferences(encryptSensitiveFields(newPreferences));
   } else {
     saveSettings();
   }
@@ -999,9 +1085,9 @@ export function savePreferences(newPreferences) {
 export async function savePreferencesImmediate(newPreferences) {
   // Always update in-memory settings so getSettings() returns current values
   Object.assign(settings, newPreferences);
-  
+
   if (isUsingFileStorage()) {
-    await updatePreferencesImmediate(newPreferences);
+    await updatePreferencesImmediate(encryptSensitiveFields(newPreferences));
   } else {
     saveSettings();
   }
@@ -1099,7 +1185,6 @@ export function bumpLumiaConfigVersion() {
   settings.lumiaConfigVersion = (settings.lumiaConfigVersion || 0) + 1;
   settings.lastLumiaChangeTimestamp = Date.now();
   saveSettings();
-  console.log(`[${MODULE_NAME}] Lumia config version bumped to ${settings.lumiaConfigVersion}`);
 }
 
 /**
@@ -1112,7 +1197,6 @@ export function clearClaudeCache() {
   settings.lastLumiaChangeTimestamp = Date.now();
   settings.disableAnthropicCache = true;
   saveSettings();
-  console.log(`[${MODULE_NAME}] Claude cache cleared - version now ${settings.lumiaConfigVersion}`);
 
   // Re-enable cache after a short delay (for next request series)
   setTimeout(() => {
@@ -1132,12 +1216,9 @@ export async function resetAllSettings() {
   const extension_settings = getExtensionSettings();
   const saveSettingsDebounced = getSaveSettingsDebounced();
 
-  console.log(`[${MODULE_NAME}] NUCLEAR RESET: Wiping all extension settings and User Files data...`);
-
   // First, clear all User Files API data (packs, index, toggle states)
   try {
     const result = await clearAllData();
-    console.log(`[${MODULE_NAME}] User Files cleanup: ${result.deleted.length} deleted, ${result.failed.length} failed`);
   } catch (err) {
     console.error(`[${MODULE_NAME}] Failed to clear User Files data:`, err);
     // Continue with settings reset even if file cleanup fails
@@ -1153,8 +1234,6 @@ export async function resetAllSettings() {
   // Force a save to persist the deletion
   // Note: saveSettingsDebounced has a ~1000ms debounce delay
   saveSettingsDebounced();
-
-  console.log(`[${MODULE_NAME}] Settings wiped. Page will reload...`);
 
   // Wait long enough for the debounced save to complete (1500ms > 1000ms debounce)
   // then reload to reinitialize with fresh defaults

@@ -16,6 +16,7 @@ import { getSettings, MODULE_NAME } from "./settingsManager.js";
 import { getItemFromLibrary } from "./dataProcessor.js";
 import { getLumiaField } from "./lumiaContent.js";
 import { getLumiaAvatarByName } from "./oocComments.js";
+import { isChatSheldActive } from "./chatSheldService.js";
 
 // Track the current indicator state
 let currentIndicator = null;
@@ -74,34 +75,33 @@ function getLastAssistantMessage() {
  * Create the CSS styles for the council indicator
  * Injected once and reused
  */
-function injectIndicatorStyles() {
-  if (document.getElementById("lumiverse-council-indicator-styles")) return;
+/** Get the council indicator CSS text. */
+function getIndicatorCSS() {
+  // When chat sheld is active, position relative to .lcs-container
+  // When using ST's native chat, position relative to #form_sheld
+  const chatSheldActive = isChatSheldActive();
+  const wrapperPosition = chatSheldActive
+    ? `position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%);`
+    : `position: absolute; top: -60px; left: 50%; transform: translateX(-50%);`;
+  const formSheldRule = chatSheldActive ? '' : `#form_sheld { position: relative !important; }`;
 
-  const styles = document.createElement("style");
-  styles.id = "lumiverse-council-indicator-styles";
-  styles.textContent = `
-    /* Make form_sheld a positioning context for absolute positioning */
-    #form_sheld {
-      position: relative !important;
-    }
-
-    /* Council Indicator Wrapper - Absolute position above form_sheld content */
+  return `
+    ${formSheldRule}
     .lumiverse-council-indicator-wrapper {
-      position: absolute;
-      top: -60px;
-      left: 50%;
-      transform: translateX(-50%);
+      ${wrapperPosition}
       z-index: 10000;
       opacity: 0;
       animation: lumiverse-council-fade-in 0.4s ease forwards;
       pointer-events: none;
-    }
+    }` + INDICATOR_CSS_SHARED;
+}
 
+/** Shared CSS for the indicator (positioning-agnostic). */
+const INDICATOR_CSS_SHARED = `
     .lumiverse-council-indicator-wrapper.fading-out {
       animation: lumiverse-council-fade-out 0.4s ease forwards;
     }
 
-    /* Council Indicator Container - Centered and larger */
     .lumiverse-council-indicator {
       display: flex;
       align-items: center;
@@ -133,7 +133,6 @@ function injectIndicatorStyles() {
       animation: lumiverse-council-shimmer 3s ease-in-out infinite;
     }
 
-    /* Council Label - Larger text */
     .lumiverse-council-label {
       font-family: "Courier New", "Monaco", "Consolas", monospace;
       font-size: 11px;
@@ -146,7 +145,6 @@ function injectIndicatorStyles() {
       z-index: 1;
     }
 
-    /* Avatar Stack Container */
     .lumiverse-council-avatar-stack {
       display: flex;
       align-items: center;
@@ -154,7 +152,6 @@ function injectIndicatorStyles() {
       z-index: 1;
     }
 
-    /* Individual Avatar - Larger size */
     .lumiverse-council-avatar {
       width: 28px;
       height: 28px;
@@ -170,33 +167,19 @@ function injectIndicatorStyles() {
       background: linear-gradient(135deg, var(--lumiverse-bg-deep) 0%, var(--lumiverse-bg-elevated) 100%);
     }
 
-    .lumiverse-council-avatar:first-child {
-      margin-left: 0;
-    }
+    .lumiverse-council-avatar:first-child { margin-left: 0; }
+    .lumiverse-council-avatar:hover { box-shadow: var(--lumiverse-shadow-sm), 0 0 0 2px var(--lumiverse-primary-050); }
 
-    /* Hover state - subtle glow only, no displacement */
-    .lumiverse-council-avatar:hover {
-      box-shadow: var(--lumiverse-shadow-sm), 0 0 0 2px var(--lumiverse-primary-050);
-    }
+    .lumiverse-council-indicator.loading { animation: lumiverse-council-pulse 1.5s ease-in-out infinite; }
 
-    /* Loading State */
-    .lumiverse-council-indicator.loading {
-      animation: lumiverse-council-pulse 1.5s ease-in-out infinite;
-    }
-
-    /* Complete State - Larger with darker background */
     .lumiverse-council-indicator.complete {
       animation: none;
       border-color: var(--lumiverse-primary-050);
       background: linear-gradient(135deg, var(--lumiverse-bg-surface-2) 0%, var(--lumiverse-bg-surface-2) 100%);
       box-shadow: var(--lumiverse-shadow-md), 0 4px 16px var(--lumiverse-border-hover), var(--lumiverse-highlight-inset);
     }
+    .lumiverse-council-indicator.complete::before { animation: none; }
 
-    .lumiverse-council-indicator.complete::before {
-      animation: none;
-    }
-
-    /* Checkmark for complete state - Larger */
     .lumiverse-council-complete-icon {
       width: 20px;
       height: 20px;
@@ -205,73 +188,29 @@ function injectIndicatorStyles() {
       animation: lumiverse-council-icon-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
     }
 
-    /* Animations - Enhanced for larger indicator with darker background */
     @keyframes lumiverse-council-pulse {
-      0%, 100% {
-        box-shadow: var(--lumiverse-shadow-md), 0 2px 12px var(--lumiverse-primary-020), var(--lumiverse-highlight-inset);
-      }
-      50% {
-        box-shadow: var(--lumiverse-shadow-md), 0 3px 18px var(--lumiverse-primary-035), var(--lumiverse-highlight-inset-md);
-      }
+      0%, 100% { box-shadow: var(--lumiverse-shadow-md), 0 2px 12px var(--lumiverse-primary-020), var(--lumiverse-highlight-inset); }
+      50% { box-shadow: var(--lumiverse-shadow-md), 0 3px 18px var(--lumiverse-primary-035), var(--lumiverse-highlight-inset-md); }
     }
-
-    @keyframes lumiverse-council-shimmer {
-      0% {
-        left: -100%;
-      }
-      100% {
-        left: 100%;
-      }
-    }
-
+    @keyframes lumiverse-council-shimmer { 0% { left: -100%; } 100% { left: 100%; } }
     @keyframes lumiverse-council-avatar-enter {
-      0% {
-        opacity: 0;
-        transform: scale(0.8) translateY(4px);
-      }
-      100% {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-      }
+      0% { opacity: 0; transform: scale(0.8) translateY(4px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
     }
-
     @keyframes lumiverse-council-icon-pop {
-      0% {
-        opacity: 0;
-        transform: scale(0) rotate(-45deg);
-      }
-      70% {
-        transform: scale(1.2) rotate(10deg);
-      }
-      100% {
-        opacity: 1;
-        transform: scale(1) rotate(0deg);
-      }
+      0% { opacity: 0; transform: scale(0) rotate(-45deg); }
+      70% { transform: scale(1.2) rotate(10deg); }
+      100% { opacity: 1; transform: scale(1) rotate(0deg); }
     }
-
     @keyframes lumiverse-council-fade-in {
-      0% {
-        opacity: 0;
-        transform: translateX(-50%) translateY(10px);
-      }
-      100% {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-      }
+      0% { opacity: 0; transform: translateX(-50%) translateY(10px); }
+      100% { opacity: 1; transform: translateX(-50%) translateY(0); }
     }
-
     @keyframes lumiverse-council-fade-out {
-      0% {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-      }
-      100% {
-        opacity: 0;
-        transform: translateX(-50%) translateY(-10px);
-      }
+      0% { opacity: 1; transform: translateX(-50%) translateY(0); }
+      100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
     }
 
-    /* Staggered animation delays for avatars */
     .lumiverse-council-avatar:nth-child(1) { animation-delay: 0ms; }
     .lumiverse-council-avatar:nth-child(2) { animation-delay: 50ms; }
     .lumiverse-council-avatar:nth-child(3) { animation-delay: 100ms; }
@@ -281,42 +220,32 @@ function injectIndicatorStyles() {
     .lumiverse-council-avatar:nth-child(7) { animation-delay: 300ms; }
     .lumiverse-council-avatar:nth-child(8) { animation-delay: 350ms; }
 
-    /* Mobile: Truncate avatar stack to prevent overflow */
     @media (max-width: 768px) {
-      .lumiverse-council-indicator-wrapper {
-        top: -55px;
-      }
-
-      .lumiverse-council-avatar:nth-child(n+7) {
-        display: none;
-      }
-
+      .lumiverse-council-indicator-wrapper { bottom: 75px; }
+      .lumiverse-council-avatar:nth-child(n+7) { display: none; }
       .lumiverse-council-avatar-overflow {
         display: flex !important;
-        align-items: center;
-        justify-content: center;
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
+        align-items: center; justify-content: center;
+        width: 28px; height: 28px; border-radius: 50%;
         border: 2px solid var(--lumiverse-swatch-border);
         background: linear-gradient(135deg, var(--lumiverse-primary-085) 0%, var(--lumiverse-primary-080) 100%);
-        color: white;
-        font-size: 10px;
-        font-weight: 600;
-        margin-left: -10px;
+        color: white; font-size: 10px; font-weight: 600; margin-left: -10px;
         box-shadow: var(--lumiverse-shadow-sm), 0 0 0 1px var(--lumiverse-primary-040);
         animation: lumiverse-council-avatar-enter 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         animation-delay: 300ms;
       }
     }
+    @media (min-width: 769px) { .lumiverse-council-avatar-overflow { display: none !important; } }
+`;
 
-    /* Hide overflow counter on desktop */
-    @media (min-width: 769px) {
-      .lumiverse-council-avatar-overflow {
-        display: none !important;
-      }
-    }
-  `;
+function injectIndicatorStyles() {
+  // Remove existing to re-inject with current positioning (may change between chat sheld and native)
+  const existing = document.getElementById("lumiverse-council-indicator-styles");
+  if (existing) existing.remove();
+
+  const styles = document.createElement("style");
+  styles.id = "lumiverse-council-indicator-styles";
+  styles.textContent = getIndicatorCSS();
 
   document.head.appendChild(styles);
 }
@@ -326,6 +255,7 @@ function injectIndicatorStyles() {
  * @returns {HTMLElement} The indicator wrapper containing the indicator
  */
 function createIndicatorContainer() {
+  // Inject styles into document.head (positioning adapts based on chat sheld state)
   injectIndicatorStyles();
 
   // Create wrapper for positioning and animations
@@ -373,18 +303,25 @@ export function showCouncilIndicator() {
   // Create the indicator
   currentIndicator = createIndicatorContainer();
 
-  // Insert at the beginning of form_sheld so it appears above the input
-  // This positions it naturally without affecting layout flow
-  const formSheld = document.getElementById("form_sheld");
-  if (formSheld) {
-    // Prepend to form_sheld - indicator will be absolutely positioned
-    formSheld.insertBefore(currentIndicator, formSheld.firstChild);
+  // Insert into the appropriate container based on active chat mode
+  if (isChatSheldActive()) {
+    // Chat Sheld mode: insert into the .lcs-container in the light DOM
+    const container = document.querySelector('.lcs-container');
+    if (container) {
+      container.appendChild(currentIndicator);
+    } else {
+      document.body.appendChild(currentIndicator);
+    }
   } else {
-    // Fallback to body if form_sheld not found
-    document.body.appendChild(currentIndicator);
+    // Standard mode: insert at the beginning of form_sheld
+    const formSheld = document.getElementById("form_sheld");
+    if (formSheld) {
+      formSheld.insertBefore(currentIndicator, formSheld.firstChild);
+    } else {
+      document.body.appendChild(currentIndicator);
+    }
   }
 
-  console.log(`[${MODULE_NAME}] Council indicator shown`);
 }
 
 /**
@@ -445,7 +382,6 @@ export function addMemberToIndicator(member) {
     avatarStack.appendChild(overflowBadge);
   }
 
-  console.log(`[${MODULE_NAME}] Added ${memberName} to council indicator`);
 }
 
 /**
@@ -467,8 +403,6 @@ export function markIndicatorComplete() {
   checkmark.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
   checkmark.title = "Council deliberation complete";
   indicatorEl.appendChild(checkmark);
-
-  console.log(`[${MODULE_NAME}] Council indicator marked complete`);
 
   // Clear any existing timeout
   clearAutoHideTimeout();

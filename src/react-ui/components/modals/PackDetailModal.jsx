@@ -2,6 +2,7 @@ import React, { useMemo, useSyncExternalStore, useCallback, useEffect, useState 
 import { createPortal } from 'react-dom';
 import { X, Package, FileText, Zap, Heart, Check, Plus, User, Eye, EyeOff } from 'lucide-react';
 import { useLumiverseStore, useLumiverseActions, useSelections, saveToExtension } from '../../store/LumiverseContext';
+import useFixedPositionFix from '../../hooks/useFixedPositionFix';
 import { useAdaptiveImagePosition } from '../../hooks/useAdaptiveImagePosition';
 import LazyImage from '../shared/LazyImage';
 
@@ -548,7 +549,7 @@ function PackDetailModal() {
     const actions = useLumiverseActions();
     const selections = useSelections();
 
-    // Subscribe to viewingPack and packs
+    // Subscribe to viewingPack and packs — need these before the hook call
     const viewingPack = useSyncExternalStore(
         store.subscribe,
         selectViewingPack,
@@ -566,6 +567,9 @@ function PackDetailModal() {
         if (!viewingPack) return null;
         return packs[viewingPack] || null;
     }, [viewingPack, packs]);
+
+    // Neutralize SillyTavern's html transform/perspective that breaks position:fixed
+    useFixedPositionFix(!!viewingPack && !!pack);
 
     // Get Lumia items from the pack (supports both formats)
     const lumiaItems = useMemo(() => {

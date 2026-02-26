@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useSyncExternalStore, useCallback, useRef } from 'react';
 import clsx from 'clsx';
-import { Users, Plus, Trash2, ChevronDown, ChevronUp, Edit2, X, Check, Zap, Heart, Star, Package, Briefcase, Cpu, Eye, EyeOff, Radio, Plug, BookOpen } from 'lucide-react';
+import { Users, Plus, Trash2, ChevronDown, ChevronUp, Edit2, X, Check, Zap, Heart, Star, Package, Briefcase, Cpu, Eye, EyeOff, Radio, Plug, BookOpen, Shield } from 'lucide-react';
 import { useLumiverseStore, useLumiverseActions, usePacks, saveToExtension, saveToExtensionImmediate } from '../../store/LumiverseContext';
 import { getToolsForUI, isInlineModeAvailable } from '../../../lib/councilTools';
 
@@ -686,6 +686,8 @@ function QuickAddPackDropdown({ packs, existingMembers, onAddPack, onClose }) {
  */
 function CouncilToolsConfig() {
     const [showApiKey, setShowApiKey] = useState(false);
+    const [showProxy, setShowProxy] = useState(false);
+    const [showProxyKey, setShowProxyKey] = useState(false);
     const actions = useLumiverseActions();
 
     const councilTools = useSyncExternalStore(
@@ -768,6 +770,8 @@ function CouncilToolsConfig() {
 
     const providerConfig = COUNCIL_PROVIDER_CONFIG[llm.provider] || COUNCIL_PROVIDER_CONFIG.custom;
     const isCustom = llm.provider === 'custom';
+    const supportsProxy = llm.provider === 'anthropic' || llm.provider === 'google';
+    const hasProxyConfig = !!(llm.proxyEndpoint || llm.proxyKey);
 
     return (
         <div className="lumiverse-council-llm-config">
@@ -924,8 +928,11 @@ function CouncilToolsConfig() {
                                 <option key={key} value={key}>{config.name}</option>
                             ))}
                         </select>
-                        {!isCustom && (
+                        {!isCustom && !hasProxyConfig && (
                             <span className="lumiverse-council-llm-hint">Uses API key from SillyTavern settings</span>
+                        )}
+                        {!isCustom && hasProxyConfig && (
+                            <span className="lumiverse-council-llm-hint" style={{ color: 'var(--lumiverse-primary)' }}>Using reverse proxy configuration</span>
                         )}
                     </div>
 
@@ -940,6 +947,63 @@ function CouncilToolsConfig() {
                             onChange={(e) => updateLLM({ model: e.target.value })}
                         />
                     </div>
+
+                    {/* Reverse proxy accordion — Anthropic + Google only */}
+                    {supportsProxy && (
+                        <div className="lumiverse-council-proxy-section">
+                            <button
+                                className="lumiverse-council-proxy-toggle"
+                                type="button"
+                                onClick={() => setShowProxy(!showProxy)}
+                            >
+                                <Shield size={13} strokeWidth={1.5} />
+                                <span>Reverse Proxy</span>
+                                <ChevronDown
+                                    size={13}
+                                    className={`lumiverse-council-proxy-chevron${showProxy ? ' lumiverse-council-proxy-chevron--open' : ''}`}
+                                />
+                            </button>
+                            {showProxy && (
+                                <div className="lumiverse-council-proxy-fields">
+                                    <div className="lumiverse-council-llm-field">
+                                        <label className="lumiverse-council-llm-label">Base URL</label>
+                                        <input
+                                            type="text"
+                                            className="lumiverse-council-llm-input"
+                                            placeholder={llm.provider === 'anthropic'
+                                                ? 'https://your-proxy.com/v1/messages'
+                                                : 'https://your-proxy.com/v1beta/models'}
+                                            value={llm.proxyEndpoint || ''}
+                                            onChange={(e) => updateLLM({ proxyEndpoint: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="lumiverse-council-llm-field">
+                                        <label className="lumiverse-council-llm-label">Proxy Key</label>
+                                        <div className="lumiverse-council-llm-password-row">
+                                            <input
+                                                type={showProxyKey ? 'text' : 'password'}
+                                                className="lumiverse-council-llm-input"
+                                                placeholder="Proxy API key (optional)"
+                                                value={llm.proxyKey || ''}
+                                                onChange={(e) => updateLLM({ proxyKey: e.target.value })}
+                                            />
+                                            <button
+                                                className="lumiverse-council-btn"
+                                                onClick={() => setShowProxyKey(!showProxyKey)}
+                                                title={showProxyKey ? 'Hide' : 'Show'}
+                                                type="button"
+                                            >
+                                                {showProxyKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <span className="lumiverse-council-llm-hint">
+                                        Override the default {providerConfig.name} endpoint for third-party compatible services.
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Custom endpoint + API key */}
                     {isCustom && (

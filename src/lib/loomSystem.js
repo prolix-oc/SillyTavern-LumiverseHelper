@@ -256,9 +256,6 @@ export function processLoomConditionals(content) {
   }
 
   if (iterations >= maxIterations) {
-    console.warn(
-      `[${MODULE_NAME}] loomIf processing hit max iterations - possible malformed conditionals`,
-    );
   }
 
   return processed;
@@ -343,7 +340,6 @@ export function hideLoomSumBlocks(messageElement) {
 
   if (updatedHtml !== html) {
     messageElement.innerHTML = updatedHtml;
-    console.log(`[${MODULE_NAME}] Hidden loom_sum block in message`);
   }
 }
 
@@ -358,7 +354,6 @@ export function hideLoomSumBlocks(messageElement) {
  * @param {Object} MacrosParser - The SillyTavern MacrosParser instance
  */
 export function registerLoomMacros(MacrosParser) {
-  console.log("[LumiverseHelper] Registering Loom macros (Macros 2.0 format)...");
 
   // Register loomSummary macro - injects the stored summary
   MacrosParser.registerMacro("loomSummary", {

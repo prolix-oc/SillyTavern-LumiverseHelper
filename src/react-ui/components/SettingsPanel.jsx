@@ -39,7 +39,6 @@ const selectDrawerSettings = () => store.getState().drawerSettings ?? DEFAULT_DR
 const selectEnableLandingPage = () => store.getState().enableLandingPage ?? true;
 const selectLandingPageChatsDisplayed = () => store.getState().landingPageChatsDisplayed ?? 12;
 
-
 /**
  * Main Settings Panel component - matching old HTML structure exactly
  */
@@ -334,28 +333,22 @@ function SettingsPanel() {
         const file = event.target.files?.[0];
         if (!file) return;
 
-        console.log('[SettingsPanel] File selected for upload:', file.name);
-
         const reader = new FileReader();
         reader.onload = async (e) => {
             try {
                 const data = JSON.parse(e.target.result);
-                console.log('[SettingsPanel] JSON parsed successfully, entries:', data.entries ? Object.keys(data.entries).length : 'no entries field');
 
                 // Call the extension's handleNewBook callback
                 if (typeof LumiverseBridge !== 'undefined') {
                     const callbacks = LumiverseBridge.getCallbacks();
-                    console.log('[SettingsPanel] Available callbacks:', callbacks ? Object.keys(callbacks).filter(k => callbacks[k]) : 'none');
 
                     if (callbacks && callbacks.handleNewBook) {
-                        console.log('[SettingsPanel] Calling handleNewBook...');
                         // MUST await since handleNewBook is async - ensures pack is in cache before continuing
                         await callbacks.handleNewBook(data, file.name, false);
                         // Refresh the UI after import is fully complete
                         if (callbacks.refreshUIDisplay) {
                             callbacks.refreshUIDisplay();
                         }
-                        console.log('[SettingsPanel] Import complete');
                     } else {
                         console.error('[SettingsPanel] handleNewBook callback not registered');
                         if (typeof toastr !== 'undefined') {
