@@ -12,15 +12,15 @@ let _listenerBound = false;
 
 /**
  * Bind the PERSONA_CHANGED listener (idempotent — safe to call multiple times).
+ * ST emits PERSONA_CHANGED with the avatar filename as the first argument.
  */
 export function initPersonaListener() {
     if (_listenerBound) return;
     const es = getEventSource();
     const et = getEventTypes();
     if (es && et?.PERSONA_CHANGED) {
-        es.on(et.PERSONA_CHANGED, () => {
-            const ctx = getContext();
-            _currentUserAvatar = ctx?.user_avatar || null;
+        es.on(et.PERSONA_CHANGED, (avatarId) => {
+            _currentUserAvatar = avatarId || null;
         });
         _listenerBound = true;
     }
@@ -78,26 +78,34 @@ export async function fetchPersonaList() {
 
 /**
  * Get the currently active persona avatar identifier.
+ *
+ * Note: `user_avatar` is a module-level export in ST's personas.js and is NOT
+ * exposed via getContext(). We rely on:
+ * 1. The PERSONA_CHANGED event payload (captured by initPersonaListener)
+ * 2. Name-matching fallback: ctx.name1 is the active display name, and
+ *    powerUserSettings.personas maps avatarId → name
+ *
  * @returns {string|null}
  */
 export function getCurrentPersonaAvatar() {
+    // Best source: captured from PERSONA_CHANGED event
     if (_currentUserAvatar) return _currentUserAvatar;
 
     const ctx = getContext();
-    if (ctx?.user_avatar) {
-        _currentUserAvatar = ctx.user_avatar;
-        return _currentUserAvatar;
-    }
+    if (!ctx) return null;
 
-    // DOM fallback
-    try {
-        const img = document.querySelector('#user_avatar_block img[src]');
-        if (img) {
-            const src = img.getAttribute('src');
-            const match = src?.match(/User Avatars\/(.+)/);
-            if (match) return match[1];
+    // Fallback: match the active display name (ctx.name1) against the persona map.
+    // This handles the case where PERSONA_CHANGED fired before our listener bound.
+    const currentName = ctx.name1;
+    if (currentName) {
+        const personas = ctx.powerUserSettings?.personas || {};
+        for (const [avatarId, name] of Object.entries(personas)) {
+            if (name === currentName) {
+                _currentUserAvatar = avatarId;
+                return avatarId;
+            }
         }
-    } catch { /* ignore */ }
+    }
 
     return null;
 }

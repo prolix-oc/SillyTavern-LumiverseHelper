@@ -1651,6 +1651,8 @@ const actions = {
         saveToExtension();
     },
 
+    // resetTheme kept for backward compatibility — sets theme to null
+    // (boot path in reactBridge treats null as "apply Default Purple")
     resetTheme: () => {
         store.setState({ theme: null });
         saveToExtension();

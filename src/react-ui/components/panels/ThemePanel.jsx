@@ -122,16 +122,9 @@ export default function ThemePanel() {
         saveTimerRef.current = setTimeout(() => {
             // Discard if a newer persist was queued (race condition guard)
             if (version !== persistVersionRef.current) return;
-            // Only persist if different from default
-            const isDefault = themeToSave.name === 'Default Purple' &&
-                JSON.stringify(themeToSave.baseColors) === JSON.stringify(defaultTheme.baseColors);
-            if (isDefault) {
-                actions.resetTheme();
-            } else {
-                actions.setTheme(themeToSave);
-            }
+            actions.setTheme(themeToSave);
         }, 500);
-    }, [actions, defaultTheme]);
+    }, [actions]);
 
     // Handle mode toggle (dark ↔ light)
     const handleModeToggle = useCallback(() => {
@@ -193,14 +186,8 @@ export default function ThemePanel() {
         setLocalTheme(preset);
         setActivePreset(presetName);
         // Persist immediately — preset clicks are discrete user actions
-        const isDefault = presetName === 'Default Purple' &&
-            JSON.stringify(preset.baseColors) === JSON.stringify(defaultTheme.baseColors);
-        if (isDefault) {
-            actions.resetTheme();
-        } else {
-            actions.setTheme(preset);
-        }
-    }, [actions, defaultTheme]);
+        actions.setTheme(preset);
+    }, [actions]);
 
     // Handle reset — cancel debounce and lock out stale picker events
     const handleReset = useCallback(() => {
@@ -209,7 +196,7 @@ export default function ThemePanel() {
         presetLockRef.current = true;
         setLocalTheme(defaultTheme);
         setActivePreset('Default Purple');
-        actions.resetTheme();
+        actions.setTheme(defaultTheme);
         applyTheme(defaultTheme);
     }, [actions, defaultTheme]);
 

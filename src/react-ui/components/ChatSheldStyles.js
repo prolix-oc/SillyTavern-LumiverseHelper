@@ -3597,7 +3597,13 @@ svg.lucide {
 }
 .lcs-persona-item.lcs-persona-active {
   border-color: var(--lumiverse-primary-040, rgba(140,130,255,0.4));
-  background: var(--lumiverse-primary-008, rgba(140,130,255,0.08));
+  background: var(--lumiverse-primary-015, rgba(140,130,255,0.15));
+}
+.lcs-persona-item.lcs-persona-active .lcs-persona-name {
+  color: var(--lumiverse-primary-text, rgba(160,150,255,0.95));
+}
+.lcs-persona-item.lcs-persona-active .lcs-persona-avatar {
+  box-shadow: 0 0 0 2px var(--lumiverse-primary-060, rgba(140,130,255,0.6));
 }
 
 .lcs-persona-avatar {

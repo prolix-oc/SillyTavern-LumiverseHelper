@@ -211,6 +211,29 @@ export const SAMPLER_PARAMS = [
 let _storedCoreChat = null;
 
 /**
+ * World Info cache — populated by WORLD_INFO_ACTIVATED event (fires before
+ * CHAT_COMPLETION_SETTINGS_READY) so assembleMessages() can include WI content.
+ * @type {{ before: string, after: string }}
+ */
+let _worldInfoCache = { before: '', after: '' };
+
+/**
+ * Store world info text captured from the WORLD_INFO_ACTIVATED event.
+ * @param {string} before - WI entries with position=0 (before char defs)
+ * @param {string} after - WI entries with position=1 (after char defs)
+ */
+export function setWorldInfoCache(before, after) {
+    _worldInfoCache = { before: before || '', after: after || '' };
+}
+
+/**
+ * Clear the world info cache (called on GENERATION_ENDED / CHAT_CHANGED).
+ */
+export function clearWorldInfoCache() {
+    _worldInfoCache = { before: '', after: '' };
+}
+
+/**
  * Last assembly breakdown — per-block itemization captured during assembleMessages().
  * Used by the prompt itemization modal to show Loom-specific breakdowns.
  * @type {Object|null}
@@ -1027,6 +1050,129 @@ export function assembleMessages(preset, generateData) {
     return result;
 }
 
+// ============================================================================
+// EXTENSION PROMPT INJECTION
+// ============================================================================
+
+/**
+ * Friendly labels for ST's extension_prompts keys.
+ * Keys not listed here fall through to a cleaned-up version of the key itself.
+ */
+const EXTENSION_PROMPT_LABELS = {
+    '1_memory':             'Summary',
+    '2_floating_prompt':    "Author's Note",
+    '3_vectors':            'Vectors',
+    '4_vectors_data_bank':  'Data Bank',
+    'chromadb':             'Smart Context',
+};
+
+/** Keys to always skip when injecting extension prompts. */
+const SKIP_EXTENSION_KEYS = new Set(['QUIET_PROMPT', '__STORY_STRING__']);
+
+/** ST position enum values. */
+const EXT_POS = { NONE: -1, IN_PROMPT: 0, IN_CHAT: 1, BEFORE_PROMPT: 2 };
+
+/** Map ST role numbers to OpenAI role strings. */
+const ROLE_MAP = { 0: 'system', 1: 'user', 2: 'assistant' };
+
+/**
+ * Inject ST extension prompts (Summary, Author's Note, Vectors, Smart Context,
+ * Data Bank, depth-positioned WI, etc.) into the assembled Loom messages array.
+ *
+ * Also auto-injects World Info (from the WI cache) when no explicit WI blocks
+ * exist in the preset.
+ *
+ * Mutates `result` (message array) and `breakdown` (itemization entries) in place.
+ *
+ * @param {Array} result - Assembled messages array from assembleMessages()
+ * @param {Array} breakdown - Breakdown entries array from _lastAssemblyBreakdown
+ * @param {Object} extensionPrompts - ctx.extensionPrompts (= ST's extension_prompts global)
+ * @param {Array} enabledBlocks - The preset's enabled blocks (to check for explicit WI blocks)
+ */
+export function injectExtensionPrompts(result, breakdown, extensionPrompts, enabledBlocks) {
+    if (!extensionPrompts || typeof extensionPrompts !== 'object') return;
+
+    // Find the index of the first user or assistant message (boundary between
+    // system preamble and conversation). Used for IN_PROMPT placement.
+    const firstChatIdx = result.findIndex(m => m.role === 'user' || m.role === 'assistant');
+
+    // Track how many messages we've inserted so subsequent indices stay correct
+    let offset = 0;
+
+    for (const [key, entry] of Object.entries(extensionPrompts)) {
+        // Skip blanks, NONE position, and blacklisted keys
+        if (!entry?.value?.trim()) continue;
+        if (entry.position === EXT_POS.NONE) continue;
+        if (SKIP_EXTENSION_KEYS.has(key)) continue;
+        if (key.startsWith('customWIOutlet_')) continue;
+
+        const role = ROLE_MAP[entry.role] || 'system';
+        const label = EXTENSION_PROMPT_LABELS[key] || key.replace(/^\d+_/, '').replace(/_/g, ' ');
+
+        // Compute insertion index based on ST position semantics
+        let idx;
+        if (entry.position === EXT_POS.BEFORE_PROMPT) {
+            // Before everything
+            idx = 0;
+        } else if (entry.position === EXT_POS.IN_PROMPT) {
+            // Before the first user/assistant message (after system preamble)
+            idx = firstChatIdx >= 0 ? firstChatIdx + offset : result.length;
+        } else if (entry.position === EXT_POS.IN_CHAT) {
+            // Depth-positioned: insert from the end
+            const depth = Math.max(0, entry.depth || 0);
+            idx = Math.max(0, result.length - depth);
+        } else {
+            // Unknown position — append
+            idx = result.length;
+        }
+
+        result.splice(idx, 0, { role, content: entry.value });
+        breakdown.push({
+            type: 'extension',
+            name: label,
+            role,
+            content: entry.value,
+        });
+        offset++;
+    }
+
+    // Auto-inject World Info if no explicit WI blocks exist in the preset
+    const hasExplicitWI = enabledBlocks?.some(b =>
+        b.marker === 'world_info_before' || b.marker === 'world_info_after'
+    );
+
+    if (!hasExplicitWI) {
+        const wiBefore = _worldInfoCache.before;
+        const wiAfter = _worldInfoCache.after;
+
+        if (wiBefore?.trim()) {
+            const idx = firstChatIdx >= 0 ? firstChatIdx + offset : result.length;
+            result.splice(idx, 0, { role: 'system', content: wiBefore });
+            breakdown.push({
+                type: 'world_info',
+                name: 'World Info (Before)',
+                marker: 'world_info_before',
+                role: 'system',
+                content: wiBefore,
+            });
+            offset++;
+        }
+
+        if (wiAfter?.trim()) {
+            const idx = firstChatIdx >= 0 ? firstChatIdx + offset : result.length;
+            result.splice(idx, 0, { role: 'system', content: wiAfter });
+            breakdown.push({
+                type: 'world_info',
+                name: 'World Info (After)',
+                marker: 'world_info_after',
+                role: 'system',
+                content: wiAfter,
+            });
+            offset++;
+        }
+    }
+}
+
 /**
  * Build the chat messages portion from stored coreChat or generate_data.
  *
@@ -1105,18 +1251,15 @@ function resolveBlockContent(block, resolveMacros) {
 }
 
 /**
- * Resolve world info content from ST context.
+ * Resolve world info content from the cached WI entries.
+ * The cache is populated by the WORLD_INFO_ACTIVATED event handler in index.js,
+ * which fires during Generate() before CHAT_COMPLETION_SETTINGS_READY.
  * @param {string} markerType - 'world_info_before' or 'world_info_after'
  * @returns {string}
  */
 function resolveWorldInfo(markerType) {
-    try {
-        const ctx = getContext();
-        // ST provides world info text on the context when available
-        if (ctx.worldInfoText) return ctx.worldInfoText;
-    } catch (e) {
-        // Context not available
-    }
+    if (markerType === 'world_info_before') return _worldInfoCache.before;
+    if (markerType === 'world_info_after') return _worldInfoCache.after;
     return '';
 }
 

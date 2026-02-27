@@ -2193,6 +2193,7 @@ async function buildLoomItemization(mesId, breakdown) {
                 tokens,
                 messageCount: entry.messageCount,
                 color: null,
+                _type: 'chat_history',
             });
         } else if (entry.type === 'separator') {
             blocks.push({
@@ -2201,6 +2202,7 @@ async function buildLoomItemization(mesId, breakdown) {
                 role: 'system',
                 tokens,
                 color: null,
+                _type: 'separator',
             });
         } else if (entry.type === 'utility') {
             blocks.push({
@@ -2209,6 +2211,25 @@ async function buildLoomItemization(mesId, breakdown) {
                 role: 'system',
                 tokens,
                 color: null,
+                _type: 'utility',
+            });
+        } else if (entry.type === 'extension') {
+            blocks.push({
+                name: entry.name,
+                marker: null,
+                role: entry.role || 'system',
+                tokens,
+                color: null,
+                _type: 'extension',
+            });
+        } else if (entry.type === 'world_info') {
+            blocks.push({
+                name: entry.name,
+                marker: entry.marker || null,
+                role: entry.role || 'system',
+                tokens,
+                color: null,
+                _type: 'world_info',
             });
         } else {
             // Regular block
@@ -2218,6 +2239,7 @@ async function buildLoomItemization(mesId, breakdown) {
                 role: entry.role,
                 tokens,
                 color: entry.color,
+                _type: 'block',
             });
         }
     }

@@ -98,7 +98,7 @@ import {
 } from "./lib/reactBridge.js";
 
 import { initPresetBindingService } from "./lib/presetBindingService.js";
-import { resolveActivePreset, assembleMessages, resolveBinding, setActivePreset, setStoredCoreChat, preResolveMedia, applySamplerOverrides, applyCustomBody, applyCompletionSettings, applyAdvancedSettings, applyAdaptiveThinking, getProfileKey, saveCurrentModelProfile, loadModelProfile, savePreset, getLastAssemblyBreakdown, loadPreset, captureModelProfile } from "./lib/lucidLoomService.js";
+import { resolveActivePreset, assembleMessages, resolveBinding, setActivePreset, setStoredCoreChat, preResolveMedia, applySamplerOverrides, applyCustomBody, applyCompletionSettings, applyAdvancedSettings, applyAdaptiveThinking, getProfileKey, saveCurrentModelProfile, loadModelProfile, savePreset, getLastAssemblyBreakdown, loadPreset, captureModelProfile, setWorldInfoCache, clearWorldInfoCache, injectExtensionPrompts } from "./lib/lucidLoomService.js";
 import { captureReasoningSnapshot } from "./lib/presetsService.js";
 import { storeLoomBreakdown, loadLoomBreakdowns } from "./lib/chatSheldService.js";
 import { handleLoomPresetTransition, isLoomControlActive, syncContextSize, subscribeToOAIPresetEvents, reapplyLoomReasoningSettings } from "./lib/oaiPresetSync.js";
@@ -953,6 +953,8 @@ jQuery(async () => {
       abortToolExecution();
       // Reset generation cycle flag so next generation starts fresh
       markGenerationCycleEnd();
+      // Clear WI cache — it's per-generation and must not persist to the next one
+      clearWorldInfoCache();
     });
 
     eventSource.on(event_types.GENERATION_STOPPED, () => {
@@ -965,10 +967,17 @@ jQuery(async () => {
       markGenerationCycleEnd();
     });
 
-    // World Info capture for council tools context enrichment
+    // World Info capture for council tools context enrichment + Loom preset WI
     if (event_types.WORLD_INFO_ACTIVATED) {
       eventSource.on(event_types.WORLD_INFO_ACTIVATED, (entries) => {
         captureWorldInfoEntries(entries);
+
+        // Cache WI for Loom preset assembly (position 0=before, 1=after)
+        if (Array.isArray(entries) && resolveActivePreset()) {
+          const before = entries.filter(e => e.position === 0).map(e => e.content).filter(Boolean).join('\n');
+          const after = entries.filter(e => e.position === 1).map(e => e.content).filter(Boolean).join('\n');
+          setWorldInfoCache(before, after);
+        }
       });
     }
 
@@ -1043,30 +1052,39 @@ jQuery(async () => {
           // 1. Assemble messages from preset blocks
           const assembled = assembleMessages(activePreset, generateData);
           if (assembled && assembled.length > 0) {
+            // 1a. Inject extension prompts (Summary, AN, Vectors, Smart Context, WI auto-inject)
+            const loomBreakdown = getLastAssemblyBreakdown();
+            const ctx2 = getContext();
+            if (ctx2?.extensionPrompts && loomBreakdown) {
+              const enabledBlocks = activePreset.blocks?.filter(b => b.enabled) || [];
+              injectExtensionPrompts(assembled, loomBreakdown.entries, ctx2.extensionPrompts, enabledBlocks);
+            }
+
             generateData.messages = assembled;
           }
 
           // 1b. Store Loom assembly breakdown for prompt itemization
+          // (Read AFTER injectExtensionPrompts so breakdown includes extension entries)
           const loomBreakdown = getLastAssemblyBreakdown();
           if (loomBreakdown) {
-            const ctx2 = getContext();
-            const chatLen = ctx2.chat?.length || 0;
+            const ctxForBreakdown = getContext();
+            const chatLen = ctxForBreakdown.chat?.length || 0;
             const genType = generateData.type || 'normal';
             // Estimate mesId: regen/swipe/continue target last message; normal/impersonate create new
             const estimatedMesId = (genType === 'regenerate' || genType === 'swipe' || genType === 'continue')
               ? chatLen - 1
               : chatLen;
-            // Build raw prompt display from assembled messages
+            // Build raw prompt display from assembled messages (now includes extension prompts)
             const rawPrompt = assembled.map(m => {
               const text = typeof m.content === 'string' ? m.content : JSON.stringify(m.content, null, 2);
               return `[${m.role}]\n${text}`;
             }).join('\n\n');
             storeLoomBreakdown(estimatedMesId, {
               ...loomBreakdown,
-              api: ctx2.mainApi || 'unknown',
+              api: ctxForBreakdown.mainApi || 'unknown',
               model: generateData.model || '',
               tokenizer: generateData.tokenizer || '',
-              maxContext: generateData.max_context_length || ctx2.maxContext || 0,
+              maxContext: generateData.max_context_length || ctxForBreakdown.maxContext || 0,
               maxTokens: generateData.max_tokens || 0,
               rawPrompt,
             });

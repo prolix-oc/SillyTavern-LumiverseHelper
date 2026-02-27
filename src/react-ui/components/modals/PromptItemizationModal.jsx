@@ -151,6 +151,7 @@ const s = {
         border: '1px solid var(--lumiverse-border, rgba(255,255,255,0.08))',
         background: 'var(--lumiverse-fill-subtle, rgba(255,255,255,0.02))',
         overflow: 'hidden',
+        flexShrink: 0, // Prevent flex column from shrinking this — let the body scroll instead
     },
     accordionHeader: {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -213,19 +214,65 @@ function TokenRow({ label, tokens, total, isSub = false, color = null, roleBadge
     );
 }
 
+// Group color constants for summary bar
+const GROUP_COLORS = {
+    lumiverse: '#8a7fb0',
+    chatHistory: '#d4a842',
+    worldInfo: '#68b87a',
+    extensions: '#5bc0c0',
+    system: '#5b8ca8',
+};
+
+// World info marker/type check (covers both explicit WI blocks and auto-injected WI)
+const isWorldInfoBlock = (b) =>
+    b.marker === 'world_info_before' || b.marker === 'world_info_after' || b._type === 'world_info';
+
 // ── Loom Preset View ────────────────────────────────────────────────────
 
 function LoomView({ data, barTotal, showRaw, setShowRaw, copied, handleCopy, onClose }) {
     const [blocksOpen, setBlocksOpen] = useState(false);
+    const [extensionsOpen, setExtensionsOpen] = useState(false);
 
-    // Assign colors to blocks: use block.color if set, otherwise cycle through palette
-    const coloredBlocks = data.blocks.map((block, i) => ({
+    // Separate blocks into groups
+    const chatHistoryBlocks = data.blocks.filter(b => b.marker === 'chat_history');
+    const worldInfoBlocks = data.blocks.filter(b => isWorldInfoBlock(b));
+    const extensionBlocks = data.blocks.filter(b => b._type === 'extension');
+    const systemBlocks = data.blocks.filter(b =>
+        b.marker !== 'chat_history' && !isWorldInfoBlock(b)
+        && b._type !== 'extension'
+        && (b._type === 'separator' || b._type === 'utility')
+    );
+    const lumiverseBlocks = data.blocks.filter(b =>
+        b.marker !== 'chat_history' && !isWorldInfoBlock(b)
+        && b._type !== 'separator' && b._type !== 'utility' && b._type !== 'extension'
+    );
+
+    const chatHistoryTokens = chatHistoryBlocks.reduce((sum, b) => sum + b.tokens, 0);
+    const worldInfoTokens = worldInfoBlocks.reduce((sum, b) => sum + b.tokens, 0);
+    const extensionTokens = extensionBlocks.reduce((sum, b) => sum + b.tokens, 0);
+    const systemTokens = systemBlocks.reduce((sum, b) => sum + b.tokens, 0);
+    const lumiverseTokens = lumiverseBlocks.reduce((sum, b) => sum + b.tokens, 0);
+
+    // Assign display colors to individual lumiverse blocks for the detail view
+    const coloredLoomBlocks = lumiverseBlocks.map((block, i) => ({
         ...block,
         displayColor: block.color || BLOCK_PALETTE[i % BLOCK_PALETTE.length],
     }));
 
-    const barItems = coloredBlocks.filter(b => b.tokens > 0);
-    const blockCount = data.blocks.length;
+    // Summary groups for the overview bar
+    const groups = [];
+    if (lumiverseTokens > 0) groups.push({ key: 'lumiverse', label: 'Lumiverse Prompts', tokens: lumiverseTokens, color: GROUP_COLORS.lumiverse });
+    if (chatHistoryTokens > 0) {
+        const msgCount = chatHistoryBlocks.reduce((sum, b) => sum + (b.messageCount || 0), 0);
+        groups.push({ key: 'chatHistory', label: msgCount > 0 ? `Chat History (${msgCount} msgs)` : 'Chat History', tokens: chatHistoryTokens, color: GROUP_COLORS.chatHistory });
+    }
+    if (worldInfoTokens > 0) groups.push({ key: 'worldInfo', label: 'World Info', tokens: worldInfoTokens, color: GROUP_COLORS.worldInfo });
+    if (extensionTokens > 0) groups.push({ key: 'extensions', label: 'Extensions', tokens: extensionTokens, color: GROUP_COLORS.extensions });
+    if (systemTokens > 0) groups.push({ key: 'system', label: 'System', tokens: systemTokens, color: GROUP_COLORS.system });
+
+    // Mini-bar items: individual lumiverse blocks with tokens > 0
+    const miniBarItems = coloredLoomBlocks.filter(b => b.tokens > 0);
+    const miniBarTotal = lumiverseTokens || 1;
 
     return (
         <>
@@ -241,7 +288,6 @@ function LoomView({ data, barTotal, showRaw, setShowRaw, copied, handleCopy, onC
                         {data.presetName && <span style={s.badge}>{data.presetName}</span>}
                         {data.api && <span style={s.badge}>{data.api}</span>}
                         {data.model && <span style={s.badge}>{data.model}</span>}
-                        {data.tokenizer && <span style={s.badge}>Tokenizer: {data.tokenizer}</span>}
                     </div>
                 </div>
                 <button style={s.closeBtn} onClick={onClose} type="button"><X size={16} /></button>
@@ -249,95 +295,210 @@ function LoomView({ data, barTotal, showRaw, setShowRaw, copied, handleCopy, onC
 
             {/* Body */}
             <div style={s.body}>
-                {/* Stacked bar */}
+                {/* Overview stacked bar — grouped */}
                 <div>
                     <div style={s.barContainer}>
-                        {barItems.map((block, i) => (
+                        {groups.map(g => (
                             <div
-                                key={i}
+                                key={g.key}
                                 style={{
                                     ...s.barSegment,
-                                    width: `${Math.max((block.tokens / barTotal) * 100, 1.5)}%`,
-                                    background: block.displayColor,
+                                    width: `${Math.max((g.tokens / barTotal) * 100, 1.5)}%`,
+                                    background: g.color,
                                 }}
-                                title={`${block.name}: ${block.tokens.toLocaleString()} tokens (${((block.tokens / barTotal) * 100).toFixed(1)}%)`}
+                                title={`${g.label}: ${g.tokens.toLocaleString()} tokens (${((g.tokens / barTotal) * 100).toFixed(1)}%)`}
                             >
-                                {(block.tokens / barTotal) > 0.08 ? block.tokens.toLocaleString() : ''}
+                                {(g.tokens / barTotal) > 0.06 ? g.tokens.toLocaleString() : ''}
                             </div>
                         ))}
                     </div>
                     <div style={{ ...s.legend, marginTop: '8px' }}>
-                        {coloredBlocks.filter(b => b.tokens > 0).map((block, i) => (
-                            <span key={i} style={s.legendItem}>
-                                <span style={{ ...s.legendDot, background: block.displayColor }} />
-                                {block.name}
+                        {groups.map(g => (
+                            <span key={g.key} style={s.legendItem}>
+                                <span style={{ ...s.legendDot, background: g.color }} />
+                                {g.label}
+                                <span style={{ fontVariantNumeric: 'tabular-nums', opacity: 0.65 }}>
+                                    {g.tokens.toLocaleString()}
+                                </span>
                             </span>
                         ))}
                     </div>
                 </div>
 
-                {/* Collapsible block breakdown */}
-                <div style={s.accordion}>
-                    <button
-                        style={s.accordionHeader}
-                        onClick={() => setBlocksOpen(prev => !prev)}
-                        type="button"
-                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--lumiverse-fill, rgba(255,255,255,0.04))'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-                    >
-                        <div style={s.accordionHeaderLeft}>
-                            <ChevronDown
-                                size={14}
-                                style={{
-                                    ...s.accordionChevron,
-                                    transform: blocksOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
-                                }}
-                            />
-                            Loom Builder Prompts
-                            <span style={{
-                                fontSize: '11px', fontWeight: 400,
-                                color: 'var(--lumiverse-text-dim, rgba(230,230,240,0.4))',
-                            }}>
-                                ({blockCount} block{blockCount !== 1 ? 's' : ''})
-                            </span>
-                        </div>
-                        <div style={s.accordionTokenSummary}>
-                            {barTotal.toLocaleString()} tokens
-                        </div>
-                    </button>
-                    <div style={{
-                        ...s.accordionBody,
-                        maxHeight: blocksOpen ? '600px' : '0px',
-                        opacity: blocksOpen ? 1 : 0,
-                    }}>
-                        <div style={s.accordionInner}>
-                            <table style={{ ...s.table, marginTop: '4px' }}>
-                                <thead>
-                                    <tr>
-                                        <th style={{ ...s.tableCell, textAlign: 'left', fontSize: '11px', color: 'var(--lumiverse-text-dim)', fontWeight: 500, padding: '6px 8px' }}>Block</th>
-                                        <th style={{ ...s.tableCellRight, fontSize: '11px', color: 'var(--lumiverse-text-dim)', fontWeight: 500, padding: '6px 8px' }}>Tokens</th>
-                                        <th style={{ ...s.tableCellRight, fontSize: '11px', color: 'var(--lumiverse-text-dim)', fontWeight: 500, padding: '6px 8px' }}>%</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {coloredBlocks.map((block, i) => (
-                                        <TokenRow
-                                            key={i}
-                                            label={block.messageCount != null
-                                                ? `${block.name} (${block.messageCount} msgs)`
-                                                : block.name
-                                            }
-                                            tokens={block.tokens}
-                                            total={barTotal}
-                                            color={block.displayColor}
-                                            roleBadge={block.role}
-                                        />
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                {/* Collapsible: Lumiverse Prompts detail */}
+                {lumiverseBlocks.length > 0 && (
+                    <div style={s.accordion}>
+                        <button
+                            style={s.accordionHeader}
+                            onClick={() => setBlocksOpen(prev => !prev)}
+                            type="button"
+                            onMouseEnter={e => { e.currentTarget.style.background = 'var(--lumiverse-fill, rgba(255,255,255,0.04))'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                        >
+                            <div style={s.accordionHeaderLeft}>
+                                <ChevronDown
+                                    size={14}
+                                    style={{
+                                        ...s.accordionChevron,
+                                        transform: blocksOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
+                                    }}
+                                />
+                                Lumiverse Prompts
+                                <span style={{
+                                    fontSize: '11px', fontWeight: 400,
+                                    color: 'var(--lumiverse-text-dim, rgba(230,230,240,0.4))',
+                                }}>
+                                    ({lumiverseBlocks.length} block{lumiverseBlocks.length !== 1 ? 's' : ''})
+                                </span>
+                            </div>
+                            <div style={s.accordionTokenSummary}>
+                                {lumiverseTokens.toLocaleString()} tokens
+                            </div>
+                        </button>
+                        {/* Conditionally rendered body — no nested scroll container,
+                            the modal body handles all scrolling */}
+                        {blocksOpen && (
+                            <div style={s.accordionInner}>
+                                {/* Mini stacked bar for individual blocks */}
+                                {miniBarItems.length > 1 && (
+                                    <div style={{ ...s.barContainer, height: '14px', marginBottom: '10px', marginTop: '8px' }}>
+                                        {miniBarItems.map((block, i) => (
+                                            <div
+                                                key={i}
+                                                style={{
+                                                    ...s.barSegment,
+                                                    height: '100%',
+                                                    fontSize: '8px',
+                                                    width: `${Math.max((block.tokens / miniBarTotal) * 100, 0.5)}%`,
+                                                    background: block.displayColor,
+                                                }}
+                                                title={`${block.name}: ${block.tokens.toLocaleString()} tokens (${((block.tokens / miniBarTotal) * 100).toFixed(1)}%)`}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
+                                <table style={{ ...s.table, marginTop: '4px' }}>
+                                    <thead>
+                                        <tr>
+                                            <th style={{ ...s.tableCell, textAlign: 'left', fontSize: '11px', color: 'var(--lumiverse-text-dim)', fontWeight: 500, padding: '6px 8px' }}>Block</th>
+                                            <th style={{ ...s.tableCellRight, fontSize: '11px', color: 'var(--lumiverse-text-dim)', fontWeight: 500, padding: '6px 8px' }}>Tokens</th>
+                                            <th style={{ ...s.tableCellRight, fontSize: '11px', color: 'var(--lumiverse-text-dim)', fontWeight: 500, padding: '6px 8px' }}>%</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {coloredLoomBlocks.map((block, i) => (
+                                            <TokenRow
+                                                key={i}
+                                                label={block.name}
+                                                tokens={block.tokens}
+                                                total={barTotal}
+                                                color={block.displayColor}
+                                                roleBadge={block.role}
+                                            />
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
                     </div>
-                </div>
+                )}
+
+                {/* Extensions accordion (Summary, Author's Note, Vectors, etc.) */}
+                {extensionBlocks.length > 0 && (
+                    <div style={s.accordion}>
+                        <button
+                            style={s.accordionHeader}
+                            onClick={() => setExtensionsOpen(prev => !prev)}
+                            type="button"
+                            onMouseEnter={e => { e.currentTarget.style.background = 'var(--lumiverse-fill, rgba(255,255,255,0.04))'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                        >
+                            <div style={s.accordionHeaderLeft}>
+                                <ChevronDown
+                                    size={14}
+                                    style={{
+                                        ...s.accordionChevron,
+                                        transform: extensionsOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
+                                    }}
+                                />
+                                Extensions
+                                <span style={{
+                                    fontSize: '11px', fontWeight: 400,
+                                    color: 'var(--lumiverse-text-dim, rgba(230,230,240,0.4))',
+                                }}>
+                                    ({extensionBlocks.length} item{extensionBlocks.length !== 1 ? 's' : ''})
+                                </span>
+                            </div>
+                            <div style={s.accordionTokenSummary}>
+                                {extensionTokens.toLocaleString()} tokens
+                            </div>
+                        </button>
+                        {extensionsOpen && (
+                            <div style={s.accordionInner}>
+                                <table style={{ ...s.table, marginTop: '4px' }}>
+                                    <thead>
+                                        <tr>
+                                            <th style={{ ...s.tableCell, textAlign: 'left', fontSize: '11px', color: 'var(--lumiverse-text-dim)', fontWeight: 500, padding: '6px 8px' }}>Extension</th>
+                                            <th style={{ ...s.tableCellRight, fontSize: '11px', color: 'var(--lumiverse-text-dim)', fontWeight: 500, padding: '6px 8px' }}>Tokens</th>
+                                            <th style={{ ...s.tableCellRight, fontSize: '11px', color: 'var(--lumiverse-text-dim)', fontWeight: 500, padding: '6px 8px' }}>%</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {extensionBlocks.map((block, i) => (
+                                            <TokenRow
+                                                key={i}
+                                                label={block.name}
+                                                tokens={block.tokens}
+                                                total={barTotal}
+                                                color={GROUP_COLORS.extensions}
+                                                roleBadge={block.role}
+                                            />
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* World Info detail — shown as rows if present (from explicit blocks or auto-inject) */}
+                {worldInfoBlocks.length > 0 && worldInfoBlocks.some(b => b.tokens > 0) && (
+                    <div style={{ fontSize: '12px', color: 'var(--lumiverse-text-dim, rgba(230,230,240,0.4))' }}>
+                        <table style={s.table}>
+                            <tbody>
+                                {worldInfoBlocks.map((block, i) => (
+                                    <TokenRow
+                                        key={i}
+                                        label={block.name}
+                                        tokens={block.tokens}
+                                        total={barTotal}
+                                        color={GROUP_COLORS.worldInfo}
+                                        isSub
+                                    />
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+
+                {/* System blocks detail (separators, utilities) — shown inline if present */}
+                {systemBlocks.length > 0 && (
+                    <div style={{ fontSize: '12px', color: 'var(--lumiverse-text-dim, rgba(230,230,240,0.4))' }}>
+                        <table style={s.table}>
+                            <tbody>
+                                {systemBlocks.map((block, i) => (
+                                    <TokenRow
+                                        key={i}
+                                        label={block.name}
+                                        tokens={block.tokens}
+                                        total={barTotal}
+                                        isSub
+                                    />
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
 
                 {/* Raw prompt */}
                 {showRaw && data.rawPrompt && (

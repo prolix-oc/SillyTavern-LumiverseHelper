@@ -30,7 +30,7 @@ import {
   getActiveLoomPresetId,
   getLoomBindings,
 } from "./packCache.js";
-import { applyTheme, removeThemeOverrides } from "./themeManager.js";
+import { applyTheme, removeThemeOverrides, getDefaultTheme } from "./themeManager.js";
 import { getEventSource, getEventTypes, getRequestHeaders, triggerExtensionUpdate, getExtensionGitVersion } from "../stContext.js";
 
 // Extension name discovery from import.meta.url per EXTENSION_GUIDE_UPDATES.md
@@ -318,10 +318,12 @@ export async function initializeReactUI(container) {
     // Provide initial settings to React
     const initialSettings = settingsToReactFormat();
 
-    // Apply saved theme before mounting UI to prevent flash of default colors
-    if (initialSettings.theme) {
-      applyTheme(initialSettings.theme);
-    }
+    // Apply saved theme before mounting UI to prevent flash of default colors.
+    // When theme is null (first boot or legacy Default Purple), apply the
+    // built-in Default Purple so we always have an explicit <style> element
+    // that wins over any external CSS overrides.
+    const bootTheme = initialSettings.theme || getDefaultTheme();
+    applyTheme(bootTheme);
 
     // Expose the bridge API to React
     window.LumiverseBridge = {
@@ -375,11 +377,8 @@ export async function initializeReactUI(container) {
         const state = window.LumiverseUI.getState();
         if (state.theme !== lastTheme) {
           lastTheme = state.theme;
-          if (state.theme) {
-            applyTheme(state.theme);
-          } else {
-            removeThemeOverrides();
-          }
+          // Always apply — null means Default Purple, never remove the style element
+          applyTheme(state.theme || getDefaultTheme());
         }
       });
     }
@@ -395,13 +394,11 @@ export async function initializeReactUI(container) {
     // element because the <link> tag is appended later in the cascade.
     // A double-rAF ensures the CSS file has been injected, then re-appending
     // our <style> moves it to the end of <head>, after all stylesheets.
-    if (initialSettings.theme) {
+    requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          applyTheme(initialSettings.theme);
-        });
+        applyTheme(bootTheme);
       });
-    }
+    });
 
     return true;
   } catch (error) {
