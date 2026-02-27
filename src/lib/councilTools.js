@@ -27,6 +27,10 @@ import {
 // Prefix for ST ToolManager registrations to avoid name collisions
 const ST_TOOL_PREFIX = "lumiverse_council_";
 
+// Maximum retry attempts when a model fails to call all assigned tools in one turn.
+// Each retry only requests the remaining uncalled tools, with full conversation continuity.
+const MAX_TOOL_RETRIES = 3;
+
 // Track which tools are currently registered with ST's ToolManager
 let registeredSTTools = new Set();
 
@@ -1195,16 +1199,19 @@ function buildMandatoryToolBlock(memberTools) {
     .map((tn, i) => {
       const tool = COUNCIL_TOOLS[tn];
       if (!tool) return null;
-      return `  ${i + 1}. **${tool.displayName}** (\`${tool.name}\`)`;
+      return `  ${i + 1}. \`${tool.name}\` — ${tool.displayName}`;
     })
     .filter(Boolean)
     .join("\n");
 
-  return `\n\n### MANDATORY TOOL CALLS — ${memberTools.length} REQUIRED ###
-You are assigned exactly ${memberTools.length} tools. You MUST call ALL of them — not just one, not a subset. Each tool listed below is a separate, mandatory contribution. Respond with exactly ${memberTools.length} tool calls:
+  return `\n\n### REQUIRED TOOL CALLS ###
+You have exactly ${memberTools.length} tools. Call each one exactly once:
 ${toolList}
 
-Failure to call every tool is a protocol violation. Do not combine multiple tools into a single call. Each tool must be invoked independently with its own structured input.`;
+Rules:
+- Call every tool listed above. Do not skip any.
+- Call each tool exactly once. Do not call the same tool twice.
+- Each tool call must be a separate function invocation with its own input.`;
 }
 
 /**
@@ -1213,11 +1220,20 @@ Failure to call every tool is a protocol violation. Do not combine multiple tool
  * @returns {string} System message text
  */
 function buildSidecarSystemMessage(toolCount) {
-  const base = `You are a council member contributing to story direction. Use your tools to provide structured contributions. Be concise and specific.`;
-  if (toolCount <= 1) {
-    return `${base} You MUST use your assigned tool.${buildBrevityInstruction()}`;
-  }
-  return `${base} You are assigned ${toolCount} tools and you MUST call ALL ${toolCount} of them. Do not skip any tool. Each tool represents a distinct responsibility — invoke every single one with its own structured input.${buildBrevityInstruction()}`;
+  const base = `You are a council member contributing to story direction. You must call ${toolCount === 1 ? 'your assigned tool' : `each of your ${toolCount} assigned tools exactly once`}. Provide structured, concise contributions.`;
+  return `${base}${buildBrevityInstruction()}`;
+}
+
+/**
+ * Build a rich tool description that includes the detailed prompt.
+ * This ensures the sidecar model knows exactly what to analyze for each tool,
+ * not just the short one-line description.
+ * @param {Object} tool - The tool definition from COUNCIL_TOOLS
+ * @returns {string} Combined description with detailed prompt
+ */
+function buildRichToolDescription(tool) {
+  const prompt = resolveToolPrompt(tool);
+  return `${tool.description}\n\n${prompt}`;
 }
 
 /**
@@ -1232,7 +1248,7 @@ function buildAnthropicTools(toolNames) {
       if (!tool) return null;
       return {
         name: tool.name,
-        description: tool.description,
+        description: buildRichToolDescription(tool),
         input_schema: tool.inputSchema,
       };
     })
@@ -1253,7 +1269,7 @@ function buildOpenAITools(toolNames) {
         type: "function",
         function: {
           name: tool.name,
-          description: tool.description,
+          description: buildRichToolDescription(tool),
           parameters: tool.inputSchema,
         },
       };
@@ -1330,27 +1346,17 @@ async function executeToolsForMemberAnthropic(member, memberTools, contextText, 
   // Build native tool definitions
   const tools = buildAnthropicTools(memberTools);
 
-  // Build the user prompt that provides context and asks the member to use their tools
-  const toolDescriptions = memberTools
-    .map((tn) => COUNCIL_TOOLS[tn])
-    .filter(Boolean)
-    .map((t) => `- **${t.displayName}** (\`${t.name}\`): ${t.description}`)
-    .join("\n");
-
   const mandatoryBlock = buildMandatoryToolBlock(memberTools);
 
   const userPrompt = `You are ${memberName}, a council member contributing to collaborative story direction.
 
-${lumiaContext ? lumiaContext + "\n\n" : ""}${roleDescriptor ? roleDescriptor + "\n\n" : ""}You have the following tools assigned to you:
-${toolDescriptions}
-${enrichmentText ? "\n" + enrichmentText + "\n" : ""}
-### Current Story Context ###
+${lumiaContext ? lumiaContext + "\n\n" : ""}${roleDescriptor ? roleDescriptor + "\n\n" : ""}${enrichmentText ? enrichmentText + "\n\n" : ""}### Current Story Context ###
 
 ${contextText}
 
 ### Your Task ###
 
-Review the story context above and use ALL of your assigned tools to provide your contributions. For each tool, provide specific, actionable input from your unique perspective as ${memberName}. Be concise but insightful. Remember to filter all your contributions through your personality, biases, and worldview as described above.${mandatoryBlock}${buildBrevityInstruction()}${buildUserControlGuidance()}`;
+Review the story context above. For each tool call, provide specific, actionable input from your unique perspective as ${memberName}. Filter every contribution through your personality, biases, and worldview.${mandatoryBlock}${buildBrevityInstruction()}${buildUserControlGuidance()}`;
 
   const requestBody = {
     model: model,
@@ -1385,12 +1391,14 @@ Review the story context above and use ALL of your assigned tools to provide you
   const data = await response.json();
   const results = [];
 
-  // Parse tool_use content blocks from the response
+  // Parse tool_use content blocks from the response (deduplicate by tool name)
+  const calledToolNames = new Set();
   if (data.content && Array.isArray(data.content)) {
     for (const block of data.content) {
       if (block.type === "tool_use") {
         const toolDef = COUNCIL_TOOLS[block.name];
-        if (toolDef) {
+        if (toolDef && !calledToolNames.has(block.name)) {
+          calledToolNames.add(block.name);
           const responseText = formatToolInput(block.input, toolDef);
           results.push({
             memberName,
@@ -1426,12 +1434,18 @@ Review the story context above and use ALL of your assigned tools to provide you
     }
   }
 
-  // Retry for missing tools — if the model skipped some, make a follow-up call
+  // Multi-retry loop for missing tools — keeps requesting uncalled tools up to MAX_TOOL_RETRIES times.
+  // Handles models (e.g., DeepSeek) that only call 1 tool per turn despite being asked for multiple.
   if (results.length > 0 && results.length < memberTools.length && memberTools.length > 1) {
     const calledTools = new Set(results.map((r) => r.toolName));
-    const missingTools = memberTools.filter((tn) => !calledTools.has(tn));
+    let conversationHistory = [
+      { role: "user", content: userPrompt },
+      { role: "assistant", content: data.content },
+    ];
 
-    if (missingTools.length > 0) {
+    for (let attempt = 0; attempt < MAX_TOOL_RETRIES; attempt++) {
+      const missingTools = memberTools.filter((tn) => !calledTools.has(tn));
+      if (missingTools.length === 0) break;
 
       const retryToolDefs = buildAnthropicTools(missingTools);
       const missingNames = missingTools
@@ -1444,10 +1458,8 @@ Review the story context above and use ALL of your assigned tools to provide you
         temperature,
         system: buildSidecarSystemMessage(missingTools.length),
         messages: [
-          { role: "user", content: userPrompt },
-          // Feed back the original response so the model has continuity
-          { role: "assistant", content: data.content },
-          { role: "user", content: `You still need to call the following tools that you missed: ${missingNames}. Call each one now with structured input.` },
+          ...conversationHistory,
+          { role: "user", content: `You still need to call these tools: ${missingNames}. Call each one now.` },
         ],
         tools: retryToolDefs,
         tool_choice: { type: "any" },
@@ -1458,32 +1470,44 @@ Review the story context above and use ALL of your assigned tools to provide you
         if (signal) retryOptions.signal = signal;
 
         const retryResponse = await fetch(endpoint, retryOptions);
-        if (retryResponse.ok) {
-          const retryData = await retryResponse.json();
-          if (retryData.content && Array.isArray(retryData.content)) {
-            for (const block of retryData.content) {
-              if (block.type === "tool_use") {
-                const toolDef = COUNCIL_TOOLS[block.name];
-                if (toolDef && !calledTools.has(block.name)) {
-                  results.push({
-                    memberName,
-                    packName: member.packName,
-                    itemName: member.itemName,
-                    toolName: block.name,
-                    toolDisplayName: toolDef.displayName,
-                    success: true,
-                    response: formatToolInput(block.input, toolDef),
-                    identity,
-                  });
-                  calledTools.add(block.name);
-                }
+        if (!retryResponse.ok) break;
+
+        const retryData = await retryResponse.json();
+        let newToolsThisAttempt = 0;
+
+        if (retryData.content && Array.isArray(retryData.content)) {
+          for (const block of retryData.content) {
+            if (block.type === "tool_use") {
+              const toolDef = COUNCIL_TOOLS[block.name];
+              if (toolDef && !calledTools.has(block.name)) {
+                results.push({
+                  memberName,
+                  packName: member.packName,
+                  itemName: member.itemName,
+                  toolName: block.name,
+                  toolDisplayName: toolDef.displayName,
+                  success: true,
+                  response: formatToolInput(block.input, toolDef),
+                  identity,
+                });
+                calledTools.add(block.name);
+                newToolsThisAttempt++;
               }
             }
           }
+
+          // Extend conversation history for next retry so the model has continuity
+          conversationHistory.push(
+            { role: "user", content: `You still need to call these tools: ${missingNames}. Call each one now.` },
+            { role: "assistant", content: retryData.content },
+          );
         }
+
+        // If this attempt produced no new tools, further retries won't help
+        if (newToolsThisAttempt === 0) break;
       } catch (retryErr) {
-        // Non-fatal: log but don't fail the whole member — partial results are still useful
-        console.warn(`[${MODULE_NAME}] Retry for missing tools failed for ${memberName}:`, retryErr.message);
+        console.warn(`[${MODULE_NAME}] Retry ${attempt + 1} for missing tools failed for ${memberName}:`, retryErr.message);
+        break;
       }
     }
   }
@@ -1516,26 +1540,17 @@ async function executeToolsForMemberOpenAI(member, memberTools, contextText, api
   // Build OpenAI function tool definitions
   const tools = buildOpenAITools(memberTools);
 
-  const toolDescriptions = memberTools
-    .map((tn) => COUNCIL_TOOLS[tn])
-    .filter(Boolean)
-    .map((t) => `- **${t.displayName}** (\`${t.name}\`): ${t.description}`)
-    .join("\n");
-
   const mandatoryBlock = buildMandatoryToolBlock(memberTools);
 
   const userPrompt = `You are ${memberName}, a council member contributing to collaborative story direction.
 
-${lumiaContext ? lumiaContext + "\n\n" : ""}${roleDescriptor ? roleDescriptor + "\n\n" : ""}You have the following tools assigned to you:
-${toolDescriptions}
-${enrichmentText ? "\n" + enrichmentText + "\n" : ""}
-### Current Story Context ###
+${lumiaContext ? lumiaContext + "\n\n" : ""}${roleDescriptor ? roleDescriptor + "\n\n" : ""}${enrichmentText ? enrichmentText + "\n\n" : ""}### Current Story Context ###
 
 ${contextText}
 
 ### Your Task ###
 
-Review the story context above and use ALL of your assigned tools to provide your contributions. For each tool, provide specific, actionable input from your unique perspective as ${memberName}. Be concise but insightful. Remember to filter all your contributions through your personality, biases, and worldview as described above.${mandatoryBlock}${buildBrevityInstruction()}${buildUserControlGuidance()}`;
+Review the story context above. For each tool call, provide specific, actionable input from your unique perspective as ${memberName}. Filter every contribution through your personality, biases, and worldview.${mandatoryBlock}${buildBrevityInstruction()}${buildUserControlGuidance()}`;
 
   const headers = {
     "Content-Type": "application/json",
@@ -1578,13 +1593,15 @@ Review the story context above and use ALL of your assigned tools to provide you
   const data = await response.json();
   const results = [];
 
-  // Parse tool_calls from the response
+  // Parse tool_calls from the response (deduplicate by tool name)
   const message = data.choices?.[0]?.message;
+  const calledToolNames = new Set();
   if (message?.tool_calls && Array.isArray(message.tool_calls)) {
     for (const toolCall of message.tool_calls) {
       if (toolCall.type === "function") {
         const toolDef = COUNCIL_TOOLS[toolCall.function.name];
-        if (toolDef) {
+        if (toolDef && !calledToolNames.has(toolCall.function.name)) {
+          calledToolNames.add(toolCall.function.name);
           let parsedArgs = {};
           try {
             parsedArgs = JSON.parse(toolCall.function.arguments);
@@ -1622,41 +1639,44 @@ Review the story context above and use ALL of your assigned tools to provide you
     });
   }
 
-  // Retry for missing tools — if the model skipped some, make a follow-up call
+  // Multi-retry loop for missing tools — keeps requesting uncalled tools up to MAX_TOOL_RETRIES times.
+  // Handles models (e.g., DeepSeek) that only call 1 tool per turn despite being asked for multiple.
   if (results.length > 0 && results.length < memberTools.length && memberTools.length > 1) {
     const calledTools = new Set(results.map((r) => r.toolName));
-    const missingTools = memberTools.filter((tn) => !calledTools.has(tn));
 
-    if (missingTools.length > 0) {
+    // Build initial conversation history for continuity across retries.
+    // OpenAI requires tool result messages to follow assistant tool_calls.
+    let conversationHistory = [
+      { role: "system", content: systemMessage },
+      { role: "user", content: userPrompt },
+    ];
+
+    // Append the initial assistant response + tool acknowledgments
+    const initialAssistantMsg = { role: "assistant", content: message?.content || null };
+    if (message?.tool_calls) {
+      initialAssistantMsg.tool_calls = message.tool_calls;
+    }
+    conversationHistory.push(initialAssistantMsg);
+    for (const tc of (message?.tool_calls || [])) {
+      conversationHistory.push({ role: "tool", tool_call_id: tc.id, content: "Acknowledged." });
+    }
+
+    for (let attempt = 0; attempt < MAX_TOOL_RETRIES; attempt++) {
+      const missingTools = memberTools.filter((tn) => !calledTools.has(tn));
+      if (missingTools.length === 0) break;
 
       const retryToolDefs = buildOpenAITools(missingTools);
       const missingNames = missingTools
         .map((tn) => COUNCIL_TOOLS[tn]?.displayName || tn)
         .join(", ");
 
-      // Build assistant message from original response for continuity
-      const assistantMsg = { role: "assistant", content: message?.content || null };
-      if (message?.tool_calls) {
-        assistantMsg.tool_calls = message.tool_calls;
-      }
-
-      // Build tool result messages for each original tool call (OpenAI requires these)
-      const toolResultMsgs = (message?.tool_calls || []).map((tc) => ({
-        role: "tool",
-        tool_call_id: tc.id,
-        content: "Acknowledged.",
-      }));
-
       const retryBody = {
         model,
         max_tokens: maxTokens,
         temperature,
         messages: [
-          { role: "system", content: systemMessage },
-          { role: "user", content: userPrompt },
-          assistantMsg,
-          ...toolResultMsgs,
-          { role: "user", content: `You still need to call the following tools that you missed: ${missingNames}. Call each one now with structured input.` },
+          ...conversationHistory,
+          { role: "user", content: `You still need to call these tools: ${missingNames}. Call each one now.` },
         ],
         tools: retryToolDefs,
         tool_choice: "required",
@@ -1667,38 +1687,59 @@ Review the story context above and use ALL of your assigned tools to provide you
         if (signal) retryOptions.signal = signal;
 
         const retryResponse = await fetch(endpoint, retryOptions);
-        if (retryResponse.ok) {
-          const retryData = await retryResponse.json();
-          const retryMessage = retryData.choices?.[0]?.message;
-          if (retryMessage?.tool_calls && Array.isArray(retryMessage.tool_calls)) {
-            for (const toolCall of retryMessage.tool_calls) {
-              if (toolCall.type === "function") {
-                const toolDef = COUNCIL_TOOLS[toolCall.function.name];
-                if (toolDef && !calledTools.has(toolCall.function.name)) {
-                  let parsedArgs = {};
-                  try {
-                    parsedArgs = JSON.parse(toolCall.function.arguments);
-                  } catch {
-                    parsedArgs = { response: toolCall.function.arguments };
-                  }
-                  results.push({
-                    memberName,
-                    packName: member.packName,
-                    itemName: member.itemName,
-                    toolName: toolCall.function.name,
-                    toolDisplayName: toolDef.displayName,
-                    success: true,
-                    response: formatToolInput(parsedArgs, toolDef),
-                    identity,
-                  });
-                  calledTools.add(toolCall.function.name);
+        if (!retryResponse.ok) break;
+
+        const retryData = await retryResponse.json();
+        const retryMessage = retryData.choices?.[0]?.message;
+        let newToolsThisAttempt = 0;
+
+        if (retryMessage?.tool_calls && Array.isArray(retryMessage.tool_calls)) {
+          for (const toolCall of retryMessage.tool_calls) {
+            if (toolCall.type === "function") {
+              const toolDef = COUNCIL_TOOLS[toolCall.function.name];
+              if (toolDef && !calledTools.has(toolCall.function.name)) {
+                let parsedArgs = {};
+                try {
+                  parsedArgs = JSON.parse(toolCall.function.arguments);
+                } catch {
+                  parsedArgs = { response: toolCall.function.arguments };
                 }
+                results.push({
+                  memberName,
+                  packName: member.packName,
+                  itemName: member.itemName,
+                  toolName: toolCall.function.name,
+                  toolDisplayName: toolDef.displayName,
+                  success: true,
+                  response: formatToolInput(parsedArgs, toolDef),
+                  identity,
+                });
+                calledTools.add(toolCall.function.name);
+                newToolsThisAttempt++;
               }
             }
           }
+
+          // Extend conversation history for next retry so the model has continuity.
+          // OpenAI requires tool result messages after assistant tool_calls.
+          conversationHistory.push(
+            { role: "user", content: `You still need to call these tools: ${missingNames}. Call each one now.` },
+          );
+          const retryAssistantMsg = { role: "assistant", content: retryMessage?.content || null };
+          if (retryMessage?.tool_calls) {
+            retryAssistantMsg.tool_calls = retryMessage.tool_calls;
+          }
+          conversationHistory.push(retryAssistantMsg);
+          for (const tc of (retryMessage?.tool_calls || [])) {
+            conversationHistory.push({ role: "tool", tool_call_id: tc.id, content: "Acknowledged." });
+          }
         }
+
+        // If this attempt produced no new tools, further retries won't help
+        if (newToolsThisAttempt === 0) break;
       } catch (retryErr) {
-        console.warn(`[${MODULE_NAME}] Retry for missing tools failed for ${memberName}:`, retryErr.message);
+        console.warn(`[${MODULE_NAME}] Retry ${attempt + 1} for missing tools failed for ${memberName}:`, retryErr.message);
+        break;
       }
     }
   }

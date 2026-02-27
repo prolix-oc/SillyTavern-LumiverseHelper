@@ -9,7 +9,7 @@
 import { getContext, getSubstituteParams } from "../stContext.js";
 import { MODULE_NAME } from "./settingsManager.js";
 import { getLoomPresetFileKey } from "./fileStorage.js";
-import { captureReasoningSnapshot, applyReasoningSnapshot, getAdaptiveThinkingEnabled } from "./presetsService.js";
+import { captureReasoningSnapshot, applyReasoningSnapshot, getAdaptiveThinkingEnabled, getStartReplyWith } from "./presetsService.js";
 import {
     getLoomPresetRegistry,
     getActiveLoomPresetId,
@@ -1633,28 +1633,53 @@ export function applyCompletionSettings(preset, generateData) {
     const applied = [];
     const genType = generateData?.type || 'normal';
 
-    // Detect Claude-like source for prefill support
+    // Detect source for prefill support
     const profile = detectConnectionProfile();
     const isClaude = profile.source === 'claude';
 
-    // Assistant prefill (Claude only, non-quiet, non-continue)
-    if (isClaude && genType === 'impersonate' && settings.assistantImpersonation) {
-        generateData.assistant_prefill = settings.assistantImpersonation;
-        applied.push(`assistant_prefill (impersonation): "${settings.assistantImpersonation.substring(0, 30)}..."`);
-    } else if (isClaude && settings.assistantPrefill && genType !== 'quiet' && genType !== 'continue') {
-        generateData.assistant_prefill = settings.assistantPrefill;
-        applied.push(`assistant_prefill: "${settings.assistantPrefill.substring(0, 30)}..."`);
+    // Determine prefill text based on generation type and preset settings.
+    // Falls back to ST's "Start Reply With" (user_prompt_bias) since Loom Builder
+    // replaces generate_data.messages and discards the Prompt Manager's injection.
+    let prefillText = null;
+    if (genType !== 'quiet' && genType !== 'continue') {
+        if (genType === 'impersonate' && settings.assistantImpersonation) {
+            prefillText = settings.assistantImpersonation;
+        } else if (settings.assistantPrefill) {
+            prefillText = settings.assistantPrefill;
+        } else {
+            // Fall back to ST's native "Start Reply With" setting
+            const stBias = getStartReplyWith();
+            if (stBias?.trim()) {
+                prefillText = stBias;
+            }
+        }
+    }
+
+    if (prefillText && isClaude) {
+        // Claude: use the dedicated assistant_prefill field (handled by ST backend)
+        generateData.assistant_prefill = prefillText;
+        applied.push(`assistant_prefill: "${prefillText.substring(0, 30)}..."`);
+    } else if (prefillText && generateData.messages?.length > 0) {
+        // Non-Claude APIs (Gemini, OpenAI, etc.): append as assistant message.
+        // ST's backend converts assistant → model role for Gemini, acting as prefill.
+        generateData.messages.push({ role: 'assistant', content: prefillText });
+        applied.push(`assistant_prefill (message): "${prefillText.substring(0, 30)}..."`);
     }
 
     // Continue prefill: move last message content into prefill position
-    if (isClaude && settings.continuePrefill && genType === 'continue') {
+    if (settings.continuePrefill && genType === 'continue') {
         const messages = generateData.messages;
         if (messages?.length > 0) {
             const lastMsg = messages[messages.length - 1];
             if (lastMsg?.role === 'assistant' && lastMsg.content) {
-                generateData.assistant_prefill = lastMsg.content;
-                messages.pop();
-                applied.push('continuePrefill: moved last assistant message to prefill');
+                if (isClaude) {
+                    // Claude: use dedicated prefill field
+                    generateData.assistant_prefill = lastMsg.content;
+                    messages.pop();
+                    applied.push('continuePrefill: moved last assistant message to prefill');
+                }
+                // Non-Claude: last assistant message is already in position — no action needed.
+                // The API will treat it as a continuation point.
             }
         }
     }
