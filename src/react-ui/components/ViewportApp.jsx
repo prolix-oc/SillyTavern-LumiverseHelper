@@ -8,6 +8,7 @@ import PromptSettings from './panels/PromptSettings';
 import CouncilManager from './panels/CouncilManager';
 import SummaryEditor from './panels/SummaryEditor';
 import FeedbackPanel from './panels/FeedbackPanel';
+import ContentWorkshop from './panels/ContentWorkshop';
 import LoomBuilder from './panels/LoomBuilder';
 import PackDetailModal from './modals/PackDetailModal';
 import LoomPackDetailModal from './modals/LoomPackDetailModal';
@@ -64,6 +65,7 @@ function ViewportApp() {
                     PresetsContent={PresetManager}
                     LoomContent={LoomBuilder}
                     BrowserContent={PackBrowser}
+                    CreateContent={ContentWorkshop}
                     OOCContent={OOCSettings}
                     PromptContent={PromptSettings}
                     CouncilContent={CouncilManager}

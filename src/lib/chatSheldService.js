@@ -10,7 +10,7 @@
  * This module has NO React dependency — it reads ST data and pushes to the store.
  */
 
-import { getContext, getEventSource, getEventTypes, getRequestHeaders, getCreateBranch, getTokenCountAsync, getItemizedPrompts, getDeleteMessage, getSaveChat, getUpdateMessageBlock, getSwipeAPI, getGenerate, getStopGeneration, getAddOneMessage, getSubstituteParamsFunc, getExecuteSlashCommands } from "../stContext.js";
+import { getContext, getEventSource, getEventTypes, getRequestHeaders, getCreateBranch, getTokenCountAsync, getItemizedPrompts, getDeleteMessage, getSaveChat, getUpdateMessageBlock, getSwipeAPI, getGenerate, getStopGeneration, getAddOneMessage, getSubstituteParamsFunc, getExecuteSlashCommands, isGroupChat, getGroupMembers } from "../stContext.js";
 import { getSettings } from "./settingsManager.js";
 import { parseOOCTags } from "./oocParser.js";
 import { chatSheldStyles } from '../react-ui/components/ChatSheldStyles.js';
@@ -330,6 +330,71 @@ function resolveCharacterAvatar(charName, ctx) {
     return null;
 }
 
+// ── Gallery cache ─────────────────────────────────────────────────────
+const galleryCache = new Map(); // Map<charName, { images: Array, fetchedAt: number }>
+const GALLERY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Fetch gallery images for a character.
+ * Calls ST's image list API and caches results for 5 minutes.
+ * @param {string} charName - Character name
+ * @returns {Promise<Array<{ path: string, title: string }>>} Image list
+ */
+export async function fetchGalleryImages(charName) {
+    if (!charName) return [];
+
+    // Check cache
+    const cached = galleryCache.get(charName);
+    if (cached && Date.now() - cached.fetchedAt < GALLERY_CACHE_TTL) {
+        return cached.images;
+    }
+
+    const ctx = getContext();
+    if (!ctx) return [];
+
+    // Determine gallery folder: check for custom override, fallback to character name
+    const avatar = ctx.characters?.[ctx.characterId]?.avatar;
+    const customFolder = ctx.extensionSettings?.gallery?.folders?.[avatar];
+    const folder = customFolder || charName;
+
+    try {
+        const response = await fetch(`/api/images/list/${encodeURIComponent(folder)}`, {
+            method: 'POST',
+            headers: getRequestHeaders(),
+            body: JSON.stringify({ sort: 'date', direction: 'desc' }),
+        });
+
+        if (!response.ok) return [];
+
+        const data = await response.json();
+        // API returns filenames (strings) or objects with path/title.
+        // Files are served at /user/images/{folder}/{filename}.
+        const baseUrl = `/user/images/${encodeURIComponent(folder)}`;
+        const images = (data || []).map(item => {
+            const raw = typeof item === 'string' ? item : (item.path || item.src || '');
+            const title = typeof item === 'string' ? raw.split('/').pop() : (item.title || item.name || raw.split('/').pop());
+            // If already an absolute/full path, use as-is; otherwise prefix with base
+            const path = raw.startsWith('/') || raw.startsWith('http')
+                ? raw
+                : `${baseUrl}/${encodeURIComponent(raw)}`;
+            return { path, title };
+        });
+
+        galleryCache.set(charName, { images, fetchedAt: Date.now() });
+        return images;
+    } catch (e) {
+        console.warn(`[${MODULE_NAME}] Failed to fetch gallery for "${charName}":`, e.message);
+        return [];
+    }
+}
+
+/**
+ * Clear the gallery cache (e.g., on chat switch).
+ */
+export function clearGalleryCache() {
+    galleryCache.clear();
+}
+
 /**
  * Sync the full chat array to the store.
  * Called on GENERATION_ENDED, MESSAGE_EDITED, MESSAGE_DELETED, etc.
@@ -370,7 +435,10 @@ export function syncFullChat() {
  * synchronously, then backfill older messages after React paints.
  * @param {number} [tailSize=50] - Number of tail messages to sync immediately
  */
-export function syncTailChat(tailSize = 50) {
+export function syncTailChat(tailSize) {
+    if (tailSize === undefined) {
+        tailSize = getSettings().chatSheldPageSize || 50;
+    }
     if (!storeRef || !isActive) return;
 
     const ctx = getContext();
@@ -408,7 +476,10 @@ export function syncTailChat(tailSize = 50) {
  * and prepends them to the store.
  * @param {number} [count=50] - Number of older messages to load
  */
-export function loadOlderMessages(count = 50) {
+export function loadOlderMessages(count) {
+    if (count === undefined) {
+        count = getSettings().chatSheldPageSize || 50;
+    }
     if (!storeRef || !isActive) return;
     const ctx = getContext();
     if (!ctx?.chat?.length) return;
@@ -461,12 +532,74 @@ export function syncSingleMessage(mesId) {
 }
 
 /**
+ * Append only genuinely new messages to the store.
+ * Compares ST's chat[] length against the store's current messages and
+ * transforms only the delta. Existing message object references are
+ * preserved so React.memo skips unchanged cards — O(delta) instead of
+ * O(N) for a full re-transform.
+ *
+ * Falls back to syncFullChat() when the store is empty or indices are
+ * inconsistent (e.g. after a delete that shifted indices).
+ */
+export function appendNewMessages() {
+    if (!storeRef || !isActive) return;
+
+    const ctx = getContext();
+    if (!ctx?.chat?.length) return;
+
+    const current = storeRef.getState().chatSheld;
+    const storeMessages = current?.messages;
+
+    // If the store is empty or has no messages, fall back to full sync
+    if (!storeMessages || storeMessages.length === 0) {
+        syncFullChat();
+        return;
+    }
+
+    const lastStoreMesId = storeMessages[storeMessages.length - 1].mesId;
+    const chatLength = ctx.chat.length;
+
+    // If ST chat has fewer or equal messages, nothing new to append
+    if (chatLength <= lastStoreMesId + 1) return;
+
+    // If the store's last mesId doesn't align with what we expect
+    // (e.g. after a delete shifted indices), fall back to full sync
+    if (lastStoreMesId < 0 || lastStoreMesId >= chatLength) {
+        syncFullChat();
+        return;
+    }
+
+    // Transform only the new messages beyond our last known index
+    const newStartIndex = lastStoreMesId + 1;
+    const newMessages = [];
+    for (let i = newStartIndex; i < chatLength; i++) {
+        if (ctx.chat[i]) {
+            newMessages.push(transformMessage(ctx.chat[i], i, ctx));
+        }
+    }
+
+    if (newMessages.length === 0) return;
+
+    _lastSyncedChatLength = chatLength;
+
+    storeRef.setState({
+        chatSheld: {
+            ...current,
+            messages: [...storeMessages, ...newMessages],
+            totalChatLength: chatLength,
+            isStreaming: streamingActive,
+            streamingContent: streamingActive ? (current.streamingContent || '') : '',
+        },
+    });
+}
+
+/**
  * Append a new message (after CHARACTER_MESSAGE_RENDERED).
- * Does a full sync instead of a simple append because the message index
- * may not match if there have been other changes.
+ * Uses appendNewMessages() for O(1) targeted append instead of
+ * full O(N) re-transform.
  */
 export function appendMessage() {
-    syncFullChat();
+    appendNewMessages();
 }
 
 /**
@@ -509,8 +642,8 @@ export function startStreaming() {
     streamingActive = true;
     lastStreamingContent = '';
 
-    // Sync current state (may include blank message from overswipe)
-    syncFullChat();
+    // Pick up any new messages (e.g. blank message from overswipe)
+    appendNewMessages();
 
     // Set streaming flag after sync
     const current = storeRef.getState().chatSheld;
@@ -537,8 +670,8 @@ function handleStreamToken() {
     if (!streamingActive) {
         streamingActive = true;
         lastStreamingContent = '';
-        // Sync to pick up any new messages (user msg, blank swipe, etc.)
-        syncFullChat();
+        // Pick up any new messages (user msg, blank swipe, etc.)
+        appendNewMessages();
         const current = storeRef.getState().chatSheld;
         if (!current?.isStreaming) {
             storeRef.setState({
@@ -709,7 +842,7 @@ function subscribeToEvents() {
             if (!isActive) return;
             const ctx = getContext();
             if (!ctx?.chat || ctx.chat.length <= _lastSyncedChatLength) return;
-            syncFullChat();
+            appendNewMessages();
         });
     }
 
@@ -826,12 +959,12 @@ function subscribeToEvents() {
                 }
             }
         } else {
-            // Normal generation (user sent a message) — defer syncFullChat to a
-            // microtask so the browser can paint the isStreaming state first, then
-            // do the O(N) re-transform without blocking the render pipeline.
+            // Normal generation (user sent a message) — defer append to a
+            // microtask so the browser can paint the isStreaming state first.
+            // appendNewMessages() is O(delta) instead of O(N).
             queueMicrotask(() => {
                 if (!isActive) return;
-                syncFullChat();
+                appendNewMessages();
             });
         }
 
@@ -857,7 +990,12 @@ function subscribeToEvents() {
         // received, this was a failed/empty gen and we shouldn't force-scroll.
         const hadContent = lastStreamingContent.length > 0;
         stopStreaming();
-        syncFullChat();
+        // Only sync the last message — generation only modifies one message.
+        // O(1) instead of O(N) full re-transform.
+        const ctx = getContext();
+        if (ctx?.chat?.length) {
+            syncSingleMessage(ctx.chat.length - 1);
+        }
         // Bump scrollSnapTrigger — message count/lastMesId didn't change
         // (same message, just finished streaming), so the normal "new message"
         // scroll effect doesn't fire. Without this, scroll position drifts.
@@ -872,7 +1010,11 @@ function subscribeToEvents() {
         if (!isActive) return;
         const hadContent = lastStreamingContent.length > 0;
         stopStreaming();
-        syncFullChat();
+        // Only sync the last message — stop only affects the in-progress message.
+        const ctx = getContext();
+        if (ctx?.chat?.length) {
+            syncSingleMessage(ctx.chat.length - 1);
+        }
         // Only snap to bottom if the generation actually produced content.
         // A failed/stopped gen with no tokens shouldn't disturb scroll position.
         if (storeRef && hadContent) {
@@ -943,6 +1085,64 @@ export async function triggerSwipe(direction) {
 }
 
 /**
+ * Navigate to a specific greeting (swipe index) on message 0.
+ * Uses the swipe API's to() method for direct index navigation.
+ * @param {number} swipeIndex - The greeting index to navigate to
+ */
+export async function navigateToGreeting(swipeIndex) {
+    const ctx = getContext();
+    if (!ctx?.chat?.[0]) return;
+
+    const currentSwipeId = ctx.chat[0].swipe_id ?? 0;
+    if (swipeIndex === currentSwipeId) return;
+
+    try {
+        // Direct jump via forceSwipeId — ctx.swipe.to() is the raw swipe() function
+        await ctx.swipe.to(null, 'right', {
+            forceMesId: 0,
+            forceSwipeId: swipeIndex,
+        });
+        syncSingleMessage(0);
+    } catch (e) {
+        console.warn(`[${MODULE_NAME}] navigateToGreeting failed:`, e.message);
+        syncSingleMessage(0);
+    }
+}
+
+/**
+ * Get greeting texts for the current character, sourced directly from the
+ * character card data. This is more reliable than reading chat[0].swipes
+ * because ST only syncs swipes to storage for tainted/multi-message chats.
+ * @returns {string[]} Array of greeting texts: [primary, alt1, alt2, ...]
+ */
+export function getCharacterGreetings() {
+    const ctx = getContext();
+
+    // Source 1: Character card data (canonical — always has greeting text if character is loaded)
+    const charId = ctx?.characterId;
+    if (charId !== undefined && charId !== null && charId >= 0 && ctx?.characters?.[charId]) {
+        const char = ctx.characters[charId];
+        const primary = char.first_mes ?? char.data?.first_mes ?? '';
+        const alts = char.data?.alternate_greetings;
+        if (primary || (Array.isArray(alts) && alts.length > 0)) {
+            const result = [primary, ...(Array.isArray(alts) ? alts : [])];
+            console.debug(`[Lumiverse] getCharacterGreetings: ${result.length} greetings from character card (charId=${charId})`);
+            return result;
+        }
+    }
+
+    // Source 2: Live chat[0] swipes (fallback — has runtime greeting text after macro resolution)
+    const firstMsg = ctx?.chat?.[0];
+    if (firstMsg?.swipes?.length > 0) {
+        console.debug(`[Lumiverse] getCharacterGreetings: ${firstMsg.swipes.length} greetings from chat[0].swipes (charId=${charId})`);
+        return [...firstMsg.swipes];
+    }
+
+    console.warn(`[Lumiverse] getCharacterGreetings: no greetings found (charId=${charId}, characters loaded=${!!ctx?.characters})`);
+    return [];
+}
+
+/**
  * Delete a message via ST's programmatic deleteMessage API.
  * ST's deleteMessage handles: chat.splice, DOM removal, updateViewMessageIds,
  * deleteItemizedPromptForMessage, chat_metadata.tainted, emitting MESSAGE_DELETED, saving chat.
@@ -971,6 +1171,33 @@ export async function deleteMessageDirect(mesId) {
     } catch (e) {
         console.error(`[${MODULE_NAME}] deleteMessage failed for mesId=${mesId}:`, e);
         // Re-sync to restore correct state on failure
+        syncFullChat();
+        return false;
+    }
+}
+
+/**
+ * Delete a single swipe from a message via ST's deleteMessage API.
+ * ST's deleteMessage with a swipeDeletionIndex routes to deleteSwipe() internally,
+ * which handles: swipes.splice, swipe_info.splice, swipe animation, saveChatConditional,
+ * and emitting MESSAGE_SWIPE_DELETED.
+ * @param {number} mesId - Message index
+ * @param {number} swipeId - Swipe index to delete
+ * @returns {Promise<boolean>} Success
+ */
+export async function deleteSwipeDirect(mesId, swipeId) {
+    const deleteMessage = getDeleteMessage();
+    if (!deleteMessage) {
+        console.error(`[${MODULE_NAME}] deleteMessage API not available for swipe deletion`);
+        return false;
+    }
+
+    try {
+        await deleteMessage(mesId, swipeId, false);
+        syncFullChat();
+        return true;
+    } catch (e) {
+        console.error(`[${MODULE_NAME}] deleteSwipe failed for mesId=${mesId}, swipeId=${swipeId}:`, e);
         syncFullChat();
         return false;
     }
@@ -1035,12 +1262,12 @@ export async function editMessageContent(mesId, newContent) {
             if (et.MESSAGE_UPDATED) es.emit(et.MESSAGE_UPDATED, mesId);
         }
 
-        // Final sync to reconcile any side-effects from events
-        syncFullChat();
+        // No syncFullChat() here — visual-first update already applied above,
+        // and MESSAGE_EDITED handler calls syncSingleMessage(mesId) for reconciliation.
         return true;
     } catch (e) {
         console.error(`[${MODULE_NAME}] editMessageContent failed for mesId=${mesId}:`, e);
-        syncFullChat();
+        syncFullChat(); // Error recovery — re-sync to restore correct state
         return false;
     }
 }
@@ -1085,11 +1312,11 @@ export async function editMessageReasoning(mesId, newReasoning) {
             es.emit(et.MESSAGE_REASONING_EDITED, mesId);
         }
 
-        syncFullChat();
+        // No syncFullChat() here — visual-first update already applied above.
         return true;
     } catch (e) {
         console.error(`[${MODULE_NAME}] editMessageReasoning failed for mesId=${mesId}:`, e);
-        syncFullChat();
+        syncFullChat(); // Error recovery — re-sync to restore correct state
         return false;
     }
 }
@@ -1185,8 +1412,9 @@ export async function triggerSend(text) {
         }
     }
 
-    // 6. Update our React message list
-    syncFullChat();
+    // 6. Update our React message list — USER_MESSAGE_RENDERED handler
+    // (fired in step 4) already calls appendNewMessages(), so no explicit
+    // sync needed here. The user message is already visible in React.
 
     // 7. Trigger generation — Generate('normal') picks up the user message
     // from the chat array and runs the full prompt assembly pipeline
@@ -1524,6 +1752,25 @@ export async function triggerBatchDelete(fromMesId) {
 // ── Chat Forking ───────────────────────────────────────────────────────
 
 /**
+ * Fetch existing chat file names for a character (as a Set, without .jsonl).
+ * Used to generate unique branch names.
+ */
+async function fetchExistingChatNames(avatarUrl) {
+    try {
+        const response = await fetch('/api/characters/chats', {
+            method: 'POST',
+            headers: getRequestHeaders(),
+            body: JSON.stringify({ avatar_url: avatarUrl, simple: true }),
+        });
+        if (!response.ok) return new Set();
+        const chats = await response.json();
+        return new Set(chats.map(c => (c.file_name || '').replace(/\.jsonl$/, '')));
+    } catch {
+        return new Set();
+    }
+}
+
+/**
  * Fork the chat at a given message, creating a new chat branch.
  * @param {number} mesId - Message index to fork at
  * @returns {Promise<boolean>} Success
@@ -1532,7 +1779,12 @@ export async function triggerFork(mesId) {
     const createBranch = getCreateBranch();
     if (createBranch) {
         try {
-            await createBranch(mesId);
+            const branchName = await createBranch(mesId);
+            // createBranch saves the file but doesn't switch to it —
+            // we need to explicitly open the new chat.
+            if (branchName) {
+                await switchToChat(branchName);
+            }
             return true;
         } catch (e) {
             console.error(`[${MODULE_NAME}] Fork failed:`, e);
@@ -1540,29 +1792,115 @@ export async function triggerFork(mesId) {
         }
     }
 
-    // Fallback: manual fork via chat save API
+    // Fallback: manual fork via /api/chats/save
+    // createBranch is not on the ST context, so we replicate its logic:
+    // build a unique branch name, construct a proper chat payload with header,
+    // save to disk, track the branch in the parent message, then switch.
     try {
         const ctx = getContext();
         if (!ctx?.chat || mesId < 0 || mesId >= ctx.chat.length) return false;
 
+        const char = ctx.characters?.[ctx.characterId];
+        if (!char?.avatar) return false;
+
+        // Build unique branch name from current chat name
+        const mainChatName = ctx.chatId || 'chat';
+        const existingNames = await fetchExistingChatNames(char.avatar);
+        let branchName;
+        for (let i = 1; i < 999; i++) {
+            const candidate = `${mainChatName.replace(/ - Branch #\d+$/, '')} - Branch #${i}`;
+            if (!existingNames.has(candidate)) {
+                branchName = candidate;
+                break;
+            }
+        }
+        if (!branchName) branchName = `${mainChatName} - Branch ${Date.now()}`;
+
+        // Truncate chat to the fork point (deep-copy last message so we
+        // can stamp the fork time without mutating the original chat)
         const truncatedChat = ctx.chat.slice(0, mesId + 1);
-        const chatName = ctx.chatId || 'chat';
-        const branchName = `${chatName} - Branch ${Date.now()}`;
+        const lastIdx = truncatedChat.length - 1;
+        if (lastIdx >= 0) {
+            truncatedChat[lastIdx] = { ...truncatedChat[lastIdx], send_date: new Date().toISOString() };
+        }
+
+        // Build chat header (first element of the .jsonl file)
+        const chatHeader = {
+            chat_metadata: { main_chat: mainChatName },
+            user_name: 'unused',
+            character_name: 'unused',
+        };
 
         const response = await fetch('/api/chats/save', {
             method: 'POST',
             headers: getRequestHeaders(),
             body: JSON.stringify({
-                chat: truncatedChat,
-                chat_name: branchName,
-                avatar_url: ctx.characters?.[ctx.characterId]?.avatar,
+                ch_name: char.name,
+                file_name: branchName,
+                chat: [chatHeader, ...truncatedChat],
+                avatar_url: char.avatar,
             }),
         });
 
-        return response.ok;
+        if (!response.ok) return false;
+
+        // Track branch in parent message's extra data
+        const lastMes = ctx.chat[mesId];
+        if (typeof lastMes.extra !== 'object') lastMes.extra = {};
+        if (!Array.isArray(lastMes.extra.branches)) lastMes.extra.branches = [];
+        lastMes.extra.branches.push(branchName);
+
+        // Switch to the new branch
+        await switchToChat(branchName);
+        return true;
     } catch (e) {
         console.error(`[${MODULE_NAME}] Manual fork failed:`, e);
         return false;
+    }
+}
+
+// ── Group Chat Helpers ──────────────────────────────────────────────────
+
+/**
+ * Get the list of group members for the current group chat.
+ * Returns empty array if not in a group chat.
+ * @returns {Array<{ chid: number, name: string, avatar: string, avatarUrl: string, disabled: boolean }>}
+ */
+export function getGroupMemberList() {
+    if (!isGroupChat()) return [];
+    return getGroupMembers();
+}
+
+/**
+ * Force a specific group member to speak next.
+ * @param {number} chid - Character index to force reply from
+ */
+export async function triggerForceReply(chid) {
+    const generate = getGenerate();
+    if (!generate) {
+        console.warn(`[${MODULE_NAME}] Generate API not available for force reply`);
+        return;
+    }
+
+    // Set streaming immediately for UI feedback
+    if (storeRef) {
+        const current = storeRef.getState().chatSheld;
+        storeRef.setState({
+            chatSheld: { ...current, isStreaming: true },
+        });
+    }
+
+    try {
+        await generate('normal', { force_chid: chid });
+    } catch (e) {
+        console.error(`[${MODULE_NAME}] Force reply failed:`, e);
+        // Reset streaming on failure
+        if (storeRef) {
+            const current = storeRef.getState().chatSheld;
+            storeRef.setState({
+                chatSheld: { ...current, isStreaming: false },
+            });
+        }
     }
 }
 

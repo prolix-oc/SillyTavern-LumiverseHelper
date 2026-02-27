@@ -75,7 +75,7 @@ svg.lucide {
   width: 100%;
   height: 100%;
   position: relative;
-  overflow: hidden;
+  overflow: clip;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -87,7 +87,8 @@ svg.lucide {
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 0;
-  padding: 8px 12px 16px;
+  padding: 8px 12px;
+  padding-bottom: var(--lcs-input-safe-zone, 80px);
   overscroll-behavior-y: contain;
 }
 
@@ -397,8 +398,29 @@ svg.lucide {
   background: none;
 }
 
-.lcs-message-content .lcs-prose-dialogue {
-  color: var(--lumiverse-prose-dialogue, inherit);
+/* Dialogue span — specificity must match or exceed the content reset rule
+   (.lcs-message-content span:not(...) = 0-2-1) so it isn't overridden. */
+.lcs-message-content span.lcs-prose-dialogue {
+  color: var(--lumiverse-prose-dialogue, var(--lumiverse-text, inherit));
+}
+
+/* Inside <font color="..."> tags, dialogue/italic/bold all defer to the
+   font's explicit color rather than applying theme prose colors. */
+.lcs-message-content font span.lcs-prose-dialogue,
+.lcs-message-content font em,
+.lcs-message-content font .lcs-prose-italic,
+.lcs-message-content font strong,
+.lcs-message-content font .lcs-prose-bold {
+  color: inherit;
+}
+
+/* Inside dialogue spans (without font ancestor), italic/bold inherit
+   the dialogue color for visual consistency. */
+.lcs-message-content .lcs-prose-dialogue em,
+.lcs-message-content .lcs-prose-dialogue .lcs-prose-italic,
+.lcs-message-content .lcs-prose-dialogue strong,
+.lcs-message-content .lcs-prose-dialogue .lcs-prose-bold {
+  color: inherit;
 }
 
 .lcs-message-content a {
@@ -653,16 +675,18 @@ svg.lucide {
   flex-direction: column;
   gap: 6px;
   padding: 8px 14px 10px;
-  margin: 0 12px 12px;
-  background: var(--lumiverse-bg-elevated, rgba(22, 20, 34, 0.75));
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 20;
+  background: color-mix(in srgb, var(--lcs-page-bg, #0a0a0c) 92%, var(--lumiverse-text, white) 8%);
   border: 1px solid var(--lcs-glass-border);
   border-radius: var(--lcs-radius);
-  box-shadow: 0 -2px 20px rgba(0,0,0,0.08), 0 4px 24px rgba(0,0,0,0.12), inset 0 0.5px 0 rgba(255,255,255,0.06);
-  flex-shrink: 0;
-  position: relative;
-  z-index: 20;
+  box-shadow:
+    0 -6px 28px rgba(0,0,0,0.12),
+    0 4px 24px rgba(0,0,0,0.14),
+    inset 0 0.5px 0 rgba(255,255,255,0.06);
   transition: background var(--lcs-transition), border-color var(--lcs-transition), box-shadow var(--lcs-transition);
 }
 
@@ -844,7 +868,7 @@ svg.lucide {
 
 .lcs-scroll-fab {
   position: absolute;
-  bottom: 120px;
+  bottom: calc(var(--lcs-input-safe-zone, 80px) + 24px);
   right: 18px;
   width: 38px;
   height: 38px;
@@ -967,9 +991,17 @@ svg.lucide {
   background: none;
   color: var(--lumiverse-text, rgba(230,230,240,0.8));
 }
-.lcs-reasoning-body ul, .lcs-reasoning-body ol {
-  padding-left: 1.3em;
+.lcs-reasoning-body ul {
+  padding-left: 1.5em;
   margin: 4px 0;
+  list-style-position: outside;
+  list-style-type: disc;
+}
+.lcs-reasoning-body ol {
+  padding-left: 1.8em;
+  margin: 4px 0;
+  list-style-position: inside;
+  list-style-type: decimal;
 }
 .lcs-reasoning-body li { margin-bottom: 2px; }
 .lcs-reasoning-body blockquote {
@@ -1191,7 +1223,8 @@ svg.lucide {
   }
 
   .lcs-scroll-container {
-    padding: 6px 8px 12px;
+    padding: 6px 8px;
+    padding-bottom: var(--lcs-input-safe-zone, 80px);
   }
 
   .lcs-message {
@@ -1211,6 +1244,9 @@ svg.lucide {
   .lcs-input-area {
     padding: 10px 12px 14px;
     gap: 8px;
+    bottom: 8px;
+    left: 8px;
+    right: 8px;
   }
 
   .lcs-action-bar {
@@ -1250,7 +1286,7 @@ svg.lucide {
   }
 
   .lcs-scroll-fab {
-    bottom: 130px;
+    bottom: calc(var(--lcs-input-safe-zone, 80px) + 28px);
     right: 12px;
     width: 38px;
     height: 38px;
@@ -2272,7 +2308,11 @@ svg.lucide {
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   cursor: pointer;
-  touch-action: pinch-zoom;
+  touch-action: none;
+  transform-origin: center center;
+  will-change: transform;
+  user-select: none;
+  -webkit-user-select: none;
   animation: lcs-lightbox-scale-in 250ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
@@ -2810,5 +2850,1340 @@ svg.lucide {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   GREETINGS INDICATOR & MODAL
+   Pill-shaped trigger with prismatic hover glow. Modal cards use layered
+   translucent glass with accent-lit left border on the active greeting.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.lcs-greetings-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border: 1px solid var(--lcs-glass-border, rgba(255,255,255,0.06));
+  border-radius: 20px;
+  background: var(--lumiverse-fill-subtle, rgba(255,255,255,0.04));
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: var(--lumiverse-text-muted, rgba(230,230,240,0.6));
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    color var(--lcs-transition),
+    background var(--lcs-transition),
+    border-color var(--lcs-transition),
+    box-shadow var(--lcs-transition);
+}
+
+.lcs-greetings-indicator:hover {
+  color: var(--lumiverse-primary-text, rgba(160, 150, 255, 0.95));
+  background: var(--lumiverse-primary-008, rgba(140, 130, 255, 0.08));
+  border-color: var(--lumiverse-primary-025, rgba(140, 130, 255, 0.25));
+  box-shadow: 0 0 12px var(--lumiverse-primary-010, rgba(140, 130, 255, 0.1));
+}
+
+.lcs-greetings-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--lumiverse-primary-015, rgba(140, 130, 255, 0.15));
+  color: var(--lumiverse-primary-text, rgba(160, 150, 255, 0.95));
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* ── Greetings Modal ── */
+.lcs-greetings-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px 24px;
+  max-height: 70vh;
+}
+
+.lcs-greetings-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--lumiverse-text, rgba(230,230,240,0.92));
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--lumiverse-border, rgba(255,255,255,0.06));
+}
+.lcs-greetings-header h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.lcs-greetings-count {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--lumiverse-text-dim, rgba(230,230,240,0.35));
+  font-variant-numeric: tabular-nums;
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: var(--lumiverse-fill-subtle, rgba(255,255,255,0.04));
+}
+
+.lcs-greetings-empty {
+  text-align: center;
+  color: var(--lumiverse-text-muted, rgba(230,230,240,0.5));
+  padding: 32px 24px;
+  font-size: 14px;
+}
+
+.lcs-greetings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  max-height: 55vh;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--lcs-scrollbar-thumb, rgba(255,255,255,0.08)) transparent;
+}
+.lcs-greetings-list::-webkit-scrollbar { width: 4px; }
+.lcs-greetings-list::-webkit-scrollbar-track { background: transparent; }
+.lcs-greetings-list::-webkit-scrollbar-thumb {
+  background: var(--lcs-scrollbar-thumb, rgba(255,255,255,0.08));
+  border-radius: 4px;
+}
+
+.lcs-greeting-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 13px 16px 13px 18px;
+  border-radius: var(--lcs-radius-sm, 8px);
+  border: 1px solid var(--lcs-glass-border, rgba(255,255,255,0.06));
+  background: var(--lumiverse-fill-subtle, rgba(255,255,255,0.03));
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  transition:
+    background var(--lcs-transition),
+    border-color var(--lcs-transition),
+    box-shadow var(--lcs-transition),
+    transform var(--lcs-transition);
+}
+
+/* Left accent bar — mirrors message card pattern */
+.lcs-greeting-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--lumiverse-fill, rgba(255,255,255,0.06));
+  transition: background var(--lcs-transition), box-shadow var(--lcs-transition);
+}
+
+.lcs-greeting-card:hover {
+  background: var(--lumiverse-fill, rgba(255,255,255,0.06));
+  border-color: var(--lcs-glass-border-hover, rgba(255,255,255,0.1));
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  transform: translateX(2px);
+}
+.lcs-greeting-card:hover::before {
+  background: var(--lumiverse-text-dim, rgba(230,230,240,0.3));
+}
+
+.lcs-greeting-card:active {
+  transform: translateX(2px) scale(0.995);
+}
+
+/* Active greeting — accent-lit border and glow */
+.lcs-greeting-card--active {
+  border-color: var(--lumiverse-primary-040, rgba(140, 130, 255, 0.4));
+  background:
+    linear-gradient(135deg, var(--lumiverse-primary-005, rgba(140,130,255,0.05)) 0%, transparent 50%),
+    var(--lumiverse-primary-008, rgba(140, 130, 255, 0.08));
+  box-shadow:
+    0 0 0 0.5px var(--lumiverse-primary-025, rgba(140, 130, 255, 0.25)),
+    inset 0 0.5px 0 rgba(255,255,255,0.04);
+}
+.lcs-greeting-card--active::before {
+  background: linear-gradient(
+    180deg,
+    var(--lumiverse-primary, rgba(140, 130, 255, 0.9)) 0%,
+    var(--lumiverse-primary-060, rgba(140, 130, 255, 0.6)) 100%
+  );
+  box-shadow: 0 0 8px var(--lumiverse-primary-025, rgba(140, 130, 255, 0.25));
+}
+.lcs-greeting-card--active:hover {
+  border-color: var(--lumiverse-primary-060, rgba(140, 130, 255, 0.6));
+}
+.lcs-greeting-card--active:hover::before {
+  box-shadow: 0 0 12px var(--lumiverse-primary-040, rgba(140, 130, 255, 0.4));
+}
+
+.lcs-greeting-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.lcs-greeting-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--lumiverse-text, rgba(230,230,240,0.92));
+  letter-spacing: 0.01em;
+}
+
+.lcs-greeting-active-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 10px;
+  background: var(--lumiverse-primary-015, rgba(140, 130, 255, 0.15));
+  color: var(--lumiverse-primary-text, rgba(160, 150, 255, 0.95));
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.lcs-greeting-preview {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--lumiverse-text-dim, rgba(230,230,240,0.42));
+  margin: 2px 0 0;
+  font-style: italic;
+  word-break: break-word;
+}
+
+/* Staggered card entrance */
+.lcs-greeting-card {
+  animation: lcs-greeting-enter 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.lcs-greeting-card:nth-child(1) { animation-delay: 0ms; }
+.lcs-greeting-card:nth-child(2) { animation-delay: 40ms; }
+.lcs-greeting-card:nth-child(3) { animation-delay: 80ms; }
+.lcs-greeting-card:nth-child(4) { animation-delay: 120ms; }
+.lcs-greeting-card:nth-child(5) { animation-delay: 160ms; }
+.lcs-greeting-card:nth-child(n+6) { animation-delay: 200ms; }
+
+@keyframes lcs-greeting-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SIDE PORTRAIT LAYOUT
+   Container becomes flex-row when side portrait is active.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.lcs-container.lcs-side-portrait-active {
+  flex-direction: row;
+}
+
+.lcs-main-column {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  position: relative;
+}
+
+/* When portrait is on the left (portrait comes first in DOM),
+   main column needs right margin to match the container edge spacing */
+.lcs-side-portrait + .lcs-main-column {
+  margin: 8px 8px 8px 0;
+}
+
+/* When portrait is on the right (main column is first child),
+   main column needs left margin for symmetry */
+.lcs-side-portrait-active > .lcs-main-column:first-child {
+  margin: 8px 0 8px 8px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SIDE PORTRAIT PANEL
+   Frosted crystalline sidebar — the avatar frame uses a double-border
+   technique (inner inset glow + outer border) for depth. A subtle
+   radial gradient behind the frame creates a soft ambient backlight.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.lcs-side-portrait {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 220px;
+  min-width: 220px;
+  padding: 18px 12px 14px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background:
+    linear-gradient(180deg, var(--lcs-glass-char-tint, rgba(100,120,255,0.03)) 0%, transparent 40%),
+    var(--lcs-glass-bg, rgba(18, 16, 28, 0.55));
+  backdrop-filter: blur(var(--lcs-glass-blur, 14px));
+  -webkit-backdrop-filter: blur(var(--lcs-glass-blur, 14px));
+  border: 1px solid var(--lcs-glass-border, rgba(255,255,255,0.06));
+  border-radius: var(--lcs-radius, 14px);
+  margin: 8px 0 8px 8px;
+  box-shadow:
+    inset 0 0.5px 0 rgba(255,255,255,0.06),
+    0 4px 24px rgba(0,0,0,0.08);
+  scrollbar-width: thin;
+  scrollbar-color: var(--lcs-scrollbar-thumb, rgba(255,255,255,0.08)) transparent;
+  animation: lcs-portrait-enter 350ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes lcs-portrait-enter {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Right-side portrait enters from the right */
+.lcs-side-portrait-active .lcs-main-column + .lcs-side-portrait {
+  margin: 8px 8px 8px 0;
+  animation-name: lcs-portrait-enter-right;
+}
+
+@keyframes lcs-portrait-enter-right {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.lcs-side-portrait::-webkit-scrollbar { width: var(--lcs-scrollbar-w, 5px); }
+.lcs-side-portrait::-webkit-scrollbar-track { background: transparent; }
+.lcs-side-portrait::-webkit-scrollbar-thumb {
+  background: var(--lcs-scrollbar-thumb, rgba(255,255,255,0.08));
+  border-radius: 10px;
+}
+
+.lcs-side-portrait-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 20px;
+}
+
+/* ── Avatar frame — double-border glass with ambient backlight ── */
+.lcs-side-portrait-frame {
+  position: relative;
+  width: 186px;
+  max-height: 380px;
+  border-radius: var(--lcs-radius, 14px);
+  overflow: hidden;
+  cursor: pointer;
+  border: 1.5px solid var(--lcs-glass-border, rgba(255,255,255,0.06));
+  box-shadow:
+    0 6px 28px rgba(0,0,0,0.18),
+    0 0 0 1px rgba(255,255,255,0.03),
+    inset 0 0.5px 0 rgba(255,255,255,0.08);
+  transition:
+    border-color var(--lcs-transition),
+    box-shadow var(--lcs-transition),
+    transform var(--lcs-transition);
+  flex-shrink: 0;
+}
+
+/* Ambient backlight glow behind the frame */
+.lcs-side-portrait-frame::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: radial-gradient(
+    ellipse at 50% 100%,
+    var(--lumiverse-primary-010, rgba(140, 130, 255, 0.1)) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--lcs-transition);
+  z-index: 1;
+}
+
+.lcs-side-portrait-frame:hover {
+  border-color: var(--lumiverse-primary-040, rgba(140, 130, 255, 0.4));
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.22),
+    0 0 20px var(--lumiverse-primary-010, rgba(140, 130, 255, 0.1)),
+    0 0 0 1px var(--lumiverse-primary-015, rgba(140, 130, 255, 0.15)),
+    inset 0 0.5px 0 rgba(255,255,255,0.1);
+  transform: scale(1.015);
+}
+.lcs-side-portrait-frame:hover::after {
+  opacity: 1;
+}
+
+.lcs-side-portrait-img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  transition: transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.lcs-side-portrait-frame:hover .lcs-side-portrait-img {
+  transform: scale(1.03);
+}
+
+.lcs-side-portrait-placeholder {
+  width: 186px;
+  height: 186px;
+  border-radius: var(--lcs-radius, 14px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 50% 60%, var(--lumiverse-fill, rgba(255,255,255,0.06)) 0%, transparent 70%),
+    var(--lumiverse-fill-subtle, rgba(255,255,255,0.03));
+  color: var(--lumiverse-text-dim, rgba(230,230,240,0.2));
+  font-size: 48px;
+  font-weight: 600;
+}
+
+.lcs-side-portrait-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--lumiverse-primary-text, rgba(160, 150, 255, 0.95));
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+  text-shadow: 0 1px 6px var(--lumiverse-primary-010, rgba(140,130,255,0.1));
+}
+
+.lcs-side-portrait-gallery-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border: 1px solid var(--lcs-glass-border, rgba(255,255,255,0.06));
+  border-radius: 20px;
+  background: var(--lumiverse-fill-subtle, rgba(255,255,255,0.04));
+  color: var(--lumiverse-text-muted, rgba(230,230,240,0.55));
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition:
+    color var(--lcs-transition),
+    background var(--lcs-transition),
+    border-color var(--lcs-transition),
+    box-shadow var(--lcs-transition);
+}
+
+.lcs-side-portrait-gallery-btn:hover {
+  color: var(--lumiverse-text, rgba(230,230,240,0.92));
+  background: var(--lumiverse-fill, rgba(255,255,255,0.06));
+  border-color: var(--lcs-glass-border-hover, rgba(255,255,255,0.1));
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+.lcs-side-portrait-gallery-btn:active {
+  transform: scale(0.97);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   GALLERY MOSAIC
+   Staggered reveal grid with glass-frosted thumbnails. Each cell
+   has a subtle border-glow on hover that matches the primary accent.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.lcs-gallery-mosaic {
+  width: 100%;
+  padding-top: 6px;
+  animation: lcs-gallery-reveal 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes lcs-gallery-reveal {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.lcs-gallery-mosaic--loading,
+.lcs-gallery-mosaic--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 8px;
+  color: var(--lumiverse-text-dim, rgba(230,230,240,0.3));
+  font-size: 12px;
+}
+
+.lcs-gallery-spinner {
+  animation: lcs-spin 0.9s linear infinite;
+  color: var(--lumiverse-primary-060, rgba(140, 130, 255, 0.6));
+}
+
+@keyframes lcs-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.lcs-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+}
+
+.lcs-gallery-thumb {
+  aspect-ratio: 1;
+  position: relative;
+  border: 1px solid var(--lcs-glass-border, rgba(255,255,255,0.06));
+  border-radius: var(--lcs-radius-xs, 5px);
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--lumiverse-fill-subtle, rgba(255,255,255,0.03));
+  padding: 0;
+  transition:
+    border-color var(--lcs-transition),
+    transform 280ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow var(--lcs-transition);
+  /* Stagger reveal per cell */
+  animation: lcs-thumb-enter 250ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.lcs-gallery-thumb:nth-child(1) { animation-delay: 0ms; }
+.lcs-gallery-thumb:nth-child(2) { animation-delay: 30ms; }
+.lcs-gallery-thumb:nth-child(3) { animation-delay: 60ms; }
+.lcs-gallery-thumb:nth-child(4) { animation-delay: 90ms; }
+.lcs-gallery-thumb:nth-child(5) { animation-delay: 120ms; }
+.lcs-gallery-thumb:nth-child(6) { animation-delay: 150ms; }
+.lcs-gallery-thumb:nth-child(n+7) { animation-delay: 180ms; }
+
+@keyframes lcs-thumb-enter {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.lcs-gallery-thumb:hover {
+  border-color: var(--lumiverse-primary-040, rgba(140, 130, 255, 0.4));
+  transform: scale(1.06);
+  box-shadow:
+    0 4px 14px rgba(0,0,0,0.25),
+    0 0 8px var(--lumiverse-primary-010, rgba(140, 130, 255, 0.1));
+  z-index: 1;
+}
+
+.lcs-gallery-thumb:active {
+  transform: scale(0.98);
+}
+
+.lcs-gallery-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.lcs-gallery-thumb:hover .lcs-gallery-thumb-img {
+  transform: scale(1.06);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LIGHTBOX NAVIGATION (Gallery Mode)
+   Glassmorphic circular nav buttons with inset highlights. Nav buttons
+   use a frosted pill with luminous hover states and smooth transitions.
+   Counter gets a glass pill treatment below the image.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.lcs-avatar-lightbox-content {
+  position: relative;
+}
+
+.lcs-lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(8, 6, 16, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  padding: 0;
+  box-shadow:
+    0 4px 16px rgba(0,0,0,0.3),
+    inset 0 0.5px 0 rgba(255,255,255,0.1);
+  transition:
+    background 200ms ease,
+    border-color 200ms ease,
+    box-shadow 200ms ease,
+    color 200ms ease,
+    opacity 200ms ease,
+    transform 200ms ease;
+}
+
+.lcs-lightbox-nav:hover {
+  background: rgba(8, 6, 16, 0.7);
+  border-color: rgba(255,255,255,0.2);
+  color: #fff;
+  box-shadow:
+    0 6px 20px rgba(0,0,0,0.4),
+    0 0 12px var(--lumiverse-primary-010, rgba(140, 130, 255, 0.1)),
+    inset 0 0.5px 0 rgba(255,255,255,0.12);
+  transform: translateY(-50%) scale(1.06);
+}
+
+.lcs-lightbox-nav:active {
+  transform: translateY(-50%) scale(0.94);
+}
+
+.lcs-lightbox-nav:disabled {
+  opacity: 0.2;
+  cursor: default;
+  transform: translateY(-50%);
+}
+.lcs-lightbox-nav:disabled:hover {
+  transform: translateY(-50%);
+  background: rgba(8, 6, 16, 0.5);
+  border-color: rgba(255,255,255,0.12);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3), inset 0 0.5px 0 rgba(255,255,255,0.1);
+}
+
+.lcs-lightbox-nav--prev {
+  left: -58px;
+}
+
+.lcs-lightbox-nav--next {
+  right: -58px;
+}
+
+/* Glass pill counter */
+.lcs-lightbox-counter {
+  display: inline-block;
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.08em;
+  padding: 3px 14px;
+  border-radius: 12px;
+  background: rgba(8, 6, 16, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SIDE PORTRAIT RESPONSIVE
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 600px) {
+  .lcs-side-portrait {
+    display: none !important;
+  }
+  .lcs-container.lcs-side-portrait-active {
+    flex-direction: column;
+  }
+}
+
+@media (min-width: 601px) and (max-width: 900px) {
+  .lcs-side-portrait {
+    width: 164px;
+    min-width: 164px;
+    padding: 14px 8px 10px;
+  }
+  .lcs-side-portrait-frame {
+    width: 144px;
+    max-height: 300px;
+  }
+  .lcs-side-portrait-placeholder {
+    width: 144px;
+    height: 144px;
+    font-size: 36px;
+  }
+  .lcs-gallery-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .lcs-side-portrait-gallery-btn {
+    font-size: 11px;
+    padding: 5px 12px;
+  }
+}
+
+/* Lightbox nav responsive — move arrows inside on narrow screens */
+@media (max-width: 900px) {
+  .lcs-lightbox-nav--prev { left: 12px; }
+  .lcs-lightbox-nav--next { right: 12px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PERSONA POPOVER
+   Glass popover for switching the active user persona.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.lcs-persona-popover {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 14px;
+  width: min(340px, calc(100% - 28px));
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 5px;
+  background: color-mix(in srgb, var(--lcs-page-bg, #0a0a0c) 92%, white 8%);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid var(--lcs-glass-border-hover, rgba(255,255,255,0.1));
+  border-radius: var(--lcs-radius, 14px);
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.3),
+    0 0 0 1px var(--lumiverse-border, rgba(255,255,255,0.06));
+  z-index: 30;
+  animation: lcs-tools-enter 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lcs-persona-popover::-webkit-scrollbar { width: var(--lcs-scrollbar-w, 5px); }
+.lcs-persona-popover::-webkit-scrollbar-track { background: transparent; }
+.lcs-persona-popover::-webkit-scrollbar-thumb {
+  background: var(--lcs-scrollbar-thumb, rgba(255,255,255,0.08));
+  border-radius: 4px;
+}
+
+.lcs-persona-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px 12px;
+  color: var(--lumiverse-text-muted, rgba(230,230,240,0.45));
+  font-size: 13px;
+}
+
+.lcs-persona-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lcs-persona-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  transition: background var(--lcs-transition), border-color var(--lcs-transition);
+  text-align: left;
+  width: 100%;
+  color: inherit;
+  font: inherit;
+}
+.lcs-persona-item:hover {
+  background: var(--lumiverse-fill-subtle, rgba(255,255,255,0.04));
+}
+.lcs-persona-item.lcs-persona-active {
+  border-color: var(--lumiverse-primary-040, rgba(140,130,255,0.4));
+  background: var(--lumiverse-primary-008, rgba(140,130,255,0.08));
+}
+
+.lcs-persona-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--lumiverse-fill-subtle, rgba(255,255,255,0.04));
+}
+
+.lcs-persona-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.lcs-persona-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--lumiverse-text, rgba(230,230,240,0.92));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lcs-persona-title {
+  font-size: 11px;
+  color: var(--lumiverse-text-muted, rgba(230,230,240,0.45));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lcs-persona-check {
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--lumiverse-primary-text, rgba(160,150,255,0.95));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   FORCE REPLY POPOVER
+   Glass popover for selecting a group member to speak next.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.lcs-force-reply-popover {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 14px;
+  width: min(300px, calc(100% - 28px));
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 5px;
+  background: color-mix(in srgb, var(--lcs-page-bg, #0a0a0c) 92%, white 8%);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid var(--lcs-glass-border-hover, rgba(255,255,255,0.1));
+  border-radius: var(--lcs-radius, 14px);
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.3),
+    0 0 0 1px var(--lumiverse-border, rgba(255,255,255,0.06));
+  z-index: 30;
+  animation: lcs-tools-enter 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lcs-force-reply-popover::-webkit-scrollbar { width: var(--lcs-scrollbar-w, 5px); }
+.lcs-force-reply-popover::-webkit-scrollbar-track { background: transparent; }
+.lcs-force-reply-popover::-webkit-scrollbar-thumb {
+  background: var(--lcs-scrollbar-thumb, rgba(255,255,255,0.08));
+  border-radius: 4px;
+}
+
+.lcs-force-reply-header {
+  padding: 6px 10px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--lumiverse-text-muted, rgba(230,230,240,0.45));
+}
+
+.lcs-force-reply-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lcs-force-reply-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  transition: background var(--lcs-transition);
+  text-align: left;
+  width: 100%;
+  color: inherit;
+  font: inherit;
+}
+.lcs-force-reply-item:hover {
+  background: var(--lumiverse-fill-subtle, rgba(255,255,255,0.04));
+}
+.lcs-force-reply-item--disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.lcs-force-reply-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--lumiverse-fill-subtle, rgba(255,255,255,0.04));
+}
+
+.lcs-force-reply-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--lumiverse-text, rgba(230,230,240,0.92));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lcs-force-reply-disabled-label {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--lumiverse-text-muted, rgba(230,230,240,0.35));
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   GUIDED GENERATIONS
+   Popover, pills, modal, and badges for guided generation prompts.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.lcs-guide-popover {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 14px;
+  width: min(380px, calc(100% - 28px));
+  max-height: 380px;
+  overflow-y: auto;
+  padding: 5px;
+  background: color-mix(in srgb, var(--lcs-page-bg, #0a0a0c) 92%, white 8%);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid var(--lcs-glass-border-hover, rgba(255,255,255,0.1));
+  border-radius: var(--lcs-radius, 14px);
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.3),
+    0 0 0 1px var(--lumiverse-border, rgba(255,255,255,0.06));
+  z-index: 30;
+  animation: lcs-tools-enter 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lcs-guide-popover::-webkit-scrollbar { width: var(--lcs-scrollbar-w, 5px); }
+.lcs-guide-popover::-webkit-scrollbar-track { background: transparent; }
+.lcs-guide-popover::-webkit-scrollbar-thumb {
+  background: var(--lcs-scrollbar-thumb, rgba(255,255,255,0.08));
+  border-radius: 4px;
+}
+
+.lcs-guide-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 12px;
+  color: var(--lumiverse-text-muted, rgba(230,230,240,0.45));
+  font-size: 13px;
+}
+
+.lcs-guide-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lcs-guide-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  transition: background var(--lcs-transition);
+}
+.lcs-guide-item:hover {
+  background: var(--lumiverse-fill-subtle, rgba(255,255,255,0.04));
+}
+
+.lcs-guide-item-color {
+  width: 4px;
+  height: 28px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.lcs-guide-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.lcs-guide-item-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--lumiverse-text, rgba(230,230,240,0.92));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lcs-guide-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lcs-guide-mode-badge {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--lumiverse-fill-subtle, rgba(255,255,255,0.04));
+  color: var(--lumiverse-text-muted, rgba(230,230,240,0.45));
+}
+.lcs-guide-mode-badge--persistent {
+  color: var(--lumiverse-primary-text, rgba(160,150,255,0.95));
+  background: var(--lumiverse-primary-008, rgba(140,130,255,0.08));
+}
+
+.lcs-guide-position-badge {
+  font-size: 10px;
+  color: var(--lumiverse-text-muted, rgba(230,230,240,0.35));
+}
+
+.lcs-guide-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.lcs-guide-toggle,
+.lcs-guide-fire-btn,
+.lcs-guide-edit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--lumiverse-text-muted, rgba(230,230,240,0.45));
+  cursor: pointer;
+  transition: background var(--lcs-transition), color var(--lcs-transition);
+}
+.lcs-guide-toggle:hover,
+.lcs-guide-fire-btn:hover,
+.lcs-guide-edit-btn:hover {
+  background: var(--lumiverse-fill-subtle, rgba(255,255,255,0.06));
+  color: var(--lumiverse-text, rgba(230,230,240,0.92));
+}
+
+.lcs-guide-toggle--active {
+  color: var(--lumiverse-primary-text, rgba(160,150,255,0.95));
+}
+
+.lcs-guide-new-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px;
+  margin-top: 4px;
+  border: 1px dashed var(--lumiverse-border, rgba(255,255,255,0.08));
+  border-radius: 10px;
+  background: transparent;
+  color: var(--lumiverse-text-muted, rgba(230,230,240,0.45));
+  font-size: 12px;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.lcs-guide-new-btn:hover {
+  background: var(--lumiverse-fill-subtle, rgba(255,255,255,0.04));
+  color: var(--lumiverse-text, rgba(230,230,240,0.92));
+  border-color: var(--lumiverse-border-hover, rgba(255,255,255,0.12));
+}
+
+/* Active guide pills shown above the input */
+.lcs-guide-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 4px 4px;
+}
+
+.lcs-guide-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--lumiverse-primary-008, rgba(140,130,255,0.08));
+  color: var(--lumiverse-primary-text, rgba(160,150,255,0.95));
+  border: 1px solid var(--lumiverse-primary-020, rgba(140,130,255,0.2));
+}
+
+.lcs-guide-pill-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.lcs-guide-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 14px;
+  height: 14px;
+  border-radius: 7px;
+  background: var(--lumiverse-primary, rgba(140,130,255,0.9));
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  line-height: 1;
+}
+
+/* Guided gen modal form — renders inside ModalContainer, uses standard lumiverse vars */
+.lcs-guide-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px;
+}
+
+.lcs-guide-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lcs-guide-modal-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--lumiverse-text-muted, rgba(230,230,240,0.55));
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.lcs-guide-modal-input {
+  padding: 8px 12px;
+  border: 1px solid var(--lumiverse-border, rgba(255,255,255,0.08));
+  border-radius: 10px;
+  background: var(--lumiverse-fill-subtle, rgba(255,255,255,0.03));
+  color: var(--lumiverse-text, rgba(230,230,240,0.92));
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.lcs-guide-modal-input:focus {
+  border-color: var(--lumiverse-primary-040, rgba(140,130,255,0.4));
+}
+
+.lcs-guide-modal-textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.lcs-guide-modal-hint {
+  font-size: 11px;
+  color: var(--lumiverse-text-muted, rgba(230,230,240,0.35));
+}
+
+.lcs-guide-modal-row {
+  display: flex;
+  gap: 12px;
+}
+
+.lcs-guide-modal-select {
+  padding: 8px 12px;
+  border: 1px solid var(--lumiverse-border, rgba(255,255,255,0.08));
+  border-radius: 10px;
+  background: var(--lumiverse-fill-subtle, rgba(255,255,255,0.03));
+  color: var(--lumiverse-text, rgba(230,230,240,0.92));
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+}
+.lcs-guide-modal-select option {
+  background: var(--lumiverse-bg, #1a1828);
+  color: var(--lumiverse-text, rgba(230,230,240,0.92));
+}
+
+.lcs-guide-modal-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--lumiverse-text, rgba(230,230,240,0.92));
+}
+
+.lcs-guide-modal-toggle-track {
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--lumiverse-fill, rgba(255,255,255,0.08));
+  position: relative;
+  transition: background 0.15s ease;
+  flex-shrink: 0;
+}
+.lcs-guide-modal-toggle-track--active {
+  background: var(--lumiverse-primary-040, rgba(140,130,255,0.4));
+}
+.lcs-guide-modal-toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--lumiverse-text, rgba(230,230,240,0.92));
+  transition: transform 0.15s ease;
+}
+.lcs-guide-modal-toggle-track--active .lcs-guide-modal-toggle-thumb {
+  transform: translateX(16px);
+}
+
+.lcs-guide-modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding-top: 8px;
+  border-top: 1px solid var(--lumiverse-border, rgba(255,255,255,0.06));
+}
+
+.lcs-guide-modal-btn {
+  padding: 8px 20px;
+  border: 1px solid var(--lumiverse-border, rgba(255,255,255,0.08));
+  border-radius: 10px;
+  background: var(--lumiverse-fill-subtle, rgba(255,255,255,0.04));
+  color: var(--lumiverse-text, rgba(230,230,240,0.92));
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.lcs-guide-modal-btn:hover {
+  background: var(--lumiverse-fill, rgba(255,255,255,0.06));
+  border-color: var(--lumiverse-border-hover, rgba(255,255,255,0.12));
+}
+.lcs-guide-modal-btn--primary {
+  background: var(--lumiverse-primary-020, rgba(140,130,255,0.2));
+  border-color: var(--lumiverse-primary-040, rgba(140,130,255,0.4));
+  color: var(--lumiverse-primary-text, rgba(160,150,255,0.95));
+}
+.lcs-guide-modal-btn--primary:hover {
+  background: var(--lumiverse-primary-030, rgba(140,130,255,0.3));
+}
+.lcs-guide-modal-btn--danger {
+  color: var(--lumiverse-danger, rgba(255,100,100,0.9));
+  border-color: rgba(255,100,100,0.2);
+}
+.lcs-guide-modal-btn--danger:hover {
+  background: rgba(255,100,100,0.08);
+  border-color: rgba(255,100,100,0.3);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SIDE PORTRAIT GROUP NAVIGATION
+   Navigation arrows and member dots for group chat portrait panel.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.lcs-portrait-member-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px 4px;
+}
+
+.lcs-portrait-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--lcs-glass-border, rgba(255,255,255,0.06));
+  border-radius: 50%;
+  background: var(--lumiverse-fill-subtle, rgba(255,255,255,0.03));
+  color: var(--lumiverse-text-muted, rgba(230,230,240,0.45));
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--lcs-transition), color var(--lcs-transition), border-color var(--lcs-transition);
+}
+.lcs-portrait-nav-btn:hover {
+  background: var(--lumiverse-fill, rgba(255,255,255,0.06));
+  color: var(--lumiverse-text, rgba(230,230,240,0.92));
+  border-color: var(--lcs-glass-border-hover, rgba(255,255,255,0.1));
+}
+
+.lcs-portrait-member-dots {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+  flex: 1;
+}
+
+.lcs-portrait-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--lumiverse-fill, rgba(255,255,255,0.12));
+  transition: background var(--lcs-transition), transform var(--lcs-transition);
+  cursor: pointer;
+}
+.lcs-portrait-dot:hover {
+  background: var(--lumiverse-fill-deep, rgba(255,255,255,0.2));
+}
+.lcs-portrait-dot--active {
+  background: var(--lumiverse-primary, rgba(140,130,255,0.8));
+  transform: scale(1.3);
+}
+
+.lcs-portrait-auto-follow {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border: 1px solid var(--lcs-glass-border, rgba(255,255,255,0.06));
+  border-radius: 12px;
+  background: transparent;
+  color: var(--lumiverse-text-muted, rgba(230,230,240,0.45));
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--lcs-transition), color var(--lcs-transition), border-color var(--lcs-transition);
+}
+.lcs-portrait-auto-follow:hover {
+  background: var(--lumiverse-fill-subtle, rgba(255,255,255,0.04));
+}
+.lcs-portrait-auto-follow--active {
+  color: var(--lumiverse-primary-text, rgba(160,150,255,0.95));
+  border-color: var(--lumiverse-primary-020, rgba(140,130,255,0.2));
+  background: var(--lumiverse-primary-008, rgba(140,130,255,0.08));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   POPOVER RESPONSIVE — mobile: center like QR popover
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 480px) {
+  .lcs-persona-popover,
+  .lcs-force-reply-popover,
+  .lcs-guide-popover {
+    left: 0;
+    right: 0;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    max-height: min(50vh, 360px);
+    padding: 4px;
+  }
 }
 `;

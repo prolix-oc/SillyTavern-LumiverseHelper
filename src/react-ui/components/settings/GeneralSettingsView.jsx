@@ -12,6 +12,9 @@ const selectEnableLandingPage = () => store.getState().enableLandingPage ?? true
 const selectLandingPageChatsDisplayed = () => store.getState().landingPageChatsDisplayed ?? 12;
 const selectEnableChatSheld = () => store.getState().enableChatSheld ?? false;
 const selectChatSheldDisplayMode = () => store.getState().chatSheldDisplayMode || 'minimal';
+const selectChatSheldPageSize = () => store.getState().chatSheldPageSize ?? 50;
+const selectSidePortraitEnabled = () => store.getState().sidePortraitEnabled || false;
+const selectSidePortraitSide = () => store.getState().sidePortraitSide || 'left';
 
 export default function GeneralSettingsView() {
     const showDrawer = useSyncExternalStore(store.subscribe, selectShowDrawer, selectShowDrawer);
@@ -20,6 +23,9 @@ export default function GeneralSettingsView() {
     const landingPageChatsDisplayed = useSyncExternalStore(store.subscribe, selectLandingPageChatsDisplayed, selectLandingPageChatsDisplayed);
     const enableChatSheld = useSyncExternalStore(store.subscribe, selectEnableChatSheld, selectEnableChatSheld);
     const chatSheldDisplayMode = useSyncExternalStore(store.subscribe, selectChatSheldDisplayMode, selectChatSheldDisplayMode);
+    const chatSheldPageSize = useSyncExternalStore(store.subscribe, selectChatSheldPageSize, selectChatSheldPageSize);
+    const sidePortraitEnabled = useSyncExternalStore(store.subscribe, selectSidePortraitEnabled, selectSidePortraitEnabled);
+    const sidePortraitSide = useSyncExternalStore(store.subscribe, selectSidePortraitSide, selectSidePortraitSide);
 
     const handleDrawerToggle = useCallback((enabled) => {
         store.setState({ showLumiverseDrawer: enabled });
@@ -70,6 +76,22 @@ export default function GeneralSettingsView() {
 
     const handleDisplayModeChange = useCallback((mode) => {
         store.setState({ chatSheldDisplayMode: mode });
+        saveToExtension();
+    }, []);
+
+    const handlePageSizeChange = useCallback((value) => {
+        const size = Math.max(10, Math.min(100, parseInt(value, 10) || 50));
+        store.setState({ chatSheldPageSize: size });
+        saveToExtension();
+    }, []);
+
+    const handleSidePortraitToggle = useCallback((enabled) => {
+        store.setState({ sidePortraitEnabled: enabled });
+        saveToExtension();
+    }, []);
+
+    const handleSidePortraitSideChange = useCallback((side) => {
+        store.setState({ sidePortraitSide: side });
         saveToExtension();
     }, []);
 
@@ -297,6 +319,77 @@ export default function GeneralSettingsView() {
                                 <span>Bubble</span>
                             </button>
                         </div>
+                    </div>
+                )}
+                {enableChatSheld && (
+                    <div className="lumia-drawer-settings-container" style={{ marginTop: '10px' }}>
+                        <div className="lumia-drawer-setting" style={{ flex: 1 }}>
+                            <label htmlFor="lumia-chat-page-size" className="lumia-drawer-setting-label">
+                                Messages per Page
+                            </label>
+                            <span className="lumiverse-toggle-description" style={{ fontSize: '0.82em', marginBottom: '6px', display: 'block' }}>
+                                Controls how many messages load at once. Lower values improve performance on slower devices.
+                            </span>
+                            <div className="lumia-drawer-vpos-input">
+                                <input
+                                    type="range"
+                                    id="lumia-chat-page-size"
+                                    className="lumia-slider"
+                                    value={chatSheldPageSize}
+                                    onChange={(e) => handlePageSizeChange(e.target.value)}
+                                    min="10"
+                                    max="100"
+                                    step="10"
+                                />
+                                <span className="lumia-drawer-vpos-value">{chatSheldPageSize}</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Side Portrait Settings */}
+                {enableChatSheld && (
+                    <div style={{ marginTop: '10px' }}>
+                        <label className="lumiverse-toggle-wrapper">
+                            <div className="lumiverse-toggle-text">
+                                <span className="lumiverse-toggle-label">Side Portrait</span>
+                                <span className="lumiverse-toggle-description">
+                                    Pin the character avatar to a side panel (desktop only)
+                                </span>
+                            </div>
+                            <div className={clsx('lumiverse-toggle', sidePortraitEnabled && 'lumiverse-toggle--on')}>
+                                <input
+                                    type="checkbox"
+                                    className="lumiverse-toggle-input"
+                                    checked={sidePortraitEnabled}
+                                    onChange={(e) => handleSidePortraitToggle(e.target.checked)}
+                                />
+                                <span className="lumiverse-toggle-slider"></span>
+                            </div>
+                        </label>
+                        {sidePortraitEnabled && (
+                            <div className="lumia-drawer-settings-container" style={{ marginTop: '8px' }}>
+                                <div className="lumia-drawer-setting">
+                                    <label className="lumia-drawer-setting-label">Portrait Side</label>
+                                    <div className="lumia-drawer-side-toggle">
+                                        <button
+                                            type="button"
+                                            className={clsx('lumia-side-btn', sidePortraitSide === 'left' && 'lumia-side-btn--active')}
+                                            onClick={() => handleSidePortraitSideChange('left')}
+                                        >
+                                            Left
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={clsx('lumia-side-btn', sidePortraitSide === 'right' && 'lumia-side-btn--active')}
+                                            onClick={() => handleSidePortraitSideChange('right')}
+                                        >
+                                            Right
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

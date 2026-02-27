@@ -21,7 +21,11 @@ import useFixedPositionFix from '../../hooks/useFixedPositionFix';
  * @param {'danger'|'warning'|'safe'} props.variant - Color variant (default: 'safe')
  * @param {string} props.confirmText - Text for confirm button (default: 'Confirm')
  * @param {string} props.cancelText - Text for cancel button (default: 'Cancel')
+ * @param {string} props.secondaryText - Text for optional secondary action button
+ * @param {function} props.onSecondary - Callback for secondary action (renders between cancel and confirm)
+ * @param {'danger'|'warning'|'safe'} props.secondaryVariant - Color variant for secondary button (default: same as variant)
  * @param {React.ReactNode} props.icon - Custom icon (optional, uses default based on variant)
+ * @param {number} props.zIndex - z-index for the backdrop (default: 10000)
  */
 const ConfirmationModal = ({
     isOpen,
@@ -32,7 +36,11 @@ const ConfirmationModal = ({
     variant = 'safe',
     confirmText = 'Confirm',
     cancelText = 'Cancel',
+    secondaryText,
+    onSecondary,
+    secondaryVariant,
     icon: customIcon,
+    zIndex = 10002,
 }) => {
     // Neutralize SillyTavern's html transform/perspective that breaks position:fixed
     useFixedPositionFix(isOpen);
@@ -65,8 +73,8 @@ const ConfirmationModal = ({
     }, [onCancel]);
 
     // Get variant-specific styles
-    const getVariantStyles = () => {
-        switch (variant) {
+    const getVariantStyles = (v = variant) => {
+        switch (v) {
             case 'danger':
                 return {
                     iconBg: 'var(--lumiverse-danger-015, rgba(239, 68, 68, 0.15))',
@@ -115,6 +123,8 @@ const ConfirmationModal = ({
     };
 
     const variantStyles = getVariantStyles();
+    const secondaryStyles = secondaryVariant && secondaryVariant !== variant
+        ? getVariantStyles(secondaryVariant) : variantStyles;
     const displayIcon = customIcon || getDefaultIcon();
 
     // Use portal to render at document body level, escaping any parent pointer-events restrictions
@@ -131,7 +141,7 @@ const ConfirmationModal = ({
                     style={{
                         position: 'fixed',
                         inset: 0,
-                        zIndex: 10000,
+                        zIndex,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -276,6 +286,39 @@ const ConfirmationModal = ({
                             >
                                 {cancelText}
                             </button>
+
+                            {/* Secondary action button (optional) */}
+                            {secondaryText && onSecondary && (
+                                <button
+                                    onClick={onSecondary}
+                                    style={{
+                                        flex: 1,
+                                        padding: '12px 20px',
+                                        fontSize: '14px',
+                                        fontWeight: 600,
+                                        background: secondaryStyles.confirmBg,
+                                        border: `1px solid ${secondaryStyles.confirmBorder}`,
+                                        borderRadius: '10px',
+                                        color: '#ffffff',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.15s ease',
+                                        boxShadow: `0 4px 12px ${secondaryStyles.accentGlow}`,
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.background = secondaryStyles.confirmHoverBg;
+                                        e.currentTarget.style.transform = 'translateY(-1px)';
+                                        e.currentTarget.style.boxShadow = `0 6px 16px ${secondaryStyles.accentGlow}`;
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.background = secondaryStyles.confirmBg;
+                                        e.currentTarget.style.transform = 'translateY(0)';
+                                        e.currentTarget.style.boxShadow = `0 4px 12px ${secondaryStyles.accentGlow}`;
+                                    }}
+                                    type="button"
+                                >
+                                    {secondaryText}
+                                </button>
+                            )}
 
                             {/* Confirm button */}
                             <button

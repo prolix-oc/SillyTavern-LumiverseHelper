@@ -3,6 +3,21 @@
  *
  * Renders as a light DOM child inside #sheld, scoped via .lcs-app CSS class.
  * Orchestrates the message list, input area, and all sub-components.
+ *
+ * Layout with side portrait:
+ *   <container row>
+ *     [SidePortrait left?]
+ *     <main-column>
+ *       <scroll-container>
+ *         <MessageList />
+ *       </scroll-container>
+ *       <ScrollToBottom />
+ *       <InputArea />
+ *     </main-column>
+ *     [SidePortrait right?]
+ *     <AvatarLightbox />
+ *     <AuthorsNotePortal />
+ *   </container>
  */
 
 import React, { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
@@ -14,6 +29,8 @@ import InputArea from './chat/InputArea';
 import ScrollToBottom from './chat/ScrollToBottom';
 import AvatarLightbox from './chat/AvatarLightbox';
 import AuthorsNotePortal from './chat/AuthorsNotePortal';
+import SidePortrait from './chat/SidePortrait';
+import useIsMobile from '../hooks/useIsMobile';
 
 const store = useLumiverseStore;
 
@@ -21,6 +38,8 @@ const selectMessages = () => store.getState().chatSheld?.messages || [];
 const selectIsStreaming = () => store.getState().chatSheld?.isStreaming || false;
 const selectStreamingContent = () => store.getState().chatSheld?.streamingContent || '';
 const selectDisplayMode = () => store.getState().chatSheldDisplayMode || 'minimal';
+const selectSidePortraitEnabled = () => store.getState().sidePortraitEnabled || false;
+const selectSidePortraitSide = () => store.getState().sidePortraitSide || 'left';
 
 export default function ChatSheld() {
     const scrollContainerRef = useRef(null);
@@ -29,6 +48,11 @@ export default function ChatSheld() {
     const isStreaming = useSyncExternalStore(store.subscribe, selectIsStreaming, selectIsStreaming);
     const streamingContent = useSyncExternalStore(store.subscribe, selectStreamingContent, selectStreamingContent);
     const displayMode = useSyncExternalStore(store.subscribe, selectDisplayMode, selectDisplayMode);
+    const sidePortraitEnabled = useSyncExternalStore(store.subscribe, selectSidePortraitEnabled, selectSidePortraitEnabled);
+    const sidePortraitSide = useSyncExternalStore(store.subscribe, selectSidePortraitSide, selectSidePortraitSide);
+
+    const isMobile = useIsMobile();
+    const showSidePortrait = sidePortraitEnabled && !isMobile;
 
     // Styles and swap — idempotent. The service layer eagerly injects styles
     // and shows the container with a loading skeleton before React mounts.
@@ -131,20 +155,47 @@ export default function ChatSheld() {
 
     const modeClass = displayMode === 'immersive' ? ' lcs-immersive' : displayMode === 'bubble' ? ' lcs-bubble' : '';
     const streamingClass = backdropDisabled ? ' lcs-container--streaming' : '';
-    const containerClass = `lcs-container${modeClass}${streamingClass}`;
+    const portraitClass = showSidePortrait ? ' lcs-side-portrait-active' : '';
+    const containerClass = `lcs-container${modeClass}${streamingClass}${portraitClass}`;
+
+    // ── Dynamic safe zone for floating input bar ──
+    // ResizeObserver measures the input area and sets --lcs-input-safe-zone
+    // on the main column so the scroll container's bottom padding stays in sync.
+    const mainColumnRef = useRef(null);
+
+    useEffect(() => {
+        const mainCol = mainColumnRef.current;
+        if (!mainCol) return;
+        const inputEl = mainCol.querySelector('.lcs-input-area');
+        if (!inputEl) return;
+
+        const update = () => {
+            const h = inputEl.offsetHeight;
+            mainCol.style.setProperty('--lcs-input-safe-zone', `${h + 12}px`);
+        };
+
+        const ro = new ResizeObserver(update);
+        ro.observe(inputEl);
+        update();
+        return () => ro.disconnect();
+    }, []);
 
     return (
         <div className={containerClass}>
-            <div className="lcs-scroll-container" ref={scrollContainerRef}>
-                <MessageList
-                    messages={messages}
-                    isStreaming={isStreaming}
-                    streamingContent={streamingContent}
-                    scrollContainerRef={scrollContainerRef}
-                />
+            {showSidePortrait && sidePortraitSide === 'left' && <SidePortrait />}
+            <div className="lcs-main-column" ref={mainColumnRef}>
+                <div className="lcs-scroll-container" ref={scrollContainerRef}>
+                    <MessageList
+                        messages={messages}
+                        isStreaming={isStreaming}
+                        streamingContent={streamingContent}
+                        scrollContainerRef={scrollContainerRef}
+                    />
+                </div>
+                <ScrollToBottom scrollContainerRef={scrollContainerRef} />
+                <InputArea />
             </div>
-            <ScrollToBottom scrollContainerRef={scrollContainerRef} />
-            <InputArea />
+            {showSidePortrait && sidePortraitSide === 'right' && <SidePortrait />}
             <AvatarLightbox />
             <AuthorsNotePortal />
         </div>

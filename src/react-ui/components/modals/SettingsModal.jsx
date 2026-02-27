@@ -16,6 +16,7 @@ import OOCSettings from '../panels/OOCSettings';
 import PromptSettings from '../panels/PromptSettings';
 import SummarizationView from '../settings/SummarizationView';
 import QuickRepliesView from '../settings/QuickRepliesView';
+import GuidedGenView from '../settings/GuidedGenView';
 
 /**
  * View router — renders the active settings view based on the nav selection.
@@ -33,6 +34,7 @@ function SettingsViewRouter({ activeView }) {
         case 'summarization':  return <SummarizationView />;
         case 'promptSettings': return <div className="lumiverse-settings-view"><PromptSettings /></div>;
         case 'quickReplies':   return <QuickRepliesView />;
+        case 'guidedGen':      return <GuidedGenView />;
         case 'macros':         return <MacroReferenceView />;
         case 'danger':         return <DangerZoneView />;
         default:               return <GeneralSettingsView />;

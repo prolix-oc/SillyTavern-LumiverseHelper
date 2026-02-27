@@ -1,23 +1,23 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { usePacks, useLumiverseActions, saveToExtension } from '../../store/LumiverseContext';
 import { ScrollText, Palette, Wrench, Settings, Trash2, X } from 'lucide-react';
+import ConfirmationModal from '../shared/ConfirmationModal';
 
 /**
  * Loom Item Structure (v2 format):
  * {
- *   loomName: string,           // Required - display name
- *   loomContent: string,        // Required - the actual content/instructions
- *   loomCategory: string,       // Required - category type
- *   authorName: string | null,  // Creator attribution
+ *   loomName: string,
+ *   loomContent: string,
+ *   loomCategory: string,
+ *   authorName: string | null,
  *   version: number
  * }
  */
 
-// Loom category constants
 const LOOM_CATEGORIES = [
     {
         value: 'Narrative Style',
-        label: 'Narrative Style',
+        label: 'Style',
         description: 'Writing style and prose guidance',
         Icon: Palette,
     },
@@ -54,232 +54,37 @@ function getLoomField(item, field) {
 }
 
 /* ============================================
-   Inline Styled Components (no external deps)
+   Character Count Badge
    ============================================ */
+function CharCount({ text }) {
+    if (!text) return null;
+    return (
+        <span className="lumiverse-editor-char-count">
+            {text.length} chars
+        </span>
+    );
+}
 
-const styles = {
-    modalLayout: {
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        maxHeight: '100%',
-        minHeight: 0,
-        overflow: 'hidden',
-    },
-    header: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        padding: '16px 20px',
-        background: 'var(--lumiverse-bg-elevated)',
-        borderBottom: '1px solid var(--lumiverse-border)',
-        flexShrink: 0,
-    },
-    headerIcon: {
-        width: '36px',
-        height: '36px',
-        borderRadius: '10px',
-        background: 'linear-gradient(135deg, rgba(147, 112, 219, 0.2), rgba(186, 85, 211, 0.15))',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'var(--lumiverse-primary)',
-        flexShrink: 0,
-    },
-    headerTitle: {
-        flex: 1,
-        fontSize: '15px',
-        fontWeight: 600,
-        color: 'var(--lumiverse-text)',
-        margin: 0,
-    },
-    headerSubtitle: {
-        fontSize: '12px',
-        color: 'var(--lumiverse-text-muted)',
-        marginTop: '2px',
-    },
-    closeBtn: {
-        width: '32px',
-        height: '32px',
-        borderRadius: '8px',
-        border: 'none',
-        background: 'transparent',
-        color: 'var(--lumiverse-text-muted)',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        transition: 'all 0.15s ease',
-        flexShrink: 0,
-    },
-    scrollArea: {
-        flex: '1 1 auto',
-        minHeight: 0,
-        overflowY: 'auto',
-        overflowX: 'hidden',
-        padding: '20px',
-    },
-    section: {
-        marginBottom: '24px',
-    },
-    sectionHeader: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        marginBottom: '16px',
-        paddingBottom: '10px',
-        borderBottom: '1px solid var(--lumiverse-border)',
-    },
-    sectionIcon: {
-        width: '28px',
-        height: '28px',
-        borderRadius: '8px',
-        background: 'rgba(147, 112, 219, 0.1)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'var(--lumiverse-primary)',
-    },
-    sectionTitle: {
-        fontSize: '14px',
-        fontWeight: 600,
-        color: 'var(--lumiverse-text)',
-    },
-    field: {
-        marginBottom: '16px',
-    },
-    label: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        marginBottom: '8px',
-        fontSize: '13px',
-        fontWeight: 500,
-        color: 'var(--lumiverse-text-muted)',
-    },
-    required: {
-        color: 'var(--lumiverse-danger)',
-    },
-    hint: {
-        marginTop: '6px',
-        fontSize: '11px',
-        color: 'var(--lumiverse-text-dim)',
-        lineHeight: 1.4,
-    },
-    error: {
-        marginTop: '4px',
-        fontSize: '12px',
-        color: 'var(--lumiverse-danger)',
-    },
-    input: {
-        width: '100%',
-        padding: '10px 12px',
-        background: 'rgba(0, 0, 0, 0.25)',
-        border: '1px solid var(--lumiverse-border)',
-        borderRadius: '8px',
-        color: 'var(--lumiverse-text)',
-        fontSize: '13px',
-        fontFamily: 'inherit',
-        outline: 'none',
-        transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
-        boxSizing: 'border-box',
-    },
-    textarea: {
-        width: '100%',
-        padding: '12px',
-        background: 'rgba(0, 0, 0, 0.25)',
-        border: '1px solid var(--lumiverse-border)',
-        borderRadius: '8px',
-        color: 'var(--lumiverse-text)',
-        fontSize: '13px',
-        fontFamily: 'inherit',
-        lineHeight: 1.6,
-        resize: 'vertical',
-        outline: 'none',
-        transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
-        boxSizing: 'border-box',
-        minHeight: '120px',
-    },
-    footer: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        padding: '16px 20px',
-        background: 'var(--lumiverse-bg-elevated)',
-        borderTop: '1px solid var(--lumiverse-border)',
-        flexShrink: 0,
-    },
-    btnPrimary: {
-        padding: '10px 20px',
-        borderRadius: '8px',
-        border: 'none',
-        background: 'var(--lumiverse-primary)',
-        color: '#fff',
-        fontSize: '13px',
-        fontWeight: 600,
-        cursor: 'pointer',
-        transition: 'all 0.15s ease',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-    },
-    btnSecondary: {
-        padding: '10px 16px',
-        borderRadius: '8px',
-        border: '1px solid var(--lumiverse-border)',
-        background: 'transparent',
-        color: 'var(--lumiverse-text)',
-        fontSize: '13px',
-        fontWeight: 500,
-        cursor: 'pointer',
-        transition: 'all 0.15s ease',
-    },
-    btnDanger: {
-        padding: '10px 16px',
-        borderRadius: '8px',
-        border: '1px solid rgba(239, 68, 68, 0.3)',
-        background: 'rgba(239, 68, 68, 0.1)',
-        color: '#ef4444',
-        fontSize: '13px',
-        fontWeight: 500,
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        marginRight: 'auto',
-    },
-    spacer: {
-        marginRight: 'auto',
-    },
-    // Category grid styles
-    categoryGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: '8px',
-    },
-    categoryBtn: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '6px',
-        padding: '10px 4px',
-        border: '1px solid var(--lumiverse-border)',
-        borderRadius: '8px',
-        background: 'rgba(0, 0, 0, 0.2)',
-        color: 'var(--lumiverse-text-muted)',
-        cursor: 'pointer',
-        transition: 'all 0.15s ease',
-    },
-    categoryBtnSelected: {
-        background: 'rgba(147, 112, 219, 0.15)',
-        borderColor: 'var(--lumiverse-primary)',
-        color: 'var(--lumiverse-primary)',
-    },
-    categoryLabel: {
-        fontSize: '11px',
-        fontWeight: 500,
+/* ============================================
+   Content placeholder/hint helpers
+   ============================================ */
+function getCategoryHint(category) {
+    switch (category) {
+        case 'Narrative Style': return 'Injected via {{loomStyle}} macro. Describe prose style, tone, and writing approach.';
+        case 'Loom Utilities': return 'Injected via {{loomUtils}} macro. Define helper techniques or utility functions.';
+        case 'Retrofits': return 'Injected via {{loomRetrofits}} macro. System modifications and enhancements.';
+        default: return '';
     }
-};
+}
+
+function getContentPlaceholder(category) {
+    switch (category) {
+        case 'Narrative Style': return 'Write in a dark, atmospheric style. Use vivid sensory descriptions emphasizing shadows, decay, and unease...';
+        case 'Loom Utilities': return 'When transitioning between scenes, use a brief temporal or spatial marker followed by sensory grounding...';
+        case 'Retrofits': return 'Track and reference previous conversations, character states, and plot points. Maintain consistency...';
+        default: return 'Enter the content for this Loom item...';
+    }
+}
 
 /* ============================================
    Main Component
@@ -291,11 +96,40 @@ function LoomEditorModal({ packName, editingItem = null, onClose, onSaved }) {
 
     const pack = allPacks.find(p => (p.name || p.packName) === packName);
 
+    // Form state
     const [name, setName] = useState(getLoomField(editingItem, 'name') || '');
     const [content, setContent] = useState(getLoomField(editingItem, 'content') || '');
     const [category, setCategory] = useState(getLoomField(editingItem, 'category') || 'Narrative Style');
     const [author, setAuthor] = useState(getLoomField(editingItem, 'author') || '');
     const [errors, setErrors] = useState({});
+
+    // Confirmation modals
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+
+    // Track initial values for dirty checking
+    const initialRef = useRef({
+        name: getLoomField(editingItem, 'name') || '',
+        content: getLoomField(editingItem, 'content') || '',
+        category: getLoomField(editingItem, 'category') || 'Narrative Style',
+        author: getLoomField(editingItem, 'author') || '',
+    });
+
+    const isDirty = useCallback(() => {
+        const init = initialRef.current;
+        return name !== init.name ||
+            content !== init.content ||
+            category !== init.category ||
+            author !== init.author;
+    }, [name, content, category, author]);
+
+    const handleClose = useCallback(() => {
+        if (isDirty()) {
+            setShowDiscardConfirm(true);
+        } else {
+            onClose();
+        }
+    }, [isDirty, onClose]);
 
     const validate = useCallback(() => {
         const newErrors = {};
@@ -342,7 +176,7 @@ function LoomEditorModal({ packName, editingItem = null, onClose, onSaved }) {
 
             const updatedPack = { ...pack, loomItems: currentItems };
             const packKey = pack.id || pack.name || pack.packName;
-            
+
             if (pack.isCustom) {
                 actions.updateCustomPack(packKey, updatedPack);
             } else {
@@ -357,15 +191,17 @@ function LoomEditorModal({ packName, editingItem = null, onClose, onSaved }) {
 
     const handleDelete = useCallback(() => {
         if (!isEditing || !editingItem) return;
-        const editingName = getLoomField(editingItem, 'name');
-        if (!window.confirm(`Delete "${editingName}"? This cannot be undone.`)) return;
+        setShowDeleteConfirm(true);
+    }, [isEditing, editingItem]);
 
+    const confirmDelete = useCallback(() => {
+        const editingName = getLoomField(editingItem, 'name');
         if (pack) {
             const currentItems = pack.loomItems || [];
             const updatedItems = currentItems.filter(item => getLoomField(item, 'name') !== editingName);
             const updatedPack = { ...pack, loomItems: updatedItems };
             const packKey = pack.id || pack.name || pack.packName;
-            
+
             if (pack.isCustom) {
                 actions.updateCustomPack(packKey, updatedPack);
             } else {
@@ -373,15 +209,16 @@ function LoomEditorModal({ packName, editingItem = null, onClose, onSaved }) {
             }
             saveToExtension();
         }
+        setShowDeleteConfirm(false);
         onClose();
-    }, [isEditing, editingItem, pack, actions, onClose]);
+    }, [editingItem, pack, actions, onClose]);
 
     if (!pack) {
         return (
-            <div style={styles.modalLayout}>
-                <div style={{ ...styles.scrollArea, textAlign: 'center', paddingTop: '40px' }}>
+            <div className="lumiverse-editor-layout">
+                <div className="lumiverse-editor-scroll" style={{ textAlign: 'center', paddingTop: '40px' }}>
                     <p style={{ color: 'var(--lumiverse-text-muted)' }}>Pack "{packName}" not found.</p>
-                    <button style={styles.btnSecondary} onClick={onClose}>Close</button>
+                    <button className="lumiverse-editor-btn-secondary" onClick={onClose}>Close</button>
                 </div>
             </div>
         );
@@ -390,40 +227,41 @@ function LoomEditorModal({ packName, editingItem = null, onClose, onSaved }) {
     const CategoryIcon = LOOM_CATEGORIES.find(c => c.value === category)?.Icon || ScrollText;
 
     return (
-        <div style={styles.modalLayout}>
+        <div className="lumiverse-editor-layout">
+            {/* Mobile swipe handle */}
+            <div className="lumiverse-editor-swipe-handle" />
+
             {/* Header */}
-            <div style={styles.header}>
-                <div style={styles.headerIcon}>
+            <div className="lumiverse-editor-header">
+                <div className="lumiverse-editor-header-icon">
                     <ScrollText size={18} />
                 </div>
-                <div style={{ flex: 1 }}>
-                    <h2 style={styles.headerTitle}>{isEditing ? 'Edit Loom' : 'Create New Loom'}</h2>
-                    <div style={styles.headerSubtitle}>{pack.packName || pack.name}</div>
+                <div className="lumiverse-editor-header-text">
+                    <h2 className="lumiverse-editor-header-title">{isEditing ? 'Edit Loom' : 'Create New Loom'}</h2>
+                    <div className="lumiverse-editor-header-subtitle">{pack.packName || pack.name}</div>
                 </div>
-                <button
-                    style={styles.closeBtn}
-                    onClick={onClose}
-                    onMouseOver={(e) => e.currentTarget.style.background = 'var(--lumiverse-bg-hover)'}
-                    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-                >
+                <button className="lumiverse-editor-close-btn" onClick={handleClose}>
                     <X size={18} />
                 </button>
             </div>
 
             {/* Scrollable Content */}
-            <div style={styles.scrollArea}>
-                {/* Basic Info Section */}
-                <div style={styles.section}>
-                    <div style={styles.sectionHeader}>
-                        <div style={styles.sectionIcon}><ScrollText size={15} /></div>
-                        <span style={styles.sectionTitle}>Loom Details</span>
+            <div className="lumiverse-editor-scroll">
+                {/* Details Section */}
+                <div className="lumiverse-editor-section">
+                    <div className="lumiverse-editor-section-header">
+                        <div className="lumiverse-editor-section-icon"><ScrollText size={15} /></div>
+                        <span className="lumiverse-editor-section-title">Loom Details</span>
                     </div>
 
-                    <div style={styles.field}>
-                        <label style={styles.label}>Loom Name <span style={styles.required}>*</span></label>
+                    {/* Name */}
+                    <div className="lumiverse-editor-field">
+                        <label className="lumiverse-editor-label">
+                            Loom Name <span className="lumiverse-editor-required">*</span>
+                        </label>
                         <input
                             type="text"
-                            style={styles.input}
+                            className="lumiverse-editor-input"
                             value={name}
                             onChange={(e) => {
                                 setName(e.target.value);
@@ -432,56 +270,58 @@ function LoomEditorModal({ packName, editingItem = null, onClose, onSaved }) {
                             placeholder="e.g., Gothic Horror, Scene Helper"
                             autoFocus
                         />
-                        {errors.name && <div style={styles.error}>{errors.name}</div>}
+                        {errors.name && <div className="lumiverse-editor-error">{errors.name}</div>}
                     </div>
 
-                    <div style={styles.field}>
-                        <label style={styles.label}>Author</label>
+                    {/* Author */}
+                    <div className="lumiverse-editor-field">
+                        <label className="lumiverse-editor-label">Author</label>
                         <input
                             type="text"
-                            style={styles.input}
+                            className="lumiverse-editor-input"
                             value={author}
                             onChange={(e) => setAuthor(e.target.value)}
                             placeholder="Your name"
                         />
                     </div>
 
-                    <div style={styles.field}>
-                        <label style={styles.label}>Category <span style={styles.required}>*</span></label>
-                        <div style={styles.categoryGrid}>
-                            {LOOM_CATEGORIES.map(cat => {
-                                const isSelected = category === cat.value;
-                                return (
-                                    <button
-                                        key={cat.value}
-                                        type="button"
-                                        style={{
-                                            ...styles.categoryBtn,
-                                            ...(isSelected ? styles.categoryBtnSelected : {})
-                                        }}
-                                        onClick={() => setCategory(cat.value)}
-                                        title={cat.description}
-                                    >
-                                        <cat.Icon size={16} strokeWidth={1.5} />
-                                        <span style={styles.categoryLabel}>{cat.label}</span>
-                                    </button>
-                                );
-                            })}
+                    {/* Category — segmented control */}
+                    <div className="lumiverse-editor-field">
+                        <label className="lumiverse-editor-label">
+                            Category <span className="lumiverse-editor-required">*</span>
+                        </label>
+                        <div className="lumiverse-editor-category-tabs">
+                            {LOOM_CATEGORIES.map(cat => (
+                                <button
+                                    key={cat.value}
+                                    type="button"
+                                    className={`lumiverse-editor-category-tab ${category === cat.value ? 'lumiverse-editor-category-tab--active' : ''}`}
+                                    onClick={() => setCategory(cat.value)}
+                                    title={cat.description}
+                                >
+                                    <cat.Icon size={14} strokeWidth={1.5} />
+                                    {cat.label}
+                                </button>
+                            ))}
                         </div>
                     </div>
                 </div>
 
                 {/* Content Section */}
-                <div style={styles.section}>
-                    <div style={styles.sectionHeader}>
-                        <div style={styles.sectionIcon}><CategoryIcon size={15} /></div>
-                        <span style={styles.sectionTitle}>Content</span>
+                <div className="lumiverse-editor-section">
+                    <div className="lumiverse-editor-section-header">
+                        <div className="lumiverse-editor-section-icon"><CategoryIcon size={15} /></div>
+                        <span className="lumiverse-editor-section-title">Content</span>
                     </div>
 
-                    <div style={styles.field}>
-                        <label style={styles.label}>Loom Content <span style={styles.required}>*</span></label>
+                    <div className="lumiverse-editor-field">
+                        <label className="lumiverse-editor-label">
+                            Loom Content <span className="lumiverse-editor-required">*</span>
+                            <CharCount text={content} />
+                        </label>
                         <textarea
-                            style={styles.textarea}
+                            className="lumiverse-editor-textarea"
+                            style={{ minHeight: '200px' }}
                             value={content}
                             onChange={(e) => {
                                 setContent(e.target.value);
@@ -490,46 +330,50 @@ function LoomEditorModal({ packName, editingItem = null, onClose, onSaved }) {
                             placeholder={getContentPlaceholder(category)}
                             rows={12}
                         />
-                        <div style={styles.hint}>{getCategoryHint(category)}</div>
-                        {errors.content && <div style={styles.error}>{errors.content}</div>}
+                        <div className="lumiverse-editor-hint">{getCategoryHint(category)}</div>
+                        {errors.content && <div className="lumiverse-editor-error">{errors.content}</div>}
                     </div>
                 </div>
             </div>
 
             {/* Footer */}
-            <div style={styles.footer}>
+            <div className="lumiverse-editor-footer">
                 {isEditing ? (
-                    <button style={styles.btnDanger} onClick={handleDelete}>
+                    <button className="lumiverse-editor-btn-danger" onClick={handleDelete}>
                         <Trash2 size={14} /> Delete
                     </button>
                 ) : (
-                    <div style={styles.spacer} />
+                    <div className="lumiverse-editor-spacer" />
                 )}
-                <button style={styles.btnSecondary} onClick={onClose}>Cancel</button>
-                <button style={styles.btnPrimary} onClick={handleSave}>
+                <button className="lumiverse-editor-btn-secondary" onClick={handleClose}>Cancel</button>
+                <button className="lumiverse-editor-btn-primary" onClick={handleSave}>
                     {isEditing ? 'Save Changes' : 'Create Loom'}
                 </button>
             </div>
+
+            {/* Delete confirmation */}
+            <ConfirmationModal
+                isOpen={showDeleteConfirm}
+                onConfirm={confirmDelete}
+                onCancel={() => setShowDeleteConfirm(false)}
+                title={`Delete "${getLoomField(editingItem, 'name')}"?`}
+                message="This will permanently remove this Loom item. This cannot be undone."
+                variant="danger"
+                confirmText="Delete"
+            />
+
+            {/* Discard unsaved changes confirmation */}
+            <ConfirmationModal
+                isOpen={showDiscardConfirm}
+                onConfirm={onClose}
+                onCancel={() => setShowDiscardConfirm(false)}
+                title="Discard unsaved changes?"
+                message="You have unsaved changes that will be lost if you close this editor."
+                variant="warning"
+                confirmText="Discard"
+            />
         </div>
     );
-}
-
-function getCategoryHint(category) {
-    switch (category) {
-        case 'Narrative Style': return 'Injected via {{loomStyle}} macro. Describe prose style, tone, and writing approach.';
-        case 'Loom Utilities': return 'Injected via {{loomUtils}} macro. Define helper techniques or utility functions.';
-        case 'Retrofits': return 'Injected via {{loomRetrofits}} macro. System modifications and enhancements.';
-        default: return '';
-    }
-}
-
-function getContentPlaceholder(category) {
-    switch (category) {
-        case 'Narrative Style': return 'Write in a dark, atmospheric style. Use vivid sensory descriptions emphasizing shadows, decay, and unease...';
-        case 'Loom Utilities': return 'When transitioning between scenes, use a brief temporal or spatial marker followed by sensory grounding...';
-        case 'Retrofits': return 'Track and reference previous conversations, character states, and plot points. Maintain consistency...';
-        default: return 'Enter the content for this Loom item...';
-    }
 }
 
 export default LoomEditorModal;

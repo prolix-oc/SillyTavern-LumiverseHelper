@@ -5,7 +5,7 @@
  * Uses self-contained inline styles with var(--lumiverse-*) variables.
  */
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo, useSyncExternalStore } from 'react';
 import {
     X, Search, FolderOpen, MessageSquare, Pencil, Download, Trash2,
     ArrowRight, Check, SortAsc, Clock, FileText, HardDrive, Loader2,
@@ -19,7 +19,11 @@ import {
     getCharacterInfo,
 } from '../../../lib/chatSheldService';
 import { getContext } from '../../../stContext';
+import { useLumiverseStore } from '../../store/LumiverseContext';
 import ConfirmationModal from '../shared/ConfirmationModal';
+
+const store = useLumiverseStore;
+const selectActiveChat = () => store.getState().chatSheld?.activeChat || null;
 
 /**
  * Inject scoped hover styles for ManageChatsModal action buttons.
@@ -173,13 +177,13 @@ export default function ManageChatsModal({ onClose }) {
     const editRef = useRef(null);
 
     const charInfo = getCharacterInfo();
-    const ctx = getContext();
-    const currentChatId = ctx?.chatId || null;
+    const activeChat = useSyncExternalStore(store.subscribe, selectActiveChat, selectActiveChat);
+    const currentChatId = getContext()?.chatId || null;
 
     // Inject CSS hover styles on mount
     useEffect(() => { ensureManageChatsStyles(); }, []);
 
-    // Fetch chats on mount
+    // Fetch chats on mount and re-fetch when active chat changes (fork, switch, etc.)
     const loadChats = useCallback(async () => {
         setIsLoading(true);
         const result = await fetchCharacterChats();
@@ -187,7 +191,7 @@ export default function ManageChatsModal({ onClose }) {
         setIsLoading(false);
     }, []);
 
-    useEffect(() => { loadChats(); }, [loadChats]);
+    useEffect(() => { loadChats(); }, [loadChats, activeChat]);
 
     // Focus edit input when entering rename mode
     useEffect(() => {
@@ -196,6 +200,17 @@ export default function ManageChatsModal({ onClose }) {
             editRef.current.select();
         }
     }, [editingId]);
+
+    // Parse pre-formatted size string to bytes for sorting (e.g. "2.5MB" → 2621440)
+    const parseSizeToBytes = (sizeStr) => {
+        if (!sizeStr || typeof sizeStr !== 'string') return 0;
+        const match = sizeStr.match(/^([\d.]+)\s*(B|KB|MB|GB|TB)?$/i);
+        if (!match) return 0;
+        const num = parseFloat(match[1]);
+        const unit = (match[2] || 'B').toUpperCase();
+        const multipliers = { B: 1, KB: 1024, MB: 1048576, GB: 1073741824, TB: 1099511627776 };
+        return num * (multipliers[unit] || 1);
+    };
 
     // Filter and sort
     const filteredChats = chats
@@ -261,17 +276,6 @@ export default function ManageChatsModal({ onClose }) {
         if (!size) return '—';
         // ST API returns file_size as a pre-formatted string (e.g. "2.5MB")
         return String(size);
-    };
-
-    // Parse pre-formatted size string to bytes for sorting (e.g. "2.5MB" → 2621440)
-    const parseSizeToBytes = (sizeStr) => {
-        if (!sizeStr || typeof sizeStr !== 'string') return 0;
-        const match = sizeStr.match(/^([\d.]+)\s*(B|KB|MB|GB|TB)?$/i);
-        if (!match) return 0;
-        const num = parseFloat(match[1]);
-        const unit = (match[2] || 'B').toUpperCase();
-        const multipliers = { B: 1, KB: 1024, MB: 1048576, GB: 1073741824, TB: 1099511627776 };
-        return num * (multipliers[unit] || 1);
     };
 
     const isCurrentChat = (fileName) => {

@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 import clsx from 'clsx';
-import { User, Package, MessageSquare, Sliders, FileText, ChevronRight, ChevronLeft, X, Sparkles, Bookmark, Users, BarChart2, Layers, Settings } from 'lucide-react';
+import { User, Package, MessageSquare, Sliders, FileText, ChevronRight, ChevronLeft, X, Sparkles, Bookmark, Users, BarChart2, Layers, Settings, PenTool } from 'lucide-react';
 import { useLumiverseStore, useLumiverseActions, useUpdates } from '../store/LumiverseContext';
 import { UpdateDot } from './UpdateBanner';
 import UpdateBanner from './UpdateBanner';
@@ -28,27 +28,8 @@ const MOBILE_DRAWER_TAB_WIDTH = 40; // Width of the flush-mounted tab (mobile)
 const MOBILE_DRAWER_TAB_WIDTH_COMPACT = 32; // Width of the compact tab (mobile)
 const MOBILE_BREAKPOINT = 600;
 
-/**
- * Custom hook to detect mobile viewport
- */
-function useIsMobile(breakpoint = MOBILE_BREAKPOINT) {
-    const [isMobile, setIsMobile] = useState(
-        typeof window !== 'undefined' ? window.innerWidth <= breakpoint : false
-    );
-
-    useEffect(() => {
-        const handleResize = () => {
-            const newIsMobile = window.innerWidth <= breakpoint;
-            // Only update state if value actually changed
-            setIsMobile(prev => prev !== newIsMobile ? newIsMobile : prev);
-        };
-
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, [breakpoint]);
-
-    return isMobile;
-}
+// useIsMobile extracted to shared hook
+import useIsMobile from '../hooks/useIsMobile';
 
 /**
  * Flush-mounted drawer tab - integrated into the drawer's edge
@@ -212,6 +193,12 @@ const ALL_PANEL_TABS = [
         title: 'Council Feedback',
         conditional: true,
     },
+    {
+        id: 'create',
+        Icon: PenTool,
+        label: 'Create',
+        title: 'Content Workshop',
+    },
 ];
 
 /**
@@ -231,6 +218,7 @@ function ViewportPanel({
     PresetsContent,
     LoomContent,
     BrowserContent,
+    CreateContent,
     OOCContent,
     PromptContent,
     CouncilContent,
@@ -411,12 +399,13 @@ function ViewportPanel({
         presets: PresetsContent ? <PresetsContent /> : <PlaceholderContent tab="presets" />,
         loom: LoomContent ? <LoomContent compact /> : <PlaceholderContent tab="loom" />,
         browser: BrowserContent ? <BrowserContent /> : <PlaceholderContent tab="browser" />,
+        create: CreateContent ? <CreateContent /> : <PlaceholderContent tab="create" />,
         ooc: OOCContent ? <OOCContent /> : <PlaceholderContent tab="ooc" />,
         prompt: PromptContent ? <PromptContent /> : <PlaceholderContent tab="prompt" />,
         council: CouncilContent ? <CouncilContent /> : <PlaceholderContent tab="council" />,
         summary: SummaryContent ? <SummaryContent /> : <PlaceholderContent tab="summary" />,
         feedback: FeedbackContent ? <FeedbackContent /> : <PlaceholderContent tab="feedback" />,
-    }), [ProfileContent, PresetsContent, LoomContent, BrowserContent, OOCContent, PromptContent, CouncilContent, SummaryContent, FeedbackContent, handleTabClick]);
+    }), [ProfileContent, PresetsContent, LoomContent, BrowserContent, CreateContent, OOCContent, PromptContent, CouncilContent, SummaryContent, FeedbackContent, handleTabClick]);
 
     // Calculate wrapper positioning based on side
     const getWrapperStyle = () => {
@@ -578,6 +567,11 @@ function PlaceholderContent({ tab }) {
             Icon: Package,
             title: 'Pack Browser',
             description: 'Browse and search through all loaded packs with previews',
+        },
+        create: {
+            Icon: PenTool,
+            title: 'Content Workshop',
+            description: 'Create and manage custom packs, Lumia characters, and Loom modifiers',
         },
         ooc: {
             Icon: MessageSquare,

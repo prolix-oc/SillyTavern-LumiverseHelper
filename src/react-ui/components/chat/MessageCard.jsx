@@ -297,7 +297,7 @@ const MessageCard = memo(function MessageCard({ message, isLastMessage, isStream
                     />
 
                     {!isSystem && (
-                        <MessageActions mesId={mesId} content={content} onStartEdit={handleStartEdit} />
+                        <MessageActions mesId={mesId} content={content} isUser={isUser} swipeId={swipeId} swipeCount={swipeCount} onStartEdit={handleStartEdit} />
                     )}
                 </>
             )}
@@ -307,6 +307,7 @@ const MessageCard = memo(function MessageCard({ message, isLastMessage, isStream
                     mesId={mesId}
                     swipeId={swipeId}
                     swipeCount={swipeCount}
+                    swipes={swipes}
                     isLastMessage={isLastMessage}
                 />
             )}

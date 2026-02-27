@@ -1071,6 +1071,13 @@ export function migrateSelectionsFromSettings(legacySettings) {
         'activePresetName',
         'dismissedUpdateVersion',
         'theme',
+        'enableChatSheld',
+        'chatSheldDisplayMode',
+        'chatSheldPageSize',
+        'sidePortraitEnabled',
+        'sidePortraitSide',
+        'authorNotePanelSide',
+        'guidedGenerations',
     ];
 
     for (const field of preferenceFields) {

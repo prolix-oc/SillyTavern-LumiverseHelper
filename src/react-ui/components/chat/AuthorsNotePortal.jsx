@@ -15,6 +15,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import AuthorsNotePanel from './AuthorsNotePanel';
+import { getTopBarHeight } from '../../../lib/domUtils';
 
 const MOUNT_ID = 'lumiverse-an-portal';
 
@@ -32,9 +33,10 @@ export default function AuthorsNotePortal() {
             // Inline styles override .lcs-app's layout rules (display:flex,
             // width:100%, height:100%) and establish reliable fixed positioning.
             // Mirrors the ViewportPanel body-level mount pattern.
+            const topOffset = getTopBarHeight();
             el.style.cssText = [
                 'position:fixed',
-                'top:0',
+                `top:${topOffset}px`,
                 'left:0',
                 'right:0',
                 'bottom:0',

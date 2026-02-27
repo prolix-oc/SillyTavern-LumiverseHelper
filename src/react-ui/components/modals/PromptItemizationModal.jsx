@@ -10,7 +10,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Copy, Check, Eye, EyeOff, Loader2, AlertCircle, Layers } from 'lucide-react';
+import { X, Copy, Check, Eye, EyeOff, Loader2, AlertCircle, Layers, ChevronDown } from 'lucide-react';
 import { getPromptItemization } from '../../../lib/chatSheldService';
 
 // Fixed category colors for ST native view
@@ -146,6 +146,39 @@ const s = {
         gap: '12px', padding: '60px 20px', color: 'var(--lumiverse-text-dim, rgba(230,230,240,0.35))',
         fontSize: '14px', textAlign: 'center',
     },
+    accordion: {
+        borderRadius: '10px',
+        border: '1px solid var(--lumiverse-border, rgba(255,255,255,0.08))',
+        background: 'var(--lumiverse-fill-subtle, rgba(255,255,255,0.02))',
+        overflow: 'hidden',
+    },
+    accordionHeader: {
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '12px 14px', cursor: 'pointer', userSelect: 'none',
+        background: 'transparent', border: 'none', width: '100%',
+        fontFamily: 'inherit', transition: 'background 0.15s',
+    },
+    accordionHeaderLeft: {
+        display: 'flex', alignItems: 'center', gap: '8px',
+        fontSize: '13px', fontWeight: 600, color: 'var(--lumiverse-text, #e6e6f0)',
+    },
+    accordionChevron: {
+        transition: 'transform 0.2s ease',
+        color: 'var(--lumiverse-text-muted, rgba(230,230,240,0.5))',
+        flexShrink: 0,
+    },
+    accordionTokenSummary: {
+        fontSize: '12px', fontWeight: 500, color: 'var(--lumiverse-text-muted, rgba(230,230,240,0.55))',
+        fontVariantNumeric: 'tabular-nums',
+        display: 'flex', alignItems: 'center', gap: '8px',
+    },
+    accordionBody: {
+        overflow: 'hidden', transition: 'max-height 0.25s ease, opacity 0.2s ease',
+    },
+    accordionInner: {
+        padding: '0 14px 12px',
+        borderTop: '1px solid var(--lumiverse-border, rgba(255,255,255,0.06))',
+    },
 };
 
 function TokenRow({ label, tokens, total, isSub = false, color = null, roleBadge = null }) {
@@ -183,6 +216,8 @@ function TokenRow({ label, tokens, total, isSub = false, color = null, roleBadge
 // ── Loom Preset View ────────────────────────────────────────────────────
 
 function LoomView({ data, barTotal, showRaw, setShowRaw, copied, handleCopy, onClose }) {
+    const [blocksOpen, setBlocksOpen] = useState(false);
+
     // Assign colors to blocks: use block.color if set, otherwise cycle through palette
     const coloredBlocks = data.blocks.map((block, i) => ({
         ...block,
@@ -190,6 +225,7 @@ function LoomView({ data, barTotal, showRaw, setShowRaw, copied, handleCopy, onC
     }));
 
     const barItems = coloredBlocks.filter(b => b.tokens > 0);
+    const blockCount = data.blocks.length;
 
     return (
         <>
@@ -240,31 +276,68 @@ function LoomView({ data, barTotal, showRaw, setShowRaw, copied, handleCopy, onC
                     </div>
                 </div>
 
-                {/* Block table */}
-                <table style={s.table}>
-                    <thead>
-                        <tr>
-                            <th style={{ ...s.tableCell, textAlign: 'left', fontSize: '11px', color: 'var(--lumiverse-text-dim)', fontWeight: 500, padding: '6px 8px' }}>Block</th>
-                            <th style={{ ...s.tableCellRight, fontSize: '11px', color: 'var(--lumiverse-text-dim)', fontWeight: 500, padding: '6px 8px' }}>Tokens</th>
-                            <th style={{ ...s.tableCellRight, fontSize: '11px', color: 'var(--lumiverse-text-dim)', fontWeight: 500, padding: '6px 8px' }}>%</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {coloredBlocks.map((block, i) => (
-                            <TokenRow
-                                key={i}
-                                label={block.messageCount != null
-                                    ? `${block.name} (${block.messageCount} msgs)`
-                                    : block.name
-                                }
-                                tokens={block.tokens}
-                                total={barTotal}
-                                color={block.displayColor}
-                                roleBadge={block.role}
+                {/* Collapsible block breakdown */}
+                <div style={s.accordion}>
+                    <button
+                        style={s.accordionHeader}
+                        onClick={() => setBlocksOpen(prev => !prev)}
+                        type="button"
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--lumiverse-fill, rgba(255,255,255,0.04))'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                    >
+                        <div style={s.accordionHeaderLeft}>
+                            <ChevronDown
+                                size={14}
+                                style={{
+                                    ...s.accordionChevron,
+                                    transform: blocksOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
+                                }}
                             />
-                        ))}
-                    </tbody>
-                </table>
+                            Loom Builder Prompts
+                            <span style={{
+                                fontSize: '11px', fontWeight: 400,
+                                color: 'var(--lumiverse-text-dim, rgba(230,230,240,0.4))',
+                            }}>
+                                ({blockCount} block{blockCount !== 1 ? 's' : ''})
+                            </span>
+                        </div>
+                        <div style={s.accordionTokenSummary}>
+                            {barTotal.toLocaleString()} tokens
+                        </div>
+                    </button>
+                    <div style={{
+                        ...s.accordionBody,
+                        maxHeight: blocksOpen ? '600px' : '0px',
+                        opacity: blocksOpen ? 1 : 0,
+                    }}>
+                        <div style={s.accordionInner}>
+                            <table style={{ ...s.table, marginTop: '4px' }}>
+                                <thead>
+                                    <tr>
+                                        <th style={{ ...s.tableCell, textAlign: 'left', fontSize: '11px', color: 'var(--lumiverse-text-dim)', fontWeight: 500, padding: '6px 8px' }}>Block</th>
+                                        <th style={{ ...s.tableCellRight, fontSize: '11px', color: 'var(--lumiverse-text-dim)', fontWeight: 500, padding: '6px 8px' }}>Tokens</th>
+                                        <th style={{ ...s.tableCellRight, fontSize: '11px', color: 'var(--lumiverse-text-dim)', fontWeight: 500, padding: '6px 8px' }}>%</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {coloredBlocks.map((block, i) => (
+                                        <TokenRow
+                                            key={i}
+                                            label={block.messageCount != null
+                                                ? `${block.name} (${block.messageCount} msgs)`
+                                                : block.name
+                                            }
+                                            tokens={block.tokens}
+                                            total={barTotal}
+                                            color={block.displayColor}
+                                            roleBadge={block.role}
+                                        />
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
 
                 {/* Raw prompt */}
                 {showRaw && data.rawPrompt && (

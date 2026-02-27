@@ -828,7 +828,7 @@ export function clearStartReplyWith() {
 /**
  * Valid reasoning effort levels
  */
-export const REASONING_EFFORT_LEVELS = ['auto', 'low', 'medium', 'high', 'min', 'max'];
+export const REASONING_EFFORT_LEVELS = ['auto', 'none', 'low', 'medium', 'high', 'xhigh', 'min', 'max'];
 
 /**
  * Get the current API reasoning settings (show_thoughts and reasoning_effort)

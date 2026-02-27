@@ -11,7 +11,6 @@ import LoomSelectionModal from './modals/LoomSelectionModal';
 import PackSelectorModal from './modals/PackSelectorModal';
 import LumiaEditorModal from './modals/LumiaEditorModal';
 import LoomEditorModal from './modals/LoomEditorModal';
-import ItemTypeSelector from './modals/ItemTypeSelector';
 import CouncilSelectModal from './modals/CouncilSelectModal';
 import PresetEditor from './panels/PresetEditor';
 
@@ -23,6 +22,8 @@ import PresetManageModal from './modals/PresetManageModal';
 import LoomBuilderModal from './modals/LoomBuilderModal';
 import ManageChatsModal from './modals/ManageChatsModal';
 import PromptItemizationModal from './modals/PromptItemizationModal';
+import GreetingsModal from './modals/GreetingsModal';
+import GuidedGenModal from './modals/GuidedGenModal';
 import { AuthorsNoteModalContent } from './chat/AuthorsNotePanel';
 
 /**
@@ -81,8 +82,7 @@ function ModalWrapper({ children, onClose, modalType, size = 'medium', hasCustom
         modalType === 'pack-editor' && 'lumiverse-modal-pack-editor',
         modalType === 'pack-selector' && 'lumiverse-modal-pack-selector',
         modalType === 'lumia-editor' && 'lumiverse-modal-lumia-editor',
-        modalType === 'loom-editor' && 'lumiverse-modal-loom-editor',
-        modalType === 'type-selector' && 'lumiverse-modal-type-selector'
+        modalType === 'loom-editor' && 'lumiverse-modal-loom-editor'
     );
 
     return (
@@ -105,31 +105,6 @@ function ModalWrapper({ children, onClose, modalType, size = 'medium', hasCustom
                 {children}
             </div>
         </div>
-    );
-}
-
-/**
- * Item Type Selector Wrapper
- * Wraps ItemTypeSelector to handle the modal flow
- */
-function ItemTypeSelectorWrapper({ packName, onClose }) {
-    const actions = useLumiverseActions();
-
-    const handleSelectLumia = () => {
-        actions.openModal('lumiaEditor', { packName });
-    };
-
-    const handleSelectLoom = () => {
-        actions.openModal('loomEditor', { packName });
-    };
-
-    return (
-        <ItemTypeSelector
-            packName={packName}
-            onSelectLumia={handleSelectLumia}
-            onSelectLoom={handleSelectLoom}
-            onBack={onClose}
-        />
     );
 }
 
@@ -217,14 +192,6 @@ const MODAL_CONFIG = {
         hasCustomHeader: true,
         props: {},
     },
-    // Item type selector - choose between Lumia or Loom
-    itemTypeSelector: {
-        component: ItemTypeSelectorWrapper,
-        modalType: 'type-selector',
-        size: 'medium',
-        hasCustomHeader: true,
-        props: {},
-    },
     // Council member selection modal
     councilSelect: {
         component: CouncilSelectModal,
@@ -291,9 +258,25 @@ const MODAL_CONFIG = {
         hasCustomHeader: true,
         props: {},
     },
+    // Greetings selector (alternate greetings for first message)
+    greetings: {
+        component: GreetingsModal,
+        modalType: 'settings',
+        size: 'medium',
+        hasCustomHeader: true,
+        props: {},
+    },
     // Author's Note (mobile modal — desktop uses side panel via AuthorsNotePortal)
     authorsNote: {
         component: AuthorsNoteModalContent,
+        modalType: 'settings',
+        size: 'medium',
+        hasCustomHeader: true,
+        props: {},
+    },
+    // Guided Generation editor modal
+    guidedGen: {
+        component: GuidedGenModal,
         modalType: 'settings',
         size: 'medium',
         hasCustomHeader: true,

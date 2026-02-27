@@ -32,6 +32,7 @@ export default function MessageList({ messages, isStreaming, streamingContent, s
     const sentinelRef = useRef(null);
     const bottomRef = useRef(null);
     const isUserScrolledUpRef = useRef(false);
+    const autoScrollActiveRef = useRef(0);  // Guard counter for programmatic scrolls
     const prevMessageCountRef = useRef(0);
     const prevFirstMesIdRef = useRef(null);
     const prevLastMesIdRef = useRef(null);
@@ -59,6 +60,24 @@ export default function MessageList({ messages, isStreaming, streamingContent, s
     }
 
     /**
+     * Perform a programmatic scroll with a guard that prevents the resulting
+     * browser scroll event from falsely flipping isUserScrolledUpRef.
+     *
+     * The scroll event fires AFTER rAF callbacks in the same frame's
+     * "update the rendering" step. A double-rAF ensures the guard is
+     * cleared in the frame AFTER the scroll event was processed.
+     */
+    function guardedScroll(fn) {
+        autoScrollActiveRef.current++;
+        fn();
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                autoScrollActiveRef.current = Math.max(0, autoScrollActiveRef.current - 1);
+            });
+        });
+    }
+
+    /**
      * Smart scroll to the last message on chat load.
      * If the last message is taller than the viewport, position its top edge
      * at the container's top so the user starts reading from the beginning.
@@ -66,16 +85,16 @@ export default function MessageList({ messages, isStreaming, streamingContent, s
      */
     function scrollToLastMessage(container) {
         if (!container) return;
-        const lastMsgEl = container.querySelector(`[data-mesid="${lastMesId}"]`);
-        if (lastMsgEl && lastMsgEl.offsetHeight > container.clientHeight) {
-            // Message taller than viewport — align its top edge with container top
-            const containerRect = container.getBoundingClientRect();
-            const msgRect = lastMsgEl.getBoundingClientRect();
-            container.scrollTop += msgRect.top - containerRect.top;
-        } else {
-            // Message fits in viewport — scroll to absolute bottom
-            container.scrollTop = container.scrollHeight;
-        }
+        guardedScroll(() => {
+            const lastMsgEl = container.querySelector(`[data-mesid="${lastMesId}"]`);
+            if (lastMsgEl && lastMsgEl.offsetHeight > container.clientHeight) {
+                const containerRect = container.getBoundingClientRect();
+                const msgRect = lastMsgEl.getBoundingClientRect();
+                container.scrollTop += msgRect.top - containerRect.top;
+            } else {
+                container.scrollTop = container.scrollHeight;
+            }
+        });
     }
 
     // ── Instant snap to bottom on chat load/switch ──
@@ -113,8 +132,8 @@ export default function MessageList({ messages, isStreaming, streamingContent, s
 
             // rAF loop: keep snapping for several frames to ride out any
             // layout settling (image loads, OOC bridge mounts, flex reflow).
-            // Mirrors ST's scrollChatToBottom({ waitForFrame: true }) pattern.
-            // Final frame uses scrollToLastMessage for the smart positioning.
+            // Every frame uses scrollToLastMessage() for consistent smart
+            // positioning (top-of-last-message or absolute bottom if it fits).
             let frameCount = 0;
             const maxFrames = 6;
             const settleLoop = () => {
@@ -124,20 +143,18 @@ export default function MessageList({ messages, isStreaming, streamingContent, s
                 if (frameCount >= maxFrames) {
                     isSettlingRef.current = false;
                     settleRAFRef.current = null;
-                    // Final snap — use smart positioning
-                    scrollToLastMessage(c);
-                } else {
-                    // Intermediate frames — keep at bottom to avoid flicker
-                    if (c) c.scrollTop = c.scrollHeight;
+                }
+                scrollToLastMessage(c);
+                if (frameCount < maxFrames) {
                     settleRAFRef.current = requestAnimationFrame(settleLoop);
                 }
             };
             settleRAFRef.current = requestAnimationFrame(settleLoop);
         }
 
-        // Snap every render while settling
+        // Snap every render while settling — use smart positioning consistently
         if (isSettlingRef.current && container && messages.length > 0) {
-            container.scrollTop = container.scrollHeight;
+            scrollToLastMessage(container);
         }
 
         // ── Scroll preservation for prepended messages ──
@@ -158,7 +175,7 @@ export default function MessageList({ messages, isStreaming, streamingContent, s
             const prevScrollTop = container._lcsPrePrependScrollTop;
             if (prevScrollHeight !== undefined && prevScrollTop !== undefined) {
                 const delta = container.scrollHeight - prevScrollHeight;
-                container.scrollTop = prevScrollTop + delta;
+                guardedScroll(() => { container.scrollTop = prevScrollTop + delta; });
                 delete container._lcsPrePrependScrollHeight;
                 delete container._lcsPrePrependScrollTop;
             }
@@ -202,7 +219,7 @@ export default function MessageList({ messages, isStreaming, streamingContent, s
         ) {
             const container = getScrollContainer();
             if (container) {
-                container.scrollTop = container.scrollHeight;
+                guardedScroll(() => { container.scrollTop = container.scrollHeight; });
             }
         }
 
@@ -225,7 +242,7 @@ export default function MessageList({ messages, isStreaming, streamingContent, s
 
         streamScrollRAF.current = requestAnimationFrame(() => {
             const c = getScrollContainer();
-            if (c) c.scrollTop = c.scrollHeight;
+            if (c) guardedScroll(() => { c.scrollTop = c.scrollHeight; });
             streamScrollRAF.current = null;
         });
 
@@ -245,7 +262,7 @@ export default function MessageList({ messages, isStreaming, streamingContent, s
         if (!scrollSnapTrigger || isUserScrolledUpRef.current) return;
         const container = getScrollContainer();
         if (container) {
-            container.scrollTop = container.scrollHeight;
+            guardedScroll(() => { container.scrollTop = container.scrollHeight; });
         }
     }, [scrollSnapTrigger, scrollContainerRef]);
 
@@ -297,13 +314,31 @@ export default function MessageList({ messages, isStreaming, streamingContent, s
     }, [canFetchMore, scrollContainerRef, messages.length, totalChatLength]);
 
     // ── Track user scroll position ──
+    // The handler distinguishes user scrolls from programmatic scrolls via
+    // autoScrollActiveRef. During programmatic scrolls, layout shifts
+    // (backdrop-filter recomposite, image loads, content reflow) can
+    // temporarily put us far from bottom, falsely triggering "scrolled up".
+    // The guard prevents this. Only genuine user scrolls set the flag.
+    // Reaching the bottom always clears the flag regardless of source.
     useEffect(() => {
         const container = getScrollContainer();
         if (!container) return;
 
         const handleScroll = () => {
             const { scrollTop, scrollHeight, clientHeight } = container;
-            isUserScrolledUpRef.current = scrollHeight - scrollTop - clientHeight > 100;
+            const distFromBottom = scrollHeight - scrollTop - clientHeight;
+
+            // Near bottom — always clear (user scrolled back, or auto-scroll landed)
+            if (distFromBottom <= 100) {
+                isUserScrolledUpRef.current = false;
+                return;
+            }
+
+            // During programmatic scrolls, don't flip the flag — layout shifts
+            // can cause transient distance > 100 that isn't user intent
+            if (autoScrollActiveRef.current > 0) return;
+
+            isUserScrolledUpRef.current = true;
         };
 
         container.addEventListener('scroll', handleScroll, { passive: true });

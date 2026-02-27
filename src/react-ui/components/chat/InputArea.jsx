@@ -6,7 +6,7 @@
  * tools menu, and batch delete mode.
  */
 
-import React, { useState, useCallback, useRef, useSyncExternalStore } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useSyncExternalStore } from 'react';
 import {
     Send,
     RefreshCw,
@@ -17,6 +17,9 @@ import {
     MoreHorizontal,
     MessageSquareQuote,
     Trash2,
+    UserCircle,
+    Users,
+    Compass,
 } from 'lucide-react';
 import {
     triggerSend,
@@ -26,12 +29,17 @@ import {
     triggerStopGeneration,
     triggerBatchDelete,
     stopStreaming,
-    syncFullChat,
 } from '../../../lib/chatSheldService';
 import { useLumiverseStore } from '../../store/LumiverseContext';
 import ToolsMenu from './ToolsMenu';
 import QuickReplyPopover from './QuickReplyPopover';
+import PersonaPopover from './PersonaPopover';
+import ForceReplyPopover from './ForceReplyPopover';
+import GuidedGenPopover from './GuidedGenPopover';
 import { isQRAvailable } from '../../../lib/quickReplyService';
+import { fetchPersonaList } from '../../../lib/personaService';
+import { isGroupChat } from '../../../stContext';
+import { getActiveGuides } from '../../../lib/guidedGenerationService';
 import ConfirmationModal from '../shared/ConfirmationModal';
 
 const store = useLumiverseStore;
@@ -41,11 +49,23 @@ const selectBatchDeleteMode = () => store.getState().chatSheld?.batchDeleteMode 
 const selectBatchDeleteFromId = () => store.getState().chatSheld?.batchDeleteFromId ?? null;
 const selectMessageCount = () => store.getState().chatSheld?.messages?.length || 0;
 
+const selectGuidedGenerations = () => store.getState().guidedGenerations || [];
+
 export default function InputArea() {
     const [text, setText] = useState('');
-    const [openPopover, setOpenPopover] = useState(null); // null | 'tools' | 'qr'
+    const [openPopover, setOpenPopover] = useState(null); // null | 'tools' | 'qr' | 'persona' | 'forceReply' | 'guides'
     const [confirmDelete, setConfirmDelete] = useState(false);
+    const [hasPersonas, setHasPersonas] = useState(false);
+    const [isGroup, setIsGroup] = useState(false);
     const textareaRef = useRef(null);
+    const guidedGenerations = useSyncExternalStore(store.subscribe, selectGuidedGenerations, selectGuidedGenerations);
+    const activeGuideCount = guidedGenerations.filter(g => g.enabled).length;
+
+    // Check for personas and group state on mount
+    useEffect(() => {
+        fetchPersonaList().then(list => setHasPersonas(list.length > 0));
+        setIsGroup(isGroupChat());
+    }, []);
     const isStreaming = useSyncExternalStore(store.subscribe, selectIsStreaming, selectIsStreaming);
     const hasMessages = useSyncExternalStore(store.subscribe, selectHasMessages, selectHasMessages);
     const batchDeleteMode = useSyncExternalStore(store.subscribe, selectBatchDeleteMode, selectBatchDeleteMode);
@@ -68,14 +88,10 @@ export default function InputArea() {
     const handleStop = useCallback(() => {
         triggerStopGeneration();
         // Immediately clear local streaming state so the UI flips to Send.
-        // Do NOT call syncFullChat() here — isSTGenerating() still returns
-        // true because ST processes the stop asynchronously, and syncFullChat
-        // would overwrite isStreaming back to true.
-        // GENERATION_STOPPED/GENERATION_ENDED handlers will sync the final state.
+        // GENERATION_STOPPED/GENERATION_ENDED handlers will sync the final
+        // message state via syncSingleMessage(). _ensureGenerationCleanup()
+        // in triggerStopGeneration provides the safety net.
         stopStreaming();
-        // Safety net: if ST's stop events don't fire, sync after a delay
-        // when #mes_stop has had time to update.
-        setTimeout(() => syncFullChat(), 500);
     }, []);
 
     const handleKeyDown = useCallback((e) => {
@@ -111,10 +127,13 @@ export default function InputArea() {
     const deleteCount = batchDeleteFromId !== null ? messageCount - batchDeleteFromId : 0;
 
     return (
-        <div className="lcs-input-area" style={{ position: 'relative' }}>
+        <div className="lcs-input-area">
             {/* Popovers — anchored to .lcs-input-area for proper centering */}
             {openPopover === 'tools' && <ToolsMenu onClose={() => setOpenPopover(null)} />}
             {openPopover === 'qr' && <QuickReplyPopover onClose={() => setOpenPopover(null)} />}
+            {openPopover === 'persona' && <PersonaPopover onClose={() => setOpenPopover(null)} />}
+            {openPopover === 'forceReply' && <ForceReplyPopover onClose={() => setOpenPopover(null)} />}
+            {openPopover === 'guides' && <GuidedGenPopover onClose={() => setOpenPopover(null)} />}
 
             {/* Batch delete mode bar */}
             {batchDeleteMode ? (
@@ -176,6 +195,38 @@ export default function InputArea() {
                             >
                                 <UserRound size={14} />
                             </button>
+                            {isGroup && (
+                                <button
+                                    className="lcs-action-bar-btn"
+                                    onClick={() => setOpenPopover(p => p === 'forceReply' ? null : 'forceReply')}
+                                    title="Force Reply (select who speaks)"
+                                    type="button"
+                                >
+                                    <Users size={14} />
+                                </button>
+                            )}
+                            {hasPersonas && (
+                                <button
+                                    className="lcs-action-bar-btn"
+                                    onClick={() => setOpenPopover(p => p === 'persona' ? null : 'persona')}
+                                    title="Switch Persona"
+                                    type="button"
+                                >
+                                    <UserCircle size={14} />
+                                </button>
+                            )}
+                            <button
+                                className="lcs-action-bar-btn"
+                                onClick={() => setOpenPopover(p => p === 'guides' ? null : 'guides')}
+                                title="Guided Generations"
+                                type="button"
+                                style={{ position: 'relative' }}
+                            >
+                                <Compass size={14} />
+                                {activeGuideCount > 0 && (
+                                    <span className="lcs-guide-badge">{activeGuideCount}</span>
+                                )}
+                            </button>
                             {isQRAvailable() && (
                                 <button
                                     className="lcs-action-bar-btn"
@@ -197,6 +248,21 @@ export default function InputArea() {
                         </div>
                     )}
                 </>
+            )}
+
+            {/* Active guide pills */}
+            {activeGuideCount > 0 && !batchDeleteMode && (
+                <div className="lcs-guide-pills">
+                    {guidedGenerations.filter(g => g.enabled).map(g => (
+                        <span key={g.id} className="lcs-guide-pill">
+                            <span
+                                className="lcs-guide-pill-dot"
+                                style={{ background: g.color || 'var(--lumiverse-primary, rgba(140,130,255,0.8))' }}
+                            />
+                            {g.name}
+                        </span>
+                    ))}
+                </div>
             )}
 
             {/* Input row — textarea + send/stop toggle (hidden in batch mode) */}

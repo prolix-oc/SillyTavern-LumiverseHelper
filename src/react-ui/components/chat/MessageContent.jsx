@@ -6,7 +6,7 @@
  * via refs — single source of truth, no duplicate template code.
  */
 
-import React, { useMemo, useRef, useLayoutEffect, useSyncExternalStore } from 'react';
+import React, { useEffect, useMemo, useRef, useLayoutEffect, useSyncExternalStore } from 'react';
 import { Marked } from 'marked';
 import { segmentMessageContent } from '../../../lib/oocParser';
 import {
@@ -48,6 +48,14 @@ const md = new Marked({
             const body = this.parser.parseInline(tokens);
             return `<strong class="lcs-prose-bold">${body}</strong>`;
         },
+        // Add data-code-lang attribute to <pre> for fenced code blocks.
+        // This lets extensions (e.g. SimTracker) target specific code blocks
+        // via CSS attribute selectors without needing :has().
+        code({ text, lang }) {
+            const langClass = lang ? ` class="language-${lang}"` : '';
+            const langAttr = lang ? ` data-code-lang="${lang}"` : '';
+            return `<pre${langAttr}><code${langClass}>${text}\n</code></pre>\n`;
+        },
     },
 });
 
@@ -74,21 +82,81 @@ function normalizeQuotesInHTML(html) {
 
 /**
  * Wrap dialogue (straight-quoted strings) in themed spans.
- * Matches "text" that isn't inside an HTML tag attribute.
- * Uses a negative lookbehind for `=` to avoid matching href="..." etc.
+ *
+ * Uses a state machine that tracks open/close quote across text nodes
+ * separated by HTML tags. This correctly handles dialogue containing
+ * inline formatting: "Hello, *world*" → the <em> inside the quotes
+ * is still wrapped by the dialogue span.
+ *
+ * Skips text inside <pre>/<code> blocks. Closes unclosed quotes at
+ * block-level tag boundaries (</p>, </div>, </li>, etc.) to prevent
+ * invalid nesting.
  */
-const DIALOGUE_RE = /(?<![\w=])"([^"]+)"(?![\w])/g;
+const BLOCK_CLOSE_RE = /^<\/(p|div|li|blockquote|h[1-6]|pre|table|tr|td|th)\b/i;
+const SKIP_OPEN_RE = /^<(pre|code)\b/i;
+const SKIP_CLOSE_RE = /^<\/(pre|code)\b/i;
 
 function colorizeDialogue(html) {
-    // Split on HTML tags to only process text nodes
     const parts = html.split(/(<[^>]*>)/);
+    let result = '';
+    let inQuote = false;
+    let skipDepth = 0;
+
     for (let i = 0; i < parts.length; i++) {
-        // Odd indices are tags, even are text — only process text
-        if (i % 2 === 0 && parts[i]) {
-            parts[i] = parts[i].replace(DIALOGUE_RE, '<span class="lcs-prose-dialogue">&quot;$1&quot;</span>');
+        const part = parts[i];
+
+        if (i % 2 === 1) {
+            // HTML tag
+            if (SKIP_OPEN_RE.test(part)) skipDepth++;
+            else if (SKIP_CLOSE_RE.test(part)) skipDepth = Math.max(0, skipDepth - 1);
+
+            // Close unclosed dialogue at block-level tag boundaries
+            if (inQuote && BLOCK_CLOSE_RE.test(part)) {
+                result += '</span>';
+                inQuote = false;
+            }
+            result += part;
+            continue;
         }
+
+        // Text node — skip if inside code/pre
+        if (skipDepth > 0 || !part) {
+            result += part;
+            continue;
+        }
+
+        // Scan for quote characters — Marked escapes " to &quot; in text,
+        // so we detect both the literal character and the HTML entity.
+        let output = '';
+        for (let j = 0; j < part.length; j++) {
+            const isLiteral = part[j] === '"';
+            const isEntity = !isLiteral && part[j] === '&'
+                && part[j + 1] === 'q' && part[j + 2] === 'u'
+                && part[j + 3] === 'o' && part[j + 4] === 't'
+                && part[j + 5] === ';';
+
+            if (isLiteral || isEntity) {
+                if (!inQuote) {
+                    output += '<span class="lcs-prose-dialogue">&quot;';
+                    inQuote = true;
+                } else {
+                    output += '&quot;</span>';
+                    inQuote = false;
+                }
+                if (isEntity) j += 5; // skip remaining chars of &quot;
+            } else {
+                output += part[j];
+            }
+        }
+        result += output;
     }
-    return parts.join('');
+
+    // Forcibly close any unclosed quote
+    if (inQuote) {
+        result += '</span>';
+    }
+
+    return result;
 }
 
 /**
@@ -260,6 +328,20 @@ export default function MessageContent({ content, oocMatches, isSystem, isUser, 
             prevTextLen.current = 0;
         }
     }, [isStreaming]);
+
+    // ── Post-render event for external extensions ───────────────────
+    // After the final (non-streaming) DOM commit, dispatch a custom event
+    // so extensions like SimTracker can (re-)inject their UI widgets.
+    // Fires on chat load, after streaming ends, on edits, and on swipes.
+    // Skipped during streaming — extensions relying on MutationObserver
+    // already see per-frame mutations, and 30 events/sec would be wasteful.
+    useEffect(() => {
+        if (isStreaming || !contentRef.current) return;
+        contentRef.current.dispatchEvent(new CustomEvent('lumiverse:content-rendered', {
+            bubbles: true,
+            detail: { mesId },
+        }));
+    }, [formattedContent, isStreaming, mesId]);
 
     if (!content) {
         // Always render the wrapper div — returning null removes the DOM node

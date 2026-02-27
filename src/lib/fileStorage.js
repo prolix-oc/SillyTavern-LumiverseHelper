@@ -227,11 +227,22 @@ function createDefaultIndex() {
         preferences: {
             chimeraMode: false,
             councilMode: false,
+            councilChatStyle: null,
+            councilTools: null,
             lumiaQuirks: '',
             lumiaQuirksEnabled: true,
             lumiaOOCInterval: null,
             lumiaOOCStyle: 'social',
             activePresetName: null,
+            dismissedUpdateVersion: null,
+            theme: null,
+            enableChatSheld: false,
+            chatSheldDisplayMode: 'minimal',
+            chatSheldPageSize: 50,
+            sidePortraitEnabled: false,
+            sidePortraitSide: 'left',
+            authorNotePanelSide: 'right',
+            guidedGenerations: [],
         },
         presets: {}, // User-saved Lumia selection presets
         toggleStateRegistry: {}, // Registry of saved prompt toggle states

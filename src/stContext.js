@@ -673,3 +673,39 @@ export function getCharacterCardInfo() {
   return { name, description, personality, scenario };
 }
 
+/**
+ * Check if the current chat is a group chat.
+ * @returns {boolean}
+ */
+export function isGroupChat() {
+  const ctx = getContext();
+  return !!ctx?.groupId;
+}
+
+/**
+ * Get the list of members in the current group chat.
+ * @returns {Array<{ chid: number, name: string, avatar: string, avatarUrl: string, disabled: boolean }>}
+ */
+export function getGroupMembers() {
+  const ctx = getContext();
+  if (!ctx?.groupId || !ctx.groups) return [];
+
+  const group = ctx.groups.find(g => g.id === ctx.groupId);
+  if (!group?.members) return [];
+
+  const members = [];
+  for (const memberId of group.members) {
+    const charIndex = ctx.characters.findIndex(c => c.avatar === memberId);
+    if (charIndex === -1) continue;
+    const char = ctx.characters[charIndex];
+    members.push({
+      chid: charIndex,
+      name: char.name || memberId,
+      avatar: memberId,
+      avatarUrl: `/characters/${encodeURIComponent(memberId)}`,
+      disabled: group.disabled_members?.includes(memberId) || false,
+    });
+  }
+  return members;
+}
+

@@ -213,6 +213,9 @@ const initialState = {
     // Components can subscribe to this to reload when chat changes
     chatChangeCounter: 0,
 
+    // Guided Generations — user-configurable prompts attached to sends/regens
+    guidedGenerations: [],
+
     // Council tool results (React-only, not saved to extension)
     // Populated by LumiverseBridge.setCouncilToolResults after council tool execution
     councilToolResults: [],

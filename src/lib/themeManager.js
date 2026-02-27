@@ -142,6 +142,8 @@ const DEFAULT_THEME = {
         danger:     { h: 0,   s: 84, l: 60 },  // #ef4444
         success:    { h: 142, s: 71, l: 45 },  // #22c55e
         warning:    { h: 38,  s: 92, l: 50 },  // #f59e0b
+        speech:     { h: 219, s: 79, l: 76 },  // Dialogue — warm secondary tint
+        thoughts:   { h: 271, s: 39, l: 77 },  // Italic/thoughts — desaturated primary tint
     },
 };
 
@@ -159,6 +161,8 @@ export const THEME_PRESETS = {
             danger:     { h: 0, s: 84, l: 60 },
             success:    { h: 142, s: 71, l: 45 },
             warning:    { h: 38, s: 92, l: 50 },
+            speech:     { h: 190, s: 60, l: 60 },
+            thoughts:   { h: 210, s: 55, l: 67 },
         },
     },
     'Emerald Forest': {
@@ -171,6 +175,8 @@ export const THEME_PRESETS = {
             danger:     { h: 0, s: 84, l: 60 },
             success:    { h: 142, s: 71, l: 45 },
             warning:    { h: 38, s: 92, l: 50 },
+            speech:     { h: 175, s: 50, l: 55 },
+            thoughts:   { h: 155, s: 40, l: 62 },
         },
     },
     'Rose Gold': {
@@ -183,6 +189,8 @@ export const THEME_PRESETS = {
             danger:     { h: 0, s: 84, l: 60 },
             success:    { h: 142, s: 71, l: 45 },
             warning:    { h: 38, s: 92, l: 50 },
+            speech:     { h: 25,  s: 70, l: 65 },
+            thoughts:   { h: 340, s: 45, l: 77 },
         },
     },
     'Midnight Crimson': {
@@ -195,6 +203,8 @@ export const THEME_PRESETS = {
             danger:     { h: 0, s: 84, l: 60 },
             success:    { h: 142, s: 71, l: 45 },
             warning:    { h: 38, s: 92, l: 50 },
+            speech:     { h: 280, s: 50, l: 65 },
+            thoughts:   { h: 0,   s: 55, l: 67 },
         },
     },
 
@@ -209,6 +219,8 @@ export const THEME_PRESETS = {
             danger:     { h: 0,   s: 84, l: 48 },
             success:    { h: 142, s: 71, l: 35 },
             warning:    { h: 38,  s: 92, l: 42 },
+            speech:     { h: 219, s: 79, l: 45 },
+            thoughts:   { h: 271, s: 39, l: 50 },
         },
     },
     'Cloud Blue': {
@@ -221,6 +233,8 @@ export const THEME_PRESETS = {
             danger:     { h: 0,   s: 84, l: 48 },
             success:    { h: 142, s: 71, l: 35 },
             warning:    { h: 38,  s: 92, l: 42 },
+            speech:     { h: 190, s: 60, l: 35 },
+            thoughts:   { h: 210, s: 55, l: 40 },
         },
     },
     'Warm Linen': {
@@ -233,6 +247,8 @@ export const THEME_PRESETS = {
             danger:     { h: 0,   s: 84, l: 48 },
             success:    { h: 142, s: 71, l: 35 },
             warning:    { h: 38,  s: 92, l: 42 },
+            speech:     { h: 340, s: 50, l: 45 },
+            thoughts:   { h: 25,  s: 55, l: 45 },
         },
     },
     'Mint Fresh': {
@@ -245,6 +261,8 @@ export const THEME_PRESETS = {
             danger:     { h: 0,   s: 84, l: 48 },
             success:    { h: 142, s: 71, l: 35 },
             warning:    { h: 38,  s: 92, l: 42 },
+            speech:     { h: 175, s: 50, l: 33 },
+            thoughts:   { h: 155, s: 40, l: 35 },
         },
     },
 };
@@ -252,7 +270,31 @@ export const THEME_PRESETS = {
 // ─── CSS Variable Generation ─────────────────────────────────────────
 
 /**
- * Generate the full set of CSS custom properties from 7 base colors.
+ * Ensure speech and thoughts colors exist in baseColors.
+ * For themes created before these fields existed, derives them
+ * from secondary (speech) and primary (thoughts).
+ * @param {Object} baseColors
+ * @returns {Object} baseColors with speech/thoughts guaranteed
+ */
+export function ensureProseColors(baseColors) {
+    if (baseColors.speech && baseColors.thoughts) return baseColors;
+    const light = isLightMode(baseColors.background);
+    const colors = { ...baseColors };
+    if (!colors.speech) {
+        colors.speech = light
+            ? darken(colors.secondary, 5)
+            : lighten(colors.secondary, 10);
+    }
+    if (!colors.thoughts) {
+        colors.thoughts = light
+            ? darken(desaturate(colors.primary, 15), 5)
+            : lighten(desaturate(colors.primary, 15), 12);
+    }
+    return colors;
+}
+
+/**
+ * Generate the full set of CSS custom properties from base colors.
  * Automatically adapts derivation direction based on background lightness.
  * @param {Object} baseColors
  * @returns {Object<string, string>} Map of CSS property name → value
@@ -427,13 +469,15 @@ function generateThemeVariables(baseColors) {
     vars['--lumiverse-text-hint']  = hsla(text, 0.3);
 
     // ── Prose color variants (Chat Sheld themed text) ──
-    // Dialogue: warm secondary tint — stands out as "spoken aloud"
-    const dialogueColor = light ? darken(secondary, 5) : lighten(secondary, 10);
-    vars['--lumiverse-prose-dialogue'] = hsla(dialogueColor, 0.88);
+    // Speech/Thoughts use dedicated baseColors when available,
+    // falling back to the original secondary/primary derivation for older themes.
+    const speech = baseColors.speech
+        || (light ? darken(secondary, 5) : lighten(secondary, 10));
+    vars['--lumiverse-prose-dialogue'] = hsla(speech, 0.88);
 
-    // Italic/thoughts: desaturated primary tint — quieter, introspective
-    const italicColor = light ? darken(desaturate(primary, 15), 5) : lighten(desaturate(primary, 15), 12);
-    vars['--lumiverse-prose-italic'] = hsla(italicColor, 0.78);
+    const thoughts = baseColors.thoughts
+        || (light ? darken(desaturate(primary, 15), 5) : lighten(desaturate(primary, 15), 12));
+    vars['--lumiverse-prose-italic'] = hsla(thoughts, 0.78);
 
     // Bold: slightly brighter base text for emphasis
     const boldColor = light ? darken(text, 5) : lighten(text, 5);
@@ -736,7 +780,7 @@ export function isValidTheme(theme) {
 export function exportTheme(theme) {
     return {
         lumiverseTheme: true,
-        version: 2,
+        version: 3,
         name: theme.name || 'Custom',
         baseColors: { ...theme.baseColors },
     };
@@ -749,10 +793,13 @@ export function exportTheme(theme) {
  */
 export function importTheme(data) {
     if (!data || !data.lumiverseTheme) return null;
-    if (data.version !== 1 && data.version !== 2) return null;
+    if (data.version !== 1 && data.version !== 2 && data.version !== 3) return null;
+    if (!data.baseColors) return null;
+    // Backfill speech/thoughts for themes exported before v3
+    const baseColors = ensureProseColors(data.baseColors);
     const theme = {
         name: data.name || 'Imported',
-        baseColors: data.baseColors,
+        baseColors,
     };
     return isValidTheme(theme) ? theme : null;
 }

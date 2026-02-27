@@ -188,9 +188,9 @@ function PackSelectorModal({ onSelect, onClose }) {
         setExpandedPackName(prev => prev === packName ? null : packName);
     }, []);
 
-    // Handle adding a new item - opens type selector
+    // Handle adding a new item - opens Lumia editor directly
     const handleAddNewItem = useCallback((packName) => {
-        actions.openModal('itemTypeSelector', { packName });
+        actions.openModal('lumiaEditor', { packName });
     }, [actions]);
 
     // Handle editing an existing item (Lumia or Loom)

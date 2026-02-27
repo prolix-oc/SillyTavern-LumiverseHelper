@@ -3,7 +3,7 @@ import { HslColorPicker } from 'react-colorful';
 import clsx from 'clsx';
 import { RotateCcw, Download, Upload, Check, Sun, Moon } from 'lucide-react';
 import { useLumiverseActions, useLumiverseStore, saveToExtension } from '../../store/LumiverseContext';
-import { applyTheme, getDefaultTheme, THEME_PRESETS, exportTheme, importTheme, isValidTheme, isLightMode, hslToRgb, rgbToHsl, hslToHex, hexToHsl } from '../../../lib/themeManager';
+import { applyTheme, getDefaultTheme, THEME_PRESETS, exportTheme, importTheme, isValidTheme, isLightMode, ensureProseColors, hslToRgb, rgbToHsl, hslToHex, hexToHsl } from '../../../lib/themeManager';
 
 /* global toastr */
 
@@ -21,6 +21,8 @@ const COLOR_SLOTS = [
     { key: 'danger',     label: 'Danger' },
     { key: 'success',    label: 'Success' },
     { key: 'warning',    label: 'Warning' },
+    { key: 'speech',     label: 'Speech' },
+    { key: 'thoughts',   label: 'Thoughts' },
 ];
 
 const presetNames = Object.keys(THEME_PRESETS);
@@ -78,8 +80,12 @@ export default function ThemePanel() {
     const fileInputRef = useRef(null);
 
     // Local editing state - initialized from store or defaults
+    // ensureProseColors backfills speech/thoughts for older saved themes.
     const defaultTheme = getDefaultTheme();
-    const [localTheme, setLocalTheme] = useState(() => theme || defaultTheme);
+    const [localTheme, setLocalTheme] = useState(() => {
+        const t = theme || defaultTheme;
+        return { ...t, baseColors: ensureProseColors(t.baseColors) };
+    });
     const [activeSlot, setActiveSlot] = useState('primary');
     const [activePreset, setActivePreset] = useState(() => {
         return theme ? (theme.name || 'Custom') : 'Default Purple';
@@ -94,7 +100,7 @@ export default function ThemePanel() {
     // Sync local state when store changes externally (e.g. from sync)
     useEffect(() => {
         if (theme) {
-            setLocalTheme(theme);
+            setLocalTheme({ ...theme, baseColors: ensureProseColors(theme.baseColors) });
             setActivePreset(theme.name || 'Custom');
         } else {
             setLocalTheme(defaultTheme);

@@ -35,6 +35,7 @@ import {
 import { useChatPresetSettings } from '../../hooks/useChatPresetSettings';
 import { useLumiverseActions } from '../../store/LumiverseContext';
 import { ReasoningSettingsContent } from '../shared/ReasoningSettings';
+import { detectConnectionProfile } from '../../../lib/lucidLoomService';
 
 /* global toastr */
 
@@ -279,15 +280,20 @@ function ChatPresetsModal({ onClose, availableUpdates = [], onUpdateComplete }) 
         startReplyWith,
         apiReasoning,
         postProcessing,
+        adaptiveThinking,
         handleApplyReasoningPreset: applyPreset,
         handleStartReplyWithChange,
         handleReasoningToggle,
         handleAPIReasoningToggle,
         handleReasoningEffortChange,
         handlePostProcessingChange,
+        handleAdaptiveThinkingToggle,
         REASONING_EFFORT_LEVELS: effortLevels,
         POST_PROCESSING_OPTIONS
     } = useChatPresetSettings();
+
+    // Connection profile for adaptive thinking model detection
+    const [connectionProfile] = useState(() => detectConnectionProfile());
 
     // Refs for avoiding layout thrashing
     const modalRef = useRef(null);
@@ -499,12 +505,15 @@ function ChatPresetsModal({ onClose, availableUpdates = [], onUpdateComplete }) 
                             startReplyWith={startReplyWith}
                             apiReasoning={apiReasoning}
                             postProcessing={postProcessing}
+                            adaptiveThinking={adaptiveThinking}
+                            connectionProfile={connectionProfile}
                             onApplyReasoningPreset={handleApplyReasoningPreset}
                             onStartReplyWithChange={handleStartReplyWithChange}
                             onReasoningToggle={handleReasoningToggle}
                             onAPIReasoningToggle={handleAPIReasoningToggle}
                             onReasoningEffortChange={handleReasoningEffortChange}
                             onPostProcessingChange={handlePostProcessingChange}
+                            onAdaptiveThinkingToggle={handleAdaptiveThinkingToggle}
                             effortLevels={effortLevels}
                             postProcessingOptions={POST_PROCESSING_OPTIONS}
                         />

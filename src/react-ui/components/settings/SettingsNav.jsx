@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import {
     Monitor, Palette, Package, Bookmark, Layers,
     Sliders as SlidersIcon, MessageSquare, FileText, Terminal, AlertTriangle, X,
-    Settings2, Sparkles, ChevronDown, Zap,
+    Settings2, Sparkles, ChevronDown, Zap, Compass,
 } from 'lucide-react';
 
 /**
@@ -39,6 +39,7 @@ const NAV_GROUPS = [
             { id: 'summarization', label: 'Summary', Icon: FileText },
             { id: 'promptSettings', label: 'Prompt', Icon: SlidersIcon },
             { id: 'quickReplies', label: 'Quick Replies', Icon: Zap },
+            { id: 'guidedGen', label: 'Guided Gen', Icon: Compass },
         ],
     },
     {

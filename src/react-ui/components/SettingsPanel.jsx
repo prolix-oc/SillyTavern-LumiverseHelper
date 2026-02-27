@@ -874,12 +874,6 @@ function SettingsPanel() {
             <Panel title="Tools" icon={Icons.tools}>
                 <div className="lumia-tools-row">
                     <ToolButton
-                        icon={Icons.plus}
-                        label="Lumia Editor"
-                        onClick={() => actions.openModal('packSelector')}
-                        accent
-                    />
-                    <ToolButton
                         icon={Icons.dots}
                         label="OOC Settings"
                         onClick={() => actions.openSettingsModal('ooc')}

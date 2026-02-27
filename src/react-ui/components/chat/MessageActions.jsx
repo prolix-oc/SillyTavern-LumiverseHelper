@@ -2,20 +2,23 @@
  * MessageActions — Hover-reveal action buttons for messages
  *
  * Delegates all mutations to ST via chatSheldService.
- * Includes: Copy, Fork, Prompt Breakdown, Edit, Delete
+ * Includes: Copy, Fork, Prompt Breakdown, Edit, Delete (with swipe-aware dialog)
  */
 
 import React, { useCallback, useState } from 'react';
 import { Copy, Check, Pencil, Trash2, GitBranch, BarChart3, X } from 'lucide-react';
-import { copyMessageContent, deleteMessageDirect, triggerFork } from '../../../lib/chatSheldService';
+import { copyMessageContent, deleteMessageDirect, deleteSwipeDirect, triggerFork } from '../../../lib/chatSheldService';
 import { useLumiverseActions } from '../../store/LumiverseContext';
 import ConfirmationModal from '../shared/ConfirmationModal';
 
-export default function MessageActions({ mesId, content, onStartEdit }) {
+export default function MessageActions({ mesId, content, isUser, swipeId, swipeCount, onStartEdit }) {
     const [copied, setCopied] = useState(false);
     const [forkState, setForkState] = useState(null); // null | 'confirm' | 'success' | 'error'
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const actions = useLumiverseActions();
+
+    // Can offer swipe deletion when: not a user message, has multiple swipes, and a swipe is selected
+    const canDeleteSwipe = !isUser && swipeCount > 1 && swipeId != null;
 
     const handleCopy = useCallback(async () => {
         const ok = await copyMessageContent(content);
@@ -48,10 +51,17 @@ export default function MessageActions({ mesId, content, onStartEdit }) {
         setShowDeleteConfirm(true);
     }, []);
 
-    const handleDeleteConfirm = useCallback(async () => {
+    // Delete the entire message (confirm button when swipeable, or sole confirm when not)
+    const handleDeleteMessage = useCallback(async () => {
         setShowDeleteConfirm(false);
         await deleteMessageDirect(mesId);
     }, [mesId]);
+
+    // Delete only the current swipe (secondary button)
+    const handleDeleteSwipe = useCallback(async () => {
+        setShowDeleteConfirm(false);
+        await deleteSwipeDirect(mesId, swipeId);
+    }, [mesId, swipeId]);
 
     return (
         <>
@@ -110,12 +120,19 @@ export default function MessageActions({ mesId, content, onStartEdit }) {
 
             <ConfirmationModal
                 isOpen={showDeleteConfirm}
-                onConfirm={handleDeleteConfirm}
+                onConfirm={handleDeleteMessage}
                 onCancel={() => setShowDeleteConfirm(false)}
-                title="Delete Message"
-                message={`Delete message #${mesId}? This cannot be undone.`}
+                title={canDeleteSwipe ? 'Delete' : 'Delete Message'}
+                message={
+                    canDeleteSwipe
+                        ? `Delete swipe ${swipeId + 1}/${swipeCount}, or delete the entire message #${mesId}? This cannot be undone.`
+                        : `Delete message #${mesId}? This cannot be undone.`
+                }
                 variant="danger"
-                confirmText="Delete"
+                confirmText="Delete Message"
+                secondaryText={canDeleteSwipe ? 'Delete Swipe' : undefined}
+                onSecondary={canDeleteSwipe ? handleDeleteSwipe : undefined}
+                secondaryVariant="warning"
             />
         </>
     );

@@ -1050,6 +1050,66 @@ function buildLumiaContext(member) {
 }
 
 /**
+ * Sanitize message/enrichment text for council tool context.
+ *
+ * 1. Remove ALL Lumia OOC and Loom-related tags WITH their contents (non-narrative meta-content)
+ * 2. Strip ALL HTML tags (preserving inner text), EXCEPT <font> tags that wrap
+ *    dialogue quotes ("speech") or italicized thoughts (*thoughts*)
+ * 3. Collapse excessive whitespace left behind
+ *
+ * @param {string} text - Raw message or enrichment text
+ * @returns {string} Cleaned narrative-only text
+ */
+function sanitizeForCouncil(text) {
+  if (!text) return "";
+
+  let result = text;
+
+  // --- Phase 1: Remove Loom / Lumia tags AND their contents ---
+  // These are meta-narrative blocks that should never reach council tools.
+  // Covers: lumia_ooc, lumiaooc, lumio_ooc, lumioooc, loom_sum, loom_if/else/endif,
+  // loom_state, loom_memory, loom_context, loom_inject, loom_var, loom_set, loom_get,
+  // loom_record, loomrecord, loom_ledger, loomledger, loom_summary_directive
+  result = result.replace(/<(lumi[ao]_?ooc|loom_(?:sum|if|else|endif|state|memory|context|inject|var|set|get|record|ledger|summary_directive)|lumioooc|lumio_ooc|loomrecord|loomledger)(?:\s[^>]*)?>[\s\S]*?<\/\1>/gi, "");
+  // Also catch any self-closing / orphaned opening tags for the same set
+  result = result.replace(/<\/?(lumi[ao]_?ooc|loom_(?:sum|if|else|endif|state|memory|context|inject|var|set|get|record|ledger|summary_directive)|lumioooc|lumio_ooc|loomrecord|loomledger)(?:\s[^>]*)?\/?\s*>/gi, "");
+
+  // --- Phase 2: Protect <font> tags that wrap dialogue or thought markers ---
+  // Temporarily replace <font>"speech"</font> and <font>*thoughts*</font> with placeholders
+  // so they survive the general HTML strip. Match font tags whose inner text starts/ends
+  // with a quote mark or asterisk (the narrative formatting pattern).
+  const fontPlaceholders = [];
+  result = result.replace(/<font(?:\s[^>]*)?>(\s*(?:[""\u201C\u201D*][\s\S]*?(?:[""\u201C\u201D*])))\s*<\/font>/gi, (match) => {
+    const idx = fontPlaceholders.length;
+    fontPlaceholders.push(match);
+    return `\x00FONT_KEEP_${idx}\x00`;
+  });
+
+  // --- Phase 3: Strip ALL remaining HTML tags (preserve inner text) ---
+  // Handles <details>...</details> blocks entirely (often contain non-narrative meta)
+  result = result.replace(/<details(?:\s[^>]*)?>[\s\S]*?<\/details>/gi, "");
+  // Strip all other tags, keeping text content
+  result = result.replace(/<[^>]+>/g, "");
+  // Decode common HTML entities left behind
+  result = result.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, " ");
+
+  // --- Phase 4: Restore protected font tags ---
+  for (let i = 0; i < fontPlaceholders.length; i++) {
+    result = result.replace(`\x00FONT_KEEP_${i}\x00`, fontPlaceholders[i]);
+  }
+
+  // --- Phase 5: Clean up whitespace ---
+  // Collapse 3+ consecutive newlines to 2 (paragraph break)
+  result = result.replace(/\n{3,}/g, "\n\n");
+  // Collapse whitespace-only lines
+  result = result.replace(/\n[ \t]*\n[ \t]*\n/g, "\n\n");
+  // Trim
+  result = result.trim();
+
+  return result;
+}
+
+/**
  * Build chat context text from recent messages
  * @param {Array} chatContext - Full chat array
  * @returns {string} Formatted context text
@@ -1058,14 +1118,14 @@ function buildContextText(chatContext) {
   const settings = getSettings();
   // Use configurable context window for sidecar mode, fallback to 10 for inline
   const isSidecarMode = getCouncilToolsMode() === 'sidecar';
-  const contextWindow = isSidecarMode 
+  const contextWindow = isSidecarMode
     ? (settings.councilTools?.sidecarContextWindow || 25)
     : 10;
   const recentMessages = chatContext.slice(-contextWindow);
   return recentMessages
     .map((msg) => {
       const name = msg.is_user ? "{{user}}" : (msg.name || "Assistant");
-      return `${name}: ${msg.mes || msg.content || ""}`;
+      return `${name}: ${sanitizeForCouncil(msg.mes || msg.content || "")}`;
     })
     .join("\n\n");
 }
@@ -1086,7 +1146,7 @@ function buildEnrichmentContext() {
     const persona = getUserPersona();
     if (persona && persona.persona) {
       sections.push(
-        `### User Persona ###\nName: ${persona.name}\n${persona.persona}`
+        `### User Persona ###\nName: ${persona.name}\n${sanitizeForCouncil(persona.persona)}`
       );
     }
   }
@@ -1096,9 +1156,9 @@ function buildEnrichmentContext() {
     const charInfo = getCharacterCardInfo();
     if (charInfo) {
       const parts = [];
-      if (charInfo.description) parts.push(`Description: ${charInfo.description}`);
-      if (charInfo.personality) parts.push(`Personality: ${charInfo.personality}`);
-      if (charInfo.scenario) parts.push(`Scenario: ${charInfo.scenario}`);
+      if (charInfo.description) parts.push(`Description: ${sanitizeForCouncil(charInfo.description)}`);
+      if (charInfo.personality) parts.push(`Personality: ${sanitizeForCouncil(charInfo.personality)}`);
+      if (charInfo.scenario) parts.push(`Scenario: ${sanitizeForCouncil(charInfo.scenario)}`);
       if (parts.length > 0) {
         sections.push(
           `### Character Card: ${charInfo.name} ###\n${parts.join("\n\n")}`
@@ -1112,7 +1172,7 @@ function buildEnrichmentContext() {
     const entries = getCapturedWorldInfoEntries();
     if (entries.length > 0) {
       sections.push(
-        `### Active World Book Entries ###\n${entries.join("\n\n---\n\n")}`
+        `### Active World Book Entries ###\n${entries.map(e => sanitizeForCouncil(e)).join("\n\n---\n\n")}`
       );
     }
   }
@@ -1787,10 +1847,10 @@ function normalizeToolText(value) {
 
   let text = String(value);
 
-  // Replace literal escape sequences with actual whitespace characters.
-  // LLMs sometimes return literal "\n" (two-char backslash-n) in tool call arguments
-  // instead of real newline characters — normalize these first.
-  text = text.replace(/\\r\\n/g, "\n").replace(/\\n/g, "\n").replace(/\\r/g, "\n").replace(/\\t/g, "\t");
+  // Replace literal escape sequences with actual characters.
+  // LLMs sometimes return literal "\n" (two-char backslash-n) or escaped quotes \"
+  // in tool call arguments instead of real characters — normalize these first.
+  text = text.replace(/\\r\\n/g, "\n").replace(/\\n/g, "\n").replace(/\\r/g, "\n").replace(/\\t/g, "\t").replace(/\\"/g, '"');
 
   // Try to detect and unwrap a JSON-encoded string
   if ((text.startsWith("{") && text.endsWith("}")) || (text.startsWith("[") && text.endsWith("]"))) {

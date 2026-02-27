@@ -102,6 +102,8 @@ import { resolveActivePreset, assembleMessages, resolveBinding, setActivePreset,
 import { captureReasoningSnapshot } from "./lib/presetsService.js";
 import { storeLoomBreakdown, loadLoomBreakdowns } from "./lib/chatSheldService.js";
 import { handleLoomPresetTransition, isLoomControlActive, syncContextSize, subscribeToOAIPresetEvents, reapplyLoomReasoningSettings } from "./lib/oaiPresetSync.js";
+import { applyGuidesToGeneration } from "./lib/guidedGenerationService.js";
+import { initPersonaListener } from "./lib/personaService.js";
 
 import {
     isLandingPageEnabled,
@@ -117,7 +119,6 @@ import {
     deactivateChatSheld,
     isChatSheldActive,
     setStoreRef as setChatSheldStoreRef,
-    syncFullChat,
     syncTailChat,
     resetStreamingState,
 } from "./lib/chatSheldService.js";
@@ -1149,7 +1150,11 @@ jQuery(async () => {
             }
           }
 
-          // Normalize stale reasoning_effort when reasoning is disabled
+          // Normalize stale reasoning_effort when reasoning is disabled.
+          // IMPORTANT: Set to 'auto' instead of deleting. ST's server-side
+          // calculateClaudeBudgetTokens() returns null for 'auto' (no thinking),
+          // but returns 1024 for undefined (falls through switch with budgetTokens=0,
+          // then Math.max(0, 1024) = 1024, attaching unwanted thinking).
           {
             const ctx3 = getContext();
             if (ctx3?.chatCompletionSettings && !ctx3.chatCompletionSettings.show_thoughts) {
@@ -1158,12 +1163,10 @@ jQuery(async () => {
                 const $ = window.jQuery;
                 if ($) $('#openai_reasoning_effort').val('auto');
               }
-              if (generateData.reasoning_effort && generateData.reasoning_effort !== 'auto') {
-                generateData.reasoning_effort = 'auto';
-              }
+              generateData.reasoning_effort = 'auto';
             }
             // Also normalize on generateData when show_thoughts is explicitly off
-            if (generateData.show_thoughts === false && generateData.reasoning_effort && generateData.reasoning_effort !== 'auto') {
+            if (generateData.show_thoughts === false) {
               generateData.reasoning_effort = 'auto';
             }
           }
@@ -1171,6 +1174,19 @@ jQuery(async () => {
           // 6b. Apply adaptive thinking for Claude 4.6 models
           const adaptiveApplied = applyAdaptiveThinking(activePreset, generateData);
           if (adaptiveApplied.length > 0) {
+          }
+
+          // 6c. Final cleanup: Keep reasoning_effort='auto' rather than deleting it.
+          // ST's server-side calculateClaudeBudgetTokens() correctly returns null
+          // for 'auto' (no thinking), but returns 1024 for undefined (switch
+          // fallthrough → Math.max(0, 1024)). Leaving 'auto' ensures the server
+          // won't attach an unwanted thinking block.
+          //
+          // When reasoning is disabled, also clean up any thinking/output_config
+          // that may have leaked through from stale state.
+          if (!generateData.show_thoughts) {
+            delete generateData.thinking;
+            delete generateData.output_config;
           }
 
           // 7. Count tokens for the context meter (fire-and-forget, non-blocking)
@@ -1208,6 +1224,21 @@ jQuery(async () => {
     // This ensures Loom reasoning settings are restored whenever ST applies a preset.
     subscribeToOAIPresetEvents();
   }
+
+  // Guided Generations — always active, independent of Loom presets.
+  // Runs after Loom assembly so user messages exist in the array.
+  if (event_types.CHAT_COMPLETION_SETTINGS_READY) {
+    eventSource.on(event_types.CHAT_COMPLETION_SETTINGS_READY, (generateData) => {
+      try {
+        applyGuidesToGeneration(generateData);
+      } catch (err) {
+        console.error(`[${MODULE_NAME}] Guided Generations: Injection failed:`, err);
+      }
+    });
+  }
+
+  // Initialize persona change listener for Quick Persona feature
+  initPersonaListener();
 
   // Initialize inside jokes cache (fire-and-forget, non-blocking)
   initJokesCache().catch(() => {});

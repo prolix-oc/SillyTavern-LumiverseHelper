@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { usePacks, useLumiverseActions, saveToExtension } from '../../store/LumiverseContext';
-import { Package, Trash2, Download, Edit2 } from 'lucide-react';
+import { Package, Trash2, Download } from 'lucide-react';
 import {
     EditorLayout,
     EditorContent,
@@ -106,7 +106,7 @@ export function exportPack(pack) {
     const packName = pack.packName || pack.name || 'pack';
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${packName.replace(/[^a-z0-9]/gi, '_')}_lumiverse.json`;
+    a.download = `${packName}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -128,36 +128,10 @@ function getPackAuthor(pack) {
 }
 
 /**
- * Helper to get Lumia items count (v2: lumiaItems, v1: items with lumiaDefName)
- */
-function getLumiaCount(pack) {
-    if (pack.lumiaItems && pack.lumiaItems.length > 0) {
-        return pack.lumiaItems.length;
-    }
-    if (pack.items && pack.items.length > 0) {
-        return pack.items.filter(item => item.lumiaDefName || item.lumiaName || item.lumiaDef).length;
-    }
-    return 0;
-}
-
-/**
- * Helper to get Loom items count (v2: loomItems, v1: items with loomCategory)
- */
-function getLoomCount(pack) {
-    if (pack.loomItems && pack.loomItems.length > 0) {
-        return pack.loomItems.length;
-    }
-    if (pack.items && pack.items.length > 0) {
-        return pack.items.filter(item => (item.loomCategory || item.loomName) && !item.lumiaDefName && !item.lumiaDef).length;
-    }
-    return 0;
-}
-
-/**
  * Pack Editor Modal component
  *
  * For editing pack-level settings: name, author, cover image.
- * Individual Lumia items are managed via PackSelectorModal → LumiaEditorModal.
+ * Individual items are managed directly from the Creator tab.
  */
 function PackEditorModal({ packId, packName, onClose }) {
     const { customPacks } = usePacks();
@@ -263,36 +237,9 @@ function PackEditorModal({ packId, packName, onClose }) {
         exportPack(pack);
     };
 
-    // Open pack selector to manage Lumias
-    const handleManageLumias = () => {
-        const packName = getPackName(pack);
-        // Save current pack state first
-        if (packName.trim()) {
-            const packToSave = {
-                ...pack,
-                name: packName, // Sync legacy field
-            };
-
-            if (existingPack) {
-                actions.updateCustomPack(pack.id || getPackName(existingPack), packToSave);
-            } else {
-                actions.addCustomPack(packToSave);
-            }
-            saveToExtension();
-        }
-        // Open pack selector
-        actions.openModal('packSelector');
-        onClose();
-    };
-
-    // Get item counts using helper functions
-    const lumiaCount = getLumiaCount(pack);
-    const loomCount = getLoomCount(pack);
-
     return (
         <EditorLayout>
             <EditorContent>
-                {/* Pack Details Section */}
                 <EditorSection Icon={Package} title={existingPack ? 'Edit Pack' : 'New Pack'}>
                     <FormField label="Pack Name" required error={errors.packName}>
                         <TextInput
@@ -326,34 +273,6 @@ function PackEditorModal({ packId, packName, onClose }) {
                         />
                     </FormField>
                 </EditorSection>
-
-                {/* Pack Contents Section */}
-                <EditorSection Icon={Edit2} title="Pack Contents">
-                    <div style={{
-                        padding: '12px',
-                        background: 'rgba(147, 112, 219, 0.05)',
-                        border: '1px solid var(--lumiverse-border)',
-                        borderRadius: '8px',
-                        marginBottom: '12px',
-                        textAlign: 'center'
-                    }}>
-                        <div style={{ fontSize: '13px', color: 'var(--lumiverse-text)', marginBottom: '8px' }}>
-                            {lumiaCount} Lumia{lumiaCount !== 1 ? 's' : ''}{loomCount > 0 ? `, ${loomCount} Loom item${loomCount !== 1 ? 's' : ''}` : ''} in this pack
-                        </div>
-                        <div style={{ fontSize: '11px', color: 'var(--lumiverse-text-muted)' }}>
-                            Use the Pack Selector to add, edit, or remove individual items.
-                        </div>
-                    </div>
-                    
-                    <button
-                        className="lumiverse-btn lumiverse-btn--secondary lumiverse-btn--full"
-                        onClick={handleManageLumias}
-                        type="button"
-                    >
-                        <Edit2 size={14} strokeWidth={1.5} />
-                        Manage Lumias & Looms
-                    </button>
-                </EditorSection>
             </EditorContent>
 
             {/* Footer Actions */}
@@ -379,7 +298,7 @@ function PackEditorModal({ packId, packName, onClose }) {
                         Export
                     </button>
                 </div>
-                
+
                 <div style={{ display: 'flex', gap: '8px' }}>
                     <button
                         className="lumiverse-btn lumiverse-btn--secondary"

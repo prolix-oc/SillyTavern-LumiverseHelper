@@ -34,7 +34,7 @@ export function ReasoningSettingsContent({
     onReasoningEffortChange,
     onPostProcessingChange,
     onAdaptiveThinkingToggle,
-    effortLevels = ['auto', 'low', 'medium', 'high', 'min', 'max'],
+    effortLevels = ['auto', 'none', 'low', 'medium', 'high', 'xhigh', 'min', 'max'],
     postProcessingOptions = [
         { value: '', label: 'None (Default)' },
         { value: 'merge', label: 'Merge (Recommended for Claude/OpenAI)' },

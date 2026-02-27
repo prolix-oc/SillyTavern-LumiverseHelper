@@ -174,12 +174,19 @@ const DEFAULT_SETTINGS = {
   enableChatSheld: false, // When true, replace ST's chat display with React glassmorphic chat
   chatSheldDisplayMode: 'minimal', // 'minimal' | 'immersive' | 'bubble' — display mode for Chat Sheld
   authorNotePanelSide: 'right', // 'left' | 'right' — which side the Author's Note panel docks to
+  // Chat Sheld page size (messages loaded per batch)
+  chatSheldPageSize: 50,
+  // Side portrait panel (desktop only)
+  sidePortraitEnabled: false,
+  sidePortraitSide: 'left', // 'left' | 'right'
   // Lucid Loom Preset Builder
   loomBuilder: {
     activePresetId: null,
     registry: {},
     bindings: { characters: {}, chats: {} },
   },
+  // Guided Generations — user-configurable prompts attached to sends/regens
+  guidedGenerations: [],
 };
 
 // Settings state - module-level singleton
@@ -693,6 +700,13 @@ export function migrateSettings() {
   // Ensure author note panel side default
   if (settings.authorNotePanelSide === undefined) settings.authorNotePanelSide = 'right';
 
+  // Ensure chat sheld page size default
+  if (settings.chatSheldPageSize === undefined) settings.chatSheldPageSize = 50;
+
+  // Ensure side portrait defaults
+  if (settings.sidePortraitEnabled === undefined) settings.sidePortraitEnabled = false;
+  if (settings.sidePortraitSide === undefined) settings.sidePortraitSide = 'left';
+
   // Ensure toggle binding default state restoration setting
   if (settings.disableDefaultStateRestore === undefined) settings.disableDefaultStateRestore = true;
 
@@ -935,6 +949,13 @@ export function saveSettings() {
     delete settingsToSave.activePresetName;
     delete settingsToSave.dismissedUpdateVersion;
     delete settingsToSave.theme;
+    delete settingsToSave.enableChatSheld;
+    delete settingsToSave.chatSheldDisplayMode;
+    delete settingsToSave.chatSheldPageSize;
+    delete settingsToSave.sidePortraitEnabled;
+    delete settingsToSave.sidePortraitSide;
+    delete settingsToSave.authorNotePanelSide;
+    delete settingsToSave.guidedGenerations;
     
     // Remove presets - these are now in index.presets
     delete settingsToSave.presets;

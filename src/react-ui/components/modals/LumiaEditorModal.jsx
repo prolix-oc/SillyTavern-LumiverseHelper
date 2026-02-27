@@ -1,19 +1,19 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { usePacks, useLumiverseActions, saveToExtension } from '../../store/LumiverseContext';
 import { User, Smile, Wrench, Trash2, X, Sparkles, Image as ImageIcon } from 'lucide-react';
 import { useAdaptiveImagePosition } from '../../hooks/useAdaptiveImagePosition';
-import clsx from 'clsx';
+import ConfirmationModal from '../shared/ConfirmationModal';
 
 /**
  * Lumia Item Structure (new v2 format):
  * {
- *   lumiaName: string,           // Required - the Lumia name
- *   avatarUrl: string | null,    // Avatar URL
- *   authorName: string | null,   // Creator attribution
- *   lumiaDefinition: string | null,   // Physical definition → {{lumiaDef}} macro
- *   lumiaPersonality: string | null,  // → {{lumiaPersonality}} macro
- *   lumiaBehavior: string | null,     // → {{lumiaBehavior}} macro
- *   genderIdentity: number,      // 0=she/her, 1=he/him, 2=they/them
+ *   lumiaName: string,
+ *   avatarUrl: string | null,
+ *   authorName: string | null,
+ *   lumiaDefinition: string | null,
+ *   lumiaPersonality: string | null,
+ *   lumiaBehavior: string | null,
+ *   genderIdentity: number,
  *   version: number
  * }
  */
@@ -52,263 +52,7 @@ function getLumiaField(item, field) {
 }
 
 /* ============================================
-   Inline Styled Components (no external deps)
-   ============================================ */
-
-const styles = {
-    modalLayout: {
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        maxHeight: '100%',
-        minHeight: 0,
-        overflow: 'hidden',
-    },
-    header: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        padding: '16px 20px',
-        background: 'var(--lumiverse-bg-elevated)',
-        borderBottom: '1px solid var(--lumiverse-border)',
-        flexShrink: 0,
-    },
-    headerIcon: {
-        width: '36px',
-        height: '36px',
-        borderRadius: '10px',
-        background: 'linear-gradient(135deg, rgba(147, 112, 219, 0.2), rgba(186, 85, 211, 0.15))',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'var(--lumiverse-primary)',
-        flexShrink: 0,
-    },
-    headerTitle: {
-        flex: 1,
-        fontSize: '15px',
-        fontWeight: 600,
-        color: 'var(--lumiverse-text)',
-        margin: 0,
-    },
-    headerSubtitle: {
-        fontSize: '12px',
-        color: 'var(--lumiverse-text-muted)',
-        marginTop: '2px',
-    },
-    closeBtn: {
-        width: '32px',
-        height: '32px',
-        borderRadius: '8px',
-        border: 'none',
-        background: 'transparent',
-        color: 'var(--lumiverse-text-muted)',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        transition: 'all 0.15s ease',
-        flexShrink: 0,
-    },
-    scrollArea: {
-        flex: '1 1 auto',
-        minHeight: 0,
-        overflowY: 'auto',
-        overflowX: 'hidden',
-        padding: '20px',
-    },
-    section: {
-        marginBottom: '24px',
-    },
-    sectionHeader: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        marginBottom: '16px',
-        paddingBottom: '10px',
-        borderBottom: '1px solid var(--lumiverse-border)',
-    },
-    sectionIcon: {
-        width: '28px',
-        height: '28px',
-        borderRadius: '8px',
-        background: 'rgba(147, 112, 219, 0.1)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'var(--lumiverse-primary)',
-    },
-    sectionTitle: {
-        fontSize: '14px',
-        fontWeight: 600,
-        color: 'var(--lumiverse-text)',
-    },
-    field: {
-        marginBottom: '16px',
-    },
-    label: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        marginBottom: '8px',
-        fontSize: '13px',
-        fontWeight: 500,
-        color: 'var(--lumiverse-text-muted)',
-    },
-    required: {
-        color: 'var(--lumiverse-danger)',
-    },
-    hint: {
-        marginTop: '6px',
-        fontSize: '11px',
-        color: 'var(--lumiverse-text-dim)',
-        lineHeight: 1.4,
-    },
-    error: {
-        marginTop: '4px',
-        fontSize: '12px',
-        color: 'var(--lumiverse-danger)',
-    },
-    input: {
-        width: '100%',
-        padding: '10px 12px',
-        background: 'rgba(0, 0, 0, 0.25)',
-        border: '1px solid var(--lumiverse-border)',
-        borderRadius: '8px',
-        color: 'var(--lumiverse-text)',
-        fontSize: '13px',
-        fontFamily: 'inherit',
-        outline: 'none',
-        transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
-        boxSizing: 'border-box',
-    },
-    textarea: {
-        width: '100%',
-        padding: '12px',
-        background: 'rgba(0, 0, 0, 0.25)',
-        border: '1px solid var(--lumiverse-border)',
-        borderRadius: '8px',
-        color: 'var(--lumiverse-text)',
-        fontSize: '13px',
-        fontFamily: 'inherit',
-        lineHeight: 1.6,
-        resize: 'vertical',
-        outline: 'none',
-        transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
-        boxSizing: 'border-box',
-        minHeight: '120px',
-    },
-    select: {
-        width: '100%',
-        padding: '10px 32px 10px 12px',
-        background: 'rgba(0, 0, 0, 0.25)',
-        border: '1px solid var(--lumiverse-border)',
-        borderRadius: '8px',
-        color: 'var(--lumiverse-text)',
-        fontSize: '13px',
-        fontFamily: 'inherit',
-        appearance: 'none',
-        cursor: 'pointer',
-        outline: 'none',
-        boxSizing: 'border-box',
-    },
-    selectWrapper: {
-        position: 'relative',
-    },
-    selectChevron: {
-        position: 'absolute',
-        right: '12px',
-        top: '50%',
-        transform: 'translateY(-50%)',
-        pointerEvents: 'none',
-        color: 'var(--lumiverse-text-muted)',
-    },
-    grid2Col: {
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '12px',
-    },
-    imageRow: {
-        display: 'flex',
-        gap: '10px',
-        alignItems: 'flex-start',
-    },
-    imagePreview: {
-        width: '44px',
-        height: '44px',
-        borderRadius: '8px',
-        overflow: 'hidden',
-        border: '1px solid var(--lumiverse-border)',
-        flexShrink: 0,
-        background: 'rgba(0, 0, 0, 0.2)',
-    },
-    imagePlaceholder: {
-        width: '44px',
-        height: '44px',
-        borderRadius: '8px',
-        border: '1px dashed var(--lumiverse-border)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-        color: 'var(--lumiverse-text-dim)',
-        background: 'rgba(0, 0, 0, 0.1)',
-    },
-    footer: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        padding: '16px 20px',
-        background: 'var(--lumiverse-bg-elevated)',
-        borderTop: '1px solid var(--lumiverse-border)',
-        flexShrink: 0,
-    },
-    btnPrimary: {
-        padding: '10px 20px',
-        borderRadius: '8px',
-        border: 'none',
-        background: 'var(--lumiverse-primary)',
-        color: '#fff',
-        fontSize: '13px',
-        fontWeight: 600,
-        cursor: 'pointer',
-        transition: 'all 0.15s ease',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-    },
-    btnSecondary: {
-        padding: '10px 16px',
-        borderRadius: '8px',
-        border: '1px solid var(--lumiverse-border)',
-        background: 'transparent',
-        color: 'var(--lumiverse-text)',
-        fontSize: '13px',
-        fontWeight: 500,
-        cursor: 'pointer',
-        transition: 'all 0.15s ease',
-    },
-    btnDanger: {
-        padding: '10px 16px',
-        borderRadius: '8px',
-        border: '1px solid rgba(239, 68, 68, 0.3)',
-        background: 'rgba(239, 68, 68, 0.1)',
-        color: '#ef4444',
-        fontSize: '13px',
-        fontWeight: 500,
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        marginRight: 'auto',
-    },
-    spacer: {
-        marginRight: 'auto',
-    },
-};
-
-/* ============================================
-   Image Preview Component
+   Avatar Preview
    ============================================ */
 function AvatarPreview({ url }) {
     const [hasError, setHasError] = useState(false);
@@ -320,21 +64,33 @@ function AvatarPreview({ url }) {
 
     if (!url || hasError) {
         return (
-            <div style={styles.imagePlaceholder}>
+            <div className="lumiverse-editor-image-placeholder">
                 <ImageIcon size={18} />
             </div>
         );
     }
 
     return (
-        <div style={styles.imagePreview}>
+        <div className="lumiverse-editor-image-preview">
             <img
                 src={url}
                 alt="Avatar"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition, animation: 'lumiverseFadeIn 0.2s ease' }}
+                style={{ objectPosition }}
                 onError={() => setHasError(true)}
             />
         </div>
+    );
+}
+
+/* ============================================
+   Character Count Badge
+   ============================================ */
+function CharCount({ text }) {
+    if (!text) return null;
+    return (
+        <span className="lumiverse-editor-char-count">
+            {text.length} chars
+        </span>
     );
 }
 
@@ -348,6 +104,7 @@ function LumiaEditorModal({ packName, editingItem = null, onClose, onSaved }) {
 
     const pack = allPacks.find(p => (p.name || p.packName) === packName);
 
+    // Form state
     const [name, setName] = useState(getLumiaField(editingItem, 'name') || '');
     const [avatarUrl, setAvatarUrl] = useState(getLumiaField(editingItem, 'img') || '');
     const [author, setAuthor] = useState(getLumiaField(editingItem, 'author') || '');
@@ -356,6 +113,40 @@ function LumiaEditorModal({ packName, editingItem = null, onClose, onSaved }) {
     const [behavior, setBehavior] = useState(getLumiaField(editingItem, 'behavior') || '');
     const [gender, setGender] = useState(getLumiaField(editingItem, 'gender') ?? GENDER.SHE_HER);
     const [errors, setErrors] = useState({});
+
+    // Confirmation modals
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+
+    // Track initial values for dirty checking
+    const initialRef = useRef({
+        name: getLumiaField(editingItem, 'name') || '',
+        avatarUrl: getLumiaField(editingItem, 'img') || '',
+        author: getLumiaField(editingItem, 'author') || '',
+        physicality: getLumiaField(editingItem, 'def') || '',
+        personality: getLumiaField(editingItem, 'personality') || '',
+        behavior: getLumiaField(editingItem, 'behavior') || '',
+        gender: getLumiaField(editingItem, 'gender') ?? GENDER.SHE_HER,
+    });
+
+    const isDirty = useCallback(() => {
+        const init = initialRef.current;
+        return name !== init.name ||
+            avatarUrl !== init.avatarUrl ||
+            author !== init.author ||
+            physicality !== init.physicality ||
+            personality !== init.personality ||
+            behavior !== init.behavior ||
+            Number(gender) !== Number(init.gender);
+    }, [name, avatarUrl, author, physicality, personality, behavior, gender]);
+
+    const handleClose = useCallback(() => {
+        if (isDirty()) {
+            setShowDiscardConfirm(true);
+        } else {
+            onClose();
+        }
+    }, [isDirty, onClose]);
 
     const validate = useCallback(() => {
         const newErrors = {};
@@ -432,21 +223,21 @@ function LumiaEditorModal({ packName, editingItem = null, onClose, onSaved }) {
 
     const handleDelete = useCallback(() => {
         if (!isEditing || !editingItem) return;
-        const editingName = getLumiaField(editingItem, 'name');
-        if (!window.confirm(`Delete "${editingName}"? This cannot be undone.`)) return;
+        setShowDeleteConfirm(true);
+    }, [isEditing, editingItem]);
 
+    const confirmDelete = useCallback(() => {
+        const editingName = getLumiaField(editingItem, 'name');
         if (pack) {
             const currentItems = pack.lumiaItems || pack.items || [];
             const updatedItems = currentItems.filter(item =>
                 getLumiaField(item, 'name') !== editingName
             );
-
             const updatedPack = {
                 ...pack,
                 lumiaItems: updatedItems,
                 items: undefined,
             };
-
             const packKey = pack.id || pack.name || pack.packName;
             if (pack.isCustom) {
                 actions.updateCustomPack(packKey, updatedPack);
@@ -455,62 +246,61 @@ function LumiaEditorModal({ packName, editingItem = null, onClose, onSaved }) {
             }
             saveToExtension();
         }
+        setShowDeleteConfirm(false);
         onClose();
-    }, [isEditing, editingItem, pack, actions, onClose]);
+    }, [editingItem, pack, actions, onClose]);
 
     if (!pack) {
         return (
-            <div style={styles.modalLayout}>
-                <div style={{ ...styles.scrollArea, textAlign: 'center', paddingTop: '40px' }}>
+            <div className="lumiverse-editor-layout">
+                <div className="lumiverse-editor-scroll" style={{ textAlign: 'center', paddingTop: '40px' }}>
                     <p style={{ color: 'var(--lumiverse-text-muted)' }}>Pack "{packName}" not found.</p>
-                    <button style={styles.btnSecondary} onClick={onClose}>Close</button>
+                    <button className="lumiverse-editor-btn-secondary" onClick={onClose}>Close</button>
                 </div>
             </div>
         );
     }
 
     return (
-        <div style={styles.modalLayout}>
+        <div className="lumiverse-editor-layout">
+            {/* Mobile swipe handle */}
+            <div className="lumiverse-editor-swipe-handle" />
+
             {/* Header */}
-            <div style={styles.header}>
-                <div style={styles.headerIcon}>
+            <div className="lumiverse-editor-header">
+                <div className="lumiverse-editor-header-icon">
                     <Sparkles size={18} />
                 </div>
-                <div style={{ flex: 1 }}>
-                    <h2 style={styles.headerTitle}>
+                <div className="lumiverse-editor-header-text">
+                    <h2 className="lumiverse-editor-header-title">
                         {isEditing ? 'Edit Lumia' : 'Create New Lumia'}
                     </h2>
-                    <div style={styles.headerSubtitle}>
+                    <div className="lumiverse-editor-header-subtitle">
                         {pack.packName || pack.name}
                     </div>
                 </div>
-                <button
-                    style={styles.closeBtn}
-                    onClick={onClose}
-                    onMouseOver={(e) => e.currentTarget.style.background = 'var(--lumiverse-bg-hover)'}
-                    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-                >
+                <button className="lumiverse-editor-close-btn" onClick={handleClose}>
                     <X size={18} />
                 </button>
             </div>
 
             {/* Scrollable Content */}
-            <div style={styles.scrollArea}>
+            <div className="lumiverse-editor-scroll">
                 {/* Basic Info Section */}
-                <div style={styles.section}>
-                    <div style={styles.sectionHeader}>
-                        <div style={styles.sectionIcon}><User size={15} /></div>
-                        <span style={styles.sectionTitle}>Basic Info</span>
+                <div className="lumiverse-editor-section">
+                    <div className="lumiverse-editor-section-header">
+                        <div className="lumiverse-editor-section-icon"><User size={15} /></div>
+                        <span className="lumiverse-editor-section-title">Basic Info</span>
                     </div>
 
-                    {/* Name Field */}
-                    <div style={styles.field}>
-                        <label style={styles.label}>
-                            Lumia Name <span style={styles.required}>*</span>
+                    {/* Name */}
+                    <div className="lumiverse-editor-field">
+                        <label className="lumiverse-editor-label">
+                            Lumia Name <span className="lumiverse-editor-required">*</span>
                         </label>
                         <input
                             type="text"
-                            style={styles.input}
+                            className="lumiverse-editor-input"
                             value={name}
                             onChange={(e) => {
                                 setName(e.target.value);
@@ -519,17 +309,17 @@ function LumiaEditorModal({ packName, editingItem = null, onClose, onSaved }) {
                             placeholder="e.g., Aria, Luna, Sage"
                             autoFocus
                         />
-                        <div style={styles.hint}>Referenced as 'Lumia' in World Books</div>
-                        {errors.name && <div style={styles.error}>{errors.name}</div>}
+                        <div className="lumiverse-editor-hint">Referenced as 'Lumia' in World Books</div>
+                        {errors.name && <div className="lumiverse-editor-error">{errors.name}</div>}
                     </div>
 
-                    {/* Gender + Author Row */}
-                    <div style={styles.grid2Col}>
-                        <div style={styles.field}>
-                            <label style={styles.label}>Gender Identity</label>
-                            <div style={styles.selectWrapper}>
+                    {/* Gender + Author */}
+                    <div className="lumiverse-editor-grid-2col">
+                        <div className="lumiverse-editor-field">
+                            <label className="lumiverse-editor-label">Gender Identity</label>
+                            <div className="lumiverse-editor-select-wrapper">
                                 <select
-                                    style={styles.select}
+                                    className="lumiverse-editor-select"
                                     value={gender}
                                     onChange={(e) => setGender(e.target.value)}
                                 >
@@ -537,16 +327,16 @@ function LumiaEditorModal({ packName, editingItem = null, onClose, onSaved }) {
                                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                                     ))}
                                 </select>
-                                <div style={styles.selectChevron}>▼</div>
+                                <div className="lumiverse-editor-select-chevron">&#x25BC;</div>
                             </div>
-                            <div style={styles.hint}>For pronouns macro</div>
+                            <div className="lumiverse-editor-hint">For pronouns macro</div>
                         </div>
 
-                        <div style={styles.field}>
-                            <label style={styles.label}>Author</label>
+                        <div className="lumiverse-editor-field">
+                            <label className="lumiverse-editor-label">Author</label>
                             <input
                                 type="text"
-                                style={styles.input}
+                                className="lumiverse-editor-input"
                                 value={author}
                                 onChange={(e) => setAuthor(e.target.value)}
                                 placeholder="Your name"
@@ -555,13 +345,13 @@ function LumiaEditorModal({ packName, editingItem = null, onClose, onSaved }) {
                     </div>
 
                     {/* Avatar URL */}
-                    <div style={styles.field}>
-                        <label style={styles.label}>Avatar URL</label>
-                        <div style={styles.imageRow}>
+                    <div className="lumiverse-editor-field">
+                        <label className="lumiverse-editor-label">Avatar URL</label>
+                        <div className="lumiverse-editor-image-row">
                             <div style={{ flex: 1 }}>
                                 <input
                                     type="text"
-                                    style={styles.input}
+                                    className="lumiverse-editor-input"
                                     value={avatarUrl}
                                     onChange={(e) => setAvatarUrl(e.target.value)}
                                     placeholder="https://..."
@@ -573,79 +363,110 @@ function LumiaEditorModal({ packName, editingItem = null, onClose, onSaved }) {
                 </div>
 
                 {/* Physicality Section */}
-                <div style={styles.section}>
-                    <div style={styles.sectionHeader}>
-                        <div style={styles.sectionIcon}><User size={15} /></div>
-                        <span style={styles.sectionTitle}>Physical Definition</span>
+                <div className="lumiverse-editor-section">
+                    <div className="lumiverse-editor-section-header">
+                        <div className="lumiverse-editor-section-icon"><User size={15} /></div>
+                        <span className="lumiverse-editor-section-title">Physical Definition</span>
                     </div>
-                    <div style={styles.field}>
-                        <label style={styles.label}>Physicality</label>
+                    <div className="lumiverse-editor-field">
+                        <label className="lumiverse-editor-label">
+                            Physicality
+                            <CharCount text={physicality} />
+                        </label>
                         <textarea
-                            style={styles.textarea}
+                            className="lumiverse-editor-textarea"
                             value={physicality}
                             onChange={(e) => setPhysicality(e.target.value)}
                             placeholder="Describe Lumia's physical appearance, form, and presence..."
                             rows={6}
                         />
-                        <div style={styles.hint}>Injected via {'{{lumiaDef}}'} macro</div>
+                        <div className="lumiverse-editor-hint">Injected via {'{{lumiaDef}}'} macro</div>
                     </div>
                 </div>
 
                 {/* Personality Section */}
-                <div style={styles.section}>
-                    <div style={styles.sectionHeader}>
-                        <div style={styles.sectionIcon}><Smile size={15} /></div>
-                        <span style={styles.sectionTitle}>Personality Traits</span>
+                <div className="lumiverse-editor-section">
+                    <div className="lumiverse-editor-section-header">
+                        <div className="lumiverse-editor-section-icon"><Smile size={15} /></div>
+                        <span className="lumiverse-editor-section-title">Personality Traits</span>
                     </div>
-                    <div style={styles.field}>
-                        <label style={styles.label}>Personality</label>
+                    <div className="lumiverse-editor-field">
+                        <label className="lumiverse-editor-label">
+                            Personality
+                            <CharCount text={personality} />
+                        </label>
                         <textarea
-                            style={styles.textarea}
+                            className="lumiverse-editor-textarea"
                             value={personality}
                             onChange={(e) => setPersonality(e.target.value)}
                             placeholder="Describe Lumia's personality, disposition, and inner nature..."
                             rows={6}
                         />
-                        <div style={styles.hint}>Injected via {'{{lumiaPersonality}}'} macro</div>
+                        <div className="lumiverse-editor-hint">Injected via {'{{lumiaPersonality}}'} macro</div>
                     </div>
                 </div>
 
                 {/* Behavior Section */}
-                <div style={styles.section}>
-                    <div style={styles.sectionHeader}>
-                        <div style={styles.sectionIcon}><Wrench size={15} /></div>
-                        <span style={styles.sectionTitle}>Behavioral Patterns</span>
+                <div className="lumiverse-editor-section">
+                    <div className="lumiverse-editor-section-header">
+                        <div className="lumiverse-editor-section-icon"><Wrench size={15} /></div>
+                        <span className="lumiverse-editor-section-title">Behavioral Patterns</span>
                     </div>
-                    <div style={styles.field}>
-                        <label style={styles.label}>Behavior</label>
+                    <div className="lumiverse-editor-field">
+                        <label className="lumiverse-editor-label">
+                            Behavior
+                            <CharCount text={behavior} />
+                        </label>
                         <textarea
-                            style={styles.textarea}
+                            className="lumiverse-editor-textarea"
                             value={behavior}
                             onChange={(e) => setBehavior(e.target.value)}
                             placeholder="Describe Lumia's behavioral patterns, habits, and tendencies..."
                             rows={6}
                         />
-                        <div style={styles.hint}>Injected via {'{{lumiaBehavior}}'} macro</div>
+                        <div className="lumiverse-editor-hint">Injected via {'{{lumiaBehavior}}'} macro</div>
                     </div>
                 </div>
             </div>
 
             {/* Footer */}
-            <div style={styles.footer}>
+            <div className="lumiverse-editor-footer">
                 {isEditing ? (
-                    <button style={styles.btnDanger} onClick={handleDelete}>
+                    <button className="lumiverse-editor-btn-danger" onClick={handleDelete}>
                         <Trash2 size={14} /> Delete
                     </button>
                 ) : (
-                    <div style={styles.spacer} />
+                    <div className="lumiverse-editor-spacer" />
                 )}
-                <button style={styles.btnSecondary} onClick={onClose}>
+                <button className="lumiverse-editor-btn-secondary" onClick={handleClose}>
                     Cancel
                 </button>
-                <button style={styles.btnPrimary} onClick={handleSave}>
+                <button className="lumiverse-editor-btn-primary" onClick={handleSave}>
                     {isEditing ? 'Save Changes' : 'Create Lumia'}
                 </button>
             </div>
+
+            {/* Delete confirmation */}
+            <ConfirmationModal
+                isOpen={showDeleteConfirm}
+                onConfirm={confirmDelete}
+                onCancel={() => setShowDeleteConfirm(false)}
+                title={`Delete "${getLumiaField(editingItem, 'name')}"?`}
+                message="This will permanently remove this Lumia. This cannot be undone."
+                variant="danger"
+                confirmText="Delete"
+            />
+
+            {/* Discard unsaved changes confirmation */}
+            <ConfirmationModal
+                isOpen={showDiscardConfirm}
+                onConfirm={onClose}
+                onCancel={() => setShowDiscardConfirm(false)}
+                title="Discard unsaved changes?"
+                message="You have unsaved changes that will be lost if you close this editor."
+                variant="warning"
+                confirmText="Discard"
+            />
         </div>
     );
 }

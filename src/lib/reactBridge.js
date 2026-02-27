@@ -198,7 +198,11 @@ export async function reactFormatToSettings(reactState, immediate = false) {
         'theme',
         'enableChatSheld',
         'chatSheldDisplayMode',
+        'chatSheldPageSize',
+        'sidePortraitEnabled',
+        'sidePortraitSide',
         'authorNotePanelSide',
+        'guidedGenerations',
       ];
       for (const field of preferenceFields) {
         if (reactState[field] !== undefined) {
@@ -384,6 +388,21 @@ export async function initializeReactUI(container) {
     setupEventSync();
 
     reactUILoaded = true;
+
+    // Re-apply theme after all initialization is complete.
+    // SillyTavern injects the extension CSS file (style.css via manifest "css" field)
+    // AFTER the JS runs. The :root defaults in main.css override our theme <style>
+    // element because the <link> tag is appended later in the cascade.
+    // A double-rAF ensures the CSS file has been injected, then re-appending
+    // our <style> moves it to the end of <head>, after all stylesheets.
+    if (initialSettings.theme) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          applyTheme(initialSettings.theme);
+        });
+      });
+    }
+
     return true;
   } catch (error) {
     console.error("[ReactBridge] Failed to initialize React UI:", error);
