@@ -24,6 +24,9 @@ import ManageChatsModal from './modals/ManageChatsModal';
 import PromptItemizationModal from './modals/PromptItemizationModal';
 import GreetingsModal from './modals/GreetingsModal';
 import GuidedGenModal from './modals/GuidedGenModal';
+import CharacterGalleryModal from './modals/CharacterGalleryModal';
+import WorldBookEditorModal from './modals/WorldBookEditorModal';
+import ImportUrlModal from './modals/ImportUrlModal';
 import { AuthorsNoteModalContent } from './chat/AuthorsNotePanel';
 
 /**
@@ -76,6 +79,7 @@ function ModalWrapper({ children, onClose, modalType, size = 'medium', hasCustom
         size === 'small' && 'lumiverse-modal--small',
         size === 'medium' && 'lumiverse-modal--medium',
         size === 'large' && 'lumiverse-modal--large',
+        size === 'xlarge' && 'lumiverse-modal--xlarge',
         modalType === 'selection' && 'lumiverse-modal-selection',
         modalType === 'settings' && 'lumiverse-modal-settings',
         modalType === 'editor' && 'lumiverse-modal-editor',
@@ -279,6 +283,30 @@ const MODAL_CONFIG = {
         component: GuidedGenModal,
         modalType: 'settings',
         size: 'medium',
+        hasCustomHeader: true,
+        props: {},
+    },
+    // Character Gallery wide view (desktop)
+    characterGallery: {
+        component: CharacterGalleryModal,
+        modalType: 'settings',
+        size: 'xlarge',
+        hasCustomHeader: true,
+        props: {},
+    },
+    // Import from external URL
+    importUrl: {
+        component: ImportUrlModal,
+        modalType: 'settings',
+        size: 'medium',
+        hasCustomHeader: true,
+        props: {},
+    },
+    // World Book Editor wide view
+    worldBookEditor: {
+        component: WorldBookEditorModal,
+        modalType: 'editor',
+        size: 'xlarge',
         hasCustomHeader: true,
         props: {},
     },

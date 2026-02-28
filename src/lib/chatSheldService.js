@@ -256,6 +256,7 @@ export function readChatMessages(startIndex = 0, count) {
 function transformMessage(msg, index, ctx) {
     const isUser = msg.is_user;
     const isSystem = msg.is_system;
+    const isDraftHidden = isUser === true && isSystem === true;
     const name = msg.name || (isUser ? 'You' : 'Character');
     const rawContent = msg.mes || '';
 
@@ -285,6 +286,7 @@ function transformMessage(msg, index, ctx) {
         name,
         isUser,
         isSystem,
+        isDraftHidden,
         content: rawContent,
         oocMatches,
         swipes,
@@ -715,7 +717,16 @@ function updateStreamingMessage() {
     if (content === lastStreamingContent && !reasoning) return;
     lastStreamingContent = content;
 
-    const current = storeRef.getState().chatSheld;
+    let current = storeRef.getState().chatSheld;
+
+    // Guard: if the store is behind ctx.chat (e.g. the blank assistant
+    // message was added after GENERATION_STARTED's deferred appendNewMessages
+    // ran), sync now so we update the correct message slot — not the user's.
+    if (ctx.chat.length > (current.totalChatLength || 0)) {
+        appendNewMessages();
+        current = storeRef.getState().chatSheld;
+    }
+
     const messages = [...current.messages];
     const lastIdx = messages.length - 1;
 
@@ -1339,6 +1350,150 @@ export function getRawMessageForEdit(mesId) {
     };
 }
 
+// ── Draft Hider ─────────────────────────────────────────────────────────
+
+/**
+ * Hide a user message from AI context by setting is_system = true.
+ * When is_user && is_system, ST's prompt builder excludes the message.
+ * Uses optimistic store update → mutate chat[] → DOM consistency → save.
+ * @param {number} mesId - Message index
+ * @returns {Promise<boolean>} Success
+ */
+export async function hideMessage(mesId) {
+    const ctx = getContext();
+    const msg = ctx?.chat?.[mesId];
+    if (!msg || !msg.is_user) return false;
+
+    // Optimistic store update
+    if (storeRef && isActive) {
+        const current = storeRef.getState().chatSheld;
+        const messages = [...current.messages];
+        const idx = messages.findIndex(m => m.mesId === mesId);
+        if (idx !== -1) {
+            messages[idx] = { ...messages[idx], isSystem: true, isDraftHidden: true };
+            storeRef.setState({ chatSheld: { ...current, messages } });
+        }
+    }
+
+    try {
+        msg.is_system = true;
+
+        const updateBlock = getUpdateMessageBlock();
+        if (updateBlock) updateBlock(mesId, msg);
+
+        const saveChat = getSaveChat();
+        if (saveChat) await saveChat();
+
+        return true;
+    } catch (e) {
+        console.error(`[${MODULE_NAME}] hideMessage failed for mesId=${mesId}:`, e);
+        syncFullChat();
+        return false;
+    }
+}
+
+/**
+ * Restore a hidden-draft message back to normal user message.
+ * @param {number} mesId - Message index
+ * @returns {Promise<boolean>} Success
+ */
+export async function unhideMessage(mesId) {
+    const ctx = getContext();
+    const msg = ctx?.chat?.[mesId];
+    if (!msg || !msg.is_user) return false;
+
+    // Optimistic store update
+    if (storeRef && isActive) {
+        const current = storeRef.getState().chatSheld;
+        const messages = [...current.messages];
+        const idx = messages.findIndex(m => m.mesId === mesId);
+        if (idx !== -1) {
+            messages[idx] = { ...messages[idx], isSystem: false, isDraftHidden: false };
+            storeRef.setState({ chatSheld: { ...current, messages } });
+        }
+    }
+
+    try {
+        msg.is_system = false;
+
+        const updateBlock = getUpdateMessageBlock();
+        if (updateBlock) updateBlock(mesId, msg);
+
+        const saveChat = getSaveChat();
+        if (saveChat) await saveChat();
+
+        return true;
+    } catch (e) {
+        console.error(`[${MODULE_NAME}] unhideMessage failed for mesId=${mesId}:`, e);
+        syncFullChat();
+        return false;
+    }
+}
+
+/**
+ * Hide all user messages from AI context (batch operation).
+ * Sets is_system = true on every is_user && !is_system message.
+ * @returns {Promise<boolean>} Success
+ */
+export async function hideAllUserMessages() {
+    const ctx = getContext();
+    if (!ctx?.chat?.length) return false;
+
+    try {
+        let changed = false;
+        for (const msg of ctx.chat) {
+            if (msg.is_user && !msg.is_system) {
+                msg.is_system = true;
+                changed = true;
+            }
+        }
+
+        if (!changed) return true;
+
+        const saveChat = getSaveChat();
+        if (saveChat) await saveChat();
+
+        syncFullChat();
+        return true;
+    } catch (e) {
+        console.error(`[${MODULE_NAME}] hideAllUserMessages failed:`, e);
+        syncFullChat();
+        return false;
+    }
+}
+
+/**
+ * Unhide all draft-hidden user messages (batch restore).
+ * Sets is_system = false on every is_user && is_system message.
+ * @returns {Promise<boolean>} Success
+ */
+export async function unhideAllUserMessages() {
+    const ctx = getContext();
+    if (!ctx?.chat?.length) return false;
+
+    try {
+        let changed = false;
+        for (const msg of ctx.chat) {
+            if (msg.is_user && msg.is_system) {
+                msg.is_system = false;
+                changed = true;
+            }
+        }
+
+        if (!changed) return true;
+
+        const saveChat = getSaveChat();
+        if (saveChat) await saveChat();
+
+        syncFullChat();
+        return true;
+    } catch (e) {
+        console.error(`[${MODULE_NAME}] unhideAllUserMessages failed:`, e);
+        syncFullChat();
+        return false;
+    }
+}
+
 /**
  * Send a user message and trigger generation via ST's programmatic APIs.
  *
@@ -1355,8 +1510,14 @@ export function getRawMessageForEdit(mesId) {
  *
  * @param {string} text - Message text to send
  */
+let _sendInProgress = false;
+
 export async function triggerSend(text) {
     if (!text?.trim()) return;
+    if (_sendInProgress) return;
+    _sendInProgress = true;
+
+    try {
 
     const ctx = getContext();
     const generate = getGenerate();
@@ -1425,6 +1586,10 @@ export async function triggerSend(text) {
     }
 
     _ensureGenerationCleanup();
+
+    } finally {
+        _sendInProgress = false;
+    }
 }
 
 /**

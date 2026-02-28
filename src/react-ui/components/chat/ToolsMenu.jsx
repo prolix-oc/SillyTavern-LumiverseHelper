@@ -5,13 +5,15 @@
  */
 
 import React, { useEffect, useRef, useCallback, useState, useSyncExternalStore } from 'react';
-import { StickyNote, Users, Plus, FolderOpen, Scissors, X } from 'lucide-react';
+import { StickyNote, Users, Plus, FolderOpen, Scissors, X, EyeOff, Eye } from 'lucide-react';
 import {
     openAuthorNotePanel,
     triggerConvertToGroup,
     triggerNewChat,
     triggerCloseChat,
     getCharacterInfo,
+    hideAllUserMessages,
+    unhideAllUserMessages,
 } from '../../../lib/chatSheldService';
 import { useLumiverseStore, useLumiverseActions } from '../../store/LumiverseContext';
 import ConfirmationModal from '../shared/ConfirmationModal';
@@ -94,6 +96,24 @@ export default function ToolsMenu({ onClose }) {
         onClose();
     }, [actions, onClose]);
 
+    const handleHideAll = useCallback(() => {
+        setConfirmAction({
+            title: 'Hide All User Messages',
+            message: 'This will hide all your messages from AI context. The AI will not see any of your messages during generation. You can unhide them later.',
+            variant: 'warning',
+            onConfirm: async () => {
+                setConfirmAction(null);
+                await hideAllUserMessages();
+                onClose();
+            },
+        });
+    }, [onClose]);
+
+    const handleUnhideAll = useCallback(async () => {
+        await unhideAllUserMessages();
+        onClose();
+    }, [onClose]);
+
     const handleBatchDelete = useCallback(() => {
         const current = store.getState().chatSheld;
         store.setState({
@@ -125,6 +145,16 @@ export default function ToolsMenu({ onClose }) {
                 <button className="lcs-tools-menu-item" onClick={handleManageChats} type="button">
                     <FolderOpen size={14} />
                     <span>Manage Chats</span>
+                </button>
+
+                <button className="lcs-tools-menu-item" onClick={handleHideAll} type="button">
+                    <EyeOff size={14} />
+                    <span>Hide All User Messages</span>
+                </button>
+
+                <button className="lcs-tools-menu-item" onClick={handleUnhideAll} type="button">
+                    <Eye size={14} />
+                    <span>Unhide All User Messages</span>
                 </button>
 
                 <div className="lcs-tools-menu-divider" />

@@ -6,6 +6,7 @@ import App from './App';
 import ViewportApp from './components/ViewportApp';
 import LandingPage from './components/LandingPage';
 import ChatSheld from './components/ChatSheld';
+import ErrorBoundary from './components/shared/ErrorBoundary';
 import './styles/main.css';
 
 // Reference to the drawer header for dynamic updates
@@ -97,7 +98,9 @@ function mountSettingsPanel(containerId = 'lumiverse-settings-root', settings = 
     root.render(
         <Wrapper>
             <LumiverseProvider initialSettings={initialExtensionSettings}>
-                <App />
+                <ErrorBoundary label="Settings Panel">
+                    <App />
+                </ErrorBoundary>
             </LumiverseProvider>
         </Wrapper>
     );
@@ -134,7 +137,9 @@ function mountComponent(Component, container, props = {}, id = null) {
     root.render(
         <Wrapper>
             <LumiverseProvider>
-                <Component {...props} />
+                <ErrorBoundary label={id}>
+                    <Component {...props} />
+                </ErrorBoundary>
             </LumiverseProvider>
         </Wrapper>
     );
@@ -277,7 +282,9 @@ function mountViewportPanel(settings = null) {
     root.render(
         <Wrapper>
             <LumiverseProvider initialSettings={settings}>
-                <ViewportApp />
+                <ErrorBoundary label="Viewport Panel">
+                    <ViewportApp />
+                </ErrorBoundary>
             </LumiverseProvider>
         </Wrapper>
     );
@@ -315,7 +322,9 @@ function renderLandingPage(container) {
     root.render(
         <Wrapper>
             <LumiverseProvider>
-                <LandingPage />
+                <ErrorBoundary label="Landing Page">
+                    <LandingPage />
+                </ErrorBoundary>
             </LumiverseProvider>
         </Wrapper>
     );
@@ -355,7 +364,9 @@ function mountChatSheld(container) {
     root.render(
         <Wrapper>
             <LumiverseProvider>
-                <ChatSheld />
+                <ErrorBoundary label="Chat Sheld">
+                    <ChatSheld />
+                </ErrorBoundary>
             </LumiverseProvider>
         </Wrapper>
     );

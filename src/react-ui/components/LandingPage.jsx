@@ -204,6 +204,7 @@ const ChatCard = React.memo(({ item, presetName, onClick, onDelete, index }) => 
     const [imageLoaded, setImageLoaded] = useState(false);
     const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
     const confirmTimeoutRef = useRef(null);
+    const cardRef = useRef(null);
     const shouldReduceMotion = useReducedMotion();
 
     // Clear timeout on unmount
@@ -231,6 +232,17 @@ const ChatCard = React.memo(({ item, presetName, onClick, onDelete, index }) => 
             }, 3000);
         }
     }, [isConfirmingDelete, item, onDelete]);
+
+    // Track mouse position for parallax shine
+    const handleMouseMove = useCallback((e) => {
+        const card = cardRef.current;
+        if (!card) return;
+        const rect = card.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * 100;
+        const y = ((e.clientY - rect.top) / rect.height) * 100;
+        card.style.setProperty('--shine-x', `${x}%`);
+        card.style.setProperty('--shine-y', `${y}%`);
+    }, []);
 
     // Reset confirmation when mouse leaves
     const handleMouseLeave = useCallback(() => {
@@ -275,9 +287,11 @@ const ChatCard = React.memo(({ item, presetName, onClick, onDelete, index }) => 
 
     return (
         <motion.div
+            ref={cardRef}
             className="lumiverse-lp-card"
             onClick={onClick}
             onMouseEnter={() => setIsHovered(true)}
+            onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
             variants={cardVariants}
             whileHover={shouldReduceMotion ? {} : { y: -8, transition: { duration: 0.2 } }}
@@ -308,7 +322,6 @@ const ChatCard = React.memo(({ item, presetName, onClick, onDelete, index }) => 
 
             {/* Avatar Container */}
             <div className={`lumiverse-lp-card-image-container ${isGroup ? 'lumiverse-lp-card-image-group' : ''}`}>
-                <div className="lumiverse-lp-card-glow" />
                 {isGroup ? (
                     <GroupAvatarStack 
                         members={item.members} 

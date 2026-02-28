@@ -119,7 +119,7 @@ export function EditorSection({ Icon, title, children, defaultExpanded = true, c
                         width: '24px', 
                         height: '24px', 
                         borderRadius: '6px',
-                        background: 'rgba(147, 112, 219, 0.1)',
+                        background: 'var(--lumiverse-primary-010, var(--lumiverse-primary-light))',
                         color: 'var(--lumiverse-primary)'
                     }}>
                         <Icon size={14} strokeWidth={2} />
@@ -162,12 +162,13 @@ export function TextInput({ value, onChange, placeholder, className, autoFocus, 
             style={{
                 width: '100%',
                 padding: '10px 12px',
-                background: 'rgba(0, 0, 0, 0.2)',
+                background: 'var(--lumiverse-bg, rgba(0,0,0,0.2))',
                 border: '1px solid var(--lumiverse-border)',
                 borderRadius: '8px',
                 color: 'var(--lumiverse-text)',
                 fontSize: '13px',
-                fontFamily: 'inherit'
+                fontFamily: 'inherit',
+                transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
             }}
             {...props}
         />
@@ -188,14 +189,15 @@ export function TextArea({ value, onChange, placeholder, rows = 4, className, ..
             style={{
                 width: '100%',
                 padding: '10px 12px',
-                background: 'rgba(0, 0, 0, 0.2)',
+                background: 'var(--lumiverse-bg, rgba(0,0,0,0.2))',
                 border: '1px solid var(--lumiverse-border)',
                 borderRadius: '8px',
                 color: 'var(--lumiverse-text)',
                 fontSize: '13px',
                 fontFamily: 'inherit',
                 lineHeight: 1.5,
-                resize: 'vertical'
+                resize: 'vertical',
+                transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
             }}
             {...props}
         />
@@ -215,14 +217,15 @@ export function Select({ value, onChange, options, className, ...props }) {
                 style={{
                     width: '100%',
                     padding: '10px 32px 10px 12px',
-                    background: 'rgba(0, 0, 0, 0.2)',
+                    background: 'var(--lumiverse-bg, rgba(0,0,0,0.2))',
                     border: '1px solid var(--lumiverse-border)',
                     borderRadius: '8px',
                     color: 'var(--lumiverse-text)',
                     fontSize: '13px',
                     fontFamily: 'inherit',
                     appearance: 'none',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
                 }}
                 {...props}
             >
@@ -277,7 +280,7 @@ export function ImageInput({ value, onChange, placeholder, className }) {
                         overflow: 'hidden',
                         border: '1px solid var(--lumiverse-border)',
                         flexShrink: 0,
-                        background: 'rgba(0,0,0,0.2)'
+                        background: 'var(--lumiverse-fill-subtle, rgba(0,0,0,0.2))'
                     }}>
                         <img
                             src={value}

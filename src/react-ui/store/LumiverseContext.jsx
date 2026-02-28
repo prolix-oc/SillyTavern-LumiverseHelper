@@ -209,6 +209,32 @@ const initialState = {
         tokenUsage: null,           // { promptTokens, maxContext, maxTokens, timestamp } — transient, not persisted
     },
 
+    // Imperative signal: set to tab ID string to open drawer to that tab, then clear
+    _openToTab: null,
+    // Imperative signal: set to timestamp to close the drawer, then clear
+    _closeDrawer: null,
+
+    // Character Browser (React-only, not persisted except favorites)
+    characterBrowser: {
+        characters: [],          // Normalized CharacterBrowserItem[]
+        favorites: [],           // Avatar filenames / group:${id} strings, max 15
+        activeCharacterId: null, // Currently selected avatar or group ID
+        lastSyncTimestamp: 0,
+    },
+
+    // Character Browser — resortable tag folders
+    enableResortableTagFolders: false,
+    tagFolderOrder: [],
+
+    // Persona Manager (React-only, not persisted — data lives in ST's power_user)
+    personaManager: {
+        personas: [],               // Normalized PersonaItem[]
+        activePersonaId: null,      // Currently active avatar filename
+        defaultPersonaId: null,     // power_user.default_persona
+        chatLockedPersonaId: null,  // chat_metadata.persona
+        lastSyncTimestamp: 0,
+    },
+
     // Chat change tracking (React-only, incremented on syncFromExtension)
     // Components can subscribe to this to reload when chat changes
     chatChangeCounter: 0,
@@ -1704,6 +1730,22 @@ function syncFromExtension(extensionSettings) {
         councilToolResults: currentState.councilToolResults,
         // Preserve Chat Sheld runtime state (messages, streaming, etc.)
         chatSheld: currentState.chatSheld,
+        // Preserve character browser runtime data (populated by service layer, not settings).
+        // Favorites are React-managed and persisted via saveToExtension(). During live
+        // operation the store is the source of truth — settingsToReactFormat() may return
+        // stale/empty favorites if a debounced save hasn't completed yet. Prefer the
+        // store's current favorites; only fall back to extension settings on initial load
+        // (when the store has no favorites yet).
+        characterBrowser: {
+            ...currentState.characterBrowser,
+            favorites: currentState.characterBrowser?.favorites?.length
+                ? currentState.characterBrowser.favorites
+                : extensionSettings.characterBrowser?.favorites
+                    ?? extensionSettings.characterBrowserFavorites
+                    ?? [],
+        },
+        // Preserve persona manager runtime data (populated by service layer, not settings)
+        personaManager: currentState.personaManager,
         // Increment chat change counter so components know to reload
         chatChangeCounter: (currentState.chatChangeCounter || 0) + 1,
     });
@@ -1723,6 +1765,15 @@ function exportForExtension() {
         const { tokenUsage, ...lbRest } = settingsToExport.loomBuilder;
         settingsToExport.loomBuilder = lbRest;
     }
+    // Remove React-only runtime state that should never be persisted
+    delete settingsToExport.characterBrowser;
+    delete settingsToExport.personaManager;
+    delete settingsToExport.updates;
+    delete settingsToExport.chatChangeCounter;
+    delete settingsToExport._openToTab;
+    delete settingsToExport._closeDrawer;
+    delete settingsToExport._ensureTab;
+    delete settingsToExport._profileSwitchTs;
     return settingsToExport;
 }
 

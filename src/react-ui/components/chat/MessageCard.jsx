@@ -5,7 +5,7 @@
  */
 
 import React, { memo, useState, useCallback, useSyncExternalStore } from 'react';
-import { Bookmark, Loader2 } from 'lucide-react';
+import { Bookmark, Loader2, Eye } from 'lucide-react';
 import MessageContent from './MessageContent';
 import MessageActions from './MessageActions';
 import MessageEditArea from './MessageEditArea';
@@ -13,7 +13,7 @@ import SwipeControls from './SwipeControls';
 import ReasoningBlock from './ReasoningBlock';
 import TokenBadge from './TokenBadge';
 import { useLumiverseStore } from '../../store/LumiverseContext';
-import { getRawMessageForEdit, editMessageContent, editMessageReasoning } from '../../../lib/chatSheldService';
+import { getRawMessageForEdit, editMessageContent, editMessageReasoning, unhideMessage } from '../../../lib/chatSheldService';
 
 const store = useLumiverseStore;
 
@@ -49,6 +49,7 @@ function arePropsEqual(prev, next) {
         && pm.avatar === nm.avatar
         && pm.name === nm.name
         && pm.timestamp === nm.timestamp
+        && pm.isDraftHidden === nm.isDraftHidden
         && prev.isLastMessage === next.isLastMessage
         && prev.isStreaming === next.isStreaming
         && prev.batchDeleteMode === next.batchDeleteMode
@@ -61,6 +62,7 @@ const MessageCard = memo(function MessageCard({ message, isLastMessage, isStream
         name,
         isUser,
         isSystem,
+        isDraftHidden,
         content,
         oocMatches,
         swipes,
@@ -73,10 +75,10 @@ const MessageCard = memo(function MessageCard({ message, isLastMessage, isStream
         tokenCount,
     } = message;
 
-    // Determine variant class
+    // Determine variant class — draft-hidden messages keep user variant
     let variantClass = 'lcs-message--character';
     if (isUser) variantClass = 'lcs-message--user';
-    if (isSystem) variantClass = 'lcs-message--system';
+    if (isSystem && !isDraftHidden) variantClass = 'lcs-message--system';
 
     // Format timestamp
     const formattedTime = timestamp ? formatTime(timestamp) : '';
@@ -146,6 +148,45 @@ const MessageCard = memo(function MessageCard({ message, isLastMessage, isStream
     if (isStreaming) className += ' lcs-message--streaming';
     if (isBatchMarked) className += ' lcs-message--batch-marked';
     if (isBatchCutpoint) className += ' lcs-message--batch-cutpoint';
+
+    // ── Draft-hidden collapsed card (early return) ────────────────
+    if (isDraftHidden) {
+        let draftClassName = `lcs-message lcs-message--draft-hidden`;
+        if (isBatchMarked) draftClassName += ' lcs-message--batch-marked';
+        if (isBatchCutpoint) draftClassName += ' lcs-message--batch-cutpoint';
+
+        const preview = (content || '').replace(/\n/g, ' ').slice(0, 60);
+
+        const handleUnhide = (e) => {
+            e.stopPropagation();
+            unhideMessage(mesId);
+        };
+
+        return (
+            <div
+                className={draftClassName}
+                data-mesid={mesId}
+                onClick={batchDeleteMode ? handleBatchClick : undefined}
+                style={batchDeleteMode ? { cursor: 'pointer' } : undefined}
+            >
+                <div className="lcs-draft-hidden-inner">
+                    <span className="lcs-draft-hidden-id">#{mesId}</span>
+                    <span className="lcs-draft-hidden-label">Draft Hidden</span>
+                    <span className="lcs-draft-hidden-preview">{preview}</span>
+                    {!batchDeleteMode && (
+                        <button
+                            className="lcs-draft-hidden-unhide"
+                            onClick={handleUnhide}
+                            title="Restore message (unhide from AI context)"
+                            type="button"
+                        >
+                            <Eye size={13} />
+                        </button>
+                    )}
+                </div>
+            </div>
+        );
+    }
 
     // Shared summary markers fragment
     const summaryMarkers = (

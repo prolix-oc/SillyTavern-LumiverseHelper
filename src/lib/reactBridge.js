@@ -111,6 +111,14 @@ export function settingsToReactFormat() {
 
   // If using file storage, get packs from cache
   // Otherwise, packs are already in settings
+  // Map characterBrowserFavorites into nested characterBrowser structure
+  const characterBrowser = {
+    characters: [],
+    favorites: settings.characterBrowserFavorites || [],
+    activeCharacterId: null,
+    lastSyncTimestamp: 0,
+  };
+
   if (isUsingFileStorage()) {
     return {
       ...settings,
@@ -121,10 +129,11 @@ export function settingsToReactFormat() {
         registry: getLoomPresetRegistry(),
         bindings: getLoomBindings(),
       },
+      characterBrowser,
     };
   }
 
-  return settings;
+  return { ...settings, characterBrowser };
 }
 
 /**
@@ -203,6 +212,12 @@ export async function reactFormatToSettings(reactState, immediate = false) {
         'sidePortraitSide',
         'authorNotePanelSide',
         'guidedGenerations',
+        'characterBrowserFavorites',
+        'enableResortableTagFolders',
+        'tagFolderOrder',
+        'enableCharacterBrowser',
+        'enablePersonaManager',
+        'enableWorldBookEditor',
       ];
       for (const field of preferenceFields) {
         if (reactState[field] !== undefined) {
@@ -216,6 +231,11 @@ export async function reactFormatToSettings(reactState, immediate = false) {
           savePreferences(preferences);
         }
       }
+    }
+
+    // Extract characterBrowserFavorites from nested structure for flat persistence
+    if (reactState.characterBrowser?.favorites !== undefined) {
+      reactState.characterBrowserFavorites = reactState.characterBrowser.favorites;
     }
 
     // Merge all properties from reactState into settings

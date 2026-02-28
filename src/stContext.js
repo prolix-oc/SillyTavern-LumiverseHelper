@@ -635,6 +635,61 @@ export function getChat() {
 }
 
 /**
+ * Get the full characters array from ST context.
+ * @returns {Array} Array of character objects
+ */
+export function getCharacters() {
+  const ctx = getContext();
+  return ctx?.characters || [];
+}
+
+/**
+ * Get the groups array from ST context.
+ * @returns {Array} Array of group objects
+ */
+export function getGroups() {
+  const ctx = getContext();
+  return ctx?.groups || [];
+}
+
+/**
+ * Get the tags array from ST context.
+ * @returns {Array} Array of tag objects
+ */
+export function getTags() {
+  const ctx = getContext();
+  return ctx?.tags || [];
+}
+
+/**
+ * Get the tagMap object from ST context.
+ * Maps tag IDs to arrays of character/group IDs.
+ * @returns {Object} Tag map { [tagId]: [characterId, ...] }
+ */
+export function getTagMap() {
+  const ctx = getContext();
+  return ctx?.tagMap || {};
+}
+
+/**
+ * Get the current character ID (index into characters array).
+ * @returns {number|undefined} Character index or undefined if none selected
+ */
+export function getCharacterId() {
+  const ctx = getContext();
+  return ctx?.characterId;
+}
+
+/**
+ * Get the current group ID.
+ * @returns {string|undefined} Group ID or undefined if not in a group chat
+ */
+export function getGroupId() {
+  const ctx = getContext();
+  return ctx?.groupId;
+}
+
+/**
  * Get the user's persona name and description text.
  * Uses getCharacterCardFields() which returns the processed persona
  * from User Settings > Persona Description.

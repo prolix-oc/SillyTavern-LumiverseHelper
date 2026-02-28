@@ -6,8 +6,8 @@
  */
 
 import React, { useCallback, useState } from 'react';
-import { Copy, Check, Pencil, Trash2, GitBranch, BarChart3, X } from 'lucide-react';
-import { copyMessageContent, deleteMessageDirect, deleteSwipeDirect, triggerFork } from '../../../lib/chatSheldService';
+import { Copy, Check, Pencil, Trash2, GitBranch, BarChart3, X, EyeOff } from 'lucide-react';
+import { copyMessageContent, deleteMessageDirect, deleteSwipeDirect, triggerFork, hideMessage } from '../../../lib/chatSheldService';
 import { useLumiverseActions } from '../../store/LumiverseContext';
 import ConfirmationModal from '../shared/ConfirmationModal';
 
@@ -42,6 +42,10 @@ export default function MessageActions({ mesId, content, isUser, swipeId, swipeC
     const handlePrompt = useCallback(() => {
         actions.openModal('promptItemization', { mesId });
     }, [mesId, actions]);
+
+    const handleHide = useCallback(async () => {
+        await hideMessage(mesId);
+    }, [mesId]);
 
     const handleEdit = useCallback(() => {
         if (onStartEdit) onStartEdit();
@@ -90,6 +94,16 @@ export default function MessageActions({ mesId, content, isUser, swipeId, swipeC
                 >
                     <BarChart3 size={14} />
                 </button>
+                {isUser && (
+                    <button
+                        className="lcs-action-btn"
+                        onClick={handleHide}
+                        title="Hide from AI context (Draft)"
+                        type="button"
+                    >
+                        <EyeOff size={14} />
+                    </button>
+                )}
                 <button
                     className="lcs-action-btn"
                     onClick={handleEdit}

@@ -868,7 +868,7 @@ export function getBlocksInCategory(categoryName) {
     for (const block of preset.blocks) {
         if (block.marker === 'category') {
             const name = block.name.replace(/^\u2501\s*/, '').trim();
-            inCategory = name.toLowerCase() === target;
+            inCategory = name.toLowerCase().includes(target);
             continue;
         }
         if (inCategory && block.enabled && block.content?.trim()) {

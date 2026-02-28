@@ -104,6 +104,9 @@ import { storeLoomBreakdown, loadLoomBreakdowns } from "./lib/chatSheldService.j
 import { handleLoomPresetTransition, isLoomControlActive, syncContextSize, subscribeToOAIPresetEvents, reapplyLoomReasoningSettings } from "./lib/oaiPresetSync.js";
 import { applyGuidesToGeneration } from "./lib/guidedGenerationService.js";
 import { initPersonaListener } from "./lib/personaService.js";
+import { initCharacterBrowser } from "./lib/characterBrowserService.js";
+import { initPersonaManager } from "./lib/personaManagerService.js";
+import { initWorldBookInterceptor } from "./lib/worldBookService.js";
 
 import {
     isLandingPageEnabled,
@@ -1670,6 +1673,24 @@ jQuery(async () => {
       // Also check on APP_READY in case a chat is already open
       eventSource.on(event_types.APP_READY, manageChatSheld);
     }
+  }
+
+  // --- CHARACTER BROWSER ---
+  // Initialize character browser service with store reference
+  if (window.LumiverseUI?.getStore) {
+    initCharacterBrowser(window.LumiverseUI.getStore());
+  }
+
+  // --- PERSONA MANAGER ---
+  // Initialize persona manager service with store reference
+  if (window.LumiverseUI?.getStore) {
+    initPersonaManager(window.LumiverseUI.getStore());
+  }
+
+  // --- WORLD BOOK INTERCEPTOR ---
+  // Intercept ST's World Info button to open Lumiverse World Book Editor modal
+  if (window.LumiverseUI?.getStore) {
+    initWorldBookInterceptor(window.LumiverseUI.getStore());
   }
 
   // --- SLASH COMMANDS ---

@@ -15,6 +15,10 @@ const selectChatSheldDisplayMode = () => store.getState().chatSheldDisplayMode |
 const selectChatSheldPageSize = () => store.getState().chatSheldPageSize ?? 50;
 const selectSidePortraitEnabled = () => store.getState().sidePortraitEnabled || false;
 const selectSidePortraitSide = () => store.getState().sidePortraitSide || 'left';
+const selectEnableResortableTagFolders = () => store.getState().enableResortableTagFolders ?? false;
+const selectEnableCharacterBrowser = () => store.getState().enableCharacterBrowser ?? true;
+const selectEnablePersonaManager = () => store.getState().enablePersonaManager ?? true;
+const selectEnableWorldBookEditor = () => store.getState().enableWorldBookEditor ?? true;
 
 export default function GeneralSettingsView() {
     const showDrawer = useSyncExternalStore(store.subscribe, selectShowDrawer, selectShowDrawer);
@@ -26,6 +30,10 @@ export default function GeneralSettingsView() {
     const chatSheldPageSize = useSyncExternalStore(store.subscribe, selectChatSheldPageSize, selectChatSheldPageSize);
     const sidePortraitEnabled = useSyncExternalStore(store.subscribe, selectSidePortraitEnabled, selectSidePortraitEnabled);
     const sidePortraitSide = useSyncExternalStore(store.subscribe, selectSidePortraitSide, selectSidePortraitSide);
+    const enableResortableTagFolders = useSyncExternalStore(store.subscribe, selectEnableResortableTagFolders, selectEnableResortableTagFolders);
+    const enableCharacterBrowser = useSyncExternalStore(store.subscribe, selectEnableCharacterBrowser, selectEnableCharacterBrowser);
+    const enablePersonaManager = useSyncExternalStore(store.subscribe, selectEnablePersonaManager, selectEnablePersonaManager);
+    const enableWorldBookEditor = useSyncExternalStore(store.subscribe, selectEnableWorldBookEditor, selectEnableWorldBookEditor);
 
     const handleDrawerToggle = useCallback((enabled) => {
         store.setState({ showLumiverseDrawer: enabled });
@@ -92,6 +100,26 @@ export default function GeneralSettingsView() {
 
     const handleSidePortraitSideChange = useCallback((side) => {
         store.setState({ sidePortraitSide: side });
+        saveToExtension();
+    }, []);
+
+    const handleResortableTagFoldersToggle = useCallback((enabled) => {
+        store.setState({ enableResortableTagFolders: enabled, ...(!enabled ? { tagFolderOrder: [] } : {}) });
+        saveToExtension();
+    }, []);
+
+    const handleCharacterBrowserToggle = useCallback((enabled) => {
+        store.setState({ enableCharacterBrowser: enabled });
+        saveToExtension();
+    }, []);
+
+    const handlePersonaManagerToggle = useCallback((enabled) => {
+        store.setState({ enablePersonaManager: enabled });
+        saveToExtension();
+    }, []);
+
+    const handleWorldBookEditorToggle = useCallback((enabled) => {
+        store.setState({ enableWorldBookEditor: enabled });
         saveToExtension();
     }, []);
 
@@ -392,6 +420,91 @@ export default function GeneralSettingsView() {
                         )}
                     </div>
                 )}
+            </div>
+
+            {/* Character Gallery */}
+            <div className="lumia-drawer-toggle-container">
+                <label className="lumiverse-toggle-wrapper">
+                    <div className="lumiverse-toggle-text">
+                        <span className="lumiverse-toggle-label">Resortable Tag Folders</span>
+                        <span className="lumiverse-toggle-description">
+                            Drag and drop to reorder tag folders in the Character Browser
+                        </span>
+                    </div>
+                    <div className={clsx('lumiverse-toggle', enableResortableTagFolders && 'lumiverse-toggle--on')}>
+                        <input
+                            type="checkbox"
+                            className="lumiverse-toggle-input"
+                            checked={enableResortableTagFolders}
+                            onChange={(e) => handleResortableTagFoldersToggle(e.target.checked)}
+                        />
+                        <span className="lumiverse-toggle-slider"></span>
+                    </div>
+                </label>
+            </div>
+
+            {/* New Experiences */}
+            <div className="lumia-drawer-toggle-container">
+                <div className="lumiverse-toggle-text" style={{ marginBottom: '10px' }}>
+                    <span className="lumiverse-toggle-label">New Experiences</span>
+                    <span className="lumiverse-toggle-description">
+                        Disable any of these to restore SillyTavern's native UI for that feature
+                    </span>
+                </div>
+
+                <label className="lumiverse-toggle-wrapper">
+                    <div className="lumiverse-toggle-text">
+                        <span className="lumiverse-toggle-label">Character Browser</span>
+                        <span className="lumiverse-toggle-description">
+                            Replace ST's character panel with the Lumiverse Character Browser
+                        </span>
+                    </div>
+                    <div className={clsx('lumiverse-toggle', enableCharacterBrowser && 'lumiverse-toggle--on')}>
+                        <input
+                            type="checkbox"
+                            className="lumiverse-toggle-input"
+                            checked={enableCharacterBrowser}
+                            onChange={(e) => handleCharacterBrowserToggle(e.target.checked)}
+                        />
+                        <span className="lumiverse-toggle-slider"></span>
+                    </div>
+                </label>
+
+                <label className="lumiverse-toggle-wrapper">
+                    <div className="lumiverse-toggle-text">
+                        <span className="lumiverse-toggle-label">Persona Manager</span>
+                        <span className="lumiverse-toggle-description">
+                            Replace ST's persona management with the Lumiverse Persona Manager
+                        </span>
+                    </div>
+                    <div className={clsx('lumiverse-toggle', enablePersonaManager && 'lumiverse-toggle--on')}>
+                        <input
+                            type="checkbox"
+                            className="lumiverse-toggle-input"
+                            checked={enablePersonaManager}
+                            onChange={(e) => handlePersonaManagerToggle(e.target.checked)}
+                        />
+                        <span className="lumiverse-toggle-slider"></span>
+                    </div>
+                </label>
+
+                <label className="lumiverse-toggle-wrapper">
+                    <div className="lumiverse-toggle-text">
+                        <span className="lumiverse-toggle-label">World Book Editor</span>
+                        <span className="lumiverse-toggle-description">
+                            Replace ST's World Info panel with the Lumiverse World Book Editor
+                        </span>
+                    </div>
+                    <div className={clsx('lumiverse-toggle', enableWorldBookEditor && 'lumiverse-toggle--on')}>
+                        <input
+                            type="checkbox"
+                            className="lumiverse-toggle-input"
+                            checked={enableWorldBookEditor}
+                            onChange={(e) => handleWorldBookEditorToggle(e.target.checked)}
+                        />
+                        <span className="lumiverse-toggle-slider"></span>
+                    </div>
+                </label>
             </div>
         </div>
     );

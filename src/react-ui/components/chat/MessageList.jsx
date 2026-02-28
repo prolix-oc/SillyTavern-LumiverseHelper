@@ -20,6 +20,7 @@ const selectBatchDeleteFromId = () => store.getState().chatSheld?.batchDeleteFro
 const selectActiveChat = () => store.getState().chatSheld?.activeChat || null;
 const selectTotalChatLength = () => store.getState().chatSheld?.totalChatLength ?? 0;
 const selectScrollSnapTrigger = () => store.getState().chatSheld?.scrollSnapTrigger ?? 0;
+const selectDisplayMode = () => store.getState().chatSheldDisplayMode || 'minimal';
 
 export default function MessageList({ messages, isStreaming, streamingContent, scrollContainerRef }) {
     const activeChat = useSyncExternalStore(store.subscribe, selectActiveChat, selectActiveChat);
@@ -28,6 +29,7 @@ export default function MessageList({ messages, isStreaming, streamingContent, s
     const batchDeleteFromId = useSyncExternalStore(store.subscribe, selectBatchDeleteFromId, selectBatchDeleteFromId);
     const totalChatLength = useSyncExternalStore(store.subscribe, selectTotalChatLength, selectTotalChatLength);
     const scrollSnapTrigger = useSyncExternalStore(store.subscribe, selectScrollSnapTrigger, selectScrollSnapTrigger);
+    const displayMode = useSyncExternalStore(store.subscribe, selectDisplayMode, selectDisplayMode);
 
     const sentinelRef = useRef(null);
     const bottomRef = useRef(null);
@@ -344,6 +346,36 @@ export default function MessageList({ messages, isStreaming, streamingContent, s
         container.addEventListener('scroll', handleScroll, { passive: true });
         return () => container.removeEventListener('scroll', handleScroll);
     }, [scrollContainerRef]);
+
+    // ── Viewport-gated blur for bubble mode ──
+    // In bubble mode, backdrop-filter is only applied to cards visible in the
+    // viewport (+ 200px buffer). An IntersectionObserver toggles .lcs-in-viewport
+    // on each card, and the CSS rule `.lcs-bubble .lcs-message.lcs-in-viewport`
+    // applies the blur. Off-screen cards skip the expensive GPU compositing layer.
+    // This reduces active blur layers from N (entire chat) to ~5-8 (visible cards).
+    useEffect(() => {
+        if (displayMode !== 'bubble') return;
+        const container = getScrollContainer();
+        if (!container) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                for (let i = 0; i < entries.length; i++) {
+                    entries[i].target.classList.toggle('lcs-in-viewport', entries[i].isIntersecting);
+                }
+            },
+            { root: container, rootMargin: '200px 0px' }
+        );
+
+        const cards = container.querySelectorAll('.lcs-message');
+        cards.forEach(el => observer.observe(el));
+
+        return () => {
+            observer.disconnect();
+            const remaining = container.querySelectorAll('.lcs-in-viewport');
+            remaining.forEach(el => el.classList.remove('lcs-in-viewport'));
+        };
+    }, [displayMode, messages.length, scrollContainerRef]);
 
     if (messages.length === 0) {
         return (

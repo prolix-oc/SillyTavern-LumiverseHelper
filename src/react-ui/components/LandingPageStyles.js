@@ -380,20 +380,13 @@ export const landingPageStyles = `
   /* Ensure consistent height if content varies */
   flex-shrink: 0;
 
-  background: linear-gradient(
-    165deg,
-    var(--lumiverse-fill-subtle) 0%,
-    var(--lumiverse-fill-subtle) 50%,
-    var(--lumiverse-fill-subtle) 100%
-  );
+  background: color-mix(in srgb, var(--lumiverse-bg, rgba(28,24,38,0.95)) 82%, transparent);
   border: 1px solid var(--lumiverse-border);
   border-radius: 20px;
   overflow: hidden;
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   box-shadow:
     0 4px 24px rgba(0, 0, 0, 0.2),
     0 0 0 1px rgba(255, 255, 255, 0.02) inset;
@@ -414,32 +407,18 @@ export const landingPageStyles = `
   will-change: transform;
 }
 
-/* Glass shimmer effect on hover */
+/* Parallax glass shine — follows cursor position, opacity driven by framer-motion */
 .lumiverse-lp-card-shimmer {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    105deg,
-    transparent 0%,
-    transparent 40%,
-    rgba(255, 255, 255, 0.05) 50%,
-    transparent 60%,
-    transparent 100%
+  background: radial-gradient(
+    ellipse 80% 80% at var(--shine-x, 50%) var(--shine-y, 50%),
+    rgba(255, 255, 255, 0.10) 0%,
+    rgba(255, 255, 255, 0.03) 40%,
+    transparent 70%
   );
-  background-size: 200% 100%;
   pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.lumiverse-lp-card:hover .lumiverse-lp-card-shimmer {
-  opacity: 1;
-  animation: lumiverse-lp-shimmer 1.5s ease-in-out infinite;
-}
-
-@keyframes lumiverse-lp-shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  border-radius: inherit;
 }
 
 /* Card image container */
@@ -456,25 +435,6 @@ export const landingPageStyles = `
   align-items: center;
   justify-content: center;
   overflow: hidden;
-}
-
-/* Glow behind avatar */
-.lumiverse-lp-card-glow {
-  position: absolute;
-  width: 70%;
-  height: 70%;
-  background: radial-gradient(
-    circle,
-    var(--lumiverse-primary-030) 0%,
-    transparent 70%
-  );
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  filter: blur(20px);
-}
-
-.lumiverse-lp-card:hover .lumiverse-lp-card-glow {
-  opacity: 1;
 }
 
 /* Avatar loading spinner — crossfades with the image */
@@ -580,10 +540,7 @@ export const landingPageStyles = `
   transition: opacity 0.3s ease;
 }
 
-/* Shift only the avatars container for 3-member layout to visually center the cluster */
-.lumiverse-lp-group-stack-avatars[data-count="3"] {
-  transform: translateX(-22%);
-}
+/* 3-member layout: children self-center via left: 50% + translateX(-50%) */
 
 /* Base avatar wrapper styles */
 .lumiverse-lp-group-avatar-wrapper {
@@ -704,7 +661,6 @@ export const landingPageStyles = `
   );
   border-radius: 50%;
   border: 2px solid var(--lumiverse-border);
-  backdrop-filter: blur(4px);
   box-shadow:
     var(--lumiverse-shadow-sm),
     0 0 20px var(--lumiverse-secondary-030);
@@ -724,7 +680,12 @@ export const landingPageStyles = `
   -webkit-user-drag: none;
 }
 
-/* Hover effects for group cards */
+/* Hover effects for group cards — cohesive lift */
+.lumiverse-lp-card:hover .lumiverse-lp-group-stack {
+  transform: scale(1.03);
+  transition: transform 0.3s ease;
+}
+
 .lumiverse-lp-card:hover .lumiverse-lp-group-avatar-wrapper {
   box-shadow:
     var(--lumiverse-shadow-md),
@@ -748,13 +709,13 @@ export const landingPageStyles = `
   transform: translate(2px, 2px);
 }
 
-/* Adjust hover transforms for 2-member layout */
+/* Adjust hover transforms for 2-member layout — subtle diagonal spread */
 .lumiverse-lp-card:hover .lumiverse-lp-group-stack-avatars:has(.lumiverse-lp-group-avatar-wrapper:nth-child(2):last-child) .lumiverse-lp-group-avatar-wrapper:nth-child(1) {
-  transform: translate(-3px, -50%);
+  transform: translate(-3px, -3px);
 }
 
 .lumiverse-lp-card:hover .lumiverse-lp-group-stack-avatars:has(.lumiverse-lp-group-avatar-wrapper:nth-child(2):last-child) .lumiverse-lp-group-avatar-wrapper:nth-child(2) {
-  transform: translate(3px, -50%);
+  transform: translate(3px, 3px);
 }
 
 /* Adjust hover transforms for 3-member layout - spread cluster apart */
@@ -817,8 +778,6 @@ export const landingPageStyles = `
   padding: 0;
   border-radius: 12px;
   background: var(--lumiverse-bg-elevated);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--lumiverse-border);
   color: var(--lumiverse-text);
   cursor: pointer;
@@ -1223,17 +1182,10 @@ export const landingPageStyles = `
   }
 }
 
-/* Scroll performance — suppress expensive compositing during active scroll.
-   backdrop-filter is the #1 cost: each card forces a full-region blur every frame.
-   Also suppresses hover effects to prevent GPU spikes from incidental pointer-over. */
+/* Scroll performance — suppress hover effects to prevent GPU spikes from
+   incidental pointer-over during active scroll. */
 .lumiverse-lp-scrolling .lumiverse-lp-grid-cards {
   pointer-events: none;
-}
-
-.lumiverse-lp-scrolling .lumiverse-lp-card {
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  will-change: auto;
 }
 
 .lumiverse-lp-scrolling .lumiverse-lp-card-time-badge {

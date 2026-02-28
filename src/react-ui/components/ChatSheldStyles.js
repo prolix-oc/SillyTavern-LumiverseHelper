@@ -53,7 +53,14 @@ export const chatSheldStyles = `
   -moz-osx-font-smoothing: grayscale;
 }
 
-.lcs-app *, .lcs-app *::before, .lcs-app *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* Universal reset — exclude OOC factory DOM so style.css rules aren't overridden.
+   :where() wrapper keeps specificity at 0,1,0 (same as the old simple .lcs-app * reset)
+   so component-level selectors like .lcs-textarea can override padding/margin normally. */
+.lcs-app *:where(:not([data-lumia-ooc], [data-lumia-ooc] *, [data-lumia-irc], [data-lumia-irc] *)),
+.lcs-app *:where(:not([data-lumia-ooc], [data-lumia-ooc] *, [data-lumia-irc], [data-lumia-irc] *))::before,
+.lcs-app *:where(:not([data-lumia-ooc], [data-lumia-ooc] *, [data-lumia-irc], [data-lumia-irc] *))::after {
+  box-sizing: border-box; margin: 0; padding: 0;
+}
 
 /* Lucide icons: inherit color, flex-friendly sizing */
 svg.lucide {
@@ -135,8 +142,6 @@ svg.lucide {
   padding: 12px 16px;
   border-radius: var(--lcs-radius);
   background: var(--lcs-glass-bg);
-  backdrop-filter: blur(var(--lcs-glass-blur));
-  -webkit-backdrop-filter: blur(var(--lcs-glass-blur));
   border: 1px solid var(--lcs-glass-border);
   transition:
     background var(--lcs-transition),
@@ -162,6 +167,10 @@ svg.lucide {
    is imperceptible. will-change on the streaming card keeps its own layer
    stable during rapid height changes from incoming tokens. */
 .lcs-container--streaming .lcs-message {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.lcs-container--streaming .lcs-message.lcs-in-viewport {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
@@ -233,8 +242,6 @@ svg.lucide {
   color: var(--lumiverse-text-muted, rgba(230,230,240,0.6));
   background: var(--lumiverse-fill-subtle, rgba(255,255,255,0.03));
   border-color: transparent;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 .lcs-message--system::before { display: none; }
 .lcs-message--system:hover {
@@ -382,16 +389,16 @@ svg.lucide {
    Dialogue, italics, and bold use theme-derived colors for visual
    distinction between spoken words, thoughts, and emphasis. */
 
-.lcs-message-content em,
-.lcs-message-content .lcs-prose-italic {
+.lcs-message-content em:not([data-lumia-ooc] *, [data-lumia-ooc]),
+.lcs-message-content .lcs-prose-italic:not([data-lumia-ooc] *, [data-lumia-ooc]) {
   font-style: italic;
   color: var(--lumiverse-prose-italic, var(--lumiverse-text-muted, rgba(230,230,240,0.7)));
   text-decoration: none;
   background: none;
 }
 
-.lcs-message-content strong,
-.lcs-message-content .lcs-prose-bold {
+.lcs-message-content strong:not([data-lumia-ooc] *, [data-lumia-ooc]),
+.lcs-message-content .lcs-prose-bold:not([data-lumia-ooc] *, [data-lumia-ooc]) {
   font-weight: 600;
   color: var(--lumiverse-prose-bold, inherit);
   text-decoration: none;
@@ -592,8 +599,6 @@ svg.lucide {
   border: none;
   border-radius: var(--lcs-radius-xs);
   background: var(--lumiverse-bg-elevated, rgba(28, 26, 40, 0.85));
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
   color: var(--lumiverse-text-muted, rgba(230,230,240,0.6));
   cursor: pointer;
   transition:
@@ -681,6 +686,8 @@ svg.lucide {
   right: 12px;
   z-index: 20;
   background: color-mix(in srgb, var(--lcs-page-bg, #0a0a0c) 92%, var(--lumiverse-text, white) 8%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--lcs-glass-border);
   border-radius: var(--lcs-radius);
   box-shadow:
@@ -875,8 +882,6 @@ svg.lucide {
   border-radius: 50%;
   border: 1px solid var(--lcs-glass-border);
   background: var(--lumiverse-bg-elevated, rgba(28, 26, 40, 0.85));
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   color: var(--lumiverse-text-muted, rgba(230,230,240,0.6));
   display: flex;
   align-items: center;
@@ -1361,9 +1366,7 @@ svg.lucide {
   min-width: 200px;
   padding: 5px;
   border-radius: var(--lcs-radius);
-  background: color-mix(in srgb, var(--lcs-page-bg, #0a0a0c) 92%, white 8%);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+  background: var(--lumiverse-bg-deepest, rgb(16, 13, 24));
   border: 1px solid var(--lcs-glass-border-hover, rgba(255,255,255,0.1));
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.3),
@@ -1481,6 +1484,144 @@ svg.lucide {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
+   DRAFT HIDDEN — Collapsed Indicator Card
+   User messages hidden from AI context (is_user && is_system).
+   Renders as a thin dashed-border strip with content preview.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.lcs-message--draft-hidden {
+  height: 28px;
+  min-height: 28px;
+  max-height: 28px;
+  padding: 0 12px;
+  border: 1px dashed var(--lumiverse-border-neutral, rgba(128,128,128,0.25));
+  background: var(--lumiverse-fill-subtle, rgba(255,255,255,0.03));
+  opacity: 0.65;
+  overflow: hidden;
+  transition:
+    opacity var(--lcs-transition),
+    border-color var(--lcs-transition),
+    background var(--lcs-transition);
+}
+
+.lcs-message--draft-hidden::before {
+  display: none;
+}
+
+.lcs-message--draft-hidden:hover {
+  opacity: 0.9;
+  border-color: var(--lumiverse-secondary-045, rgba(255, 180, 100, 0.45));
+  background: var(--lumiverse-fill, rgba(255,255,255,0.06));
+}
+
+/* Streaming compat: disable backdrop-filter */
+.lcs-container--streaming .lcs-message--draft-hidden {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Batch delete compat */
+.lcs-message--draft-hidden.lcs-message--batch-marked {
+  border-color: var(--lumiverse-danger-030, rgba(239, 68, 68, 0.3)) !important;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.06) 0%, transparent 60%),
+    var(--lumiverse-fill-subtle, rgba(255,255,255,0.03)) !important;
+  opacity: 0.8;
+}
+.lcs-message--draft-hidden.lcs-message--batch-cutpoint {
+  border-color: var(--lumiverse-danger-050, rgba(239, 68, 68, 0.5)) !important;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.15) !important;
+  opacity: 0.9;
+}
+
+/* ── Inner layout ── */
+.lcs-draft-hidden-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+  font-size: 11.5px;
+  color: var(--lumiverse-text-dim, rgba(230,230,240,0.35));
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.lcs-draft-hidden-id {
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+  color: var(--lumiverse-text-dim, rgba(230,230,240,0.3));
+}
+
+.lcs-draft-hidden-label {
+  flex-shrink: 0;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  font-size: 10px;
+  color: var(--lumiverse-secondary-060, rgba(255, 180, 100, 0.6));
+}
+
+.lcs-draft-hidden-preview {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--lumiverse-text-dim, rgba(230,230,240,0.35));
+}
+
+.lcs-draft-hidden-unhide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--lcs-radius-xs);
+  background: transparent;
+  color: var(--lumiverse-text-dim, rgba(230,230,240,0.35));
+  cursor: pointer;
+  transition: color var(--lcs-transition-fast), background var(--lcs-transition-fast);
+}
+
+.lcs-draft-hidden-unhide:hover {
+  color: var(--lumiverse-secondary, rgba(255, 180, 100, 0.9));
+  background: var(--lumiverse-fill, rgba(255,255,255,0.06));
+}
+
+/* ── Draft count badge (InputArea action bar) ── */
+.lcs-draft-count-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px 2px 5px;
+  border-radius: 10px;
+  font-size: 10.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--lumiverse-secondary-080, rgba(255, 180, 100, 0.8));
+  background: var(--lumiverse-secondary-010, rgba(255, 180, 100, 0.1));
+  border: 1px solid var(--lumiverse-secondary-020, rgba(255, 180, 100, 0.2));
+  line-height: 1;
+  vertical-align: middle;
+  margin-left: 4px;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ── Immersive mode: suppress avatar backgrounds on draft cards ── */
+.lcs-immersive .lcs-message--draft-hidden .lcs-immersive-avatar-bg,
+.lcs-immersive .lcs-message--draft-hidden .lcs-immersive-depth,
+.lcs-immersive .lcs-message--draft-hidden .lcs-immersive-mesid {
+  display: none;
+}
+
+/* ── Bubble mode: suppress avatar backgrounds on draft cards ── */
+.lcs-bubble .lcs-message--draft-hidden .lcs-bubble-avatar-bg,
+.lcs-bubble .lcs-message--draft-hidden .lcs-bubble-header {
+  display: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
    STREAMING — Per-Chunk Text Fade-In
    New tokens fade in as they arrive, zero DOM overhead when streaming ends.
    ═══════════════════════════════════════════════════════════════════════ */
@@ -1577,8 +1718,6 @@ svg.lucide {
 /* Immersive: frosted glass reasoning accordion */
 .lcs-immersive .lcs-reasoning {
   background: rgba(255,255,255,0.04);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255,255,255,0.08);
 }
 .lcs-immersive .lcs-reasoning-toggle {
@@ -1698,8 +1837,6 @@ svg.lucide {
   background:
     linear-gradient(145deg, rgba(255,255,255,0.022) 0%, rgba(255,255,255,0.007) 40%, rgba(255,255,255,0.013) 100%),
     var(--lcs-glass-bg);
-  backdrop-filter: blur(40px) saturate(1.2);
-  -webkit-backdrop-filter: blur(40px) saturate(1.2);
   box-shadow:
     0 0 0 0.5px var(--lcs-glass-border),
     0 1px 2px rgba(0,0,0,0.25),
@@ -1718,6 +1855,15 @@ svg.lucide {
   background:
     linear-gradient(145deg, rgba(255,255,255,0.028) 0%, rgba(255,255,255,0.01) 40%, rgba(255,255,255,0.018) 100%),
     var(--lcs-glass-bg-hover);
+}
+
+/* Viewport-gated blur — IntersectionObserver adds .lcs-in-viewport to cards
+   in the visible area (+ 200px buffer). Off-screen cards skip the expensive
+   GPU compositing layer entirely. ~5-8 blurred cards at any time instead of
+   the full chat history. */
+.lcs-bubble .lcs-message.lcs-in-viewport {
+  backdrop-filter: blur(40px) saturate(1.2);
+  -webkit-backdrop-filter: blur(40px) saturate(1.2);
 }
 
 /* Bottom specular highlight */
@@ -1761,8 +1907,6 @@ svg.lucide {
   background: var(--lumiverse-fill-subtle, rgba(255,255,255,0.03));
   box-shadow: none;
   border: 1px solid transparent;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 .lcs-bubble .lcs-message--system::after { display: none; }
 
@@ -1919,9 +2063,7 @@ svg.lucide {
   letter-spacing: 0.02em;
   flex-wrap: wrap;
   gap: 0;
-  background: rgba(0,0,0,0.1);
-  backdrop-filter: blur(16px) brightness(0.45) saturate(1.4);
-  -webkit-backdrop-filter: blur(16px) brightness(0.45) saturate(1.4);
+  background: rgba(0,0,0,0.45);
   border: 1px solid rgba(255,255,255,0.05);
   line-height: 1;
 }
@@ -1949,9 +2091,7 @@ svg.lucide {
   z-index: 5;
   gap: 1px;
   padding: 2px 3px;
-  background: rgba(0,0,0,0.1);
-  backdrop-filter: blur(16px) brightness(0.45) saturate(1.4);
-  -webkit-backdrop-filter: blur(16px) brightness(0.45) saturate(1.4);
+  background: rgba(0,0,0,0.45);
   border-radius: 9px;
   border: 1px solid rgba(255,255,255,0.05);
 }
@@ -1994,9 +2134,7 @@ svg.lucide {
   width: auto;
   display: inline-flex;
   padding: 4px 11px;
-  background: rgba(0,0,0,0.1);
-  backdrop-filter: blur(16px) brightness(0.45) saturate(1.4);
-  -webkit-backdrop-filter: blur(16px) brightness(0.45) saturate(1.4);
+  background: rgba(0,0,0,0.45);
   border: 1px solid rgba(255,255,255,0.06);
   border-radius: 20px;
   font-family: ui-monospace, 'SF Mono', SFMono-Regular, 'Cascadia Code', Menlo, Consolas, monospace;
@@ -2015,9 +2153,7 @@ svg.lucide {
 .lcs-bubble .lcs-reasoning-body {
   margin-top: 10px;
   padding: 10px 14px;
-  background: rgba(0,0,0,0.1);
-  backdrop-filter: blur(16px) brightness(0.45) saturate(1.4);
-  -webkit-backdrop-filter: blur(16px) brightness(0.45) saturate(1.4);
+  background: rgba(0,0,0,0.45);
   border-radius: 10px;
   border: 1px solid rgba(255,255,255,0.05);
   border-top: 1px solid rgba(255,255,255,0.05);
@@ -2035,9 +2171,7 @@ svg.lucide {
   padding: 2px 4px;
   gap: 2px;
   border-radius: 16px;
-  background: rgba(0,0,0,0.1);
-  backdrop-filter: blur(16px) brightness(0.45) saturate(1.4);
-  -webkit-backdrop-filter: blur(16px) brightness(0.45) saturate(1.4);
+  background: rgba(0,0,0,0.45);
   border: 1px solid rgba(255,255,255,0.05);
   font-family: ui-monospace, 'SF Mono', SFMono-Regular, 'Cascadia Code', Menlo, Consolas, monospace;
   font-size: 11px;
@@ -2345,14 +2479,12 @@ svg.lucide {
   max-height: min(55vh, 400px);
   overflow-y: auto;
   z-index: 30;
-  background: color-mix(in srgb, var(--lcs-page-bg, #0d0b14) 92%, white 8%);
+  background: var(--lumiverse-bg-deepest, rgb(16, 13, 24));
   border: 1px solid var(--lcs-glass-border, rgba(255,255,255,0.06));
   border-radius: var(--lcs-radius, 14px);
   box-shadow:
     0 8px 32px rgba(0,0,0,0.35),
     0 0 0 0.5px rgba(255,255,255,0.04) inset;
-  backdrop-filter: blur(var(--lcs-glass-blur, 14px));
-  -webkit-backdrop-filter: blur(var(--lcs-glass-blur, 14px));
   padding: 6px;
   animation: lcs-tools-enter 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
 
@@ -3542,9 +3674,7 @@ svg.lucide {
   max-height: 320px;
   overflow-y: auto;
   padding: 5px;
-  background: color-mix(in srgb, var(--lcs-page-bg, #0a0a0c) 92%, white 8%);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+  background: var(--lumiverse-bg-deepest, rgb(16, 13, 24));
   border: 1px solid var(--lcs-glass-border-hover, rgba(255,255,255,0.1));
   border-radius: var(--lcs-radius, 14px);
   box-shadow:
@@ -3659,9 +3789,7 @@ svg.lucide {
   max-height: 320px;
   overflow-y: auto;
   padding: 5px;
-  background: color-mix(in srgb, var(--lcs-page-bg, #0a0a0c) 92%, white 8%);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+  background: var(--lumiverse-bg-deepest, rgb(16, 13, 24));
   border: 1px solid var(--lcs-glass-border-hover, rgba(255,255,255,0.1));
   border-radius: var(--lcs-radius, 14px);
   box-shadow:
@@ -3755,9 +3883,7 @@ svg.lucide {
   max-height: 380px;
   overflow-y: auto;
   padding: 5px;
-  background: color-mix(in srgb, var(--lcs-page-bg, #0a0a0c) 92%, white 8%);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+  background: var(--lumiverse-bg-deepest, rgb(16, 13, 24));
   border: 1px solid var(--lcs-glass-border-hover, rgba(255,255,255,0.1));
   border-radius: var(--lcs-radius, 14px);
   box-shadow:

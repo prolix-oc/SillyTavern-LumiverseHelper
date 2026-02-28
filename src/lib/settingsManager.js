@@ -72,9 +72,11 @@ const DEFAULT_SETTINGS = {
   councilMode: false,
   councilMembers: [], // Array of council member configurations
   lumiaQuirks: '', // User text for behavioral quirks (works in all modes)
+  lumiaQuirksEnabled: true, // Toggle to enable/disable quirks output without deleting
   stateSynthesis: {
     enabled: false, // Toggle for non-council synthesis prompt
   },
+  oocEnabled: true, // Toggle for OOC comment rendering
   lumiaOOCInterval: null,
   lumiaOOCStyle: "social",
   // Council IRC chat style settings
@@ -93,6 +95,7 @@ const DEFAULT_SETTINGS = {
     includeCharacterInfo: false, // Include character description/personality in sidecar tool context
     includeWorldInfo: false, // Include triggered world book entries in sidecar tool context
     allowUserControl: false, // When true, tools can plan/speak for the user's character; when false, focus on NPCs only
+    maxWordsPerTool: 150, // Max words per tool response field (soft prompt guidance + hard truncation)
     llm: {
       provider: "anthropic",
       model: "",
@@ -156,9 +159,12 @@ const DEFAULT_SETTINGS = {
   // Dismissed update version (to not show banner again for same version)
   dismissedUpdateVersion: null,
   // Drawer position settings
+  // UI preferences
+  showLumiverseDrawer: true, // Whether to show the viewport drawer
   drawerSettings: {
     side: 'right',         // 'left' or 'right' - which side of screen the drawer docks to
     verticalPosition: 15,  // Percentage from top (0-100) for tab vertical position
+    tabSize: 'large',      // 'large' or 'compact' - size of the drawer tab
     panelWidthMode: 'default',  // 'default' | 'stChat' | 'custom' - desktop panel width mode
     customPanelWidth: 35,       // vw percentage (25-60), only used when panelWidthMode is 'custom'
   },
@@ -187,6 +193,15 @@ const DEFAULT_SETTINGS = {
   },
   // Guided Generations — user-configurable prompts attached to sends/regens
   guidedGenerations: [],
+  // Character Browser favorites
+  characterBrowserFavorites: [],
+  // Character Browser — resortable tag folders
+  enableResortableTagFolders: false,
+  tagFolderOrder: [],
+  // New Experiences — opt-out toggles (enabled by default; disable to restore ST native UI)
+  enableCharacterBrowser: true,
+  enablePersonaManager: true,
+  enableWorldBookEditor: true,
 };
 
 // Settings state - module-level singleton

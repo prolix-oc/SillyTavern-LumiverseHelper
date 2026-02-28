@@ -8,6 +8,17 @@ import { useLumiverseActions, saveToExtensionImmediate, useLumiverseStore } from
 // Get the store for direct access (old code uses root-level settings)
 const store = useLumiverseStore;
 
+// Stable fallback constants for useSyncExternalStore (prevents new-reference-every-call loops)
+const EMPTY_COUNCIL_STYLE = { enabled: false, showTimestamps: true };
+const EMPTY_COUNCIL_MEMBERS = [];
+
+// Stable selector functions
+const selectInterval = () => store.getState().lumiaOOCInterval;
+const selectStyle = () => store.getState().lumiaOOCStyle || 'social';
+const selectCouncilMode = () => store.getState().councilMode || false;
+const selectCouncilMembers = () => store.getState().councilMembers || EMPTY_COUNCIL_MEMBERS;
+const selectCouncilChatStyle = () => store.getState().councilChatStyle || EMPTY_COUNCIL_STYLE;
+
 /**
  * Toggle switch component
  */
@@ -95,35 +106,15 @@ function OOCSettings() {
     const actions = useLumiverseActions();
 
     // Get OOC settings directly from store (old code uses root-level fields)
-    const interval = useSyncExternalStore(
-        store.subscribe,
-        () => store.getState().lumiaOOCInterval,
-        () => store.getState().lumiaOOCInterval
-    );
-    const style = useSyncExternalStore(
-        store.subscribe,
-        () => store.getState().lumiaOOCStyle || 'social',
-        () => store.getState().lumiaOOCStyle || 'social'
-    );
+    const interval = useSyncExternalStore(store.subscribe, selectInterval, selectInterval);
+    const style = useSyncExternalStore(store.subscribe, selectStyle, selectStyle);
 
     // Council mode state
-    const councilMode = useSyncExternalStore(
-        store.subscribe,
-        () => store.getState().councilMode || false,
-        () => store.getState().councilMode || false
-    );
-    const councilMembers = useSyncExternalStore(
-        store.subscribe,
-        () => store.getState().councilMembers || [],
-        () => store.getState().councilMembers || []
-    );
+    const councilMode = useSyncExternalStore(store.subscribe, selectCouncilMode, selectCouncilMode);
+    const councilMembers = useSyncExternalStore(store.subscribe, selectCouncilMembers, selectCouncilMembers);
 
     // IRC chat style settings for council mode
-    const councilChatStyle = useSyncExternalStore(
-        store.subscribe,
-        () => store.getState().councilChatStyle || { enabled: false, showTimestamps: true },
-        () => store.getState().councilChatStyle || { enabled: false, showTimestamps: true }
-    );
+    const councilChatStyle = useSyncExternalStore(store.subscribe, selectCouncilChatStyle, selectCouncilChatStyle);
 
     const isCouncilActive = councilMode && councilMembers.length > 0;
 

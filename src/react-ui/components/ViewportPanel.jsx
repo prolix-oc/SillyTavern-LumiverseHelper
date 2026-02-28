@@ -1,9 +1,11 @@
-import React, { useState, useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
 import clsx from 'clsx';
-import { User, Package, MessageSquare, Sliders, FileText, ChevronRight, ChevronLeft, X, Sparkles, Bookmark, Users, BarChart2, Layers, Settings, PenTool } from 'lucide-react';
+import { User, Package, MessageSquare, Sliders, FileText, ChevronRight, ChevronLeft, X, Sparkles, Bookmark, Users, BarChart2, Layers, Settings, PenTool, Contact, UserCircle, MoreHorizontal } from 'lucide-react';
 import { useLumiverseStore, useLumiverseActions, useUpdates } from '../store/LumiverseContext';
 import { UpdateDot } from './UpdateBanner';
 import UpdateBanner from './UpdateBanner';
+import useOverflowTabs from '../hooks/useOverflowTabs';
+import ErrorBoundary from './shared/ErrorBoundary';
 
 // Get store for direct access
 const store = useLumiverseStore;
@@ -18,6 +20,8 @@ const selectCouncilMode = () => store.getState().councilMode || false;
 const selectCouncilToolsEnabled = () => store.getState().councilTools?.enabled || false;
 const selectCouncilMembers = () => store.getState().councilMembers || EMPTY_ARRAY;
 const selectChatChangeCounter = () => store.getState().chatChangeCounter || 0;
+const selectEnableCharacterBrowser = () => store.getState().enableCharacterBrowser ?? true;
+const selectEnablePersonaManager = () => store.getState().enablePersonaManager ?? true;
 
 // Panel dimensions
 const DESKTOP_PANEL_WIDTH = 376; // 56px tabs + 320px content
@@ -134,6 +138,56 @@ function PanelHeader({ title, Icon, onClose }) {
 }
 
 /**
+ * Overflow "More" button — replaces the spacer when tabs overflow on mobile.
+ * Shows a primary-colored dot when the active tab is hidden in overflow.
+ */
+function OverflowButton({ onClick, hasActiveInOverflow, isOpen }) {
+    return (
+        <button
+            className={clsx('lumiverse-vp-tab lumiverse-vp-overflow-btn', isOpen && 'lumiverse-vp-tab--active')}
+            onClick={onClick}
+            title="More tabs"
+            type="button"
+        >
+            <span className="lumiverse-vp-tab-icon">
+                <MoreHorizontal size={20} strokeWidth={1.5} />
+            </span>
+            <span className="lumiverse-vp-tab-label">More</span>
+            {hasActiveInOverflow && !isOpen && <span className="lumiverse-vp-overflow-dot" />}
+        </button>
+    );
+}
+
+/**
+ * Floating card menu for overflow tabs.
+ * Positioned next to the tab sidebar inside the content area.
+ */
+function OverflowMenu({ tabs, activeTab, onSelect, onClose, side }) {
+    const isLeft = side === 'left';
+    return (
+        <>
+            <div className="lumiverse-vp-overflow-backdrop" onClick={onClose} />
+            <div
+                className="lumiverse-vp-overflow-menu"
+                style={isLeft ? { right: 'auto', left: '100%' } : { left: 'auto', right: '100%' }}
+            >
+                {tabs.map(tab => (
+                    <button
+                        key={tab.id}
+                        className={clsx('lumiverse-vp-overflow-item', activeTab === tab.id && 'lumiverse-vp-overflow-item--active')}
+                        onClick={() => onSelect(tab.id)}
+                        type="button"
+                    >
+                        <tab.Icon size={18} strokeWidth={1.5} />
+                        <span>{tab.label}</span>
+                    </button>
+                ))}
+            </div>
+        </>
+    );
+}
+
+/**
  * Tab configuration for the viewport panel
  * Tabs with conditional: true are filtered based on state
  */
@@ -143,6 +197,18 @@ const ALL_PANEL_TABS = [
         Icon: User,
         label: 'Profile',
         title: 'Character Lumia Profile',
+    },
+    {
+        id: 'personas',
+        Icon: UserCircle,
+        label: 'Personas',
+        title: 'Persona Manager',
+    },
+    {
+        id: 'characters',
+        Icon: Contact,
+        label: 'Chars',
+        title: 'Character Browser',
     },
     {
         id: 'presets',
@@ -212,12 +278,15 @@ function ViewportPanel({
     onToggle,
     onClose,
     defaultTab = 'profile',
+    requestedTab = null,
     drawerSettings: drawerSettingsProp,
     // Tab content components passed as props
     ProfileContent,
     PresetsContent,
     LoomContent,
     BrowserContent,
+    CharacterBrowserContent,
+    PersonasContent,
     CreateContent,
     OOCContent,
     PromptContent,
@@ -227,6 +296,9 @@ function ViewportPanel({
 }) {
     const [activeTab, setActiveTab] = useState(defaultTab);
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const [overflowOpen, setOverflowOpen] = useState(false);
+    const [mountReady, setMountReady] = useState(false);
+    const tabsContainerRef = useRef(null);
     const isMobile = useIsMobile();
     const { hasAnyUpdate } = useUpdates();
     const storeActions = useLumiverseActions();
@@ -249,6 +321,8 @@ function ViewportPanel({
     const councilToolsEnabled = useSyncExternalStore(store.subscribe, selectCouncilToolsEnabled, selectCouncilToolsEnabled);
     const councilMembers = useSyncExternalStore(store.subscribe, selectCouncilMembers, selectCouncilMembers);
     const chatChangeCounter = useSyncExternalStore(store.subscribe, selectChatChangeCounter, selectChatChangeCounter);
+    const enableCharacterBrowser = useSyncExternalStore(store.subscribe, selectEnableCharacterBrowser, selectEnableCharacterBrowser);
+    const enablePersonaManager = useSyncExternalStore(store.subscribe, selectEnablePersonaManager, selectEnablePersonaManager);
 
     // Check if there's an active chat
     const hasActiveChat = useMemo(() => {
@@ -267,9 +341,14 @@ function ViewportPanel({
             if (tab.id === 'feedback') {
                 return hasActiveChat && councilMode && councilToolsEnabled && councilMembers?.length > 0;
             }
+            if (tab.id === 'characters') return enableCharacterBrowser;
+            if (tab.id === 'personas') return enablePersonaManager;
             return true;
         });
-    }, [hasActiveChat, councilMode, councilToolsEnabled, councilMembers?.length]);
+    }, [hasActiveChat, councilMode, councilToolsEnabled, councilMembers?.length, enableCharacterBrowser, enablePersonaManager]);
+
+    // Priority+ overflow for mobile tabs
+    const { directTabs, overflowTabs, needsOverflow } = useOverflowTabs(visibleTabs, isMobile, tabsContainerRef);
 
     // Auto-fallback if active tab becomes hidden
     useEffect(() => {
@@ -278,6 +357,27 @@ function ViewportPanel({
             setActiveTab(visibleTabs[0].id);
         }
     }, [visibleTabs, activeTab]);
+
+    // Switch to externally requested tab
+    useEffect(() => {
+        if (requestedTab) {
+            setActiveTab(requestedTab);
+        }
+    }, [requestedTab]);
+
+    // Suppress CSS transition on initial mount so the drawer doesn't flash-animate
+    // into its hidden position. Double-rAF ensures the browser has painted the
+    // initial transform before we enable transitions.
+    useEffect(() => {
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => setMountReady(true));
+        });
+    }, []);
+
+    // Close overflow menu when panel closes
+    useEffect(() => {
+        if (!isVisible) setOverflowOpen(false);
+    }, [isVisible]);
 
     // Subscribe to drawer settings from store (fallback if not passed as prop)
     const drawerSettingsFromStore = useSyncExternalStore(
@@ -384,6 +484,7 @@ function ViewportPanel({
             setIsCollapsed(false);
         }
         setActiveTab(tabId);
+        setOverflowOpen(false);
     }, [isCollapsed]);
 
     const toggleCollapse = useCallback(() => {
@@ -395,17 +496,19 @@ function ViewportPanel({
     // Memoize tab content components to prevent unnecessary re-renders
     // Pass handleTabClick to ProfileContent so it can navigate to other tabs (e.g., Council)
     const tabPanels = useMemo(() => ({
-        profile: ProfileContent ? <ProfileContent onTabChange={handleTabClick} /> : <PlaceholderContent tab="profile" />,
-        presets: PresetsContent ? <PresetsContent /> : <PlaceholderContent tab="presets" />,
-        loom: LoomContent ? <LoomContent compact /> : <PlaceholderContent tab="loom" />,
-        browser: BrowserContent ? <BrowserContent /> : <PlaceholderContent tab="browser" />,
-        create: CreateContent ? <CreateContent /> : <PlaceholderContent tab="create" />,
-        ooc: OOCContent ? <OOCContent /> : <PlaceholderContent tab="ooc" />,
-        prompt: PromptContent ? <PromptContent /> : <PlaceholderContent tab="prompt" />,
-        council: CouncilContent ? <CouncilContent /> : <PlaceholderContent tab="council" />,
-        summary: SummaryContent ? <SummaryContent /> : <PlaceholderContent tab="summary" />,
-        feedback: FeedbackContent ? <FeedbackContent /> : <PlaceholderContent tab="feedback" />,
-    }), [ProfileContent, PresetsContent, LoomContent, BrowserContent, CreateContent, OOCContent, PromptContent, CouncilContent, SummaryContent, FeedbackContent, handleTabClick]);
+        profile: <ErrorBoundary label="Profile">{ProfileContent ? <ProfileContent onTabChange={handleTabClick} /> : <PlaceholderContent tab="profile" />}</ErrorBoundary>,
+        presets: <ErrorBoundary label="Presets">{PresetsContent ? <PresetsContent /> : <PlaceholderContent tab="presets" />}</ErrorBoundary>,
+        loom: <ErrorBoundary label="Loom">{LoomContent ? <LoomContent compact /> : <PlaceholderContent tab="loom" />}</ErrorBoundary>,
+        browser: <ErrorBoundary label="Packs">{BrowserContent ? <BrowserContent /> : <PlaceholderContent tab="browser" />}</ErrorBoundary>,
+        characters: <ErrorBoundary label="Characters">{CharacterBrowserContent ? <CharacterBrowserContent /> : <PlaceholderContent tab="characters" />}</ErrorBoundary>,
+        personas: <ErrorBoundary label="Personas">{PersonasContent ? <PersonasContent /> : <PlaceholderContent tab="personas" />}</ErrorBoundary>,
+        create: <ErrorBoundary label="Create">{CreateContent ? <CreateContent /> : <PlaceholderContent tab="create" />}</ErrorBoundary>,
+        ooc: <ErrorBoundary label="OOC">{OOCContent ? <OOCContent /> : <PlaceholderContent tab="ooc" />}</ErrorBoundary>,
+        prompt: <ErrorBoundary label="Prompt">{PromptContent ? <PromptContent /> : <PlaceholderContent tab="prompt" />}</ErrorBoundary>,
+        council: <ErrorBoundary label="Council">{CouncilContent ? <CouncilContent /> : <PlaceholderContent tab="council" />}</ErrorBoundary>,
+        summary: <ErrorBoundary label="Summary">{SummaryContent ? <SummaryContent /> : <PlaceholderContent tab="summary" />}</ErrorBoundary>,
+        feedback: <ErrorBoundary label="Feedback">{FeedbackContent ? <FeedbackContent /> : <PlaceholderContent tab="feedback" />}</ErrorBoundary>,
+    }), [ProfileContent, PresetsContent, LoomContent, BrowserContent, CharacterBrowserContent, PersonasContent, CreateContent, OOCContent, PromptContent, CouncilContent, SummaryContent, FeedbackContent, handleTabClick]);
 
     // Calculate wrapper positioning based on side
     const getWrapperStyle = () => {
@@ -415,7 +518,7 @@ function ViewportPanel({
             bottom: 0,
             width: wrapperWidth,
             zIndex: 9998,
-            transition: 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)',
+            transition: mountReady ? 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)' : 'none',
             // Wrapper itself doesn't capture events - children opt-in via pointer-events: auto
             pointerEvents: 'none',
         };
@@ -480,8 +583,8 @@ function ViewportPanel({
                     tabSize={tabSize}
                 />
                 {/* Tab sidebar */}
-                <div className="lumiverse-vp-tabs">
-                    {visibleTabs.map(tab => (
+                <div className="lumiverse-vp-tabs" ref={tabsContainerRef} style={{ position: 'relative' }}>
+                    {directTabs.map(tab => (
                         <TabButton
                             key={tab.id}
                             id={tab.id}
@@ -491,6 +594,25 @@ function ViewportPanel({
                             onClick={handleTabClick}
                         />
                     ))}
+                    {needsOverflow ? (
+                        <OverflowButton
+                            onClick={() => setOverflowOpen(prev => !prev)}
+                            hasActiveInOverflow={overflowTabs.some(t => t.id === activeTab)}
+                            isOpen={overflowOpen}
+                        />
+                    ) : (
+                        <div className="lumiverse-vp-tabs-spacer" />
+                    )}
+                    {/* Overflow floating menu */}
+                    {overflowOpen && needsOverflow && (
+                        <OverflowMenu
+                            tabs={overflowTabs}
+                            activeTab={activeTab}
+                            onSelect={handleTabClick}
+                            onClose={() => setOverflowOpen(false)}
+                            side={side}
+                        />
+                    )}
                     <div className="lumiverse-vp-tabs-spacer" />
                     <button
                         className="lumiverse-vp-settings-btn"
@@ -567,6 +689,11 @@ function PlaceholderContent({ tab }) {
             Icon: Package,
             title: 'Pack Browser',
             description: 'Browse and search through all loaded packs with previews',
+        },
+        personas: {
+            Icon: UserCircle,
+            title: 'Persona Manager',
+            description: 'Manage your user personas, avatars, and identity settings',
         },
         create: {
             Icon: PenTool,

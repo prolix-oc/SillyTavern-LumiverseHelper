@@ -20,6 +20,7 @@ import {
     UserCircle,
     Users,
     Compass,
+    EyeOff,
 } from 'lucide-react';
 import {
     triggerSend,
@@ -50,6 +51,7 @@ const selectBatchDeleteFromId = () => store.getState().chatSheld?.batchDeleteFro
 const selectMessageCount = () => store.getState().chatSheld?.messages?.length || 0;
 
 const selectGuidedGenerations = () => store.getState().guidedGenerations || [];
+const selectDraftHiddenCount = () => (store.getState().chatSheld?.messages || []).filter(m => m.isDraftHidden).length;
 
 export default function InputArea() {
     const [text, setText] = useState('');
@@ -58,6 +60,7 @@ export default function InputArea() {
     const [hasPersonas, setHasPersonas] = useState(false);
     const [isGroup, setIsGroup] = useState(false);
     const textareaRef = useRef(null);
+    const sendingRef = useRef(false);
     const guidedGenerations = useSyncExternalStore(store.subscribe, selectGuidedGenerations, selectGuidedGenerations);
     const activeGuideCount = guidedGenerations.filter(g => g.enabled).length;
 
@@ -66,17 +69,34 @@ export default function InputArea() {
         fetchPersonaList().then(list => setHasPersonas(list.length > 0));
         setIsGroup(isGroupChat());
     }, []);
+    // Document-level Escape key to stop generation (user may not have textarea focused)
+    useEffect(() => {
+        const handleEscape = (e) => {
+            if (e.key === 'Escape' && selectIsStreaming()) {
+                e.preventDefault();
+                e.stopPropagation();
+                triggerStopGeneration();
+                stopStreaming();
+            }
+        };
+        document.addEventListener('keydown', handleEscape);
+        return () => document.removeEventListener('keydown', handleEscape);
+    }, []);
+
     const isStreaming = useSyncExternalStore(store.subscribe, selectIsStreaming, selectIsStreaming);
     const hasMessages = useSyncExternalStore(store.subscribe, selectHasMessages, selectHasMessages);
     const batchDeleteMode = useSyncExternalStore(store.subscribe, selectBatchDeleteMode, selectBatchDeleteMode);
     const batchDeleteFromId = useSyncExternalStore(store.subscribe, selectBatchDeleteFromId, selectBatchDeleteFromId);
     const messageCount = useSyncExternalStore(store.subscribe, selectMessageCount, selectMessageCount);
+    const draftHiddenCount = useSyncExternalStore(store.subscribe, selectDraftHiddenCount, selectDraftHiddenCount);
 
     const handleSend = useCallback(() => {
+        if (sendingRef.current) return;
         const trimmed = text.trim();
         if (!trimmed) return;
 
-        triggerSend(trimmed);
+        sendingRef.current = true;
+        triggerSend(trimmed).finally(() => { sendingRef.current = false; });
         setText('');
 
         // Re-focus textarea after send
@@ -245,6 +265,12 @@ export default function InputArea() {
                             >
                                 <MoreHorizontal size={14} />
                             </button>
+                            {draftHiddenCount > 0 && (
+                                <span className="lcs-draft-count-badge">
+                                    <EyeOff size={11} />
+                                    <span>{draftHiddenCount}</span>
+                                </span>
+                            )}
                         </div>
                     )}
                 </>

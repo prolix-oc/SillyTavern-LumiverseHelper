@@ -20,9 +20,12 @@ import { useLumiverseStore } from '../../store/LumiverseContext';
 
 const store = useLumiverseStore;
 
+// Stable fallback constants for useSyncExternalStore (prevents new-reference-every-call loops)
+const EMPTY_COUNCIL_CHAT_STYLE = { enabled: false };
+
 const selectOOCStyle = () => store.getState().lumiaOOCStyle || 'social';
 const selectCouncilMode = () => store.getState().councilMode || false;
-const selectCouncilChatStyle = () => store.getState().councilChatStyle || { enabled: false };
+const selectCouncilChatStyle = () => store.getState().councilChatStyle || EMPTY_COUNCIL_CHAT_STYLE;
 const selectTheme = () => store.getState().theme;
 
 // Marked instance for all content rendering (streaming and static).
