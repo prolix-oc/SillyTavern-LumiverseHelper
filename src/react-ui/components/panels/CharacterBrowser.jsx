@@ -542,7 +542,7 @@ function FolderHeaderButton({ folder, effectiveOpen, onToggle }) {
 }
 
 // ─── Folder Section (static, no DnD) ───────────────────────────
-function FolderSection({ folder, expandedFolders, onToggle, children }) {
+function FolderSection({ folder, expandedFolders, onToggle, items, renderContent }) {
     const handleToggle = useCallback(() => {
         onToggle(folder.defaultOpen ? `__closed_${folder.id}` : folder.id);
     }, [folder, onToggle]);
@@ -556,7 +556,7 @@ function FolderSection({ folder, expandedFolders, onToggle, children }) {
             <FolderHeaderButton folder={folder} effectiveOpen={effectiveOpen} onToggle={handleToggle} />
             {effectiveOpen && (
                 <div className="lumiverse-cb-folder-content">
-                    {children}
+                    {renderContent(items)}
                 </div>
             )}
         </div>
@@ -564,7 +564,7 @@ function FolderSection({ folder, expandedFolders, onToggle, children }) {
 }
 
 // ─── Sortable Folder Section (DnD-enabled) ─────────────────────
-function SortableFolderSection({ folder, expandedFolders, onToggle, children }) {
+function SortableFolderSection({ folder, expandedFolders, onToggle, items, renderContent }) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: folder.id });
 
     const handleToggle = useCallback(() => {
@@ -591,7 +591,7 @@ function SortableFolderSection({ folder, expandedFolders, onToggle, children }) 
             </div>
             {effectiveOpen && (
                 <div className="lumiverse-cb-folder-content">
-                    {children}
+                    {renderContent(items)}
                 </div>
             )}
         </div>
@@ -1136,9 +1136,9 @@ function CharacterBrowser({ wideMode = false, onDismiss, onBatchStateChange } = 
                                         folder={folder}
                                         expandedFolders={expandedFolders}
                                         onToggle={toggleFolder}
-                                    >
-                                        {renderFolderContent(folder.items)}
-                                    </SortableFolderSection>
+                                        items={folder.items}
+                                        renderContent={renderFolderContent}
+                                    />
                                 ))}
                             </SortableContext>
                         </DndContext>
@@ -1151,9 +1151,9 @@ function CharacterBrowser({ wideMode = false, onDismiss, onBatchStateChange } = 
                             folder={folder}
                             expandedFolders={expandedFolders}
                             onToggle={toggleFolder}
-                        >
-                            {renderFolderContent(folder.items)}
-                        </FolderSection>
+                            items={folder.items}
+                            renderContent={renderFolderContent}
+                        />
                     ))
                 ) : viewMode === 'grid' ? (
                     <VirtualizedGrid
