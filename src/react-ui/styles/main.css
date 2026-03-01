@@ -6612,9 +6612,8 @@ details.lumia-panel[open] .lumia-panel-chevron {
     width: 36px;
     height: 36px;
     border-radius: 6px;
-    object-fit: cover;
+    overflow: hidden;
     flex-shrink: 0;
-    animation: lumiverseFadeIn 0.2s ease;
 }
 
 .lumiverse-browser-pack-cover-placeholder {
@@ -12607,9 +12606,8 @@ details.lumia-panel[open] .lumia-panel-chevron {
     width: 36px;
     height: 36px;
     border-radius: var(--lumiverse-radius-sm);
-    object-fit: cover;
+    overflow: hidden;
     flex-shrink: 0;
-    animation: lumiverseFadeIn 0.2s ease;
 }
 
 .lumia-downloaded-pack-cover-placeholder {
@@ -12879,9 +12877,8 @@ details.lumia-panel[open] .lumia-panel-chevron {
     width: 36px;
     height: 36px;
     border-radius: var(--lumiverse-radius-sm);
-    object-fit: cover;
+    overflow: hidden;
     flex-shrink: 0;
-    animation: lumiverseFadeIn 0.2s ease;
 }
 
 .lumia-loom-pack-cover-placeholder {

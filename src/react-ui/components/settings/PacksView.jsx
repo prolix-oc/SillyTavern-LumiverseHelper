@@ -393,7 +393,7 @@ export default function PacksView() {
                             return (
                                 <div key={packName} className="lumia-downloaded-pack-item">
                                     {coverUrl ? (
-                                        <LazyImage src={coverUrl} alt={packName} className="lumia-downloaded-pack-cover" spinnerSize={14} fallback={<div className="lumia-downloaded-pack-cover-placeholder">{Icons.package}</div>} />
+                                        <LazyImage src={coverUrl} alt={packName} containerClassName="lumia-downloaded-pack-cover" spinnerSize={14} fallback={<div className="lumia-downloaded-pack-cover-placeholder">{Icons.package}</div>} />
                                     ) : (
                                         <div className="lumia-downloaded-pack-cover-placeholder">{Icons.package}</div>
                                     )}
@@ -447,7 +447,7 @@ export default function PacksView() {
                             return (
                                 <div key={packName} className="lumia-loom-pack-item">
                                     {pack.packCover ? (
-                                        <LazyImage src={pack.packCover} alt={packName} className="lumia-loom-pack-cover" spinnerSize={14} fallback={<div className="lumia-loom-pack-cover-placeholder">{Icons.layers}</div>} />
+                                        <LazyImage src={pack.packCover} alt={packName} containerClassName="lumia-loom-pack-cover" spinnerSize={14} fallback={<div className="lumia-loom-pack-cover-placeholder">{Icons.layers}</div>} />
                                     ) : (
                                         <div className="lumia-loom-pack-cover-placeholder">{Icons.layers}</div>
                                     )}

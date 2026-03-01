@@ -136,7 +136,7 @@ function PackHeader({ pack, isExpanded, onToggle, onViewPack, itemCount }) {
                 <LazyImage
                     src={pack.packCover}
                     alt={packName}
-                    className="lumiverse-browser-pack-cover"
+                    containerClassName="lumiverse-browser-pack-cover"
                     spinnerSize={14}
                     fallback={
                         <div className="lumiverse-browser-pack-cover-placeholder">

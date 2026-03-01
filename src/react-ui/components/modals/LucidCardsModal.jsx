@@ -375,19 +375,15 @@ function LucidCardsModal({ onClose }) {
         setImporting(true);
         const total = selectedPacks.length;
         let imported = 0;
-        let skipped = 0;
+        let updated = 0;
         let failed = 0;
-        
+
         for (let i = 0; i < selectedPacks.length; i++) {
             const pack = selectedPacks[i];
             setImportProgress({ current: i + 1, total });
-            
-            // Check if pack already exists using the proper pack cache
-            if (getPackByName(pack.packName)) {
-                skipped++;
-                continue;
-            }
-            
+
+            const isUpdate = !!getPackByName(pack.packName);
+
             try {
                 const response = await fetch(`https://lucid.cards/api/lumia-dlc/${pack.slug}`);
                 if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
@@ -414,9 +410,13 @@ function LucidCardsModal({ onClose }) {
                     url: `https://lucid.cards/api/lumia-dlc/${pack.slug}`,
                 };
                 
-                // Save pack using the proper storage system
+                // Save pack using the proper storage system (overwrites if already exists)
                 await savePack(packToSave);
-                imported++;
+                if (isUpdate) {
+                    updated++;
+                } else {
+                    imported++;
+                }
             } catch (err) {
                 console.error(`[LucidCardsModal] Import failed for "${pack.packName}":`, err);
                 failed++;
@@ -426,14 +426,12 @@ function LucidCardsModal({ onClose }) {
         // Show summary toast
         const parts = [];
         if (imported > 0) parts.push(`${imported} imported`);
-        if (skipped > 0) parts.push(`${skipped} skipped (already exist)`);
+        if (updated > 0) parts.push(`${updated} updated`);
         if (failed > 0) parts.push(`${failed} failed`);
-        
+
         if (window.toastr) {
-            if (imported > 0) {
+            if (imported > 0 || updated > 0) {
                 window.toastr.success(`Import complete: ${parts.join(', ')}`);
-            } else if (skipped > 0 && failed === 0) {
-                window.toastr.info(`All ${skipped} packs already exist`);
             } else {
                 window.toastr.error(`Import failed: ${parts.join(', ')}`);
             }
