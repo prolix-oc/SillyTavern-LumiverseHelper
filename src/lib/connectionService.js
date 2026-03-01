@@ -70,6 +70,14 @@ export function initConnectionProfiles() {
     // The CHAT_CHANGED handler in index.js handles binding resolution.
 }
 
+/**
+ * Get the persisted active connection profile ID (for boot-time reapplication).
+ * @returns {string|null}
+ */
+export function getStoredActiveProfileId() {
+    return getActiveConnectionProfileId();
+}
+
 // ============================================================================
 // CRUD
 // ============================================================================

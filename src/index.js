@@ -116,7 +116,7 @@ import {
 } from "./lib/landingPageService.js";
 
 import { initJokesCache } from "./lib/jokesService.js";
-import { initConnectionProfiles, resolveProfileBinding, applyProfile as applyConnectionProfile, isApplyingProfile } from "./lib/connectionService.js";
+import { initConnectionProfiles, resolveProfileBinding, applyProfile as applyConnectionProfile, isApplyingProfile, getStoredActiveProfileId } from "./lib/connectionService.js";
 
 import {
     isChatSheldEnabled,
@@ -795,6 +795,15 @@ jQuery(async () => {
     } else {
       console.error(`[${MODULE_NAME}] React UI failed to initialize - check console for errors`);
     }
+  }
+
+  // Re-apply active connection profile on boot so ST matches what Lumiverse persisted.
+  // Without this, the UI shows a profile as active but ST keeps its pre-reload settings.
+  const storedProfileId = getStoredActiveProfileId();
+  if (storedProfileId) {
+    applyConnectionProfile(storedProfileId).catch(err => {
+      console.warn(`[${MODULE_NAME}] Failed to re-apply connection profile on boot:`, err);
+    });
   }
 
   // Initial UI refresh
