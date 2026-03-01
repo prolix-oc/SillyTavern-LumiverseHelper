@@ -244,6 +244,11 @@ export const personaManagerStyles = /* css */`
     gap: 8px;
 }
 
+/* ─── Grid: Inline Editor Span ─────────────────────────── */
+.lumiverse-pm-grid > .lumiverse-pm-editor {
+    grid-column: 1 / -1;
+}
+
 /* ─── List View ─────────────────────────────────────────── */
 .lumiverse-pm-list {
     display: flex;

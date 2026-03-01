@@ -116,6 +116,7 @@ import {
 } from "./lib/landingPageService.js";
 
 import { initJokesCache } from "./lib/jokesService.js";
+import { initConnectionProfiles, resolveProfileBinding, applyProfile as applyConnectionProfile, isApplyingProfile } from "./lib/connectionService.js";
 
 import {
     isChatSheldEnabled,
@@ -732,6 +733,9 @@ jQuery(async () => {
   // Initialize preset binding service for auto-switching
   initPresetBindingService();
 
+  // Initialize connection profiles (loaded by initPackCache, this is a no-op placeholder)
+  initConnectionProfiles();
+
   // Set up UI refresh callback for modals
   setRefreshUICallback(refreshUIDisplay);
 
@@ -974,17 +978,28 @@ jQuery(async () => {
                 store.setState({ loomBuilder: { ...lb, _blockToggleTs: Date.now() } });
               }
               if (typeof toastr !== 'undefined') {
-                toastr.info(
-                  `Loom block toggles applied (${result.source} binding: ${result.matched} blocks)`,
-                  'Lumiverse Helper',
-                  { timeOut: 2000, preventDuplicates: true }
-                );
+                const msg = result.source === 'defaults'
+                  ? `Restored default Loom block states (${result.matched} blocks)`
+                  : `Loom block toggles applied (${result.source} binding: ${result.matched} blocks)`;
+                toastr.info(msg, 'Lumiverse Helper', { timeOut: 2000, preventDuplicates: true });
               }
             }
           }).catch(() => {});
         }
       } catch (err) {
         // Binding resolution is best-effort
+      }
+
+      // Resolve connection profile binding for the new chat/character
+      try {
+        const resolvedConnProfileId = resolveProfileBinding();
+        const connStore = window.LumiverseUI?.getStore?.();
+        const currentConnId = connStore?.getState()?.connectionManager?.activeProfileId;
+        if (resolvedConnProfileId && resolvedConnProfileId !== currentConnId && !isApplyingProfile()) {
+          applyConnectionProfile(resolvedConnProfileId).catch(() => {});
+        }
+      } catch (err) {
+        // Connection binding resolution is best-effort
       }
     });
 

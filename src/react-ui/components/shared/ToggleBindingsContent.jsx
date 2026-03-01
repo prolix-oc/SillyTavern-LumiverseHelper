@@ -114,8 +114,8 @@ export function ToggleBindingsContent({ compact = false, isLoomMode: isLoomModeP
         }
     }, [recaptureDefaultToggleState]);
 
-    // Default State Settings - only shown in ST mode (Loom manages block defaults in the preset)
-    const defaultStateSettingsSection = isLoomMode ? null : (
+    // Default State Settings - shown in both ST and Loom modes
+    const defaultStateSettingsSection = (
         <div className="lumiverse-bindings-defaults-section">
             <div className="lumiverse-bindings-defaults-header">
                 <Settings size={14} strokeWidth={1.5} />
@@ -173,7 +173,11 @@ export function ToggleBindingsContent({ compact = false, isLoomMode: isLoomModeP
             </div>
 
             <div className="lumiverse-bindings-defaults-info">
-                <span>When auto-restore is on, unbound chats will revert to captured default toggles.</span>
+                <span>
+                    {isLoomMode
+                        ? 'When auto-restore is on, unbound chats will revert to captured default block states.'
+                        : 'When auto-restore is on, unbound chats will revert to captured default toggles.'}
+                </span>
             </div>
         </div>
     );

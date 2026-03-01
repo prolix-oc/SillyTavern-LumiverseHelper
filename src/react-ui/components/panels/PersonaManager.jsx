@@ -385,6 +385,12 @@ function PersonaEditor({
     const [isDeleting, setIsDeleting] = useState(false);
     const [worldBookNames, setWorldBookNames] = useState(/** @type {string[]} */ ([]));
     const fileInputRef = useRef(null);
+    const editorRef = useRef(null);
+
+    // Auto-scroll editor into view when persona changes
+    useEffect(() => {
+        editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, [persona.avatarId]);
 
     // Fetch available world book names on mount / when persona changes
     useEffect(() => {
@@ -494,7 +500,7 @@ function PersonaEditor({
     }, []);
 
     return (
-        <div className="lumiverse-pm-editor">
+        <div className="lumiverse-pm-editor" ref={editorRef}>
             <div className="lumiverse-pm-editor-inner">
                 {/* Identity Section */}
                 <div className="lumiverse-pm-avatar-zone">
@@ -810,65 +816,63 @@ export default function PersonaManager() {
                         </div>
                     </div>
                 ) : viewMode === 'grid' ? (
-                    <>
-                        <div className="lumiverse-pm-grid">
-                            {personas.map(p => (
+                    <div className="lumiverse-pm-grid">
+                        {personas.map(p => (
+                            <React.Fragment key={p.avatarId}>
                                 <PersonaCardGrid
-                                    key={p.avatarId}
                                     persona={p}
                                     isSelected={selectedPersonaId === p.avatarId}
                                     onSelect={handleCardSelect}
                                     onDoubleClick={handleCardDoubleClick}
                                 />
-                            ))}
-                        </div>
-                        {selectedPersona && (
-                            <PersonaEditor
-                                persona={selectedPersona}
-                                onRename={handleRename}
-                                onUpdateDescription={updateDescription}
-                                onUploadAvatar={uploadAvatar}
-                                onToggleDefault={toggleDefault}
-                                onToggleChatLock={toggleChatLock}
-                                onDuplicate={handleDuplicate}
-                                onDelete={handleDelete}
-                                onSwitch={handleSwitch}
-                                onSetLorebook={setLorebook}
-                                onAddConnection={addConnection}
-                                onRemoveConnection={removeConnection}
-                            />
-                        )}
-                    </>
+                                {selectedPersonaId === p.avatarId && selectedPersona && (
+                                    <PersonaEditor
+                                        persona={selectedPersona}
+                                        onRename={handleRename}
+                                        onUpdateDescription={updateDescription}
+                                        onUploadAvatar={uploadAvatar}
+                                        onToggleDefault={toggleDefault}
+                                        onToggleChatLock={toggleChatLock}
+                                        onDuplicate={handleDuplicate}
+                                        onDelete={handleDelete}
+                                        onSwitch={handleSwitch}
+                                        onSetLorebook={setLorebook}
+                                        onAddConnection={addConnection}
+                                        onRemoveConnection={removeConnection}
+                                    />
+                                )}
+                            </React.Fragment>
+                        ))}
+                    </div>
                 ) : (
-                    <>
-                        <div className="lumiverse-pm-list">
-                            {personas.map(p => (
+                    <div className="lumiverse-pm-list">
+                        {personas.map(p => (
+                            <React.Fragment key={p.avatarId}>
                                 <PersonaCardList
-                                    key={p.avatarId}
                                     persona={p}
                                     isSelected={selectedPersonaId === p.avatarId}
                                     onSelect={handleCardSelect}
                                     onDoubleClick={handleCardDoubleClick}
                                 />
-                            ))}
-                        </div>
-                        {selectedPersona && (
-                            <PersonaEditor
-                                persona={selectedPersona}
-                                onRename={handleRename}
-                                onUpdateDescription={updateDescription}
-                                onUploadAvatar={uploadAvatar}
-                                onToggleDefault={toggleDefault}
-                                onToggleChatLock={toggleChatLock}
-                                onDuplicate={handleDuplicate}
-                                onDelete={handleDelete}
-                                onSwitch={handleSwitch}
-                                onSetLorebook={setLorebook}
-                                onAddConnection={addConnection}
-                                onRemoveConnection={removeConnection}
-                            />
-                        )}
-                    </>
+                                {selectedPersonaId === p.avatarId && selectedPersona && (
+                                    <PersonaEditor
+                                        persona={selectedPersona}
+                                        onRename={handleRename}
+                                        onUpdateDescription={updateDescription}
+                                        onUploadAvatar={uploadAvatar}
+                                        onToggleDefault={toggleDefault}
+                                        onToggleChatLock={toggleChatLock}
+                                        onDuplicate={handleDuplicate}
+                                        onDelete={handleDelete}
+                                        onSwitch={handleSwitch}
+                                        onSetLorebook={setLorebook}
+                                        onAddConnection={addConnection}
+                                        onRemoveConnection={removeConnection}
+                                    />
+                                )}
+                            </React.Fragment>
+                        ))}
+                    </div>
                 )}
             </div>
         </div>

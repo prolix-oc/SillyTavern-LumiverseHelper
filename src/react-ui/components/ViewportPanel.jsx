@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
 import clsx from 'clsx';
-import { User, Package, MessageSquare, Sliders, FileText, ChevronRight, ChevronLeft, X, Sparkles, Bookmark, Users, BarChart2, Layers, Settings, PenTool, Contact, UserCircle, MoreHorizontal } from 'lucide-react';
+import { User, Package, MessageSquare, Sliders, FileText, ChevronRight, ChevronLeft, X, Sparkles, Bookmark, Users, BarChart2, Layers, Settings, PenTool, Contact, UserCircle, MoreHorizontal, Plug } from 'lucide-react';
 import { useLumiverseStore, useLumiverseActions, useUpdates } from '../store/LumiverseContext';
 import { UpdateDot } from './UpdateBanner';
 import UpdateBanner from './UpdateBanner';
@@ -223,6 +223,12 @@ const ALL_PANEL_TABS = [
         title: 'Lucid Loom Builder',
     },
     {
+        id: 'connect',
+        Icon: Plug,
+        label: 'Connect',
+        title: 'Connection Manager',
+    },
+    {
         id: 'browser',
         Icon: Package,
         label: 'Packs',
@@ -287,6 +293,7 @@ function ViewportPanel({
     BrowserContent,
     CharacterBrowserContent,
     PersonasContent,
+    ConnectContent,
     CreateContent,
     OOCContent,
     PromptContent,
@@ -499,6 +506,7 @@ function ViewportPanel({
         profile: <ErrorBoundary label="Profile">{ProfileContent ? <ProfileContent onTabChange={handleTabClick} /> : <PlaceholderContent tab="profile" />}</ErrorBoundary>,
         presets: <ErrorBoundary label="Presets">{PresetsContent ? <PresetsContent /> : <PlaceholderContent tab="presets" />}</ErrorBoundary>,
         loom: <ErrorBoundary label="Loom">{LoomContent ? <LoomContent compact /> : <PlaceholderContent tab="loom" />}</ErrorBoundary>,
+        connect: <ErrorBoundary label="Connect">{ConnectContent ? <ConnectContent compact /> : <PlaceholderContent tab="connect" />}</ErrorBoundary>,
         browser: <ErrorBoundary label="Packs">{BrowserContent ? <BrowserContent /> : <PlaceholderContent tab="browser" />}</ErrorBoundary>,
         characters: <ErrorBoundary label="Characters">{CharacterBrowserContent ? <CharacterBrowserContent /> : <PlaceholderContent tab="characters" />}</ErrorBoundary>,
         personas: <ErrorBoundary label="Personas">{PersonasContent ? <PersonasContent /> : <PlaceholderContent tab="personas" />}</ErrorBoundary>,
@@ -508,7 +516,7 @@ function ViewportPanel({
         council: <ErrorBoundary label="Council">{CouncilContent ? <CouncilContent /> : <PlaceholderContent tab="council" />}</ErrorBoundary>,
         summary: <ErrorBoundary label="Summary">{SummaryContent ? <SummaryContent /> : <PlaceholderContent tab="summary" />}</ErrorBoundary>,
         feedback: <ErrorBoundary label="Feedback">{FeedbackContent ? <FeedbackContent /> : <PlaceholderContent tab="feedback" />}</ErrorBoundary>,
-    }), [ProfileContent, PresetsContent, LoomContent, BrowserContent, CharacterBrowserContent, PersonasContent, CreateContent, OOCContent, PromptContent, CouncilContent, SummaryContent, FeedbackContent, handleTabClick]);
+    }), [ProfileContent, PresetsContent, LoomContent, ConnectContent, BrowserContent, CharacterBrowserContent, PersonasContent, CreateContent, OOCContent, PromptContent, CouncilContent, SummaryContent, FeedbackContent, handleTabClick]);
 
     // Calculate wrapper positioning based on side
     const getWrapperStyle = () => {

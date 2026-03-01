@@ -27,6 +27,7 @@ import GuidedGenModal from './modals/GuidedGenModal';
 import CharacterGalleryModal from './modals/CharacterGalleryModal';
 import WorldBookEditorModal from './modals/WorldBookEditorModal';
 import ImportUrlModal from './modals/ImportUrlModal';
+import ConnectionMigrateModal from './modals/ConnectionMigrateModal';
 import { AuthorsNoteModalContent } from './chat/AuthorsNotePanel';
 
 /**
@@ -307,6 +308,14 @@ const MODAL_CONFIG = {
         component: WorldBookEditorModal,
         modalType: 'editor',
         size: 'xlarge',
+        hasCustomHeader: true,
+        props: {},
+    },
+    // Connection Manager migration
+    connectionMigrate: {
+        component: ConnectionMigrateModal,
+        modalType: 'settings',
+        size: 'medium',
         hasCustomHeader: true,
         props: {},
     },

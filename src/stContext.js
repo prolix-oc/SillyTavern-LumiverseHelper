@@ -729,6 +729,56 @@ export function getCharacterCardInfo() {
 }
 
 /**
+ * Get the OAI (Chat Completion) settings object.
+ * This provides access to chat_completion_source, model, reverse_proxy, etc.
+ * @returns {Object|null} OAI settings object, or null if unavailable
+ */
+export function getOaiSettings() {
+  const ctx = getContext();
+  return ctx?.chatCompletionSettings || null;
+}
+
+/**
+ * Get the main API type (e.g., 'openai', 'textgenerationwebui', etc.).
+ * @returns {string|null}
+ */
+export function getMainApi() {
+  const ctx = getContext();
+  return ctx?.mainApi || null;
+}
+
+/**
+ * Get the chat completion model name for the current CC provider.
+ * @returns {string|null}
+ */
+export function getChatCompletionModel() {
+  const ctx = getContext();
+  return typeof ctx?.getChatCompletionModel === 'function'
+    ? ctx.getChatCompletionModel() : null;
+}
+
+/**
+ * Write a secret (API key) to ST's secrets storage.
+ * Uses the /api/secrets/write endpoint.
+ * @param {string} key - The secret key identifier (e.g., 'api_key_openai')
+ * @param {string} value - The secret value
+ * @returns {Promise<boolean>} True if written successfully
+ */
+export async function writeSecret(key, value) {
+  try {
+    const response = await fetch('/api/secrets/write', {
+      method: 'POST',
+      headers: getRequestHeaders(),
+      body: JSON.stringify({ key, value }),
+    });
+    return response.ok;
+  } catch (err) {
+    console.error('[LumiverseHelper] Failed to write secret:', err);
+    return false;
+  }
+}
+
+/**
  * Check if the current chat is a group chat.
  * @returns {boolean}
  */

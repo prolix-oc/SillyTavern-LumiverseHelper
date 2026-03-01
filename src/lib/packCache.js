@@ -37,6 +37,10 @@ import {
     saveLoomPreset as saveLoomPresetFile,
     loadLoomPreset as loadLoomPresetFile,
     deleteLoomPreset as deleteLoomPresetFile,
+    getConnectionProfileFileKey,
+    saveConnectionProfile as saveConnectionProfileFile,
+    loadConnectionProfile as loadConnectionProfileFile,
+    deleteConnectionProfile as deleteConnectionProfileFile,
 } from "./fileStorage.js";
 import { MODULE_NAME } from "./settingsManager.js";
 
@@ -137,6 +141,20 @@ export async function initPackCache() {
                     if (data) loomPresetCache.set(presetId, data);
                 } catch (err) {
                     console.warn(`[${MODULE_NAME}] Failed to pre-load Loom preset ${presetId}:`, err);
+                }
+            }
+        }
+
+        // Pre-load all connection profiles into cache
+        const connRegistry = cachedIndex?.connectionProfiles?.registry || {};
+        const connEntries = Object.entries(connRegistry).filter(([_, e]) => e?.fileKey);
+        if (connEntries.length > 0) {
+            for (const [profileId, entry] of connEntries) {
+                try {
+                    const data = await loadConnectionProfileFile(entry.fileKey);
+                    if (data) connectionProfileCache.set(profileId, data);
+                } catch (err) {
+                    console.warn(`[${MODULE_NAME}] Failed to pre-load connection profile ${profileId}:`, err);
                 }
             }
         }
@@ -1385,6 +1403,166 @@ export async function clearLoomCharacterToggleBinding(avatar) {
 }
 
 // ============================================================================
+// CONNECTION PROFILES (Connection Manager)
+// ============================================================================
+
+/** @type {Map<string, Object>} Map of profileId -> full connection profile data */
+const connectionProfileCache = new Map();
+
+/**
+ * Get the connection profile registry from the cached index.
+ * @returns {Object} Registry object { [profileId]: { id, name, provider, model, color, updatedAt, fileKey } }
+ */
+export function getConnectionProfileRegistry() {
+    return cachedIndex?.connectionProfiles?.registry || {};
+}
+
+/**
+ * Get the active connection profile ID.
+ * @returns {string|null}
+ */
+export function getActiveConnectionProfileId() {
+    return cachedIndex?.connectionProfiles?.activeProfileId || null;
+}
+
+/**
+ * Set the active connection profile ID.
+ * @param {string|null} profileId
+ */
+export function setActiveConnectionProfileId(profileId) {
+    if (!cachedIndex) return;
+    if (!cachedIndex.connectionProfiles) {
+        cachedIndex.connectionProfiles = { registry: {}, activeProfileId: null, bindings: { characters: {}, chats: {} } };
+    }
+    cachedIndex.connectionProfiles.activeProfileId = profileId;
+    debouncedIndexSave();
+    notifyListeners();
+}
+
+/**
+ * Get connection profile bindings.
+ * @returns {{ characters: Object, chats: Object }}
+ */
+export function getConnectionProfileBindings() {
+    if (!cachedIndex?.connectionProfiles?.bindings) {
+        return { characters: {}, chats: {} };
+    }
+    return cachedIndex.connectionProfiles.bindings;
+}
+
+/**
+ * Set connection profile bindings.
+ * Uses immediate flush to prevent race conditions on chat switch.
+ * @param {{ characters: Object, chats: Object }} bindings
+ */
+export async function setConnectionProfileBindings(bindings) {
+    if (!cachedIndex) return;
+    if (!cachedIndex.connectionProfiles) {
+        cachedIndex.connectionProfiles = { registry: {}, activeProfileId: null, bindings: { characters: {}, chats: {} } };
+    }
+    cachedIndex.connectionProfiles.bindings = bindings;
+    await flushIndexSave();
+    notifyListeners();
+}
+
+/**
+ * Get a connection profile synchronously from cache.
+ * @param {string} profileId
+ * @returns {Object|null}
+ */
+export function getConnectionProfileSync(profileId) {
+    return connectionProfileCache.get(profileId) || null;
+}
+
+/**
+ * Get a connection profile (async, loads from file if not cached).
+ * @param {string} profileId
+ * @returns {Promise<Object|null>}
+ */
+export async function getConnectionProfile(profileId) {
+    if (connectionProfileCache.has(profileId)) {
+        return connectionProfileCache.get(profileId);
+    }
+
+    const registryEntry = cachedIndex?.connectionProfiles?.registry?.[profileId];
+    if (!registryEntry?.fileKey) return null;
+
+    try {
+        const data = await loadConnectionProfileFile(registryEntry.fileKey);
+        if (data) {
+            connectionProfileCache.set(profileId, data);
+        }
+        return data;
+    } catch (err) {
+        console.warn(`[${MODULE_NAME}] Failed to load connection profile ${profileId}:`, err);
+        return null;
+    }
+}
+
+/**
+ * Add or update a connection profile in cache, file storage, and registry.
+ * @param {string} profileId
+ * @param {Object} profileData - Full profile data
+ * @param {Object} registryEntry - Registry metadata { id, name, provider, model, color, updatedAt, fileKey }
+ */
+export async function upsertConnectionProfile(profileId, profileData, registryEntry) {
+    if (!cachedIndex) return;
+    if (!cachedIndex.connectionProfiles) {
+        cachedIndex.connectionProfiles = { registry: {}, activeProfileId: null, bindings: { characters: {}, chats: {} } };
+    }
+
+    // Update cache
+    connectionProfileCache.set(profileId, profileData);
+
+    // Save to file
+    await saveConnectionProfileFile(registryEntry.fileKey, profileData);
+
+    // Update registry
+    cachedIndex.connectionProfiles.registry[profileId] = registryEntry;
+
+    debouncedIndexSave();
+    notifyListeners();
+}
+
+/**
+ * Remove a connection profile from cache, file, and registry.
+ * @param {string} profileId
+ */
+export async function removeConnectionProfile(profileId) {
+    if (!cachedIndex?.connectionProfiles) return;
+
+    const registryEntry = cachedIndex.connectionProfiles.registry[profileId];
+
+    // Remove from cache
+    connectionProfileCache.delete(profileId);
+
+    // Delete file
+    if (registryEntry?.fileKey) {
+        await deleteConnectionProfileFile(registryEntry.fileKey);
+    }
+
+    // Remove from registry
+    delete cachedIndex.connectionProfiles.registry[profileId];
+
+    // Clear active if it was this profile
+    if (cachedIndex.connectionProfiles.activeProfileId === profileId) {
+        cachedIndex.connectionProfiles.activeProfileId = null;
+    }
+
+    // Clear bindings referencing this profile
+    const bindings = cachedIndex.connectionProfiles.bindings || { characters: {}, chats: {} };
+    for (const [key, val] of Object.entries(bindings.characters || {})) {
+        if (val === profileId) delete bindings.characters[key];
+    }
+    for (const [key, val] of Object.entries(bindings.chats || {})) {
+        if (val === profileId) delete bindings.chats[key];
+    }
+
+    debouncedIndexSave();
+    notifyListeners();
+}
+
+// ============================================================================
 // DEBUG UTILITIES
 // ============================================================================
 
@@ -1409,6 +1587,7 @@ export async function clearAllData() {
     cachedIndex = null;
     packCache.clear();
     loomPresetCache.clear();
+    connectionProfileCache.clear();
     loadingPacks.clear();
     initialized = false;
     allPacksLoaded = false;

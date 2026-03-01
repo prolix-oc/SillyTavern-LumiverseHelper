@@ -7,7 +7,7 @@
  */
 
 import { getContext, getSubstituteParams } from "../stContext.js";
-import { MODULE_NAME } from "./settingsManager.js";
+import { MODULE_NAME, getSettings, saveSettings } from "./settingsManager.js";
 import { getLoomPresetFileKey } from "./fileStorage.js";
 import { captureReasoningSnapshot, applyReasoningSnapshot, getAdaptiveThinkingEnabled, getStartReplyWith } from "./presetsService.js";
 import {
@@ -22,6 +22,8 @@ import {
     removeLoomPreset,
     getLoomChatToggleBinding,
     getLoomCharacterToggleBinding,
+    getActiveConnectionProfileId,
+    getConnectionProfileSync,
 } from "./packCache.js";
 
 // Category marker used by ST presets
@@ -885,6 +887,66 @@ export function captureLoomBlockStates() {
     return Object.keys(states).length > 0 ? states : null;
 }
 
+// ─── Default Loom Block State Capture / Restore ─────────────────────────────
+// Mirrors the ST preset default toggle state system in presetBindingService.js.
+// When users switch to a chat/character with no Loom toggle bindings, block
+// enabled states are restored to the captured defaults to prevent "leakage".
+
+let _isOnLoomDefaults = false;
+
+/**
+ * Capture the current Loom preset's block enabled states as the "defaults".
+ * Called once to establish baseline; restored when switching to unbound contexts.
+ * @returns {boolean} Whether defaults were successfully captured
+ */
+export function captureDefaultLoomBlockState() {
+    const blockStates = captureLoomBlockStates();
+    if (!blockStates) {
+        console.warn(`[${MODULE_NAME}] Failed to capture default Loom block state - no blocks available`);
+        return false;
+    }
+
+    const settings = getSettings();
+    settings.capturedDefaultLoomBlockStates = blockStates;
+    saveSettings();
+
+    _isOnLoomDefaults = true;
+    return true;
+}
+
+/**
+ * Re-capture defaults (clears "on defaults" flag first).
+ * @returns {boolean} Whether defaults were successfully recaptured
+ */
+export function recaptureDefaultLoomBlockState() {
+    _isOnLoomDefaults = false;
+    return captureDefaultLoomBlockState();
+}
+
+/**
+ * Check if there are captured default Loom block states available.
+ * @returns {boolean}
+ */
+export function hasDefaultLoomBlockState() {
+    const defaults = getSettings().capturedDefaultLoomBlockStates;
+    return defaults !== null && defaults !== undefined && Object.keys(defaults).length > 0;
+}
+
+/**
+ * Restore Loom block states to captured defaults on the active preset.
+ * @returns {Promise<{ applied: boolean, matched: number }>}
+ */
+async function restoreDefaultLoomBlockStates() {
+    const defaults = getSettings().capturedDefaultLoomBlockStates;
+    if (!defaults) return { applied: false, matched: 0 };
+
+    const result = await applyLoomBlockStates(defaults);
+    if (result.applied) {
+        _isOnLoomDefaults = true;
+    }
+    return { applied: result.applied, matched: result.matched };
+}
+
 /**
  * Apply saved block states to the active Loom preset.
  * Only matching block IDs are updated; unmatched blocks are left unchanged.
@@ -948,6 +1010,7 @@ export async function applyLoomToggleBindingsForContext(presetId) {
                 const result = await applyLoomBlockStates(chatToggle.blockStates);
                 console.debug('[LoomToggle] Applied chat toggle:', result);
                 if (result.applied) {
+                    _isOnLoomDefaults = false;
                     return { applied: true, source: 'chat', matched: result.matched };
                 }
             }
@@ -961,12 +1024,26 @@ export async function applyLoomToggleBindingsForContext(presetId) {
                 const result = await applyLoomBlockStates(charToggle.blockStates);
                 console.debug('[LoomToggle] Applied character toggle:', result);
                 if (result.applied) {
+                    _isOnLoomDefaults = false;
                     return { applied: true, source: 'character', matched: result.matched };
                 }
             }
         }
 
-        console.debug('[LoomToggle] No toggle bindings found for context');
+        // No bindings found — restore defaults if available and not disabled
+        console.debug('[LoomToggle] No toggle bindings found for context, checking defaults');
+        const settings = getSettings();
+        if (!settings.disableDefaultStateRestore && hasDefaultLoomBlockState()) {
+            if (!_isOnLoomDefaults) {
+                const result = await restoreDefaultLoomBlockStates();
+                if (result.applied) {
+                    console.debug('[LoomToggle] Restored default block states:', result.matched, 'blocks');
+                    return { applied: true, source: 'defaults', matched: result.matched };
+                }
+            } else {
+                console.debug('[LoomToggle] Already on defaults, skipping restore');
+            }
+        }
     } catch (e) {
         console.warn('[LoomToggle] Error applying toggle bindings:', e);
     }
@@ -1575,6 +1652,21 @@ export function detectConnectionProfile() {
         supportedParams: DEFAULT_PROVIDER_PARAMS,
     };
 
+    // Prefer Lumiverse connection manager data when available — avoids
+    // timing races where ST context is stale after async slash commands.
+    const activeConnId = getActiveConnectionProfileId();
+    if (activeConnId) {
+        const connProfile = getConnectionProfileSync(activeConnId);
+        if (connProfile?.provider && connProfile?.model) {
+            profile.mainApi = 'openai'; // All connection profiles use chat completion
+            profile.source = connProfile.provider;
+            profile.model = connProfile.model;
+            profile.supportedParams = PROVIDER_PARAMS[connProfile.provider] || DEFAULT_PROVIDER_PARAMS;
+            return profile;
+        }
+    }
+
+    // ST fallback — no active Lumiverse profile or profile data incomplete
     try {
         const ctx = getContext();
         if (!ctx) return profile;

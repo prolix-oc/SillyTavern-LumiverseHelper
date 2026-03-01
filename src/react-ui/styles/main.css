@@ -18253,6 +18253,8 @@ details.lumia-panel[open] .lumia-panel-chevron {
     padding: 0;
     text-align: left;
     color: inherit;
+    content-visibility: auto;
+    contain-intrinsic-size: auto 200px;
 }
 
 .lumiverse-cb-card:hover {
@@ -18328,10 +18330,10 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
 .lumiverse-cb-card-star {
     position: absolute;
-    top: 6px;
-    right: 6px;
-    width: 26px;
-    height: 26px;
+    top: 5px;
+    right: 5px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -18364,10 +18366,10 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
 .lumiverse-cb-card-edit {
     position: absolute;
-    top: 6px;
-    left: 6px;
-    width: 26px;
-    height: 26px;
+    top: 5px;
+    left: 5px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -18389,7 +18391,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
 /* In list rows, position edit button next to the star on the right */
 .lumiverse-cb-list-row .lumiverse-cb-card-edit {
     left: auto;
-    right: 34px;
+    right: 40px;
     top: 50%;
     transform: translateY(-50%);
 }
@@ -18401,10 +18403,10 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
 .lumiverse-cb-card-delete {
     position: absolute;
-    top: 6px;
-    left: 34px;
-    width: 26px;
-    height: 26px;
+    top: 5px;
+    left: 40px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -18426,7 +18428,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
 /* In list rows, position delete button between edit and star */
 .lumiverse-cb-list-row .lumiverse-cb-card-delete {
     left: auto;
-    right: 60px;
+    right: 75px;
     top: 50%;
     transform: translateY(-50%);
 }
@@ -18610,6 +18612,8 @@ details.lumia-panel[open] .lumia-panel-chevron {
     text-align: left;
     color: inherit;
     position: relative;
+    content-visibility: auto;
+    contain-intrinsic-size: auto 48px;
 }
 
 .lumiverse-cb-list-row:hover {

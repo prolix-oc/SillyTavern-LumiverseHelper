@@ -199,10 +199,13 @@ async function deleteFile(filename) {
  * }
  */
 
-const INDEX_SCHEMA_VERSION = 5;
+const INDEX_SCHEMA_VERSION = 6;
 
 // Loom preset file prefix
 const LOOM_PRESET_PREFIX = `${FILE_PREFIX}loom_`;
+
+// Connection profile file prefix
+const CONN_PROFILE_PREFIX = `${FILE_PREFIX}conn_`;
 
 /**
  * Create a default index structure.
@@ -253,6 +256,11 @@ function createDefaultIndex() {
         loomPresets: { // Lucid Loom Preset Builder
             registry: {},
             activePresetId: null,
+            bindings: { characters: {}, chats: {} },
+        },
+        connectionProfiles: { // Connection Manager
+            registry: {},
+            activeProfileId: null,
             bindings: { characters: {}, chats: {} },
         },
     };
@@ -320,6 +328,19 @@ function migrateIndex(index) {
             };
         }
         index.version = 5;
+        migrated = true;
+    }
+
+    // v5 -> v6: Add connectionProfiles section for Connection Manager
+    if (index.version < 6) {
+        if (!index.connectionProfiles) {
+            index.connectionProfiles = {
+                registry: {},
+                activeProfileId: null,
+                bindings: { characters: {}, chats: {} },
+            };
+        }
+        index.version = 6;
         migrated = true;
     }
 
@@ -708,6 +729,47 @@ export async function deleteLoomPreset(fileKey) {
 }
 
 // ============================================================================
+// CONNECTION PROFILE FILE OPERATIONS
+// ============================================================================
+
+/**
+ * Generate the file key for a connection profile based on its name.
+ * @param {string} profileName - The profile name
+ * @returns {string} File key (e.g., "lumiverse_conn_a1b2c3d4.json")
+ */
+export function getConnectionProfileFileKey(profileName) {
+    return `${CONN_PROFILE_PREFIX}${hashString(profileName)}.json`;
+}
+
+/**
+ * Save a connection profile to file storage.
+ * @param {string} fileKey - The file key
+ * @param {Object} profileData - The profile data
+ * @returns {Promise<void>}
+ */
+export async function saveConnectionProfile(fileKey, profileData) {
+    await uploadFile(fileKey, profileData);
+}
+
+/**
+ * Load a connection profile from file storage.
+ * @param {string} fileKey - The file key
+ * @returns {Promise<Object|null>} The profile data or null
+ */
+export async function loadConnectionProfile(fileKey) {
+    return await loadFile(fileKey);
+}
+
+/**
+ * Delete a connection profile from file storage.
+ * @param {string} fileKey - The file key
+ * @returns {Promise<boolean>} True if deleted
+ */
+export async function deleteConnectionProfile(fileKey) {
+    return await deleteFile(fileKey);
+}
+
+// ============================================================================
 // NUCLEAR RESET - DELETE ALL LUMIVERSE FILES
 // ============================================================================
 
@@ -764,6 +826,25 @@ export async function deleteAllLumiverseFiles() {
                     }
                 } catch (err) {
                     console.warn(`[${MODULE_NAME}] Failed to delete loom preset file ${entry.fileKey}:`, err);
+                    failed.push(entry.fileKey);
+                }
+            }
+        }
+    }
+
+    // Delete all connection profile files from the registry
+    if (index?.connectionProfiles?.registry) {
+        for (const entry of Object.values(index.connectionProfiles.registry)) {
+            if (entry.fileKey) {
+                try {
+                    const success = await deleteConnectionProfile(entry.fileKey);
+                    if (success) {
+                        deleted.push(entry.fileKey);
+                    } else {
+                        failed.push(entry.fileKey);
+                    }
+                } catch (err) {
+                    console.warn(`[${MODULE_NAME}] Failed to delete connection profile file ${entry.fileKey}:`, err);
                     failed.push(entry.fileKey);
                 }
             }

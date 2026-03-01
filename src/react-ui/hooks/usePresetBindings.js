@@ -22,6 +22,8 @@ import {
     setBinding as setLoomBinding,
     clearBinding as clearLoomBinding,
     captureLoomBlockStates,
+    recaptureDefaultLoomBlockState,
+    hasDefaultLoomBlockState,
 } from '../../lib/lucidLoomService.js';
 import {
     getLoomBindings,
@@ -418,7 +420,7 @@ export function usePresetBindings() {
 
         // Default state restoration settings
         disableDefaultStateRestore,
-        hasDefaultToggles: hasDefaultToggleState(),
+        hasDefaultToggles: isLoomMode ? hasDefaultLoomBlockState() : hasDefaultToggleState(),
 
         // Actions
         bindCurrentCharacter,
@@ -436,7 +438,7 @@ export function usePresetBindings() {
 
         // Default state restoration actions
         setDisableDefaultStateRestore: actions.setDisableDefaultStateRestore,
-        recaptureDefaultToggleState,
+        recaptureDefaultToggleState: isLoomMode ? recaptureDefaultLoomBlockState : recaptureDefaultToggleState,
 
         // Direct access for advanced use
         setCharacterBinding,

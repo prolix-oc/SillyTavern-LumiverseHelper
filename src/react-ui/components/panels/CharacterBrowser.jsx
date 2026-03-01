@@ -403,7 +403,7 @@ const CharacterCardGrid = memo(function CharacterCardGrid({
                     type="button"
                     title="Edit character card"
                 >
-                    <Pencil size={12} strokeWidth={1.5} />
+                    <Pencil size={14} strokeWidth={1.5} />
                 </button>
             )}
             {!isBatchMode && onDelete && !item.isGroup && (
@@ -413,7 +413,7 @@ const CharacterCardGrid = memo(function CharacterCardGrid({
                     type="button"
                     title="Delete character"
                 >
-                    <Trash2 size={12} strokeWidth={1.5} />
+                    <Trash2 size={14} strokeWidth={1.5} />
                 </button>
             )}
             {!isBatchMode && (
@@ -423,7 +423,7 @@ const CharacterCardGrid = memo(function CharacterCardGrid({
                     type="button"
                     title={item.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
                 >
-                    <Star size={13} strokeWidth={item.isFavorite ? 0 : 1.5} fill={item.isFavorite ? 'currentColor' : 'none'} />
+                    <Star size={15} strokeWidth={item.isFavorite ? 0 : 1.5} fill={item.isFavorite ? 'currentColor' : 'none'} />
                 </button>
             )}
         </button>
@@ -472,7 +472,7 @@ const CharacterCardList = memo(function CharacterCardList({
                     type="button"
                     title="Edit character card"
                 >
-                    <Pencil size={12} strokeWidth={1.5} />
+                    <Pencil size={14} strokeWidth={1.5} />
                 </button>
             )}
             {!isBatchMode && onDelete && !item.isGroup && (
@@ -482,7 +482,7 @@ const CharacterCardList = memo(function CharacterCardList({
                     type="button"
                     title="Delete character"
                 >
-                    <Trash2 size={12} strokeWidth={1.5} />
+                    <Trash2 size={14} strokeWidth={1.5} />
                 </button>
             )}
             {!isBatchMode && (
@@ -492,7 +492,7 @@ const CharacterCardList = memo(function CharacterCardList({
                     type="button"
                     title={item.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
                 >
-                    <Star size={12} strokeWidth={item.isFavorite ? 0 : 1.5} fill={item.isFavorite ? 'currentColor' : 'none'} />
+                    <Star size={14} strokeWidth={item.isFavorite ? 0 : 1.5} fill={item.isFavorite ? 'currentColor' : 'none'} />
                 </button>
             )}
         </button>

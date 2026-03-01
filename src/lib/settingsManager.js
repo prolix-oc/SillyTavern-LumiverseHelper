@@ -176,6 +176,7 @@ const DEFAULT_SETTINGS = {
   // Toggle binding default state restoration
   disableDefaultStateRestore: true, // When true, skip restoring default toggle states for unbound chats (opt-in feature)
   capturedDefaultToggles: null, // Persisted default toggle state (survives page refresh)
+  capturedDefaultLoomBlockStates: null, // Persisted default Loom block enabled states (survives page refresh)
   // Chat Sheld override (glassmorphic chat redesign)
   enableChatSheld: false, // When true, replace ST's chat display with React glassmorphic chat
   chatSheldDisplayMode: 'minimal', // 'minimal' | 'immersive' | 'bubble' — display mode for Chat Sheld

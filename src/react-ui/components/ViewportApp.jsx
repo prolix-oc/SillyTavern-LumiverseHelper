@@ -10,6 +10,7 @@ import SummaryEditor from './panels/SummaryEditor';
 import FeedbackPanel from './panels/FeedbackPanel';
 import ContentWorkshop from './panels/ContentWorkshop';
 import LoomBuilder from './panels/LoomBuilder';
+import ConnectionManager from './panels/ConnectionManager';
 import CharacterBrowser from './panels/CharacterBrowser';
 import PersonaManager from './panels/PersonaManager';
 import PackDetailModal from './modals/PackDetailModal';
@@ -118,6 +119,7 @@ function ViewportApp() {
                     ProfileContent={CharacterProfile}
                     PresetsContent={PresetManager}
                     LoomContent={LoomBuilder}
+                    ConnectContent={ConnectionManager}
                     BrowserContent={PackBrowser}
                     CharacterBrowserContent={CharacterBrowser}
                     PersonasContent={PersonaManager}

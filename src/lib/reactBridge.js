@@ -29,6 +29,9 @@ import {
   getLoomPresetRegistry,
   getActiveLoomPresetId,
   getLoomBindings,
+  getConnectionProfileRegistry,
+  getActiveConnectionProfileId,
+  getConnectionProfileBindings,
 } from "./packCache.js";
 import { applyTheme, removeThemeOverrides, getDefaultTheme } from "./themeManager.js";
 import { getEventSource, getEventTypes, getRequestHeaders, triggerExtensionUpdate, getExtensionGitVersion } from "../stContext.js";
@@ -128,6 +131,12 @@ export function settingsToReactFormat() {
         activePresetId: getActiveLoomPresetId(),
         registry: getLoomPresetRegistry(),
         bindings: getLoomBindings(),
+      },
+      // Populate connectionManager state from packCache
+      connectionManager: {
+        activeProfileId: getActiveConnectionProfileId(),
+        registry: getConnectionProfileRegistry(),
+        bindings: getConnectionProfileBindings(),
       },
       characterBrowser,
     };

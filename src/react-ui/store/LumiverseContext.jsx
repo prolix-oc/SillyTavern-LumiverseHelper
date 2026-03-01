@@ -209,6 +209,13 @@ const initialState = {
         tokenUsage: null,           // { promptTokens, maxContext, maxTokens, timestamp } — transient, not persisted
     },
 
+    // Connection Manager
+    connectionManager: {
+        activeProfileId: null,
+        registry: {},               // { [id]: { id, name, provider, model, color, updatedAt, fileKey } }
+        bindings: { characters: {}, chats: {} },
+    },
+
     // Imperative signal: set to tab ID string to open drawer to that tab, then clear
     _openToTab: null,
     // Imperative signal: set to timestamp to close the drawer, then clear
@@ -1703,6 +1710,27 @@ const actions = {
     updateLoomBindings: (bindings) => {
         const current = store.getState().loomBuilder || {};
         store.setState({ loomBuilder: { ...current, bindings } });
+    },
+
+    // Connection Manager actions
+    setConnectionManagerState: (partial) => {
+        const current = store.getState().connectionManager || {};
+        store.setState({ connectionManager: { ...current, ...partial } });
+    },
+
+    setActiveConnectionProfile: (profileId) => {
+        const current = store.getState().connectionManager || {};
+        store.setState({ connectionManager: { ...current, activeProfileId: profileId } });
+    },
+
+    updateConnectionRegistry: (registry) => {
+        const current = store.getState().connectionManager || {};
+        store.setState({ connectionManager: { ...current, registry } });
+    },
+
+    updateConnectionBindings: (bindings) => {
+        const current = store.getState().connectionManager || {};
+        store.setState({ connectionManager: { ...current, bindings } });
     },
 };
 
