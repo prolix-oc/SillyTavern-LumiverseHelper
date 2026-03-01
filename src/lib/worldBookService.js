@@ -328,7 +328,7 @@ export async function importBookFromFile(file) {
         delete importHeaders['Content-Type'];
 
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append('avatar', file);
 
         const resp = await fetch('/api/worldinfo/import', {
             method: 'POST',
@@ -354,17 +354,22 @@ export async function createNewBook(name) {
     if (!name) return false;
     try {
         const headers = getRequestHeaders();
-        // Create via the import endpoint with convertedData
+        // Import endpoint requires a file upload (multer field 'avatar'),
+        // even when convertedData is provided. Create a minimal JSON blob.
+        const emptyBook = JSON.stringify({ entries: {} });
+        const blob = new Blob([emptyBook], { type: 'application/json' });
+        const file = new File([blob], `${name}.json`, { type: 'application/json' });
+
+        const importHeaders = { ...headers };
+        delete importHeaders['Content-Type'];
+
+        const formData = new FormData();
+        formData.append('avatar', file);
+
         const resp = await fetch('/api/worldinfo/import', {
             method: 'POST',
-            headers,
-            body: JSON.stringify({
-                convertedData: {
-                    entries: {},
-                    originalData: { entries: {} },
-                },
-                name,
-            }),
+            headers: importHeaders,
+            body: formData,
         });
         if (!resp.ok) throw new Error(`Failed to create book "${name}": ${resp.status}`);
         invalidateCache();
