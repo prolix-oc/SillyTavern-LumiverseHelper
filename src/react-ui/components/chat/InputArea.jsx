@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import {
     triggerSend,
+    triggerSilentContinue,
     triggerRegenerate,
     triggerContinue,
     triggerImpersonate,
@@ -93,10 +94,14 @@ export default function InputArea() {
     const handleSend = useCallback(() => {
         if (sendingRef.current) return;
         const trimmed = text.trim();
-        if (!trimmed) return;
 
         sendingRef.current = true;
-        triggerSend(trimmed).finally(() => { sendingRef.current = false; });
+        if (trimmed) {
+            triggerSend(trimmed).finally(() => { sendingRef.current = false; });
+        } else {
+            // Empty send = silent continue (nudge AI to generate without a user message)
+            triggerSilentContinue().finally(() => { sendingRef.current = false; });
+        }
         setText('');
 
         // Re-focus textarea after send
@@ -320,10 +325,9 @@ export default function InputArea() {
                         <button
                             className="lcs-send-btn"
                             onClick={handleSend}
-                            disabled={!text.trim()}
-                            title="Send message"
+                            title={text.trim() ? 'Send message' : 'Silent continue (nudge)'}
                             type="button"
-                            aria-label="Send message"
+                            aria-label={text.trim() ? 'Send message' : 'Silent continue'}
                         >
                             <Send size={16} />
                         </button>

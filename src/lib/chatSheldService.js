@@ -1687,6 +1687,39 @@ export async function triggerContinue() {
 }
 
 /**
+ * Silent continue — trigger a new AI response without adding a user message.
+ * The AI generates based on existing chat context, as if the user "nudged"
+ * it to keep going. Unlike Continue (which appends to the last message),
+ * this produces a separate new message.
+ *
+ * Works because ST's Generate('normal') reads from #send_textarea, which is
+ * empty when Chat Sheld is active (the user types in .lcs-textarea instead).
+ * With an empty textarea, ST skips sendMessageAsUser() and proceeds directly
+ * to prompt assembly and generation.
+ */
+export async function triggerSilentContinue() {
+    const generate = getGenerate();
+    if (generate) {
+        try {
+            await generate('normal');
+            _ensureGenerationCleanup();
+            return;
+        } catch (e) { console.warn(`[${MODULE_NAME}] Generate('normal') for silent continue failed:`, e.message); }
+    }
+    // Fallback: clear ST's textarea and click send — same effect
+    try {
+        const textarea = document.getElementById('send_textarea');
+        if (textarea) {
+            textarea.value = '';
+            textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        jQuery('#send_but').trigger('click');
+    } catch {
+        document.getElementById('send_but')?.click();
+    }
+}
+
+/**
  * Trigger impersonation (AI writes as user) via ST's Generate API.
  * Falls back to DOM click if the API is unavailable.
  */
