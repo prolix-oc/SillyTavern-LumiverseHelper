@@ -232,7 +232,7 @@ function LumiaItemCard({ item, type, onSelect, isSelected }) {
                 <LazyImage
                     src={itemImg}
                     alt={itemName}
-                    className="lumiverse-browser-item-image"
+                    containerClassName="lumiverse-browser-item-image"
                     objectPosition={objectPosition}
                     spinnerSize={14}
                 />

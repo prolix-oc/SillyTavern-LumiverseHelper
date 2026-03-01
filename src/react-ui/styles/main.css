@@ -6734,9 +6734,8 @@ details.lumia-panel[open] .lumia-panel-chevron {
     width: 32px;
     height: 32px;
     border-radius: 4px;
-    object-fit: cover;
+    overflow: hidden;
     flex-shrink: 0;
-    animation: lumiverseFadeIn 0.2s ease;
 }
 
 .lumiverse-browser-item-content {
