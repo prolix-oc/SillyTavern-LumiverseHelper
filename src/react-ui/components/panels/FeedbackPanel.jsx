@@ -3,6 +3,7 @@ import clsx from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
 import { BarChart2, CheckCircle, XCircle, Users, ChevronDown, ChevronUp, Briefcase, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 import { useLumiverseStore, usePacks } from '../../store/LumiverseContext';
+import LazyImage from '../shared/LazyImage';
 
 // Get store for direct access
 const store = useLumiverseStore;
@@ -296,11 +297,12 @@ function FeedbackMemberCard({ group, packs }) {
         >
             <div className="lumiverse-feedback-member-header">
                 <div className="lumiverse-feedback-member-avatar">
-                    {memberImage ? (
-                        <img src={memberImage} alt={memberName} />
-                    ) : (
-                        <Users size={20} strokeWidth={1.5} />
-                    )}
+                    <LazyImage
+                        src={memberImage}
+                        alt={memberName}
+                        spinnerSize={14}
+                        fallback={<Users size={20} strokeWidth={1.5} />}
+                    />
                 </div>
                 <div className="lumiverse-feedback-member-info">
                     <span className="lumiverse-feedback-member-name">{memberName}</span>

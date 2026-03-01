@@ -3,12 +3,23 @@ import { Loader2 } from 'lucide-react';
 
 /**
  * LazyImage - Image component with loading spinner for lazy-loaded images
- * 
+ *
  * Shows a loading spinner while the image is loading, then fades in the image.
  * Uses native browser lazy loading via loading="lazy" attribute.
+ *
+ * Props:
+ *  - src: image URL
+ *  - alt: alt text
+ *  - style: extra styles merged onto the <img>
+ *  - objectPosition: CSS object-position (default 'center')
+ *  - className: class on the <img>
+ *  - fallback: ReactNode shown when src is missing or image fails to load
+ *  - spinnerSize: size of the Loader2 icon (default 24)
+ *  - containerClassName: class on the wrapper div
+ *  - containerStyle: extra styles merged onto the wrapper div
  */
 
-const styles = {
+const baseStyles = {
     container: {
         position: 'relative',
         width: '100%',
@@ -34,13 +45,17 @@ const styles = {
     },
 };
 
-function LazyImage({ 
-    src, 
-    alt = '', 
-    style = {}, 
+function LazyImage({
+    src,
+    alt = '',
+    style = {},
     objectPosition = 'center',
     className = '',
-    ...props 
+    fallback = null,
+    spinnerSize = 24,
+    containerClassName = '',
+    containerStyle = {},
+    ...props
 }) {
     const [isLoading, setIsLoading] = useState(true);
     const [hasError, setHasError] = useState(false);
@@ -55,21 +70,30 @@ function LazyImage({
     }, []);
 
     if (hasError || !src) {
-        return null;
+        return fallback;
     }
 
+    // When containerClassName is provided, omit default width/height so the
+    // class can control dimensions (inline styles beat class specificity).
+    const containerInline = containerClassName
+        ? { position: 'relative', overflow: 'hidden', ...containerStyle }
+        : { ...baseStyles.container, ...containerStyle };
+
     return (
-        <div style={styles.container}>
+        <div
+            style={containerInline}
+            className={containerClassName || undefined}
+        >
             {isLoading && (
-                <div style={styles.spinner}>
-                    <Loader2 size={24} strokeWidth={1.5} />
+                <div style={baseStyles.spinner}>
+                    <Loader2 size={spinnerSize} strokeWidth={1.5} />
                 </div>
             )}
             <img
                 src={src}
                 alt={alt}
                 style={{
-                    ...styles.image,
+                    ...baseStyles.image,
                     ...style,
                     objectPosition,
                     opacity: isLoading ? 0 : 1,

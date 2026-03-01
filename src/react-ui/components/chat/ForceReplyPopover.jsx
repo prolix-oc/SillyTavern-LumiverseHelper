@@ -9,6 +9,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Users } from 'lucide-react';
 import { getGroupMemberList, triggerForceReply } from '../../../lib/chatSheldService';
+import LazyImage from '../shared/LazyImage';
 
 export default function ForceReplyPopover({ onClose }) {
     const [members, setMembers] = useState([]);
@@ -69,11 +70,11 @@ export default function ForceReplyPopover({ onClose }) {
                             type="button"
                             disabled={m.disabled}
                         >
-                            <img
+                            <LazyImage
                                 className="lcs-force-reply-avatar"
                                 src={m.avatarUrl}
                                 alt={m.name}
-                                onError={(e) => { e.target.style.display = 'none'; }}
+                                spinnerSize={10}
                             />
                             <span className="lcs-force-reply-name">{m.name}</span>
                             {m.disabled && <span className="lcs-force-reply-disabled-label">disabled</span>}

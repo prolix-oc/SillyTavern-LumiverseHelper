@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, Package, Layers, Wrench, Sparkles, ChevronDown, ChevronUp, Check, Plus } from 'lucide-react';
 import { useLumiverseStore, useLumiverseActions, useLoomSelections, saveToExtension } from '../../store/LumiverseContext';
 import useFixedPositionFix from '../../hooks/useFixedPositionFix';
+import LazyImage from '../shared/LazyImage';
 
 /* global toastr */
 
@@ -505,11 +506,13 @@ function LoomPackDetailModal() {
                 {/* Header */}
                 <div className="lumiverse-modal-header lumiverse-pack-detail-header">
                     <div className="lumiverse-pack-detail-header-icon">
-                        {pack.packCover ? (
-                            <img src={pack.packCover} alt={viewingLoomPack} className="lumiverse-pack-detail-header-img" />
-                        ) : (
-                            <Layers size={24} strokeWidth={1.5} />
-                        )}
+                        <LazyImage
+                            src={pack.packCover}
+                            alt={viewingLoomPack}
+                            className="lumiverse-pack-detail-header-img"
+                            spinnerSize={14}
+                            fallback={<Layers size={24} strokeWidth={1.5} />}
+                        />
                     </div>
                     <div className="lumiverse-pack-detail-header-text">
                         <h3 className="lumiverse-pack-detail-title">{viewingLoomPack}</h3>

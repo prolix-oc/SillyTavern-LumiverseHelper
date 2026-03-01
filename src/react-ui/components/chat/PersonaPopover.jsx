@@ -13,6 +13,7 @@ import {
     getCurrentPersonaAvatar,
     switchPersona,
 } from '../../../lib/personaService';
+import LazyImage from '../shared/LazyImage';
 
 export default function PersonaPopover({ onClose }) {
     const [personas, setPersonas] = useState([]);
@@ -75,11 +76,11 @@ export default function PersonaPopover({ onClose }) {
                                 onClick={() => handleSelect(p.avatarId)}
                                 type="button"
                             >
-                                <img
+                                <LazyImage
                                     className="lcs-persona-avatar"
                                     src={p.avatarUrl}
                                     alt={p.name}
-                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                    spinnerSize={10}
                                 />
                                 <div className="lcs-persona-info">
                                     <span className="lcs-persona-name">{p.name}</span>

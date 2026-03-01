@@ -3,6 +3,7 @@ import clsx from 'clsx';
 import { Users, Plus, Trash2, ChevronDown, ChevronUp, Edit2, X, Check, Zap, Heart, Star, Package, Briefcase, Cpu, Eye, EyeOff, Radio, Plug, BookOpen, Shield } from 'lucide-react';
 import { useLumiverseStore, useLumiverseActions, usePacks, saveToExtension, saveToExtensionImmediate } from '../../store/LumiverseContext';
 import { getToolsForUI, isInlineModeAvailable } from '../../../lib/councilTools';
+import LazyImage from '../shared/LazyImage';
 
 // Provider configurations for council tools LLM
 const COUNCIL_PROVIDER_CONFIG = {
@@ -212,11 +213,12 @@ function CouncilMemberCard({ member, packs, onUpdate, onRemove }) {
                 setIsExpanded(!isExpanded);
             }}>
                 <div className="lumiverse-council-member-avatar">
-                    {memberImage ? (
-                        <img src={memberImage} alt={memberName} />
-                    ) : (
-                        <Users size={20} strokeWidth={1.5} />
-                    )}
+                    <LazyImage
+                        src={memberImage}
+                        alt={memberName}
+                        spinnerSize={14}
+                        fallback={<Users size={20} strokeWidth={1.5} />}
+                    />
                 </div>
                 <div className="lumiverse-council-member-info">
                     <span className="lumiverse-council-member-name">{memberName}</span>
@@ -417,11 +419,12 @@ function AddMemberItem({ item, onSelect }) {
             tabIndex={0}
         >
             <div className="lumiverse-council-add-item-avatar">
-                {item.image ? (
-                    <img src={item.image} alt={item.displayName} />
-                ) : (
-                    <Users size={16} />
-                )}
+                <LazyImage
+                    src={item.image}
+                    alt={item.displayName}
+                    spinnerSize={10}
+                    fallback={<Users size={16} />}
+                />
             </div>
             <div className="lumiverse-council-add-item-info">
                 <span className="lumiverse-council-add-item-name">{item.displayName}</span>
@@ -559,11 +562,12 @@ function AddPackItem({ pack, onSelect }) {
             tabIndex={0}
         >
             <div className="lumiverse-council-add-item-avatar lumiverse-council-pack-icon">
-                {pack.coverUrl ? (
-                    <img src={pack.coverUrl} alt={pack.packName} />
-                ) : (
-                    <Package size={18} strokeWidth={1.5} />
-                )}
+                <LazyImage
+                    src={pack.coverUrl}
+                    alt={pack.packName}
+                    spinnerSize={12}
+                    fallback={<Package size={18} strokeWidth={1.5} />}
+                />
             </div>
             <div className="lumiverse-council-add-item-info">
                 <span className="lumiverse-council-add-item-name">{pack.packName}</span>

@@ -1125,7 +1125,7 @@ export function getActiveLoomPresetId() {
 export function setActiveLoomPresetId(presetId) {
     if (!cachedIndex) return;
     if (!cachedIndex.loomPresets) {
-        cachedIndex.loomPresets = { registry: {}, activePresetId: null, bindings: { characters: {}, chats: {} } };
+        cachedIndex.loomPresets = { registry: {}, activePresetId: null, bindings: { characters: {}, chats: {} }, toggleBindings: { characters: {}, chats: {} } };
     }
     cachedIndex.loomPresets.activePresetId = presetId;
     debouncedIndexSave();
@@ -1150,7 +1150,7 @@ export function getLoomBindings() {
 export async function setLoomBindings(bindings) {
     if (!cachedIndex) return;
     if (!cachedIndex.loomPresets) {
-        cachedIndex.loomPresets = { registry: {}, activePresetId: null, bindings: { characters: {}, chats: {} } };
+        cachedIndex.loomPresets = { registry: {}, activePresetId: null, bindings: { characters: {}, chats: {} }, toggleBindings: { characters: {}, chats: {} } };
     }
     cachedIndex.loomPresets.bindings = bindings;
     await flushIndexSave();
@@ -1200,7 +1200,7 @@ export async function getLoomPreset(presetId) {
 export async function upsertLoomPreset(presetId, presetData, registryEntry) {
     if (!cachedIndex) return;
     if (!cachedIndex.loomPresets) {
-        cachedIndex.loomPresets = { registry: {}, activePresetId: null, bindings: { characters: {}, chats: {} } };
+        cachedIndex.loomPresets = { registry: {}, activePresetId: null, bindings: { characters: {}, chats: {} }, toggleBindings: { characters: {}, chats: {} } };
     }
 
     // Update cache
@@ -1250,8 +1250,138 @@ export async function removeLoomPreset(presetId) {
         if (val === presetId) delete bindings.chats[key];
     }
 
+    // Clear toggle bindings referencing this preset
+    const toggleBindings = cachedIndex.loomPresets.toggleBindings || { characters: {}, chats: {} };
+    for (const [key, val] of Object.entries(toggleBindings.characters || {})) {
+        if (val?.sourcePresetId === presetId) delete toggleBindings.characters[key];
+    }
+    for (const [key, val] of Object.entries(toggleBindings.chats || {})) {
+        if (val?.sourcePresetId === presetId) delete toggleBindings.chats[key];
+    }
+
     debouncedIndexSave();
     notifyListeners();
+}
+
+// ============================================================================
+// LOOM TOGGLE BINDINGS (Block Enable/Disable Snapshots per Chat/Character)
+// ============================================================================
+
+/**
+ * Get all Loom toggle bindings.
+ * @returns {{ characters: Object, chats: Object }}
+ */
+export function getLoomToggleBindings() {
+    if (!cachedIndex?.loomPresets?.toggleBindings) {
+        return { characters: {}, chats: {} };
+    }
+    return cachedIndex.loomPresets.toggleBindings;
+}
+
+/**
+ * Get a chat-level Loom toggle binding.
+ * @param {string} chatId
+ * @returns {Object|null} { blockStates: {}, sourcePresetId, savedAt }
+ */
+export function getLoomChatToggleBinding(chatId) {
+    if (!chatId || !cachedIndex?.loomPresets?.toggleBindings?.chats) return null;
+    return cachedIndex.loomPresets.toggleBindings.chats[chatId] || null;
+}
+
+/**
+ * Set a chat-level Loom toggle binding.
+ * Uses immediate flush to prevent race conditions on chat switch.
+ * @param {string} chatId
+ * @param {Object|null} data - { blockStates: {}, sourcePresetId } or null to clear
+ * @returns {Promise<void>}
+ */
+export async function setLoomChatToggleBinding(chatId, data) {
+    if (!chatId || !cachedIndex) return;
+
+    if (!cachedIndex.loomPresets) {
+        cachedIndex.loomPresets = { registry: {}, activePresetId: null, bindings: { characters: {}, chats: {} }, toggleBindings: { characters: {}, chats: {} } };
+    }
+    if (!cachedIndex.loomPresets.toggleBindings) {
+        cachedIndex.loomPresets.toggleBindings = { characters: {}, chats: {} };
+    }
+    if (!cachedIndex.loomPresets.toggleBindings.chats) {
+        cachedIndex.loomPresets.toggleBindings.chats = {};
+    }
+
+    if (data) {
+        cachedIndex.loomPresets.toggleBindings.chats[chatId] = {
+            blockStates: data.blockStates || {},
+            sourcePresetId: data.sourcePresetId || null,
+            savedAt: Date.now(),
+        };
+    } else {
+        delete cachedIndex.loomPresets.toggleBindings.chats[chatId];
+    }
+
+    await flushIndexSave();
+    notifyListeners();
+}
+
+/**
+ * Clear a chat-level Loom toggle binding.
+ * @param {string} chatId
+ * @returns {Promise<void>}
+ */
+export async function clearLoomChatToggleBinding(chatId) {
+    await setLoomChatToggleBinding(chatId, null);
+}
+
+/**
+ * Get a character-level Loom toggle binding.
+ * @param {string} avatar
+ * @returns {Object|null} { blockStates: {}, sourcePresetId, savedAt }
+ */
+export function getLoomCharacterToggleBinding(avatar) {
+    if (!avatar || !cachedIndex?.loomPresets?.toggleBindings?.characters) return null;
+    return cachedIndex.loomPresets.toggleBindings.characters[avatar] || null;
+}
+
+/**
+ * Set a character-level Loom toggle binding.
+ * Uses immediate flush to prevent race conditions on character switch.
+ * @param {string} avatar
+ * @param {Object|null} data - { blockStates: {}, sourcePresetId } or null to clear
+ * @returns {Promise<void>}
+ */
+export async function setLoomCharacterToggleBinding(avatar, data) {
+    if (!avatar || !cachedIndex) return;
+
+    if (!cachedIndex.loomPresets) {
+        cachedIndex.loomPresets = { registry: {}, activePresetId: null, bindings: { characters: {}, chats: {} }, toggleBindings: { characters: {}, chats: {} } };
+    }
+    if (!cachedIndex.loomPresets.toggleBindings) {
+        cachedIndex.loomPresets.toggleBindings = { characters: {}, chats: {} };
+    }
+    if (!cachedIndex.loomPresets.toggleBindings.characters) {
+        cachedIndex.loomPresets.toggleBindings.characters = {};
+    }
+
+    if (data) {
+        cachedIndex.loomPresets.toggleBindings.characters[avatar] = {
+            blockStates: data.blockStates || {},
+            sourcePresetId: data.sourcePresetId || null,
+            savedAt: Date.now(),
+        };
+    } else {
+        delete cachedIndex.loomPresets.toggleBindings.characters[avatar];
+    }
+
+    await flushIndexSave();
+    notifyListeners();
+}
+
+/**
+ * Clear a character-level Loom toggle binding.
+ * @param {string} avatar
+ * @returns {Promise<void>}
+ */
+export async function clearLoomCharacterToggleBinding(avatar) {
+    await setLoomCharacterToggleBinding(avatar, null);
 }
 
 // ============================================================================

@@ -288,11 +288,12 @@ function FavoritesSlider({ items, activeCharacterId, onSelect }) {
                         title={item.name}
                     >
                         <div className="lumiverse-cb-fav-avatar">
-                            {item.avatarUrl ? (
-                                <img src={item.avatarUrl} alt="" loading="lazy" />
-                            ) : (
-                                <User size={20} strokeWidth={1.5} />
-                            )}
+                            <LazyImage
+                                src={item.avatarUrl}
+                                alt=""
+                                spinnerSize={12}
+                                fallback={<User size={20} strokeWidth={1.5} />}
+                            />
                         </div>
                         <span className="lumiverse-cb-fav-name">{item.name}</span>
                     </button>
@@ -321,11 +322,12 @@ function GroupAvatarStack({ members }) {
                     className="lumiverse-cb-group-avatar"
                     style={{ zIndex: maxAvatars - i }}
                 >
-                    {m.avatarUrl ? (
-                        <img src={m.avatarUrl} alt="" loading="lazy" />
-                    ) : (
-                        <User size={14} strokeWidth={1.5} />
-                    )}
+                    <LazyImage
+                        src={m.avatarUrl}
+                        alt=""
+                        spinnerSize={10}
+                        fallback={<User size={14} strokeWidth={1.5} />}
+                    />
                 </div>
             ))}
             {overflow > 0 && (
@@ -339,7 +341,7 @@ function GroupAvatarStack({ members }) {
 
 // ─── Character Card (Grid) ─────────────────────────────────────
 const CharacterCardGrid = memo(function CharacterCardGrid({
-    item, isActive, onSelect, onToggleFavorite,
+    item, isActive, onSelect, onToggleFavorite, onEdit,
 }) {
     const showGroupStack = item.isGroup && item.members?.length > 0;
     return (
@@ -383,6 +385,16 @@ const CharacterCardGrid = memo(function CharacterCardGrid({
                     </div>
                 )}
             </div>
+            {onEdit && !item.isGroup && (
+                <button
+                    className="lumiverse-cb-card-edit"
+                    onClick={(e) => { e.stopPropagation(); onEdit(item); }}
+                    type="button"
+                    title="Edit character card"
+                >
+                    <Pencil size={12} strokeWidth={1.5} />
+                </button>
+            )}
             <button
                 className={clsx('lumiverse-cb-card-star', item.isFavorite && 'lumiverse-cb-card-star--active')}
                 onClick={(e) => { e.stopPropagation(); onToggleFavorite(item.id); }}
@@ -397,7 +409,7 @@ const CharacterCardGrid = memo(function CharacterCardGrid({
 
 // ─── Character Card (List) ─────────────────────────────────────
 const CharacterCardList = memo(function CharacterCardList({
-    item, isActive, onSelect, onToggleFavorite,
+    item, isActive, onSelect, onToggleFavorite, onEdit,
 }) {
     return (
         <button
@@ -406,13 +418,12 @@ const CharacterCardList = memo(function CharacterCardList({
             type="button"
         >
             <div className="lumiverse-cb-list-avatar">
-                {item.avatarUrl ? (
-                    <img src={item.avatarUrl} alt="" loading="lazy" />
-                ) : item.isGroup ? (
-                    <UsersRound size={18} strokeWidth={1.5} />
-                ) : (
-                    <User size={18} strokeWidth={1.5} />
-                )}
+                <LazyImage
+                    src={item.avatarUrl}
+                    alt=""
+                    spinnerSize={12}
+                    fallback={item.isGroup ? <UsersRound size={18} strokeWidth={1.5} /> : <User size={18} strokeWidth={1.5} />}
+                />
             </div>
             <span className="lumiverse-cb-list-name" title={item.name}>{item.name}</span>
             {item.creator && <span className="lumiverse-cb-list-creator">{item.creator}</span>}
@@ -421,6 +432,16 @@ const CharacterCardList = memo(function CharacterCardList({
                     <Tag size={10} strokeWidth={1.5} />
                     {item.tagNames.length}
                 </span>
+            )}
+            {onEdit && !item.isGroup && (
+                <button
+                    className="lumiverse-cb-card-edit"
+                    onClick={(e) => { e.stopPropagation(); onEdit(item); }}
+                    type="button"
+                    title="Edit character card"
+                >
+                    <Pencil size={12} strokeWidth={1.5} />
+                </button>
             )}
             <button
                 className={clsx('lumiverse-cb-card-star', item.isFavorite && 'lumiverse-cb-card-star--active')}
@@ -448,7 +469,8 @@ function areCardPropsEqual(prev, next) {
         prev.item.tagColors === next.item.tagColors &&
         prev.isActive === next.isActive &&
         prev.onSelect === next.onSelect &&
-        prev.onToggleFavorite === next.onToggleFavorite
+        prev.onToggleFavorite === next.onToggleFavorite &&
+        prev.onEdit === next.onEdit
     );
 }
 
@@ -539,11 +561,12 @@ function ActiveCharacterBar({ item, onClick }) {
             type="button"
         >
             <div className="lumiverse-cb-active-bar-avatar">
-                {item.avatarUrl ? (
-                    <img src={item.avatarUrl} alt="" loading="lazy" />
-                ) : (
-                    <User size={14} strokeWidth={1.5} />
-                )}
+                <LazyImage
+                    src={item.avatarUrl}
+                    alt=""
+                    spinnerSize={10}
+                    fallback={<User size={14} strokeWidth={1.5} />}
+                />
             </div>
             <span className="lumiverse-cb-active-bar-name">{item.name}</span>
             <span className="lumiverse-cb-active-bar-action">
@@ -556,7 +579,7 @@ function ActiveCharacterBar({ item, onClick }) {
 }
 
 // ─── Virtualized Character List ────────────────────────────────
-function VirtualizedGrid({ items, activeCharacterId, onSelect, onToggleFavorite, containerRef }) {
+function VirtualizedGrid({ items, activeCharacterId, onSelect, onToggleFavorite, onEdit, containerRef }) {
     const isMobile = useIsMobile();
     const [cols, setCols] = useState(isMobile ? 2 : 3);
 
@@ -617,6 +640,7 @@ function VirtualizedGrid({ items, activeCharacterId, onSelect, onToggleFavorite,
                                     isActive={item.id === activeCharacterId}
                                     onSelect={onSelect}
                                     onToggleFavorite={onToggleFavorite}
+                                    onEdit={onEdit}
                                 />
                             ))}
                         </div>
@@ -627,7 +651,7 @@ function VirtualizedGrid({ items, activeCharacterId, onSelect, onToggleFavorite,
     );
 }
 
-function VirtualizedList({ items, activeCharacterId, onSelect, onToggleFavorite, containerRef }) {
+function VirtualizedList({ items, activeCharacterId, onSelect, onToggleFavorite, onEdit, containerRef }) {
     const virtualizer = useVirtualizer({
         count: items.length,
         getScrollElement: () => containerRef.current,
@@ -656,6 +680,7 @@ function VirtualizedList({ items, activeCharacterId, onSelect, onToggleFavorite,
                             isActive={item.id === activeCharacterId}
                             onSelect={onSelect}
                             onToggleFavorite={onToggleFavorite}
+                            onEdit={onEdit}
                         />
                     </div>
                 );
@@ -819,6 +844,14 @@ function CharacterBrowser({ wideMode = false, onDismiss } = {}) {
 
     const cardSelectHandler = wideMode ? handleCardSelectWide : handleCardSelect;
 
+    // Direct edit — open editor without switching chat
+    const handleDirectEdit = useCallback((item) => {
+        if (scrollRef.current) {
+            savedScrollRef.current = scrollRef.current.scrollTop;
+        }
+        setEditorItem(item);
+    }, []);
+
     // Open chat from editor
     const handleOpenChat = useCallback(async () => {
         if (!editorItem || isNavigating) return;
@@ -832,6 +865,7 @@ function CharacterBrowser({ wideMode = false, onDismiss } = {}) {
     }, [editorItem, handleSelect, isNavigating]);
 
     // Render folder-grouped content
+    const editHandler = handleDirectEdit;
     const renderFolderContent = useCallback((folderItems) => {
         if (viewMode === 'grid') {
             const minCard = wideMode ? 200 : isMobile ? 120 : 140;
@@ -844,6 +878,7 @@ function CharacterBrowser({ wideMode = false, onDismiss } = {}) {
                             isActive={item.id === activeCharacterId}
                             onSelect={cardSelectHandler}
                             onToggleFavorite={toggleFavorite}
+                            onEdit={editHandler}
                         />
                     ))}
                 </div>
@@ -856,9 +891,10 @@ function CharacterBrowser({ wideMode = false, onDismiss } = {}) {
                 isActive={item.id === activeCharacterId}
                 onSelect={cardSelectHandler}
                 onToggleFavorite={toggleFavorite}
+                onEdit={editHandler}
             />
         ));
-    }, [viewMode, wideMode, isMobile, activeCharacterId, cardSelectHandler, toggleFavorite]);
+    }, [viewMode, wideMode, isMobile, activeCharacterId, cardSelectHandler, toggleFavorite, editHandler]);
 
     const hasCharacters = totalCount > 0;
 
@@ -879,12 +915,13 @@ function CharacterBrowser({ wideMode = false, onDismiss } = {}) {
     }, []);
 
     // Editor view — rendered instead of gallery when a character is selected
-    if (editorItem && !wideMode) {
+    if (editorItem) {
         return (
             <CharacterCardEditor
                 item={editorItem}
                 onBack={() => setEditorItem(null)}
-                onOpenChat={handleOpenChat}
+                onOpenChat={wideMode ? undefined : handleOpenChat}
+                wideMode={wideMode}
             />
         );
     }
@@ -1032,6 +1069,7 @@ function CharacterBrowser({ wideMode = false, onDismiss } = {}) {
                         activeCharacterId={activeCharacterId}
                         onSelect={cardSelectHandler}
                         onToggleFavorite={toggleFavorite}
+                        onEdit={editHandler}
                         containerRef={scrollRef}
                     />
                 ) : (
@@ -1040,6 +1078,7 @@ function CharacterBrowser({ wideMode = false, onDismiss } = {}) {
                         activeCharacterId={activeCharacterId}
                         onSelect={cardSelectHandler}
                         onToggleFavorite={toggleFavorite}
+                        onEdit={editHandler}
                         containerRef={scrollRef}
                     />
                 )}

@@ -6,6 +6,7 @@ import { CollapsibleContent } from '../Collapsible';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
 import { Search, X, Package, FileText, Zap, Heart, ChevronDown, Sparkles, Check, Eye, Filter, Trash2 } from 'lucide-react';
+import LazyImage from '../shared/LazyImage';
 
 /**
  * Get a Lumia field with fallback for old/new format
@@ -132,10 +133,16 @@ function PackHeader({ pack, isExpanded, onToggle, onViewPack, itemCount }) {
             type="button"
         >
             {pack.packCover ? (
-                <img
+                <LazyImage
                     src={pack.packCover}
                     alt={packName}
                     className="lumiverse-browser-pack-cover"
+                    spinnerSize={14}
+                    fallback={
+                        <div className="lumiverse-browser-pack-cover-placeholder">
+                            {pack.isCustom ? <Sparkles size={20} strokeWidth={1.5} /> : <Package size={20} strokeWidth={1.5} />}
+                        </div>
+                    }
                 />
             ) : (
                 <div className="lumiverse-browser-pack-cover-placeholder">
@@ -222,11 +229,12 @@ function LumiaItemCard({ item, type, onSelect, isSelected }) {
             whileTap={{ scale: 0.98 }}
         >
             {itemImg && (
-                <img
+                <LazyImage
                     src={itemImg}
                     alt={itemName}
                     className="lumiverse-browser-item-image"
-                    style={{ objectPosition }}
+                    objectPosition={objectPosition}
+                    spinnerSize={14}
                 />
             )}
             <div className="lumiverse-browser-item-content">

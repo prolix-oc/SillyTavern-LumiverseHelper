@@ -15,6 +15,7 @@ import {
 import usePersonaManager from '../../hooks/usePersonaManager';
 import { fetchBookList } from '../../../lib/worldBookService';
 import { personaManagerStyles } from './PersonaManagerStyles';
+import LazyImage from '../shared/LazyImage';
 
 // ─── Style Injection ────────────────────────────────────────────
 let stylesInjected = false;
@@ -188,8 +189,6 @@ function LockBadges({ isDefault, isChatLocked, hasConnections, isActive }) {
 
 // ─── Persona Card (Grid) ────────────────────────────────────────
 const PersonaCardGrid = memo(function PersonaCardGrid({ persona, isSelected, onSelect, onDoubleClick }) {
-    const [imgError, setImgError] = useState(false);
-
     return (
         <div
             className={clsx(
@@ -207,17 +206,17 @@ const PersonaCardGrid = memo(function PersonaCardGrid({ persona, isSelected, onS
                 hasConnections={persona.hasConnections}
                 isActive={persona.isActive}
             />
-            <div className={clsx('lumiverse-pm-card-avatar', imgError && 'lumiverse-pm-card-avatar--placeholder')}>
-                {!imgError ? (
-                    <img
-                        src={persona.avatarUrl}
-                        alt={persona.name}
-                        onError={() => setImgError(true)}
-                        loading="lazy"
-                    />
-                ) : (
-                    <User size={28} strokeWidth={1.5} />
-                )}
+            <div className="lumiverse-pm-card-avatar">
+                <LazyImage
+                    src={persona.avatarUrl}
+                    alt={persona.name}
+                    spinnerSize={16}
+                    fallback={
+                        <div className="lumiverse-pm-card-avatar--placeholder" style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <User size={28} strokeWidth={1.5} />
+                        </div>
+                    }
+                />
             </div>
             <span className="lumiverse-pm-card-name">{persona.name}</span>
         </div>
@@ -226,8 +225,6 @@ const PersonaCardGrid = memo(function PersonaCardGrid({ persona, isSelected, onS
 
 // ─── Persona Card (List) ────────────────────────────────────────
 const PersonaCardList = memo(function PersonaCardList({ persona, isSelected, onSelect, onDoubleClick }) {
-    const [imgError, setImgError] = useState(false);
-
     return (
         <div
             className={clsx(
@@ -239,16 +236,12 @@ const PersonaCardList = memo(function PersonaCardList({ persona, isSelected, onS
             onDoubleClick={() => onDoubleClick(persona.avatarId)}
         >
             <div className="lumiverse-pm-list-avatar">
-                {!imgError ? (
-                    <img
-                        src={persona.avatarUrl}
-                        alt={persona.name}
-                        onError={() => setImgError(true)}
-                        loading="lazy"
-                    />
-                ) : (
-                    <User size={18} strokeWidth={1.5} />
-                )}
+                <LazyImage
+                    src={persona.avatarUrl}
+                    alt={persona.name}
+                    spinnerSize={12}
+                    fallback={<User size={18} strokeWidth={1.5} />}
+                />
             </div>
             <div className="lumiverse-pm-list-info">
                 <div className="lumiverse-pm-list-name">{persona.name}</div>
@@ -310,7 +303,7 @@ function CreatePersonaForm({ onCreate, onCancel }) {
                 title="Choose avatar image"
             >
                 {preview ? (
-                    <img src={preview} alt="Avatar preview" />
+                    <LazyImage src={preview} alt="Avatar preview" spinnerSize={12} fallback={<Upload size={16} strokeWidth={1.5} />} />
                 ) : (
                     <Upload size={16} strokeWidth={1.5} />
                 )}
@@ -500,9 +493,6 @@ function PersonaEditor({
         e.stopPropagation();
     }, []);
 
-    const [imgError, setImgError] = useState(false);
-    useEffect(() => setImgError(false), [persona.avatarId, persona.avatarUrl]);
-
     return (
         <div className="lumiverse-pm-editor">
             <div className="lumiverse-pm-editor-inner">
@@ -522,17 +512,16 @@ function PersonaEditor({
                         onDragOver={handleDragOver}
                         title="Click or drop to change avatar"
                     >
-                        {!imgError ? (
-                            <img
-                                src={persona.avatarUrl}
-                                alt={persona.name}
-                                onError={() => setImgError(true)}
-                            />
-                        ) : (
-                            <div className="lumiverse-pm-card-avatar--placeholder" style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <User size={24} strokeWidth={1.5} />
-                            </div>
-                        )}
+                        <LazyImage
+                            src={persona.avatarUrl}
+                            alt={persona.name}
+                            spinnerSize={16}
+                            fallback={
+                                <div className="lumiverse-pm-card-avatar--placeholder" style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <User size={24} strokeWidth={1.5} />
+                                </div>
+                            }
+                        />
                         <div className="lumiverse-pm-avatar-overlay">
                             <Upload size={18} strokeWidth={2} />
                         </div>

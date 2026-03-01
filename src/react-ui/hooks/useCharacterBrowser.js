@@ -191,12 +191,12 @@ export default function useCharacterBrowser() {
           });
         }
 
-        // Unassigned items go into "All Characters" section
+        // Unassigned items go into "Untagged Characters" section
         const unassigned = items.filter((item) => !assigned.has(item.id));
         if (unassigned.length > 0) {
           folders.unshift({
             id: "__all__",
-            name: "All Characters",
+            name: "Untagged Characters",
             defaultOpen: true,
             items: unassigned,
             count: unassigned.length,

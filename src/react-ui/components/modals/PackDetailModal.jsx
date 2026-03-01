@@ -651,11 +651,13 @@ function PackDetailModal() {
                 {/* Header */}
                 <div className="lumiverse-modal-header lumiverse-pack-detail-header">
                     <div className="lumiverse-pack-detail-header-icon">
-                        {pack.packCover ? (
-                            <img src={pack.packCover} alt={viewingPack} className="lumiverse-pack-detail-header-img" />
-                        ) : (
-                            <Package size={24} strokeWidth={1.5} />
-                        )}
+                        <LazyImage
+                            src={pack.packCover}
+                            alt={viewingPack}
+                            className="lumiverse-pack-detail-header-img"
+                            spinnerSize={14}
+                            fallback={<Package size={24} strokeWidth={1.5} />}
+                        />
                     </div>
                     <div className="lumiverse-pack-detail-header-text">
                         <h3 className="lumiverse-pack-detail-title">{viewingPack}</h3>

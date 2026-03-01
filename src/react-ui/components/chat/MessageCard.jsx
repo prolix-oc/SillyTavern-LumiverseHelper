@@ -12,6 +12,7 @@ import MessageEditArea from './MessageEditArea';
 import SwipeControls from './SwipeControls';
 import ReasoningBlock from './ReasoningBlock';
 import TokenBadge from './TokenBadge';
+import LazyImage from '../shared/LazyImage';
 import { useLumiverseStore } from '../../store/LumiverseContext';
 import { getRawMessageForEdit, editMessageContent, editMessageReasoning, unhideMessage } from '../../../lib/chatSheldService';
 
@@ -227,7 +228,7 @@ const MessageCard = memo(function MessageCard({ message, isLastMessage, isStream
                 <span className="lcs-immersive-mesid">#{mesId}</span>
             )}
 
-            {/* Immersive mode: large blended avatar background */}
+            {/* Immersive mode: large blended avatar background (decorative — CSS opacity would conflict with LazyImage) */}
             {isImmersive && !isSystem && avatarSrc && (
                 <div className="lcs-immersive-avatar-bg" onClick={handleAvatarClick} style={{ cursor: 'pointer', pointerEvents: 'auto' }}>
                     <img className="lcs-immersive-avatar-img" src={avatarSrc} alt="" loading="lazy" />
@@ -239,7 +240,7 @@ const MessageCard = memo(function MessageCard({ message, isLastMessage, isStream
                 <div className="lcs-immersive-depth" />
             )}
 
-            {/* Bubble mode: dissolving avatar background with mask-composite */}
+            {/* Bubble mode: dissolving avatar background with mask-composite (decorative — CSS opacity would conflict with LazyImage) */}
             {isBubble && !isSystem && avatarSrc && (
                 <div className="lcs-bubble-avatar-bg" onClick={handleAvatarClick} style={{ cursor: 'pointer', pointerEvents: 'auto' }}>
                     <img className="lcs-bubble-avatar-img" src={avatarSrc} alt="" loading="lazy" />
@@ -251,20 +252,19 @@ const MessageCard = memo(function MessageCard({ message, isLastMessage, isStream
             {isBubble && !isSystem && (
                 <div className="lcs-message-header lcs-bubble-header">
                     <div className="lcs-bubble-header-left">
-                        {avatarSrc ? (
-                            <img
-                                className="lcs-message-avatar"
-                                src={avatarSrc}
-                                alt={name}
-                                loading="lazy"
-                                onClick={handleAvatarClick}
-                                style={{ cursor: 'pointer' }}
-                            />
-                        ) : (
-                            <div className="lcs-message-avatar lcs-message-avatar--placeholder">
-                                {initial}
-                            </div>
-                        )}
+                        <LazyImage
+                            containerClassName="lcs-message-avatar"
+                            src={avatarSrc}
+                            alt={name}
+                            spinnerSize={12}
+                            containerStyle={{ cursor: 'pointer' }}
+                            onClick={handleAvatarClick}
+                            fallback={
+                                <div className="lcs-message-avatar lcs-message-avatar--placeholder">
+                                    {initial}
+                                </div>
+                            }
+                        />
                         <div className="lcs-message-meta">
                             <span className="lcs-message-name">{name}</span>
                             <span className="lcs-bubble-meta-pill">
@@ -287,18 +287,17 @@ const MessageCard = memo(function MessageCard({ message, isLastMessage, isStream
             {/* Standard header (minimal + immersive modes) */}
             {!isBubble && !isSystem && (
                 <div className="lcs-message-header">
-                    {avatarSrc ? (
-                        <img
-                            className="lcs-message-avatar"
-                            src={avatarSrc}
-                            alt=""
-                            loading="lazy"
-                        />
-                    ) : (
-                        <div className="lcs-message-avatar lcs-message-avatar--placeholder">
-                            {initial}
-                        </div>
-                    )}
+                    <LazyImage
+                        containerClassName="lcs-message-avatar"
+                        src={avatarSrc}
+                        alt=""
+                        spinnerSize={12}
+                        fallback={
+                            <div className="lcs-message-avatar lcs-message-avatar--placeholder">
+                                {initial}
+                            </div>
+                        }
+                    />
                     <div className="lcs-message-meta">
                         <span className="lcs-message-name">{name}</span>
                         <span className="lcs-message-timestamp">

@@ -3,6 +3,7 @@ import { usePacks, useLumiverseActions, saveToExtension } from '../../store/Lumi
 import { User, Smile, Wrench, Trash2, X, Sparkles, Image as ImageIcon } from 'lucide-react';
 import { useAdaptiveImagePosition } from '../../hooks/useAdaptiveImagePosition';
 import ConfirmationModal from '../shared/ConfirmationModal';
+import LazyImage from '../shared/LazyImage';
 
 /**
  * Lumia Item Structure (new v2 format):
@@ -55,28 +56,20 @@ function getLumiaField(item, field) {
    Avatar Preview
    ============================================ */
 function AvatarPreview({ url }) {
-    const [hasError, setHasError] = useState(false);
     const { objectPosition } = useAdaptiveImagePosition(url || '');
-
-    React.useEffect(() => {
-        setHasError(false);
-    }, [url]);
-
-    if (!url || hasError) {
-        return (
-            <div className="lumiverse-editor-image-placeholder">
-                <ImageIcon size={18} />
-            </div>
-        );
-    }
 
     return (
         <div className="lumiverse-editor-image-preview">
-            <img
+            <LazyImage
                 src={url}
                 alt="Avatar"
-                style={{ objectPosition }}
-                onError={() => setHasError(true)}
+                objectPosition={objectPosition}
+                spinnerSize={16}
+                fallback={
+                    <div className="lumiverse-editor-image-placeholder">
+                        <ImageIcon size={18} />
+                    </div>
+                }
             />
         </div>
     );

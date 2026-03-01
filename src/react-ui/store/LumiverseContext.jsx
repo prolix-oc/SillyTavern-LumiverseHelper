@@ -1774,6 +1774,7 @@ function exportForExtension() {
     delete settingsToExport._closeDrawer;
     delete settingsToExport._ensureTab;
     delete settingsToExport._profileSwitchTs;
+    delete settingsToExport._blockToggleTs;
     return settingsToExport;
 }
 

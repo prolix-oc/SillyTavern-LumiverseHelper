@@ -7,6 +7,7 @@ import { getTopBarHeight } from '../../lib/domUtils.js';
 import ConfirmationModal from './shared/ConfirmationModal.jsx';
 import { getLumiverseVersion, getSillyTavernVersion, isPrerelease } from '../../lib/version.js';
 import { getRandomJoke, onJokesReady } from '../../lib/jokesService.js';
+import LazyImage from './shared/LazyImage';
 
 /* global toastr */
 
@@ -144,12 +145,12 @@ const GroupAvatarStack = React.memo(({ members, groupName }) => {
                             zIndex: maxAvatars - index,
                         }}
                     >
-                        <img
+                        <LazyImage
                             src={url}
                             alt={`Group member ${index + 1}`}
                             className="lumiverse-lp-group-avatar-img"
+                            spinnerSize={12}
                             draggable={false}
-                            onError={(e) => { e.target.src = '/img/fa-solid-user.svg'; }}
                         />
                     </div>
                 ))}

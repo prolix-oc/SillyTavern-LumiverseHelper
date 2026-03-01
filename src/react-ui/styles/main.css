@@ -15745,6 +15745,43 @@ details.lumia-panel[open] .lumia-panel-chevron {
     color: var(--lumiverse-text);
 }
 
+/* Loom mode badge in modal header */
+.lumiverse-bindings-mode-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+.lumiverse-bindings-mode-badge--loom {
+    background: var(--lumiverse-primary-015);
+    color: var(--lumiverse-primary);
+    border: 1px solid var(--lumiverse-primary-030);
+}
+
+/* Loom badge on binding list items */
+.lumiverse-bindings-list-item-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 6px;
+    margin-left: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.lumiverse-bindings-list-item-badge--loom {
+    background: var(--lumiverse-primary-015);
+    color: var(--lumiverse-primary);
+}
+
 /* =============================================================================
    PROMPT TOGGLE BINDINGS - Bind enabled/disabled states to chat/character
    ============================================================================= */
@@ -18321,6 +18358,45 @@ details.lumia-panel[open] .lumia-panel-chevron {
     transform: scale(1.15);
 }
 
+/* ─── Card Edit Button ───────────────────────────────────────── */
+
+.lumiverse-cb-card-edit {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(4px);
+    color: var(--lumiverse-text-muted, rgba(255,255,255,0.5));
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.15s ease;
+}
+
+.lumiverse-cb-card:hover .lumiverse-cb-card-edit,
+.lumiverse-cb-list-row:hover .lumiverse-cb-card-edit {
+    opacity: 1;
+}
+
+/* In list rows, position edit button next to the star on the right */
+.lumiverse-cb-list-row .lumiverse-cb-card-edit {
+    left: auto;
+    right: 34px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.lumiverse-cb-card-edit:hover {
+    color: var(--lumiverse-primary, #9370db);
+    transform: scale(1.15);
+}
+
 /* ─── Card Tag Pills ─────────────────────────────────────────── */
 
 .lumiverse-cb-card-tags {
@@ -18749,6 +18825,10 @@ details.lumia-panel[open] .lumia-panel-chevron {
         font-size: 9px;
     }
 
+    .lumiverse-cb-card-edit {
+        opacity: 1;
+    }
+
     .lumiverse-cb-card-star {
         opacity: 1;
     }
@@ -19032,9 +19112,9 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
 .lumiverse-ce-content {
     flex: 1 1 auto;
-    min-height: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
     padding: 14px 12px !important;
 }
 
@@ -19158,6 +19238,77 @@ details.lumia-panel[open] .lumia-panel-chevron {
     height: 16px;
     accent-color: var(--lumiverse-primary);
     cursor: pointer;
+}
+
+/* ─── Wide Mode (inside gallery modal) ─────────────────── */
+
+.lumiverse-ce-panel--wide .lumiverse-ce-content {
+    padding: 24px 32px !important;
+}
+
+.lumiverse-ce-panel--wide .lumiverse-ce-hero {
+    padding: 20px 32px 16px;
+}
+
+.lumiverse-ce-panel--wide .lumiverse-ce-header {
+    padding: 10px 32px;
+}
+
+/* ─── Wide Mode Tab Bar ──────────────────────────────────── */
+
+.lumiverse-ce-tabs {
+    display: flex;
+    gap: 2px;
+    padding: 0 32px;
+    background: var(--lumiverse-fill-subtle);
+    border-bottom: 1px solid var(--lumiverse-border);
+    flex-shrink: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.lumiverse-ce-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.lumiverse-ce-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    border: none;
+    background: transparent;
+    color: var(--lumiverse-text-muted);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s ease, border-color 0.15s ease;
+    margin-bottom: -1px;
+}
+
+.lumiverse-ce-tab:hover {
+    color: var(--lumiverse-text);
+}
+
+.lumiverse-ce-tab--active {
+    color: var(--lumiverse-primary);
+    border-bottom-color: var(--lumiverse-primary);
+}
+
+/* ─── Wide Mode Tab Content ──────────────────────────────── */
+
+.lumiverse-ce-tab-content {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 24px 32px;
+}
+
+.lumiverse-ce-tab-content .lumiverse-form-field {
+    max-width: 960px;
 }
 
 /* ─── Mobile Responsive ────────────────────────────────── */
@@ -19550,6 +19701,94 @@ details.lumia-panel[open] .lumia-panel-chevron {
         padding: 14px 16px;
         font-size: 12px;
     }
+}
+
+/* ========================================
+   INLINE SYNTAX TEXT AREA (lumiverse-syntax-textarea)
+   ======================================== */
+
+.lumiverse-syntax-textarea {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--lumiverse-fill-subtle);
+    border: 1px solid var(--lumiverse-border-neutral);
+    transition: border-color 0.15s ease;
+}
+
+.lumiverse-syntax-textarea:focus-within {
+    border-color: var(--lumiverse-primary);
+}
+
+.lumiverse-syntax-textarea-overlay,
+.lumiverse-syntax-textarea-input {
+    /* Matching metrics are CRITICAL for scroll sync */
+    font-family: 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.65;
+    padding: 12px 14px;
+    margin: 0;
+    border: none;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    tab-size: 4;
+    letter-spacing: 0;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+}
+
+.lumiverse-syntax-textarea-overlay {
+    position: absolute;
+    inset: 0;
+    overflow: auto;
+    pointer-events: none;
+    color: var(--lumiverse-text);
+    background: transparent;
+    z-index: 1;
+}
+
+.lumiverse-syntax-textarea-input {
+    position: relative;
+    resize: none;
+    background: transparent;
+    color: transparent;
+    caret-color: var(--lumiverse-primary);
+    outline: none;
+    z-index: 0;
+    overflow: auto;
+}
+
+.lumiverse-syntax-textarea-input::placeholder {
+    color: var(--lumiverse-text-dim);
+}
+
+.lumiverse-syntax-textarea-input::selection {
+    background: var(--lumiverse-primary-020, rgba(147, 112, 219, 0.2));
+    color: transparent;
+}
+
+/* Custom scrollbar */
+.lumiverse-syntax-textarea-input::-webkit-scrollbar,
+.lumiverse-syntax-textarea-overlay::-webkit-scrollbar {
+    width: 6px;
+}
+
+.lumiverse-syntax-textarea-input::-webkit-scrollbar-track,
+.lumiverse-syntax-textarea-overlay::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.lumiverse-syntax-textarea-input::-webkit-scrollbar-thumb,
+.lumiverse-syntax-textarea-overlay::-webkit-scrollbar-thumb {
+    background: var(--lumiverse-fill-medium);
+    border-radius: 3px;
+}
+
+.lumiverse-syntax-textarea-input::-webkit-scrollbar-thumb:hover,
+.lumiverse-syntax-textarea-overlay::-webkit-scrollbar-thumb:hover {
+    background: var(--lumiverse-fill-strong);
 }
 
 /* ========================================

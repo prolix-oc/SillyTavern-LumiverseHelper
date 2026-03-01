@@ -9,6 +9,7 @@ import {
     EditorFooter,
     TextInput
 } from '../shared/FormComponents';
+import LazyImage from '../shared/LazyImage';
 
 /**
  * Get pack name with fallback for different formats (v2: packName, v1: name)
@@ -71,17 +72,14 @@ function LumiaItemRow({ item, packName, onEdit }) {
     return (
         <div className="lumiverse-pack-selector-item-row">
             <div className="lumiverse-pack-selector-item-icon-sm lumiverse-pack-selector-item-icon--lumia">
-                {avatarUrl ? (
-                    <img
-                        src={avatarUrl}
-                        alt=""
-                        className="lumiverse-pack-selector-item-avatar"
-                        style={{ objectPosition }}
-                        onError={(e) => { e.target.style.display = 'none'; }}
-                    />
-                ) : (
-                    <User size={14} strokeWidth={1.5} />
-                )}
+                <LazyImage
+                    src={avatarUrl}
+                    alt=""
+                    className="lumiverse-pack-selector-item-avatar"
+                    objectPosition={objectPosition}
+                    spinnerSize={10}
+                    fallback={<User size={14} strokeWidth={1.5} />}
+                />
             </div>
             <span className="lumiverse-pack-selector-item-name">{name}</span>
             <span className="lumiverse-pack-selector-item-type">Lumia</span>

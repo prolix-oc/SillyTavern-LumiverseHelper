@@ -7,10 +7,11 @@ import {
     saveToExtension,
 } from '../../store/LumiverseContext';
 import { useAdaptiveImagePosition } from '../../hooks/useAdaptiveImagePosition';
-import { 
+import {
     Star, Check, Trash2, XCircle, ChevronDown, ChevronUp, X,
-    Pencil, Folder, User, Wrench, PieChart, ArrowDownAZ, Sparkles 
+    Pencil, Folder, User, Wrench, PieChart, ArrowDownAZ, Sparkles
 } from 'lucide-react';
+import LazyImage from '../shared/LazyImage';
 
 // Get store for direct state access
 const store = useLumiverseStore;
@@ -397,8 +398,6 @@ function LumiaCard({
     isEditable,
     onEdit,
 }) {
-    const [imageLoaded, setImageLoaded] = useState(false);
-    const [imageError, setImageError] = useState(false);
     const actions = useLumiverseActions();
 
     // Get display values - supports both new and legacy format
@@ -447,18 +446,14 @@ function LumiaCard({
             data-item={displayName}
         >
             <div style={styles.cardImage}>
-                {imgToShow && !imageError ? (
-                    <img
-                        src={imgToShow}
-                        alt={displayName}
-                        loading="lazy"
-                        style={{ ...styles.cardImg, objectPosition, opacity: imageLoaded ? 1 : 0 }}
-                        onLoad={() => setImageLoaded(true)}
-                        onError={() => setImageError(true)}
-                    />
-                ) : (
-                    <div style={styles.cardPlaceholder}>?</div>
-                )}
+                <LazyImage
+                    src={imgToShow}
+                    alt={displayName}
+                    objectPosition={objectPosition}
+                    spinnerSize={16}
+                    style={styles.cardImg}
+                    fallback={<div style={styles.cardPlaceholder}>?</div>}
+                />
 
                 {/* Enable All Icon - shows when item has multiple content types */}
                 {showEnableAll && (

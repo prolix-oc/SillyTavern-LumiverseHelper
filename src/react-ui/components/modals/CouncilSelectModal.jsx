@@ -7,6 +7,7 @@ import {
     saveToExtension,
     saveToExtensionImmediate,
 } from '../../store/LumiverseContext';
+import LazyImage from '../shared/LazyImage';
 
 // Get store for direct state access
 const store = useLumiverseStore;
@@ -89,7 +90,6 @@ function getLumiaFieldLocal(item, field) {
 const SelectableLumiaCard = memo(function SelectableLumiaCard({ item, packName, onAdd, animationIndex }) {
     const itemImg = getLumiaFieldLocal(item, 'img');
     const itemName = getLumiaFieldLocal(item, 'name') || 'Unknown';
-    const [imageError, setImageError] = useState(false);
 
     // Simplified animation - only apply to first 10 items on desktop to reduce lag
     const isMobile = typeof window !== 'undefined' && window.innerWidth <= 600;
@@ -101,8 +101,6 @@ const SelectableLumiaCard = memo(function SelectableLumiaCard({ item, packName, 
         onAdd({ packName, itemName });
     }, [onAdd, packName, itemName]);
 
-    const handleImageError = useCallback(() => setImageError(true), []);
-
     return (
         <div
             className="lumiverse-council-select-card lumia-card-appear"
@@ -112,19 +110,17 @@ const SelectableLumiaCard = memo(function SelectableLumiaCard({ item, packName, 
             tabIndex={0}
         >
             <div className="lumiverse-council-select-card-image">
-                {itemImg && !imageError ? (
-                    <img
-                        src={itemImg}
-                        alt={itemName}
-                        loading="lazy"
-                        className="lumia-img-loaded"
-                        onError={handleImageError}
-                    />
-                ) : (
-                    <div className="lumiverse-council-select-card-placeholder">
-                        <Users size={24} strokeWidth={1.5} />
-                    </div>
-                )}
+                <LazyImage
+                    src={itemImg}
+                    alt={itemName}
+                    className="lumia-img-loaded"
+                    spinnerSize={16}
+                    fallback={
+                        <div className="lumiverse-council-select-card-placeholder">
+                            <Users size={24} strokeWidth={1.5} />
+                        </div>
+                    }
+                />
                 <div className="lumiverse-council-select-card-add">
                     <Plus size={16} strokeWidth={2} />
                 </div>
@@ -174,14 +170,12 @@ const CouncilMemberCard = memo(function CouncilMemberCard({ member, packs, onRem
     return (
         <div className="lumiverse-council-member-card">
             <div className="lumiverse-council-member-card-avatar">
-                {memberImage ? (
-                    <img
-                        src={memberImage}
-                        alt={memberName}
-                    />
-                ) : (
-                    <Users size={20} strokeWidth={1.5} />
-                )}
+                <LazyImage
+                    src={memberImage}
+                    alt={memberName}
+                    spinnerSize={14}
+                    fallback={<Users size={20} strokeWidth={1.5} />}
+                />
             </div>
             <div className="lumiverse-council-member-card-content">
                 <span className="lumiverse-council-member-card-name">{memberName}</span>

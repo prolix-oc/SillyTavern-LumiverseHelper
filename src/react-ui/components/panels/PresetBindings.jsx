@@ -13,6 +13,7 @@ import {
     FileJson,
     AlertTriangle,
     Zap,
+    Layers,
 } from 'lucide-react';
 import { usePresetBindings } from '../../hooks/usePresetBindings';
 import { useLumiverseStore } from '../../store/LumiverseContext';
@@ -39,6 +40,7 @@ export function PresetBindingsPanel() {
         allBindings,
         hasChatToggleBinding,
         hasCharacterToggleBinding,
+        isLoomMode,
     } = usePresetBindings();
 
     const hasAnyBinding = allBindings.length > 0;
@@ -77,8 +79,8 @@ export function PresetBindingsPanel() {
                                     <MessageSquare size={12} strokeWidth={2} />
                                     <span className="lumiverse-bindings-context-label">Chat:</span>
                                     <span className="lumiverse-bindings-context-value lumiverse-bindings-context-value--mono">
-                                        {contextInfo.chatId.length > 25 
-                                            ? contextInfo.chatId.slice(0, 25) + '...' 
+                                        {contextInfo.chatId.length > 25
+                                            ? contextInfo.chatId.slice(0, 25) + '...'
                                             : contextInfo.chatId}
                                     </span>
                                     {currentChatBinding && (
@@ -155,6 +157,7 @@ function PresetBindingsModal({ onClose }) {
         removeCharacterBinding,
         removeChatBinding,
         refreshPresets,
+        isLoomMode,
     } = usePresetBindings();
 
     // Get currently active preset from store
@@ -166,7 +169,7 @@ function PresetBindingsModal({ onClose }) {
 
     // Default to the current binding or active preset
     const getDefaultPreset = () => {
-        return currentCharacterBinding || currentChatBinding || activePresetName || '';
+        return currentCharacterBinding || currentChatBinding || (isLoomMode ? '' : activePresetName) || '';
     };
 
     const [selectedPreset, setSelectedPreset] = useState(getDefaultPreset);
@@ -200,12 +203,18 @@ function PresetBindingsModal({ onClose }) {
         if (bindingType === 'character') {
             success = bindCurrentCharacter(selectedPreset);
             if (success) {
-                toastr?.success(`Bound "${contextInfo.characterName}" to "${selectedPreset}"`);
+                const label = isLoomMode
+                    ? availablePresets.find(p => p.value === selectedPreset)?.label || selectedPreset
+                    : selectedPreset;
+                toastr?.success(`Bound "${contextInfo.characterName}" to "${label}"`);
             }
         } else {
             success = bindCurrentChat(selectedPreset);
             if (success) {
-                toastr?.success(`Bound current chat to "${selectedPreset}"`);
+                const label = isLoomMode
+                    ? availablePresets.find(p => p.value === selectedPreset)?.label || selectedPreset
+                    : selectedPreset;
+                toastr?.success(`Bound current chat to "${label}"`);
             }
         }
 
@@ -214,16 +223,20 @@ function PresetBindingsModal({ onClose }) {
         } else {
             setSelectedPreset('');
         }
-    }, [selectedPreset, bindingType, bindCurrentCharacter, bindCurrentChat, contextInfo.characterName]);
+    }, [selectedPreset, bindingType, bindCurrentCharacter, bindCurrentChat, contextInfo.characterName, isLoomMode, availablePresets]);
 
-    const handleRemoveBinding = useCallback((type, id) => {
-        if (type === 'character') {
+    const handleRemoveBinding = useCallback((type, id, presetType) => {
+        if (presetType === 'loom') {
+            // Always use Loom clear for Loom bindings, regardless of current mode
+            import('@lib/lucidLoomService.js').then(({ clearBinding }) => {
+                clearBinding(type, id);
+            });
+        } else if (type === 'character') {
             removeCharacterBinding(id);
-            toastr?.info('Character binding removed');
         } else {
             removeChatBinding(id);
-            toastr?.info('Chat binding removed');
         }
+        toastr?.info(`${type === 'character' ? 'Character' : 'Chat'} binding removed`);
     }, [removeCharacterBinding, removeChatBinding]);
 
     const handleBackdropClick = useCallback((e) => {
@@ -256,9 +269,19 @@ function PresetBindingsModal({ onClose }) {
                             <Link2 size={22} strokeWidth={1.5} />
                         </span>
                         <div className="lumiverse-bindings-modal-header-text">
-                            <h3 className="lumiverse-bindings-modal-title">Preset Bindings</h3>
+                            <h3 className="lumiverse-bindings-modal-title">
+                                Preset Bindings
+                                {isLoomMode && (
+                                    <span className="lumiverse-bindings-mode-badge lumiverse-bindings-mode-badge--loom">
+                                        <Layers size={12} strokeWidth={2} />
+                                        Loom Mode
+                                    </span>
+                                )}
+                            </h3>
                             <p className="lumiverse-bindings-modal-subtitle">
-                                Auto-switch presets when changing characters or chats
+                                {isLoomMode
+                                    ? 'Auto-switch Loom presets and block states per character or chat'
+                                    : 'Auto-switch presets when changing characters or chats'}
                             </p>
                         </div>
                     </div>
@@ -326,9 +349,9 @@ function PresetBindingsModal({ onClose }) {
                                     ) : (
                                         <span>
                                             <MessageSquare size={12} />
-                                            {contextInfo.chatId 
-                                                ? (contextInfo.chatId.length > 30 
-                                                    ? contextInfo.chatId.slice(0, 30) + '...' 
+                                            {contextInfo.chatId
+                                                ? (contextInfo.chatId.length > 30
+                                                    ? contextInfo.chatId.slice(0, 30) + '...'
                                                     : contextInfo.chatId)
                                                 : 'No chat'}
                                             {currentChatBinding && (
@@ -347,10 +370,12 @@ function PresetBindingsModal({ onClose }) {
                                         value={selectedPreset}
                                         onChange={(e) => setSelectedPreset(e.target.value)}
                                     >
-                                        <option value="">Select a preset...</option>
+                                        <option value="">
+                                            {isLoomMode ? 'Select a Loom preset...' : 'Select a preset...'}
+                                        </option>
                                         {availablePresets.map((preset) => (
-                                            <option key={preset} value={preset}>
-                                                {preset}
+                                            <option key={preset.value} value={preset.value}>
+                                                {preset.label}
                                             </option>
                                         ))}
                                     </select>
@@ -368,7 +393,11 @@ function PresetBindingsModal({ onClose }) {
                                 {availablePresets.length === 0 && (
                                     <div className="lumiverse-bindings-no-presets">
                                         <AlertTriangle size={14} strokeWidth={2} />
-                                        <span>No presets available. Create one in SillyTavern first.</span>
+                                        <span>
+                                            {isLoomMode
+                                                ? 'No Loom presets available. Create one in the Loom Builder first.'
+                                                : 'No presets available. Create one in SillyTavern first.'}
+                                        </span>
                                     </div>
                                 )}
                             </div>
@@ -384,10 +413,10 @@ function PresetBindingsModal({ onClose }) {
                     <div className="lumiverse-bindings-section">
                         <div className="lumiverse-bindings-section-header">
                             <Zap size={14} strokeWidth={2} />
-                            <span>Prompt Toggle Bindings</span>
+                            <span>{isLoomMode ? 'Block Toggle Bindings' : 'Prompt Toggle Bindings'}</span>
                         </div>
 
-                        <ToggleBindingsContent />
+                        <ToggleBindingsContent isLoomMode={isLoomMode} />
                     </div>
 
                     {/* Existing Bindings List */}
@@ -401,7 +430,7 @@ function PresetBindingsModal({ onClose }) {
                             <div className="lumiverse-bindings-list">
                                 {allBindings.map((binding) => (
                                     <div
-                                        key={`${binding.type}-${binding.id}`}
+                                        key={`${binding.presetType}-${binding.type}-${binding.id}`}
                                         className="lumiverse-bindings-list-item"
                                     >
                                         <div className="lumiverse-bindings-list-item-icon">
@@ -420,12 +449,21 @@ function PresetBindingsModal({ onClose }) {
                                             </span>
                                         </div>
                                         <div className="lumiverse-bindings-list-item-preset">
-                                            <FileJson size={12} strokeWidth={1.5} />
+                                            {binding.presetType === 'loom' ? (
+                                                <Layers size={12} strokeWidth={1.5} />
+                                            ) : (
+                                                <FileJson size={12} strokeWidth={1.5} />
+                                            )}
                                             {binding.presetName}
+                                            {binding.presetType === 'loom' && (
+                                                <span className="lumiverse-bindings-list-item-badge lumiverse-bindings-list-item-badge--loom">
+                                                    Loom
+                                                </span>
+                                            )}
                                         </div>
                                         <button
                                             className="lumiverse-bindings-list-item-remove"
-                                            onClick={() => handleRemoveBinding(binding.type, binding.id)}
+                                            onClick={() => handleRemoveBinding(binding.type, binding.id, binding.presetType)}
                                             title="Remove binding"
                                             type="button"
                                         >
@@ -449,10 +487,21 @@ function PresetBindingsModal({ onClose }) {
                     <div className="lumiverse-bindings-info">
                         <div className="lumiverse-bindings-info-title">How it works</div>
                         <ul className="lumiverse-bindings-info-list">
-                            <li><strong>Preset bindings</strong> auto-switch to a named SillyTavern preset when you change characters/chats</li>
-                            <li><strong>Toggle bindings</strong> save which prompts are enabled/disabled and restore them when switching</li>
-                            <li><strong>Chat bindings</strong> have higher priority than character bindings</li>
-                            <li>Toggle bindings are applied <em>after</em> preset bindings, allowing layered configuration</li>
+                            {isLoomMode ? (
+                                <>
+                                    <li><strong>Loom preset bindings</strong> auto-switch to a Loom preset and activate Loom mode when you change characters/chats</li>
+                                    <li><strong>Block toggle bindings</strong> save which blocks are enabled/disabled and restore them when switching</li>
+                                    <li><strong>Chat bindings</strong> have higher priority than character bindings</li>
+                                    <li>Loom and ST preset bindings are <em>mutually exclusive</em> per target — setting one clears the other</li>
+                                </>
+                            ) : (
+                                <>
+                                    <li><strong>Preset bindings</strong> auto-switch to a named SillyTavern preset when you change characters/chats</li>
+                                    <li><strong>Toggle bindings</strong> save which prompts are enabled/disabled and restore them when switching</li>
+                                    <li><strong>Chat bindings</strong> have higher priority than character bindings</li>
+                                    <li>Toggle bindings are applied <em>after</em> preset bindings, allowing layered configuration</li>
+                                </>
+                            )}
                         </ul>
                     </div>
                 </div>

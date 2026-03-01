@@ -1,6 +1,7 @@
 /**
  * ToggleBindingsContent - Shared component for managing prompt toggle bindings
- * Used by both PresetBindingsModal and PresetManager sidebar
+ * Used by both PresetBindingsModal and PresetManager sidebar.
+ * Supports both ST prompt toggle bindings and Loom block toggle bindings.
  */
 import React, { useCallback } from 'react';
 import {
@@ -19,11 +20,12 @@ import { usePresetBindings } from '../../hooks/usePresetBindings';
 /**
  * Toggle Bindings Settings Content Component
  * Renders the toggle binding configuration UI for chat and character
- * 
+ *
  * @param {Object} props
  * @param {boolean} [props.compact=false] - Use compact layout for sidebar
+ * @param {boolean} [props.isLoomMode] - Override Loom mode detection (optional, auto-detected if omitted)
  */
-export function ToggleBindingsContent({ compact = false }) {
+export function ToggleBindingsContent({ compact = false, isLoomMode: isLoomModeProp }) {
     const {
         contextInfo,
         hasChatToggleBinding,
@@ -32,12 +34,17 @@ export function ToggleBindingsContent({ compact = false }) {
         clearChatToggleBinding,
         saveTogglesToCharacter,
         clearCharacterToggleBinding,
-        // New: default state restoration settings
+        // Default state restoration settings
         disableDefaultStateRestore,
         hasDefaultToggles,
         setDisableDefaultStateRestore,
         recaptureDefaultToggleState,
+        // Mode
+        isLoomMode: isLoomModeHook,
     } = usePresetBindings();
+
+    // Allow prop override, fall back to hook detection
+    const isLoomMode = isLoomModeProp ?? isLoomModeHook;
 
     const hasContext = contextInfo.characterAvatar || contextInfo.chatId;
 
@@ -45,11 +52,19 @@ export function ToggleBindingsContent({ compact = false }) {
     const handleSaveTogglesToChat = useCallback(async () => {
         const success = await saveTogglesToChat();
         if (success) {
-            toastr?.success('Prompt toggles bound to current chat');
+            toastr?.success(
+                isLoomMode
+                    ? 'Block toggle states bound to current chat'
+                    : 'Prompt toggles bound to current chat'
+            );
         } else {
-            toastr?.error('Failed to save prompt toggles');
+            toastr?.error(
+                isLoomMode
+                    ? 'Failed to save block toggle states'
+                    : 'Failed to save prompt toggles'
+            );
         }
-    }, [saveTogglesToChat]);
+    }, [saveTogglesToChat, isLoomMode]);
 
     const handleClearChatToggleBinding = useCallback(() => {
         clearChatToggleBinding();
@@ -59,11 +74,19 @@ export function ToggleBindingsContent({ compact = false }) {
     const handleSaveTogglesToCharacter = useCallback(async () => {
         const success = await saveTogglesToCharacter();
         if (success) {
-            toastr?.success(`Prompt toggles bound to ${contextInfo.characterName || 'character'}`);
+            toastr?.success(
+                isLoomMode
+                    ? `Block toggle states bound to ${contextInfo.characterName || 'character'}`
+                    : `Prompt toggles bound to ${contextInfo.characterName || 'character'}`
+            );
         } else {
-            toastr?.error('Failed to save prompt toggles');
+            toastr?.error(
+                isLoomMode
+                    ? 'Failed to save block toggle states'
+                    : 'Failed to save prompt toggles'
+            );
         }
-    }, [saveTogglesToCharacter, contextInfo.characterName]);
+    }, [saveTogglesToCharacter, contextInfo.characterName, isLoomMode]);
 
     const handleClearCharacterToggleBinding = useCallback(() => {
         clearCharacterToggleBinding();
@@ -91,14 +114,14 @@ export function ToggleBindingsContent({ compact = false }) {
         }
     }, [recaptureDefaultToggleState]);
 
-    // Default State Settings - always shown, doesn't require chat context
-    const defaultStateSettingsSection = (
+    // Default State Settings - only shown in ST mode (Loom manages block defaults in the preset)
+    const defaultStateSettingsSection = isLoomMode ? null : (
         <div className="lumiverse-bindings-defaults-section">
             <div className="lumiverse-bindings-defaults-header">
                 <Settings size={14} strokeWidth={1.5} />
                 <span>Default State Settings</span>
             </div>
-            
+
             {/* Auto-restore toggle */}
             <div className="lumiverse-bindings-toggle-row">
                 <div className="lumiverse-bindings-toggle-label">
@@ -109,8 +132,8 @@ export function ToggleBindingsContent({ compact = false }) {
                         className={`lumia-btn lumia-btn-sm ${disableDefaultStateRestore ? 'lumia-btn-secondary' : 'lumia-btn-primary'}`}
                         onClick={handleToggleAutoRestore}
                         type="button"
-                        title={disableDefaultStateRestore 
-                            ? 'Defaults will NOT be restored when switching to unbound chats' 
+                        title={disableDefaultStateRestore
+                            ? 'Defaults will NOT be restored when switching to unbound chats'
                             : 'Defaults will be restored when switching to unbound chats'}
                     >
                         {disableDefaultStateRestore ? (
@@ -155,13 +178,17 @@ export function ToggleBindingsContent({ compact = false }) {
         </div>
     );
 
-    // If no chat context, only show default state settings
+    // If no chat context, only show default state settings (ST mode) or a message (Loom mode)
     if (!hasContext) {
         return (
             <div className="lumiverse-bindings-toggles">
                 <div className="lumiverse-bindings-no-context">
                     <ToggleLeft size={20} strokeWidth={1.5} />
-                    <span>Select a character to bind prompt toggles</span>
+                    <span>
+                        {isLoomMode
+                            ? 'Select a character to bind block toggle states'
+                            : 'Select a character to bind prompt toggles'}
+                    </span>
                 </div>
                 {defaultStateSettingsSection}
             </div>
@@ -171,7 +198,11 @@ export function ToggleBindingsContent({ compact = false }) {
     return (
         <div className="lumiverse-bindings-toggles">
             <div className="lumiverse-bindings-toggles-info">
-                <span>Save which prompts are enabled/disabled to auto-apply when switching to this chat or character.</span>
+                <span>
+                    {isLoomMode
+                        ? 'Save which blocks are enabled/disabled to auto-apply when switching to this chat or character.'
+                        : 'Save which prompts are enabled/disabled to auto-apply when switching to this chat or character.'}
+                </span>
             </div>
 
             {/* Chat Toggle Binding */}

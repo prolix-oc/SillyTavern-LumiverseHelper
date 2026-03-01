@@ -8,6 +8,7 @@ import ConfirmationModal from '../shared/ConfirmationModal';
 import {
     Icons, Panel, LumiaPackItem, LoomPackItem, getLoomItemsFromPack,
 } from '../shared/settingsHelpers';
+import LazyImage from '../shared/LazyImage';
 
 /* global LumiverseBridge, toastr */
 
@@ -392,7 +393,7 @@ export default function PacksView() {
                             return (
                                 <div key={packName} className="lumia-downloaded-pack-item">
                                     {coverUrl ? (
-                                        <img src={coverUrl} alt={packName} className="lumia-downloaded-pack-cover" />
+                                        <LazyImage src={coverUrl} alt={packName} className="lumia-downloaded-pack-cover" spinnerSize={14} fallback={<div className="lumia-downloaded-pack-cover-placeholder">{Icons.package}</div>} />
                                     ) : (
                                         <div className="lumia-downloaded-pack-cover-placeholder">{Icons.package}</div>
                                     )}
@@ -446,7 +447,7 @@ export default function PacksView() {
                             return (
                                 <div key={packName} className="lumia-loom-pack-item">
                                     {pack.packCover ? (
-                                        <img src={pack.packCover} alt={packName} className="lumia-loom-pack-cover" />
+                                        <LazyImage src={pack.packCover} alt={packName} className="lumia-loom-pack-cover" spinnerSize={14} fallback={<div className="lumia-loom-pack-cover-placeholder">{Icons.layers}</div>} />
                                     ) : (
                                         <div className="lumia-loom-pack-cover-placeholder">{Icons.layers}</div>
                                     )}

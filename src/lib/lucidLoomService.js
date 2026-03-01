@@ -20,6 +20,8 @@ import {
     getLoomPresetSync,
     upsertLoomPreset,
     removeLoomPreset,
+    getLoomChatToggleBinding,
+    getLoomCharacterToggleBinding,
 } from "./packCache.js";
 
 // Category marker used by ST presets
@@ -776,6 +778,18 @@ export async function setBinding(type, id, presetId) {
         bindings.chats = { ...bindings.chats, [id]: presetId };
     }
     await setLoomBindings(bindings);
+
+    // Mutual exclusivity: clear any ST preset binding for the same target
+    try {
+        const { setCharacterBinding, setChatBinding } = await import('./presetBindingService.js');
+        if (type === 'character') {
+            setCharacterBinding(id, null);
+        } else {
+            setChatBinding(id, null);
+        }
+    } catch (e) {
+        // presetBindingService may not be loaded yet
+    }
 }
 
 /**
@@ -848,6 +862,143 @@ export function resolveActivePreset() {
  */
 export function setActivePreset(presetId) {
     setActiveLoomPresetId(presetId);
+}
+
+// ============================================================================
+// LOOM BLOCK STATE CAPTURE / APPLY
+// ============================================================================
+
+/**
+ * Capture current block enabled states from the active Loom preset.
+ * @returns {{ [blockId: string]: boolean }|null} Map of blockId -> enabled, or null if no active preset
+ */
+export function captureLoomBlockStates() {
+    const preset = resolveActivePreset();
+    if (!preset?.blocks?.length) return null;
+
+    const states = {};
+    for (const block of preset.blocks) {
+        if (block.id) {
+            states[block.id] = !!block.enabled;
+        }
+    }
+    return Object.keys(states).length > 0 ? states : null;
+}
+
+/**
+ * Apply saved block states to the active Loom preset.
+ * Only matching block IDs are updated; unmatched blocks are left unchanged.
+ * @param {{ [blockId: string]: boolean }} blockStates
+ * @returns {Promise<{ applied: boolean, matched: number, unmatched: number }>}
+ */
+export async function applyLoomBlockStates(blockStates) {
+    if (!blockStates || Object.keys(blockStates).length === 0) {
+        return { applied: false, matched: 0, unmatched: 0 };
+    }
+
+    const presetId = resolveBinding();
+    if (!presetId) return { applied: false, matched: 0, unmatched: 0 };
+
+    const preset = migratePreset(getLoomPresetSync(presetId));
+    if (!preset?.blocks?.length) return { applied: false, matched: 0, unmatched: 0 };
+
+    let matched = 0;
+    let unmatched = 0;
+
+    for (const [blockId, enabled] of Object.entries(blockStates)) {
+        const block = preset.blocks.find(b => b.id === blockId);
+        if (block) {
+            block.enabled = enabled;
+            matched++;
+        } else {
+            unmatched++;
+        }
+    }
+
+    if (matched > 0) {
+        await savePreset(preset);
+    }
+
+    return { applied: matched > 0, matched, unmatched };
+}
+
+/**
+ * Apply Loom toggle bindings for the current context.
+ * Priority: Chat > Character (mirrors ST toggle binding priority).
+ * @param {string} presetId - The active Loom preset ID
+ * @returns {Promise<{ applied: boolean, source: 'chat'|'character'|null, matched: number }>}
+ */
+export async function applyLoomToggleBindingsForContext(presetId) {
+    if (!presetId) return { applied: false, source: null, matched: 0 };
+
+    try {
+        const ctx = getContext();
+        // Use getCurrentChatId() to match the save path in usePresetBindings.js,
+        // which saves via presetBindingService.getCurrentChatId(). Falls back to ctx.chatId.
+        const chatId = (typeof ctx.getCurrentChatId === 'function' ? ctx.getCurrentChatId() : null) || ctx.chatId;
+        const avatar = ctx.characters?.[ctx.characterId]?.avatar;
+
+        console.debug('[LoomToggle] applyForContext — chatId:', chatId, 'avatar:', avatar, 'presetId:', presetId);
+
+        // Chat-level toggle binding (higher priority)
+        if (chatId) {
+            const chatToggle = getLoomChatToggleBinding(chatId);
+            if (chatToggle?.blockStates) {
+                console.debug('[LoomToggle] Found chat toggle binding:', Object.keys(chatToggle.blockStates).length, 'blocks');
+                const result = await applyLoomBlockStates(chatToggle.blockStates);
+                console.debug('[LoomToggle] Applied chat toggle:', result);
+                if (result.applied) {
+                    return { applied: true, source: 'chat', matched: result.matched };
+                }
+            }
+        }
+
+        // Character-level toggle binding
+        if (avatar) {
+            const charToggle = getLoomCharacterToggleBinding(avatar);
+            if (charToggle?.blockStates) {
+                console.debug('[LoomToggle] Found character toggle binding:', Object.keys(charToggle.blockStates).length, 'blocks');
+                const result = await applyLoomBlockStates(charToggle.blockStates);
+                console.debug('[LoomToggle] Applied character toggle:', result);
+                if (result.applied) {
+                    return { applied: true, source: 'character', matched: result.matched };
+                }
+            }
+        }
+
+        console.debug('[LoomToggle] No toggle bindings found for context');
+    } catch (e) {
+        console.warn('[LoomToggle] Error applying toggle bindings:', e);
+    }
+
+    return { applied: false, source: null, matched: 0 };
+}
+
+/**
+ * Check if there is an explicit Loom binding (chat or character) for the current context.
+ * Does NOT fall back to activePresetId — only checks explicit bindings.
+ * @returns {boolean}
+ */
+export function hasLoomBindingForCurrentContext() {
+    const bindings = getLoomBindings();
+    try {
+        const ctx = getContext();
+        const chatId = (typeof ctx.getCurrentChatId === 'function' ? ctx.getCurrentChatId() : null) || ctx.chatId;
+        const avatar = ctx.characters?.[ctx.characterId]?.avatar;
+        const registry = getLoomPresetRegistry();
+
+        if (chatId && bindings.chats?.[chatId]) {
+            const presetId = bindings.chats[chatId];
+            if (registry[presetId]) return true;
+        }
+        if (avatar && bindings.characters?.[avatar]) {
+            const presetId = bindings.characters[avatar];
+            if (registry[presetId]) return true;
+        }
+    } catch (e) {
+        // Context not available
+    }
+    return false;
 }
 
 /**

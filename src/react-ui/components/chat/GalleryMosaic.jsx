@@ -7,6 +7,7 @@
 
 import React from 'react';
 import { Loader2 } from 'lucide-react';
+import LazyImage from '../shared/LazyImage';
 
 export default function GalleryMosaic({ images, loading, onImageClick }) {
     if (loading) {
@@ -36,11 +37,11 @@ export default function GalleryMosaic({ images, loading, onImageClick }) {
                         type="button"
                         title={image.title || `Image ${index + 1}`}
                     >
-                        <img
+                        <LazyImage
                             src={image.path}
                             alt={image.title || ''}
-                            loading="lazy"
                             className="lcs-gallery-thumb-img"
+                            spinnerSize={14}
                         />
                     </button>
                 ))}

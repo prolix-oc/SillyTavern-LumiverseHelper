@@ -74,13 +74,21 @@ export function setCharacterBinding(avatarName, presetName) {
     }
 
     const bindings = getPresetBindings();
-    
+
     if (presetName) {
         bindings.characters[avatarName] = presetName;
+
+        // Mutual exclusivity: clear any Loom binding + toggle binding for the same target
+        import('./lucidLoomService.js').then(({ clearBinding }) => {
+            clearBinding('character', avatarName);
+        }).catch(() => {});
+        import('./packCache.js').then(({ clearLoomCharacterToggleBinding }) => {
+            clearLoomCharacterToggleBinding(avatarName);
+        }).catch(() => {});
     } else {
         delete bindings.characters[avatarName];
     }
-    
+
     savePresetBindings(bindings);
 }
 
@@ -95,13 +103,21 @@ export function setChatBinding(chatId, presetName) {
     }
 
     const bindings = getPresetBindings();
-    
+
     if (presetName) {
         bindings.chats[chatId] = presetName;
+
+        // Mutual exclusivity: clear any Loom binding + toggle binding for the same target
+        import('./lucidLoomService.js').then(({ clearBinding }) => {
+            clearBinding('chat', chatId);
+        }).catch(() => {});
+        import('./packCache.js').then(({ clearLoomChatToggleBinding }) => {
+            clearLoomChatToggleBinding(chatId);
+        }).catch(() => {});
     } else {
         delete bindings.chats[chatId];
     }
-    
+
     savePresetBindings(bindings);
 }
 
@@ -408,6 +424,15 @@ function restoreDefaultToggleState() {
 export async function applyBindingForCurrentContext() {
     if (isSwitching) {
         return false;
+    }
+
+    // Check if Loom has an explicit binding for this context — if so, let
+    // the Loom system in index.js handle everything (preset activation + toggle apply).
+    try {
+        const { hasLoomBindingForCurrentContext } = await import('./lucidLoomService.js');
+        if (hasLoomBindingForCurrentContext()) return false;
+    } catch (e) {
+        // lucidLoomService may not be loaded yet
     }
 
     // CRITICAL: Check if there are ANY bindings for this context FIRST

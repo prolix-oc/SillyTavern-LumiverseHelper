@@ -13,6 +13,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useSyncExternalStore } from 'react';
 import { Image as ImageIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import LazyImage from '../shared/LazyImage';
 import { useLumiverseStore } from '../../store/LumiverseContext';
 import { fetchGalleryImages, getGroupMemberList } from '../../../lib/chatSheldService';
 import { isGroupChat } from '../../../stContext';
@@ -195,18 +196,17 @@ export default function SidePortrait() {
             )}
 
             <div className="lcs-side-portrait-frame" onClick={handleAvatarClick}>
-                {avatarSrc ? (
-                    <img
-                        className="lcs-side-portrait-img"
-                        src={avatarSrc}
-                        alt={charName}
-                        loading="lazy"
-                    />
-                ) : (
-                    <div className="lcs-side-portrait-placeholder">
-                        {(charName || '?')[0].toUpperCase()}
-                    </div>
-                )}
+                <LazyImage
+                    src={avatarSrc}
+                    alt={charName}
+                    className="lcs-side-portrait-img"
+                    spinnerSize={18}
+                    fallback={
+                        <div className="lcs-side-portrait-placeholder">
+                            {(charName || '?')[0].toUpperCase()}
+                        </div>
+                    }
+                />
             </div>
             <span className="lcs-side-portrait-name">{charName}</span>
 

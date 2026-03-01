@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
 import { User, FileText, Zap, Heart, Sparkles, Star, X, Layers, Users, ArrowRight, Package, Link2, Link2Off, MessageSquare, ToggleLeft } from 'lucide-react';
 import { usePresetBindings } from '../../hooks/usePresetBindings';
+import LazyImage from '../shared/LazyImage';
 
 // Get store for direct state access
 const store = useLumiverseStore;
@@ -214,11 +215,12 @@ function CouncilBanner({ councilMembers, allPacks, onManageCouncil }) {
                                     style={{ zIndex: previewMembers.length - index }}
                                     title={member.itemName}
                                 >
-                                    {img ? (
-                                        <img src={img} alt={member.itemName} />
-                                    ) : (
-                                        <Users size={14} />
-                                    )}
+                                    <LazyImage
+                                        src={img}
+                                        alt={member.itemName}
+                                        spinnerSize={10}
+                                        fallback={<Users size={14} />}
+                                    />
                                 </div>
                             );
                         })}
@@ -308,6 +310,7 @@ function ProfileBindingsModal({ onClose }) {
         removeCharacterBinding,
         removeChatBinding,
         refreshPresets,
+        isLoomMode,
         // Toggle state bindings
         hasChatToggleBinding,
         hasCharacterToggleBinding,
@@ -327,7 +330,7 @@ function ProfileBindingsModal({ onClose }) {
     // Default to the current binding or active preset
     const getDefaultPreset = () => {
         // Prefer existing binding for selected type, then fall back to active preset
-        return currentCharacterBinding || currentChatBinding || activePresetName || '';
+        return currentCharacterBinding || currentChatBinding || (isLoomMode ? '' : activePresetName) || '';
     };
 
     const [selectedPreset, setSelectedPreset] = useState(getDefaultPreset);
@@ -347,22 +350,32 @@ function ProfileBindingsModal({ onClose }) {
         return () => document.removeEventListener('keydown', handleKeyDown);
     }, [onClose]);
 
+    // Resolve display label for a preset value (Loom presets use IDs, not names)
+    const getPresetLabel = useCallback((value) => {
+        if (!value) return value;
+        if (isLoomMode) {
+            return availablePresets.find(p => p.value === value)?.label || value;
+        }
+        return value;
+    }, [isLoomMode, availablePresets]);
+
     const handleBind = useCallback(() => {
         if (!selectedPreset) {
             toastr?.warning('Select a preset first');
             return;
         }
 
+        const label = getPresetLabel(selectedPreset);
         let success = false;
         if (bindingType === 'character') {
             success = bindCurrentCharacter(selectedPreset);
             if (success) {
-                toastr?.success(`Bound "${contextInfo.characterName}" to "${selectedPreset}"`);
+                toastr?.success(`Bound "${contextInfo.characterName}" to "${label}"`);
             }
         } else {
             success = bindCurrentChat(selectedPreset);
             if (success) {
-                toastr?.success(`Bound current chat to "${selectedPreset}"`);
+                toastr?.success(`Bound current chat to "${label}"`);
             }
         }
 
@@ -371,7 +384,7 @@ function ProfileBindingsModal({ onClose }) {
         } else {
             setSelectedPreset('');
         }
-    }, [selectedPreset, bindingType, bindCurrentCharacter, bindCurrentChat, contextInfo.characterName]);
+    }, [selectedPreset, bindingType, bindCurrentCharacter, bindCurrentChat, contextInfo.characterName, getPresetLabel]);
 
     const handleRemoveCharacterBinding = useCallback(() => {
         if (contextInfo.characterAvatar) {
@@ -391,20 +404,22 @@ function ProfileBindingsModal({ onClose }) {
     const handleBindTogglesToCharacter = useCallback(async () => {
         const success = await saveTogglesToCharacter();
         if (success) {
-            toastr?.success(`Bound current prompt toggles to "${contextInfo.characterName}"`);
+            const noun = isLoomMode ? 'block toggle states' : 'prompt toggles';
+            toastr?.success(`Bound current ${noun} to "${contextInfo.characterName}"`);
         } else {
-            toastr?.error('Failed to bind prompt toggles');
+            toastr?.error(isLoomMode ? 'Failed to bind block toggle states' : 'Failed to bind prompt toggles');
         }
-    }, [saveTogglesToCharacter, contextInfo.characterName]);
+    }, [saveTogglesToCharacter, contextInfo.characterName, isLoomMode]);
 
     const handleBindTogglesToChat = useCallback(async () => {
         const success = await saveTogglesToChat();
         if (success) {
-            toastr?.success('Bound current prompt toggles to chat');
+            const noun = isLoomMode ? 'block toggle states' : 'prompt toggles';
+            toastr?.success(`Bound current ${noun} to chat`);
         } else {
-            toastr?.error('Failed to bind prompt toggles');
+            toastr?.error(isLoomMode ? 'Failed to bind block toggle states' : 'Failed to bind prompt toggles');
         }
-    }, [saveTogglesToChat]);
+    }, [saveTogglesToChat, isLoomMode]);
 
     const handleClearCharacterToggleBinding = useCallback(() => {
         clearCharacterToggleBinding();
@@ -421,6 +436,7 @@ function ProfileBindingsModal({ onClose }) {
     }, [onClose]);
 
     const hasContext = contextInfo.characterAvatar || contextInfo.chatId;
+    const toggleNoun = isLoomMode ? 'block' : 'prompt';
 
     return createPortal(
         <div
@@ -439,7 +455,15 @@ function ProfileBindingsModal({ onClose }) {
                         <Link2 size={18} strokeWidth={2} />
                     </div>
                     <div className="lumiverse-profile-bindings-header-text">
-                        <span className="lumiverse-profile-bindings-title">Preset Binding</span>
+                        <span className="lumiverse-profile-bindings-title">
+                            Preset Binding
+                            {isLoomMode && (
+                                <span className="lumiverse-bindings-mode-badge lumiverse-bindings-mode-badge--loom">
+                                    <Layers size={10} strokeWidth={2} />
+                                    Loom
+                                </span>
+                            )}
+                        </span>
                         <span className="lumiverse-profile-bindings-subtitle">
                             {contextInfo.characterName || 'No character'}
                         </span>
@@ -534,10 +558,12 @@ function ProfileBindingsModal({ onClose }) {
                                     value={selectedPreset}
                                     onChange={(e) => setSelectedPreset(e.target.value)}
                                 >
-                                    <option value="">Select preset...</option>
+                                    <option value="">
+                                        {isLoomMode ? 'Select Loom preset...' : 'Select preset...'}
+                                    </option>
                                     {availablePresets.map((preset) => (
-                                        <option key={preset} value={preset}>
-                                            {preset}
+                                        <option key={preset.value} value={preset.value}>
+                                            {preset.label}
                                         </option>
                                     ))}
                                 </select>
@@ -552,14 +578,16 @@ function ProfileBindingsModal({ onClose }) {
                             </div>
                         </div>
 
-                        {/* Prompt Toggle Bindings Section */}
+                        {/* Toggle Bindings Section */}
                         <div className="lumiverse-profile-bindings-toggles">
                             <div className="lumiverse-profile-bindings-toggles-header">
                                 <ToggleLeft size={14} strokeWidth={1.5} />
-                                <span>Prompt Toggle Bindings</span>
+                                <span>{isLoomMode ? 'Block Toggle Bindings' : 'Prompt Toggle Bindings'}</span>
                             </div>
                             <div className="lumiverse-profile-bindings-toggles-info">
-                                Save current prompt enabled/disabled states
+                                {isLoomMode
+                                    ? 'Save current block enabled/disabled states'
+                                    : 'Save current prompt enabled/disabled states'}
                             </div>
                             <div className="lumiverse-profile-bindings-toggles-rows">
                                 {/* Character toggle binding */}
@@ -579,7 +607,7 @@ function ProfileBindingsModal({ onClose }) {
                                             <button
                                                 className="lumiverse-profile-bindings-toggle-clear"
                                                 onClick={handleClearCharacterToggleBinding}
-                                                title="Clear toggle binding"
+                                                title={`Clear ${toggleNoun} toggle binding`}
                                                 type="button"
                                             >
                                                 <X size={12} strokeWidth={2} />
@@ -590,7 +618,7 @@ function ProfileBindingsModal({ onClose }) {
                                             className="lumiverse-profile-bindings-toggle-bind"
                                             onClick={handleBindTogglesToCharacter}
                                             disabled={!contextInfo.characterAvatar}
-                                            title="Bind current prompt toggles to character"
+                                            title={`Bind current ${toggleNoun} toggles to character`}
                                             type="button"
                                         >
                                             Bind Toggles
@@ -614,7 +642,7 @@ function ProfileBindingsModal({ onClose }) {
                                             <button
                                                 className="lumiverse-profile-bindings-toggle-clear"
                                                 onClick={handleClearChatToggleBinding}
-                                                title="Clear toggle binding"
+                                                title={`Clear ${toggleNoun} toggle binding`}
                                                 type="button"
                                             >
                                                 <X size={12} strokeWidth={2} />
@@ -625,7 +653,7 @@ function ProfileBindingsModal({ onClose }) {
                                             className="lumiverse-profile-bindings-toggle-bind"
                                             onClick={handleBindTogglesToChat}
                                             disabled={!contextInfo.chatId}
-                                            title="Bind current prompt toggles to chat"
+                                            title={`Bind current ${toggleNoun} toggles to chat`}
                                             type="button"
                                         >
                                             Bind Toggles
@@ -653,33 +681,41 @@ function ProfileBindingsModal({ onClose }) {
 /**
  * Quick Bind Button - shows current binding status and opens modal
  */
-function QuickBindButton({ 
-    onClick, 
-    currentBinding, 
-    currentCharacterBinding, 
+function QuickBindButton({
+    onClick,
+    currentBinding,
+    currentCharacterBinding,
     currentChatBinding,
     hasChatToggleBinding,
     hasCharacterToggleBinding,
+    isLoomMode,
 }) {
-    const hasPresetBound = !!currentBinding.presetName;
+    const hasPresetBound = !!currentBinding.presetName || !!currentCharacterBinding || !!currentChatBinding;
     const hasToggleBound = hasChatToggleBinding || hasCharacterToggleBinding;
     const hasBound = hasPresetBound || hasToggleBound;
-    
+
     // Build tooltip text
     const getTooltip = () => {
         if (!hasBound) {
-            return 'Bind preset or toggles to character/chat';
+            return isLoomMode
+                ? 'Bind Loom preset or block toggles to character/chat'
+                : 'Bind preset or toggles to character/chat';
         }
-        
+
         const parts = [];
-        if (hasPresetBound) {
+        if (isLoomMode) parts.push('[Loom]');
+        if (currentBinding.presetName) {
             parts.push(`Preset: ${currentBinding.presetName} (${currentBinding.bindingType})`);
+        } else if (currentCharacterBinding) {
+            parts.push(`Preset: ${currentCharacterBinding} (character)`);
+        } else if (currentChatBinding) {
+            parts.push(`Preset: ${currentChatBinding} (chat)`);
         }
         if (hasChatToggleBinding) {
-            parts.push('Toggle: Chat');
+            parts.push(`${isLoomMode ? 'Blocks' : 'Toggle'}: Chat`);
         }
         if (hasCharacterToggleBinding) {
-            parts.push('Toggle: Character');
+            parts.push(`${isLoomMode ? 'Blocks' : 'Toggle'}: Character`);
         }
         return parts.join(' | ');
     };
@@ -722,6 +758,7 @@ function CharacterProfile({ onTabChange }) {
         currentChatBinding,
         hasChatToggleBinding,
         hasCharacterToggleBinding,
+        isLoomMode,
     } = usePresetBindings();
 
     // Subscribe to Chimera mode state
@@ -785,13 +822,16 @@ function CharacterProfile({ onTabChange }) {
             {/* Character Header */}
             <div className="lumiverse-profile-header">
                 <div className="lumiverse-profile-avatar">
-                    {character.avatar ? (
-                        <img src={character.avatar} alt={character.name} />
-                    ) : (
-                        <span className="lumiverse-profile-avatar-placeholder">
-                            <User size={32} strokeWidth={1.5} />
-                        </span>
-                    )}
+                    <LazyImage
+                        src={character.avatar}
+                        alt={character.name}
+                        spinnerSize={16}
+                        fallback={
+                            <span className="lumiverse-profile-avatar-placeholder">
+                                <User size={32} strokeWidth={1.5} />
+                            </span>
+                        }
+                    />
                 </div>
                 <div className="lumiverse-profile-info">
                     <h3 className="lumiverse-profile-name">{character.name}</h3>
@@ -817,6 +857,7 @@ function CharacterProfile({ onTabChange }) {
                     currentChatBinding={currentChatBinding}
                     hasChatToggleBinding={hasChatToggleBinding}
                     hasCharacterToggleBinding={hasCharacterToggleBinding}
+                    isLoomMode={isLoomMode}
                 />
             </div>
 

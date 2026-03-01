@@ -98,7 +98,7 @@ import {
 } from "./lib/reactBridge.js";
 
 import { initPresetBindingService } from "./lib/presetBindingService.js";
-import { resolveActivePreset, assembleMessages, resolveBinding, setActivePreset, setStoredCoreChat, preResolveMedia, applySamplerOverrides, applyCustomBody, applyCompletionSettings, applyAdvancedSettings, applyAdaptiveThinking, getProfileKey, saveCurrentModelProfile, loadModelProfile, savePreset, getLastAssemblyBreakdown, loadPreset, captureModelProfile, setWorldInfoCache, clearWorldInfoCache, injectExtensionPrompts } from "./lib/lucidLoomService.js";
+import { resolveActivePreset, assembleMessages, resolveBinding, setActivePreset, setStoredCoreChat, preResolveMedia, applySamplerOverrides, applyCustomBody, applyCompletionSettings, applyAdvancedSettings, applyAdaptiveThinking, getProfileKey, saveCurrentModelProfile, loadModelProfile, savePreset, getLastAssemblyBreakdown, loadPreset, captureModelProfile, setWorldInfoCache, clearWorldInfoCache, injectExtensionPrompts, applyLoomToggleBindingsForContext, hasLoomBindingForCurrentContext } from "./lib/lucidLoomService.js";
 import { captureReasoningSnapshot } from "./lib/presetsService.js";
 import { storeLoomBreakdown, loadLoomBreakdowns } from "./lib/chatSheldService.js";
 import { handleLoomPresetTransition, isLoomControlActive, syncContextSize, subscribeToOAIPresetEvents, reapplyLoomReasoningSettings } from "./lib/oaiPresetSync.js";
@@ -939,6 +939,30 @@ jQuery(async () => {
         // Sync ST OAI preset based on Loom preset transition
         const loomSyncPreset = resolvedPresetId ? resolveActivePreset() : null;
         handleLoomPresetTransition(resolvedPresetId, loomSyncPreset);
+
+        // Apply Loom toggle bindings (block enabled/disabled states) for the new context.
+        // Runs whenever a Loom preset is active — toggle bindings work independently
+        // of preset bindings (user can save block states without creating a preset binding).
+        // applyLoomToggleBindingsForContext returns {applied:false} quickly if no
+        // toggle bindings exist, so there's no cost when they're absent.
+        if (resolvedPresetId) {
+          applyLoomToggleBindingsForContext(resolvedPresetId).then(result => {
+            if (result.applied) {
+              // Notify React store so useLoomBuilder re-reads the preset with updated block states
+              if (store) {
+                const lb = store.getState().loomBuilder || {};
+                store.setState({ loomBuilder: { ...lb, _blockToggleTs: Date.now() } });
+              }
+              if (typeof toastr !== 'undefined') {
+                toastr.info(
+                  `Loom block toggles applied (${result.source} binding: ${result.matched} blocks)`,
+                  'Lumiverse Helper',
+                  { timeOut: 2000, preventDuplicates: true }
+                );
+              }
+            }
+          }).catch(() => {});
+        }
       } catch (err) {
         // Binding resolution is best-effort
       }

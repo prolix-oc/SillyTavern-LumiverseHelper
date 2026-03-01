@@ -6,21 +6,31 @@ import {
     Plus, Trash2, Loader2, Maximize2,
 } from 'lucide-react';
 import useCharacterEditor from '../../hooks/useCharacterEditor';
+import LazyImage from '../shared/LazyImage';
 import {
     EditorContent, EditorSection, FormField, TextInput, TextArea, Select,
 } from '../shared/FormComponents';
 import TagPillInput from '../shared/TagPillInput';
 import ConfirmationModal from '../shared/ConfirmationModal';
 import TextExpanderModal from '../shared/TextExpanderModal';
+import SyntaxTextArea from '../shared/SyntaxTextArea';
+
+// ─── Wide Mode Tab Definitions ──────────────────────────────────
+const WIDE_TABS = [
+    { id: 'core', label: 'Core Prompts', Icon: FileText },
+    { id: 'system', label: 'System', Icon: Settings },
+    { id: 'greetings', label: 'Greetings', Icon: Sparkles },
+    { id: 'identity', label: 'Identity', Icon: User },
+    { id: 'advanced', label: 'Advanced', Icon: BookOpen },
+];
 
 /**
  * Character Card Editor — renders inside CharacterBrowser, replacing the gallery view.
  *
- * @param {Object} props
- * @param {Object} props.item - Normalized character item from the browser
- * @param {Function} props.onBack - Return to gallery view
+ * Sidebar mode: compact accordion sections with expand-to-modal buttons.
+ * Wide mode (gallery modal): horizontal tab bar with inline syntax-highlighted fields.
  */
-export default function CharacterCardEditor({ item, onBack }) {
+export default function CharacterCardEditor({ item, onBack, wideMode = false }) {
     const {
         formState, isLoading, isSaving, loadError, isDirty,
         avatarPreview, worldBookNames,
@@ -30,6 +40,7 @@ export default function CharacterCardEditor({ item, onBack }) {
 
     const [showDiscardModal, setShowDiscardModal] = useState(false);
     const [expanderField, setExpanderField] = useState(null);
+    const [activeTab, setActiveTab] = useState('core');
     const fileInputRef = useRef(null);
 
     // Ctrl+S / Cmd+S to save
@@ -72,12 +83,42 @@ export default function CharacterCardEditor({ item, onBack }) {
     const handleAvatarChange = useCallback((e) => {
         const file = e.target.files?.[0];
         if (file) setAvatarFile(file);
-        // Reset input so re-selecting the same file triggers change
         e.target.value = '';
     }, [setAvatarFile]);
 
-    // Resolve display avatar URL
     const displayAvatarUrl = avatarPreview || item.avatarUrl;
+
+    // Renders SyntaxTextArea in wide mode, or TextArea + expand button in sidebar
+    const renderTextField = (fieldValue, onFieldChange, { rows, wideRows, placeholder, expandField, expandTitle }) => {
+        if (wideMode) {
+            return (
+                <SyntaxTextArea
+                    value={fieldValue}
+                    onChange={onFieldChange}
+                    rows={wideRows || rows + 3}
+                    placeholder={placeholder}
+                />
+            );
+        }
+        return (
+            <div className="lumiverse-ce-expandable">
+                <TextArea
+                    value={fieldValue}
+                    onChange={onFieldChange}
+                    placeholder={placeholder}
+                    rows={rows}
+                />
+                <button
+                    className="lumiverse-ce-expand-btn"
+                    onClick={() => setExpanderField({ field: expandField, title: expandTitle })}
+                    type="button"
+                    title="Expand editor"
+                >
+                    <Maximize2 size={12} />
+                </button>
+            </div>
+        );
+    };
 
     // ─── Loading State ────────────────────────────────────────
     if (isLoading) {
@@ -109,16 +150,243 @@ export default function CharacterCardEditor({ item, onBack }) {
         );
     }
 
+    // ─── Tab Content Renderers (wide mode) ────────────────────
+    const renderCorePrompts = () => (
+        <>
+            <FormField label="Description" hint="Physical/mental traits, backstory">
+                {renderTextField(formState.description, (v) => updateField('description', v), {
+                    rows: 5, wideRows: 10, placeholder: 'Character description...',
+                    expandField: 'description', expandTitle: 'Description',
+                })}
+            </FormField>
+            <FormField label="Personality" hint="Brief personality summary">
+                {renderTextField(formState.personality, (v) => updateField('personality', v), {
+                    rows: 3, wideRows: 6, placeholder: 'Personality traits...',
+                    expandField: 'personality', expandTitle: 'Personality',
+                })}
+            </FormField>
+            <FormField label="Scenario" hint="Circumstances and context">
+                {renderTextField(formState.scenario, (v) => updateField('scenario', v), {
+                    rows: 3, wideRows: 6, placeholder: 'Scenario description...',
+                    expandField: 'scenario', expandTitle: 'Scenario',
+                })}
+            </FormField>
+            <FormField label="First Message" hint="Opening message when chat starts">
+                {renderTextField(formState.first_mes, (v) => updateField('first_mes', v), {
+                    rows: 4, wideRows: 8, placeholder: 'First message...',
+                    expandField: 'first_mes', expandTitle: 'First Message',
+                })}
+            </FormField>
+            <FormField label="Example Messages" hint="Dialog examples for the AI">
+                {renderTextField(formState.mes_example, (v) => updateField('mes_example', v), {
+                    rows: 4, wideRows: 8, placeholder: '<START>\n{{user}}: ...\n{{char}}: ...',
+                    expandField: 'mes_example', expandTitle: 'Example Messages',
+                })}
+            </FormField>
+        </>
+    );
+
+    const renderSystem = () => (
+        <>
+            <FormField label="System Prompt" hint="V2 system_prompt override">
+                {renderTextField(formState.system_prompt, (v) => updateField('system_prompt', v), {
+                    rows: 4, wideRows: 8, placeholder: 'System prompt override...',
+                    expandField: 'system_prompt', expandTitle: 'System Prompt',
+                })}
+            </FormField>
+            <FormField label="Post-History Instructions" hint="Injected after chat history (jailbreak/PHI)">
+                {renderTextField(formState.post_history_instructions, (v) => updateField('post_history_instructions', v), {
+                    rows: 3, wideRows: 6, placeholder: 'Post-history instructions...',
+                    expandField: 'post_history_instructions', expandTitle: 'Post-History Instructions',
+                })}
+            </FormField>
+        </>
+    );
+
+    const renderGreetings = () => (
+        <>
+            {formState.alternate_greetings.length === 0 ? (
+                <div style={{ fontSize: '12px', color: 'var(--lumiverse-text-dim)', marginBottom: '12px' }}>
+                    No alternate greetings. Add one below.
+                </div>
+            ) : (
+                formState.alternate_greetings.map((greeting, idx) => (
+                    <div key={idx} className="lumiverse-ce-greeting-item">
+                        <div className="lumiverse-ce-greeting-header">
+                            <span className="lumiverse-ce-greeting-label">Greeting {idx + 1}</span>
+                            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                                {!wideMode && (
+                                    <button
+                                        className="lumiverse-ce-greeting-action"
+                                        onClick={() => setExpanderField({ field: `greeting_${idx}`, title: `Greeting ${idx + 1}` })}
+                                        type="button"
+                                        title="Expand editor"
+                                    >
+                                        <Maximize2 size={12} strokeWidth={2} />
+                                    </button>
+                                )}
+                                <button
+                                    className="lumiverse-ce-greeting-delete"
+                                    onClick={() => removeGreeting(idx)}
+                                    type="button"
+                                    title="Remove greeting"
+                                >
+                                    <Trash2 size={12} strokeWidth={2} />
+                                </button>
+                            </div>
+                        </div>
+                        {wideMode ? (
+                            <SyntaxTextArea
+                                value={greeting}
+                                onChange={(v) => updateGreeting(idx, v)}
+                                rows={6}
+                                placeholder="Alternate greeting..."
+                            />
+                        ) : (
+                            <TextArea
+                                value={greeting}
+                                onChange={(v) => updateGreeting(idx, v)}
+                                placeholder="Alternate greeting..."
+                                rows={3}
+                            />
+                        )}
+                    </div>
+                ))
+            )}
+            <button
+                className="lumiverse-ce-btn lumiverse-ce-btn--secondary lumiverse-ce-add-greeting"
+                onClick={addGreeting}
+                type="button"
+            >
+                <Plus size={13} strokeWidth={2} />
+                <span>Add Greeting</span>
+            </button>
+        </>
+    );
+
+    const renderIdentity = () => (
+        <>
+            <FormField label="Name">
+                <TextInput
+                    value={formState.name}
+                    onChange={(v) => updateField('name', v)}
+                    placeholder="Character name"
+                />
+            </FormField>
+            <FormField label="Creator">
+                <TextInput
+                    value={formState.creator}
+                    onChange={(v) => updateField('creator', v)}
+                    placeholder="Creator name"
+                />
+            </FormField>
+            <FormField label="Creator Notes">
+                {renderTextField(formState.creator_notes, (v) => updateField('creator_notes', v), {
+                    rows: 3, wideRows: 6, placeholder: 'Notes from the creator...',
+                    expandField: 'creator_notes', expandTitle: 'Creator Notes',
+                })}
+            </FormField>
+            <FormField label="Version">
+                <TextInput
+                    value={formState.character_version}
+                    onChange={(v) => updateField('character_version', v)}
+                    placeholder="e.g. 1.0"
+                />
+            </FormField>
+            <FormField label="Tags" hint="Press Enter or comma to add">
+                <TagPillInput
+                    value={Array.isArray(formState.tags) ? formState.tags : []}
+                    onChange={(tags) => updateField('tags', tags)}
+                    placeholder="Add tag..."
+                />
+            </FormField>
+        </>
+    );
+
+    const renderAdvanced = () => (
+        <>
+            <FormField label="Talkativeness" hint={`${(formState.talkativeness * 100).toFixed(0)}%`}>
+                <div className="lumiverse-ce-talkativeness">
+                    <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={formState.talkativeness}
+                        onChange={(e) => updateField('talkativeness', parseFloat(e.target.value))}
+                        className="lumiverse-ce-range"
+                    />
+                    <span className="lumiverse-ce-range-value">
+                        {(formState.talkativeness * 100).toFixed(0)}%
+                    </span>
+                </div>
+            </FormField>
+            <FormField label="Favorite">
+                <label className="lumiverse-ce-checkbox-label">
+                    <input
+                        type="checkbox"
+                        checked={formState.fav}
+                        onChange={(e) => updateField('fav', e.target.checked)}
+                    />
+                    <span>Mark as favorite</span>
+                </label>
+            </FormField>
+            <FormField label="World / Lorebook" hint="Associated world book">
+                <Select
+                    value={formState.world}
+                    onChange={(v) => updateField('world', v)}
+                    options={[
+                        { value: '', label: '--- None ---' },
+                        ...worldBookNames.map((name) => ({ value: name, label: name })),
+                    ]}
+                />
+            </FormField>
+            <FormField label="Depth Prompt">
+                {renderTextField(formState.depth_prompt_prompt, (v) => updateField('depth_prompt_prompt', v), {
+                    rows: 3, wideRows: 6, placeholder: 'Depth prompt content...',
+                    expandField: 'depth_prompt_prompt', expandTitle: 'Depth Prompt',
+                })}
+            </FormField>
+            <div style={{ display: 'flex', gap: '12px' }}>
+                <FormField label="Depth" className="lumiverse-ce-half-field">
+                    <TextInput
+                        value={String(formState.depth_prompt_depth)}
+                        onChange={(v) => {
+                            const n = parseInt(v, 10);
+                            if (!isNaN(n) && n >= 0) updateField('depth_prompt_depth', n);
+                        }}
+                        placeholder="4"
+                    />
+                </FormField>
+                <FormField label="Role" className="lumiverse-ce-half-field">
+                    <Select
+                        value={formState.depth_prompt_role}
+                        onChange={(v) => updateField('depth_prompt_role', v)}
+                        options={[
+                            { value: 'system', label: 'System' },
+                            { value: 'user', label: 'User' },
+                            { value: 'assistant', label: 'Assistant' },
+                        ]}
+                    />
+                </FormField>
+            </div>
+        </>
+    );
+
+    const TAB_RENDERERS = { core: renderCorePrompts, system: renderSystem, greetings: renderGreetings, identity: renderIdentity, advanced: renderAdvanced };
+
     return (
-        <div className="lumiverse-ce-panel">
+        <div className={clsx('lumiverse-ce-panel', wideMode && 'lumiverse-ce-panel--wide')}>
             {/* ─── Hero Header ─────────────────────────────── */}
             <div className="lumiverse-ce-hero">
                 <div className="lumiverse-ce-hero-avatar" onClick={handleAvatarClick} title="Click to change avatar">
-                    {displayAvatarUrl ? (
-                        <img src={displayAvatarUrl} alt={formState.name} className="lumiverse-ce-hero-avatar-img" />
-                    ) : (
-                        <User size={28} strokeWidth={1.5} />
-                    )}
+                    <LazyImage
+                        src={displayAvatarUrl}
+                        alt={formState.name}
+                        className="lumiverse-ce-hero-avatar-img"
+                        spinnerSize={16}
+                        fallback={<User size={28} strokeWidth={1.5} />}
+                    />
                     <div className="lumiverse-ce-avatar-overlay">
                         <Upload size={14} strokeWidth={2} />
                     </div>
@@ -181,351 +449,70 @@ export default function CharacterCardEditor({ item, onBack }) {
                 </div>
             </div>
 
-            {/* ─── Scrollable Content ───────────────────────── */}
-            <EditorContent className="lumiverse-ce-content">
-
-                {/* Core Prompts */}
-                <EditorSection Icon={FileText} title="Core Prompts" defaultExpanded={true}>
-                    <FormField label="Description" hint="Physical/mental traits, backstory">
-                        <div className="lumiverse-ce-expandable">
-                            <TextArea
-                                value={formState.description}
-                                onChange={(v) => updateField('description', v)}
-                                placeholder="Character description..."
-                                rows={5}
-                            />
+            {/* ─── Content Area ────────────────────────────── */}
+            {wideMode ? (
+                <>
+                    {/* Tab Bar */}
+                    <div className="lumiverse-ce-tabs">
+                        {WIDE_TABS.map(({ id, label, Icon }) => (
                             <button
-                                className="lumiverse-ce-expand-btn"
-                                onClick={() => setExpanderField({ field: 'description', title: 'Description' })}
+                                key={id}
+                                className={clsx('lumiverse-ce-tab', activeTab === id && 'lumiverse-ce-tab--active')}
+                                onClick={() => setActiveTab(id)}
                                 type="button"
-                                title="Expand editor"
                             >
-                                <Maximize2 size={12} />
+                                <Icon size={14} strokeWidth={1.5} />
+                                <span>{label}</span>
                             </button>
-                        </div>
-                    </FormField>
-                    <FormField label="Personality" hint="Brief personality summary">
-                        <div className="lumiverse-ce-expandable">
-                            <TextArea
-                                value={formState.personality}
-                                onChange={(v) => updateField('personality', v)}
-                                placeholder="Personality traits..."
-                                rows={3}
-                            />
-                            <button
-                                className="lumiverse-ce-expand-btn"
-                                onClick={() => setExpanderField({ field: 'personality', title: 'Personality' })}
-                                type="button"
-                                title="Expand editor"
-                            >
-                                <Maximize2 size={12} />
-                            </button>
-                        </div>
-                    </FormField>
-                    <FormField label="Scenario" hint="Circumstances and context">
-                        <div className="lumiverse-ce-expandable">
-                            <TextArea
-                                value={formState.scenario}
-                                onChange={(v) => updateField('scenario', v)}
-                                placeholder="Scenario description..."
-                                rows={3}
-                            />
-                            <button
-                                className="lumiverse-ce-expand-btn"
-                                onClick={() => setExpanderField({ field: 'scenario', title: 'Scenario' })}
-                                type="button"
-                                title="Expand editor"
-                            >
-                                <Maximize2 size={12} />
-                            </button>
-                        </div>
-                    </FormField>
-                    <FormField label="First Message" hint="Opening message when chat starts">
-                        <div className="lumiverse-ce-expandable">
-                            <TextArea
-                                value={formState.first_mes}
-                                onChange={(v) => updateField('first_mes', v)}
-                                placeholder="First message..."
-                                rows={4}
-                            />
-                            <button
-                                className="lumiverse-ce-expand-btn"
-                                onClick={() => setExpanderField({ field: 'first_mes', title: 'First Message' })}
-                                type="button"
-                                title="Expand editor"
-                            >
-                                <Maximize2 size={12} />
-                            </button>
-                        </div>
-                    </FormField>
-                    <FormField label="Example Messages" hint="Dialog examples for the AI">
-                        <div className="lumiverse-ce-expandable">
-                            <TextArea
-                                value={formState.mes_example}
-                                onChange={(v) => updateField('mes_example', v)}
-                                placeholder="<START>\n{{user}}: ...\n{{char}}: ..."
-                                rows={4}
-                            />
-                            <button
-                                className="lumiverse-ce-expand-btn"
-                                onClick={() => setExpanderField({ field: 'mes_example', title: 'Example Messages' })}
-                                type="button"
-                                title="Expand editor"
-                            >
-                                <Maximize2 size={12} />
-                            </button>
-                        </div>
-                    </FormField>
-                </EditorSection>
-
-                {/* System */}
-                <EditorSection Icon={Settings} title="System" defaultExpanded={false}>
-                    <FormField label="System Prompt" hint="V2 system_prompt override">
-                        <div className="lumiverse-ce-expandable">
-                            <TextArea
-                                value={formState.system_prompt}
-                                onChange={(v) => updateField('system_prompt', v)}
-                                placeholder="System prompt override..."
-                                rows={4}
-                            />
-                            <button
-                                className="lumiverse-ce-expand-btn"
-                                onClick={() => setExpanderField({ field: 'system_prompt', title: 'System Prompt' })}
-                                type="button"
-                                title="Expand editor"
-                            >
-                                <Maximize2 size={12} />
-                            </button>
-                        </div>
-                    </FormField>
-                    <FormField label="Post-History Instructions" hint="Injected after chat history (jailbreak/PHI)">
-                        <div className="lumiverse-ce-expandable">
-                            <TextArea
-                                value={formState.post_history_instructions}
-                                onChange={(v) => updateField('post_history_instructions', v)}
-                                placeholder="Post-history instructions..."
-                                rows={3}
-                            />
-                            <button
-                                className="lumiverse-ce-expand-btn"
-                                onClick={() => setExpanderField({ field: 'post_history_instructions', title: 'Post-History Instructions' })}
-                                type="button"
-                                title="Expand editor"
-                            >
-                                <Maximize2 size={12} />
-                            </button>
-                        </div>
-                    </FormField>
-                </EditorSection>
-
-                {/* Alternate Greetings */}
-                <EditorSection Icon={Sparkles} title="Alternate Greetings" defaultExpanded={false}>
-                    {formState.alternate_greetings.length === 0 ? (
-                        <div style={{ fontSize: '12px', color: 'var(--lumiverse-text-dim)', marginBottom: '12px' }}>
-                            No alternate greetings. Add one below.
-                        </div>
-                    ) : (
-                        formState.alternate_greetings.map((greeting, idx) => (
-                            <div key={idx} className="lumiverse-ce-greeting-item">
-                                <div className="lumiverse-ce-greeting-header">
-                                    <span className="lumiverse-ce-greeting-label">Greeting {idx + 1}</span>
-                                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                                        <button
-                                            className="lumiverse-ce-greeting-action"
-                                            onClick={() => setExpanderField({ field: `greeting_${idx}`, title: `Greeting ${idx + 1}` })}
-                                            type="button"
-                                            title="Expand editor"
-                                        >
-                                            <Maximize2 size={12} strokeWidth={2} />
-                                        </button>
-                                        <button
-                                            className="lumiverse-ce-greeting-delete"
-                                            onClick={() => removeGreeting(idx)}
-                                            type="button"
-                                            title="Remove greeting"
-                                        >
-                                            <Trash2 size={12} strokeWidth={2} />
-                                        </button>
-                                    </div>
-                                </div>
-                                <TextArea
-                                    value={greeting}
-                                    onChange={(v) => updateGreeting(idx, v)}
-                                    placeholder="Alternate greeting..."
-                                    rows={3}
-                                />
-                            </div>
-                        ))
-                    )}
-                    <button
-                        className="lumiverse-ce-btn lumiverse-ce-btn--secondary lumiverse-ce-add-greeting"
-                        onClick={addGreeting}
-                        type="button"
-                    >
-                        <Plus size={13} strokeWidth={2} />
-                        <span>Add Greeting</span>
-                    </button>
-                </EditorSection>
-
-                {/* Identity & Metadata */}
-                <EditorSection Icon={User} title="Identity & Metadata" defaultExpanded={false}>
-                    <FormField label="Name">
-                        <TextInput
-                            value={formState.name}
-                            onChange={(v) => updateField('name', v)}
-                            placeholder="Character name"
-                        />
-                    </FormField>
-                    <FormField label="Creator">
-                        <TextInput
-                            value={formState.creator}
-                            onChange={(v) => updateField('creator', v)}
-                            placeholder="Creator name"
-                        />
-                    </FormField>
-                    <FormField label="Creator Notes">
-                        <div className="lumiverse-ce-expandable">
-                            <TextArea
-                                value={formState.creator_notes}
-                                onChange={(v) => updateField('creator_notes', v)}
-                                placeholder="Notes from the creator..."
-                                rows={3}
-                            />
-                            <button
-                                className="lumiverse-ce-expand-btn"
-                                onClick={() => setExpanderField({ field: 'creator_notes', title: 'Creator Notes' })}
-                                type="button"
-                                title="Expand editor"
-                            >
-                                <Maximize2 size={12} />
-                            </button>
-                        </div>
-                    </FormField>
-                    <FormField label="Version">
-                        <TextInput
-                            value={formState.character_version}
-                            onChange={(v) => updateField('character_version', v)}
-                            placeholder="e.g. 1.0"
-                        />
-                    </FormField>
-                    <FormField label="Tags" hint="Press Enter or comma to add">
-                        <TagPillInput
-                            value={Array.isArray(formState.tags) ? formState.tags : []}
-                            onChange={(tags) => updateField('tags', tags)}
-                            placeholder="Add tag..."
-                        />
-                    </FormField>
-                </EditorSection>
-
-                {/* Advanced Settings */}
-                <EditorSection Icon={BookOpen} title="Advanced Settings" defaultExpanded={false}>
-                    {/* Talkativeness */}
-                    <FormField label="Talkativeness" hint={`${(formState.talkativeness * 100).toFixed(0)}%`}>
-                        <div className="lumiverse-ce-talkativeness">
-                            <input
-                                type="range"
-                                min="0"
-                                max="1"
-                                step="0.05"
-                                value={formState.talkativeness}
-                                onChange={(e) => updateField('talkativeness', parseFloat(e.target.value))}
-                                className="lumiverse-ce-range"
-                            />
-                            <span className="lumiverse-ce-range-value">
-                                {(formState.talkativeness * 100).toFixed(0)}%
-                            </span>
-                        </div>
-                    </FormField>
-
-                    {/* Favorite */}
-                    <FormField label="Favorite">
-                        <label className="lumiverse-ce-checkbox-label">
-                            <input
-                                type="checkbox"
-                                checked={formState.fav}
-                                onChange={(e) => updateField('fav', e.target.checked)}
-                            />
-                            <span>Mark as favorite</span>
-                        </label>
-                    </FormField>
-
-                    {/* World/Lorebook */}
-                    <FormField label="World / Lorebook" hint="Associated world book">
-                        <Select
-                            value={formState.world}
-                            onChange={(v) => updateField('world', v)}
-                            options={[
-                                { value: '', label: '--- None ---' },
-                                ...worldBookNames.map((name) => ({ value: name, label: name })),
-                            ]}
-                        />
-                    </FormField>
-
-                    {/* Depth Prompt */}
-                    <FormField label="Depth Prompt">
-                        <div className="lumiverse-ce-expandable">
-                            <TextArea
-                                value={formState.depth_prompt_prompt}
-                                onChange={(v) => updateField('depth_prompt_prompt', v)}
-                                placeholder="Depth prompt content..."
-                                rows={3}
-                            />
-                            <button
-                                className="lumiverse-ce-expand-btn"
-                                onClick={() => setExpanderField({ field: 'depth_prompt_prompt', title: 'Depth Prompt' })}
-                                type="button"
-                                title="Expand editor"
-                            >
-                                <Maximize2 size={12} />
-                            </button>
-                        </div>
-                    </FormField>
-                    <div style={{ display: 'flex', gap: '12px' }}>
-                        <FormField label="Depth" className="lumiverse-ce-half-field">
-                            <TextInput
-                                value={String(formState.depth_prompt_depth)}
-                                onChange={(v) => {
-                                    const n = parseInt(v, 10);
-                                    if (!isNaN(n) && n >= 0) updateField('depth_prompt_depth', n);
-                                }}
-                                placeholder="4"
-                            />
-                        </FormField>
-                        <FormField label="Role" className="lumiverse-ce-half-field">
-                            <Select
-                                value={formState.depth_prompt_role}
-                                onChange={(v) => updateField('depth_prompt_role', v)}
-                                options={[
-                                    { value: 'system', label: 'System' },
-                                    { value: 'user', label: 'User' },
-                                    { value: 'assistant', label: 'Assistant' },
-                                ]}
-                            />
-                        </FormField>
+                        ))}
                     </div>
-                </EditorSection>
 
-            </EditorContent>
+                    {/* Tab Content — scrollable */}
+                    <div className="lumiverse-ce-tab-content">
+                        {TAB_RENDERERS[activeTab]?.()}
+                    </div>
+                </>
+            ) : (
+                <EditorContent className="lumiverse-ce-content">
+                    <EditorSection Icon={FileText} title="Core Prompts" defaultExpanded={true}>
+                        {renderCorePrompts()}
+                    </EditorSection>
+                    <EditorSection Icon={Settings} title="System" defaultExpanded={false}>
+                        {renderSystem()}
+                    </EditorSection>
+                    <EditorSection Icon={Sparkles} title="Alternate Greetings" defaultExpanded={false}>
+                        {renderGreetings()}
+                    </EditorSection>
+                    <EditorSection Icon={User} title="Identity & Metadata" defaultExpanded={false}>
+                        {renderIdentity()}
+                    </EditorSection>
+                    <EditorSection Icon={BookOpen} title="Advanced Settings" defaultExpanded={false}>
+                        {renderAdvanced()}
+                    </EditorSection>
+                </EditorContent>
+            )}
 
-            {/* ─── Text Expander Modal ─────────────────────── */}
-            <TextExpanderModal
-                isOpen={!!expanderField}
-                onClose={() => setExpanderField(null)}
-                title={expanderField?.title || ''}
-                value={
-                    expanderField?.field?.startsWith('greeting_')
-                        ? formState.alternate_greetings[parseInt(expanderField.field.split('_')[1], 10)] || ''
-                        : (expanderField ? formState[expanderField.field] || '' : '')
-                }
-                onChange={(v) => {
-                    if (!expanderField) return;
-                    if (expanderField.field.startsWith('greeting_')) {
-                        updateGreeting(parseInt(expanderField.field.split('_')[1], 10), v);
-                    } else {
-                        updateField(expanderField.field, v);
+            {/* ─── Text Expander Modal (sidebar only) ────────── */}
+            {!wideMode && (
+                <TextExpanderModal
+                    isOpen={!!expanderField}
+                    onClose={() => setExpanderField(null)}
+                    title={expanderField?.title || ''}
+                    value={
+                        expanderField?.field?.startsWith('greeting_')
+                            ? formState.alternate_greetings[parseInt(expanderField.field.split('_')[1], 10)] || ''
+                            : (expanderField ? formState[expanderField.field] || '' : '')
                     }
-                }}
-            />
+                    onChange={(v) => {
+                        if (!expanderField) return;
+                        if (expanderField.field.startsWith('greeting_')) {
+                            updateGreeting(parseInt(expanderField.field.split('_')[1], 10), v);
+                        } else {
+                            updateField(expanderField.field, v);
+                        }
+                    }}
+                />
+            )}
 
             {/* ─── Unsaved Changes Confirmation ──────────────── */}
             <ConfirmationModal

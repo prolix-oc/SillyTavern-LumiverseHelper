@@ -245,6 +245,16 @@ export function useLoomBuilder() {
         refreshConnectionProfile();
     }, [profileSwitchTs, activePresetId, refreshConnectionProfile]);
 
+    // Watch for block toggle binding application from index.js (via store._blockToggleTs)
+    const blockToggleTs = loomBuilder?._blockToggleTs || 0;
+    useEffect(() => {
+        if (!activePresetId || !blockToggleTs) return;
+        // Re-load the preset to pick up block enabled/disabled state changes
+        loomService.loadPreset(activePresetId).then(preset => {
+            if (preset) setActivePreset(preset);
+        });
+    }, [blockToggleTs, activePresetId]);
+
     // Debounced preset save — batches rapid changes (slider releases, typing)
     // into a single file write. State updates (setActivePreset) are immediate
     // for UI responsiveness; only the file I/O is deferred.
