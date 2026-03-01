@@ -13,6 +13,8 @@ import {
   importCharacterFiles,
   importFromExternalUrls,
   triggerCreateCharacter,
+  deleteCharacterFromST,
+  batchDeleteCharacters,
 } from "../../lib/characterBrowserService.js";
 
 const store = useLumiverseStore;
@@ -295,6 +297,94 @@ export default function useCharacterBrowser() {
     saveToExtension();
   }, []);
 
+  // ─── Delete State & Handlers ────────────────────────────
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const confirmDelete = useCallback(async (deleteChats = true) => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      await deleteCharacterFromST(deleteTarget.avatar, deleteChats);
+      if (typeof toastr !== "undefined") {
+        toastr.success(`Deleted "${deleteTarget.name}"`);
+      }
+    } catch (err) {
+      if (typeof toastr !== "undefined") {
+        toastr.error(`Failed to delete: ${err?.message || "Unknown error"}`);
+      }
+    } finally {
+      setIsDeleting(false);
+      setDeleteTarget(null);
+    }
+  }, [deleteTarget]);
+
+  // ─── Batch Delete State & Handlers ─────────────────────
+  const [batchMode, setBatchMode] = useState(false);
+  const [batchSelected, setBatchSelected] = useState(/** @type {Set<string>} */ (new Set()));
+  const [batchProgress, setBatchProgress] = useState(/** @type {{ current: number, total: number, name: string } | null} */ (null));
+  const [batchConfirmOpen, setBatchConfirmOpen] = useState(false);
+
+  const toggleBatchMode = useCallback(() => {
+    setBatchMode((prev) => {
+      if (prev) setBatchSelected(new Set()); // Clear selection on exit
+      return !prev;
+    });
+  }, []);
+
+  const toggleBatchItem = useCallback((itemId) => {
+    setBatchSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) next.delete(itemId);
+      else next.add(itemId);
+      return next;
+    });
+  }, []);
+
+  const clearBatchSelection = useCallback(() => {
+    setBatchSelected(new Set());
+    setBatchMode(false);
+    setBatchConfirmOpen(false);
+  }, []);
+
+  const executeBatchDelete = useCallback(async (deleteChats = true) => {
+    if (batchSelected.size === 0) return;
+
+    // Resolve selected items (only non-group characters)
+    const items = [];
+    for (const id of batchSelected) {
+      const item = rawCharacters.find((c) => c.id === id);
+      if (item && !item.isGroup) items.push({ avatar: item.avatar, name: item.name });
+    }
+    if (items.length === 0) return;
+
+    setBatchConfirmOpen(false);
+    setBatchProgress({ current: 0, total: items.length, name: items[0]?.name || "" });
+
+    const { succeeded, failed } = await batchDeleteCharacters(
+      items,
+      deleteChats,
+      (completed, total, currentName) => {
+        setBatchProgress({ current: completed, total, name: currentName });
+      }
+    );
+
+    setBatchProgress(null);
+    setBatchSelected(new Set());
+    setBatchMode(false);
+
+    // Summary toast
+    if (typeof toastr !== "undefined") {
+      if (failed.length === 0) {
+        toastr.success(`Deleted ${succeeded.length} character${succeeded.length !== 1 ? "s" : ""}`);
+      } else {
+        toastr.warning(
+          `Deleted ${succeeded.length} character${succeeded.length !== 1 ? "s" : ""} (${failed.length} failed)`
+        );
+      }
+    }
+  }, [batchSelected, rawCharacters]);
+
   // ─── Import State & Handlers ────────────────────────────
   const [importState, setImportState] = useState({ isImporting: false, lastImportResult: null });
 
@@ -373,5 +463,22 @@ export default function useCharacterBrowser() {
     importState,
     handleImportFiles,
     handleCreateCharacter,
+
+    // Delete
+    deleteTarget,
+    setDeleteTarget,
+    confirmDelete,
+    isDeleting,
+
+    // Batch Delete
+    batchMode,
+    toggleBatchMode,
+    batchSelected,
+    toggleBatchItem,
+    clearBatchSelection,
+    batchProgress,
+    batchConfirmOpen,
+    setBatchConfirmOpen,
+    executeBatchDelete,
   };
 }

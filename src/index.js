@@ -15,6 +15,7 @@ import {
   getSlashCommand,
   getSlashCommandParser,
   getTokenCountAsync,
+  getSaveSettingsDebounced,
 } from "./stContext.js";
 
 // Import DOM utilities
@@ -369,9 +370,18 @@ function showContextOverflowWarning(chatTokens, maxContext, maxTokens) {
             : `combined with system prompts will likely exceed your budget of <strong style="color:var(--lumiverse-text, #e0e0e0)">${budget.toLocaleString()}</strong>.`
           }
         </p>
-        <p style="font-size:12px; line-height:1.4; margin:0 0 18px; color:var(--lumiverse-text-dim, #888);">
+        <p style="font-size:12px; line-height:1.4; margin:0 0 14px; color:var(--lumiverse-text-dim, #888);">
           Context: ${maxContext.toLocaleString()} max &minus; ${maxTokens.toLocaleString()} response = ${budget.toLocaleString()} budget (${pct}% used by chat alone)
         </p>
+        <label id="lumi-ctx-dismiss-label" style="
+          display:flex; align-items:center; gap:8px; margin:0 0 18px;
+          font-size:12px; color:var(--lumiverse-text-muted, #aaa); cursor:pointer; user-select:none;
+        ">
+          <input type="checkbox" id="lumi-ctx-dismiss" style="
+            width:14px; height:14px; accent-color:var(--lumiverse-warning, #f59e0b); cursor:pointer;
+          " />
+          Don't remind me again for this chat
+        </label>
         <div style="display:flex; gap:8px; justify-content:flex-end;">
           <button id="lumi-ctx-cancel" style="
             padding:8px 16px; border-radius:6px; font-size:13px; font-weight:500; cursor:pointer;
@@ -392,9 +402,10 @@ function showContextOverflowWarning(chatTokens, maxContext, maxTokens) {
       resolve(result);
     };
 
-    overlay.querySelector('#lumi-ctx-cancel').addEventListener('click', () => cleanup(false));
-    overlay.querySelector('#lumi-ctx-proceed').addEventListener('click', () => cleanup(true));
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) cleanup(false); });
+    const dismissCheckbox = overlay.querySelector('#lumi-ctx-dismiss');
+    overlay.querySelector('#lumi-ctx-cancel').addEventListener('click', () => cleanup({ proceed: false, dismiss: false }));
+    overlay.querySelector('#lumi-ctx-proceed').addEventListener('click', () => cleanup({ proceed: true, dismiss: !!dismissCheckbox.checked }));
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) cleanup({ proceed: false, dismiss: false }); });
 
     document.body.appendChild(overlay);
   });
@@ -441,13 +452,22 @@ globalThis.lumiverseHelperGenInterceptor = async function (chat, contextSize, ab
         const maxTokens = ctx?.chatCompletionSettings?.openai_max_tokens || 0;
 
         if (maxContext > 0) {
-          const chatText = chat.map(m => (m.content || m.mes || '')).join('\n');
-          const chatTokens = await tokenCounter(chatText);
+          // Skip warning if user previously dismissed for this chat
+          const dismissed = ctx.chatMetadata?.lumiverse_dismiss_context_warning;
+          if (!dismissed) {
+            const chatText = chat.map(m => (m.content || m.mes || '')).join('\n');
+            const chatTokens = await tokenCounter(chatText);
 
-          if (chatTokens + maxTokens >= maxContext) {
-            const proceed = await showContextOverflowWarning(chatTokens, maxContext, maxTokens);
-            if (!proceed) {
-              return { chat: [], contextSize: 0, abort: true };
+            if (chatTokens + maxTokens >= maxContext) {
+              const result = await showContextOverflowWarning(chatTokens, maxContext, maxTokens);
+              if (!result.proceed) {
+                return { chat: [], contextSize: 0, abort: true };
+              }
+              if (result.dismiss && ctx.chatMetadata) {
+                ctx.chatMetadata.lumiverse_dismiss_context_warning = true;
+                const saveFn = getSaveSettingsDebounced();
+                if (saveFn) saveFn();
+              }
             }
           }
         }

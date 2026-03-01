@@ -14,6 +14,7 @@ import {
   saveCharacterFull,
   reloadCharacterInST,
 } from "../../lib/characterEditorService.js";
+import { deleteCharacterFromST } from "../../lib/characterBrowserService.js";
 
 /**
  * Extract flat form state from a full ST character object.
@@ -325,6 +326,27 @@ export default function useCharacterEditor(item) {
     });
   }, [originalState]);
 
+  // Delete character
+  const [isDeletePending, setIsDeletePending] = useState(false);
+  const deleteCharacter = useCallback(async (deleteChats = true) => {
+    if (!item?.avatar) return false;
+    setIsDeletePending(true);
+    try {
+      await deleteCharacterFromST(item.avatar, deleteChats);
+      if (typeof toastr !== "undefined") {
+        toastr.success(`Deleted "${item.name || "character"}"`);
+      }
+      return true;
+    } catch (err) {
+      if (typeof toastr !== "undefined") {
+        toastr.error(`Failed to delete: ${err?.message || "Unknown error"}`);
+      }
+      return false;
+    } finally {
+      setIsDeletePending(false);
+    }
+  }, [item?.avatar, item?.name]);
+
   return {
     formState,
     originalState,
@@ -344,5 +366,8 @@ export default function useCharacterEditor(item) {
     addGreeting,
     updateGreeting,
     removeGreeting,
+
+    deleteCharacter,
+    isDeletePending,
   };
 }

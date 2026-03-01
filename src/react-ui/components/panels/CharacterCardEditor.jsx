@@ -36,9 +36,11 @@ export default function CharacterCardEditor({ item, onBack, wideMode = false }) 
         avatarPreview, worldBookNames,
         updateField, save, revert, setAvatarFile,
         addGreeting, updateGreeting, removeGreeting,
+        deleteCharacter, isDeletePending,
     } = useCharacterEditor(item);
 
     const [showDiscardModal, setShowDiscardModal] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [expanderField, setExpanderField] = useState(null);
     const [activeTab, setActiveTab] = useState('core');
     const fileInputRef = useRef(null);
@@ -424,6 +426,15 @@ export default function CharacterCardEditor({ item, onBack, wideMode = false }) 
 
                 <div className="lumiverse-ce-actions">
                     <button
+                        className="lumiverse-ce-btn lumiverse-ce-btn--danger"
+                        onClick={() => setShowDeleteModal(true)}
+                        disabled={isSaving || isDeletePending}
+                        type="button"
+                        title="Delete character"
+                    >
+                        <Trash2 size={13} strokeWidth={2} />
+                    </button>
+                    <button
                         className="lumiverse-ce-btn lumiverse-ce-btn--secondary"
                         onClick={revert}
                         disabled={!isDirty || isSaving}
@@ -527,6 +538,33 @@ export default function CharacterCardEditor({ item, onBack, wideMode = false }) 
                 cancelText="Cancel"
                 secondaryText="Discard"
                 secondaryVariant="danger"
+            />
+
+            {/* ─── Delete Character Confirmation ─────────────── */}
+            <ConfirmationModal
+                isOpen={showDeleteModal}
+                variant="danger"
+                title="Delete Character"
+                message={
+                    <>
+                        <strong>{item?.name || 'This character'}</strong> will be permanently deleted.
+                        <br /><br />
+                        Choose whether to also delete all associated chat history, or keep the chat files.
+                    </>
+                }
+                confirmText={isDeletePending ? 'Deleting...' : 'Delete Everything'}
+                secondaryText="Keep Chats"
+                secondaryVariant="warning"
+                cancelText="Cancel"
+                onConfirm={async () => {
+                    const ok = await deleteCharacter(true);
+                    if (ok) { setShowDeleteModal(false); onBack(); }
+                }}
+                onSecondary={async () => {
+                    const ok = await deleteCharacter(false);
+                    if (ok) { setShowDeleteModal(false); onBack(); }
+                }}
+                onCancel={() => setShowDeleteModal(false)}
             />
         </div>
     );

@@ -426,6 +426,110 @@ export async function importFromExternalUrls(textBlock) {
 }
 
 /**
+ * Delete a character via ST's deleteCharacter() function.
+ * @param {string} avatarKey - Avatar filename (e.g., "character.png")
+ * @param {boolean} [deleteChats=true] - Whether to also delete associated chats
+ * @returns {Promise<boolean>} true if successful
+ */
+export async function deleteCharacterFromST(avatarKey, deleteChats = true) {
+  if (!avatarKey) throw new Error("No avatar key provided");
+
+  try {
+    const { deleteCharacter } = await import(
+      /* webpackIgnore: true */ "../../../../../script.js"
+    );
+    if (!deleteCharacter) {
+      throw new Error("deleteCharacter not available in this ST version");
+    }
+    await deleteCharacter(avatarKey, { deleteChats });
+    return true;
+  } catch (err) {
+    console.error("[Lumiverse] Error deleting character:", err);
+    throw err;
+  }
+}
+
+/**
+ * Suppress toastr notifications and ST confirmation popups during an async operation.
+ * Toastr errors are captured (not swallowed) so callers can report failures.
+ * Popup.show.confirm is auto-resolved to true (user already confirmed via our modal).
+ * @param {() => Promise<T>} fn - Async function to run with notifications suppressed
+ * @returns {Promise<{ result: T, errors: string[] }>}
+ * @template T
+ */
+async function withSuppressedNotifications(fn) {
+  const errors = [];
+  const restoreFns = [];
+
+  // Suppress toastr
+  const t = typeof toastr !== "undefined" ? toastr : null;
+  if (t) {
+    const saved = { success: t.success, error: t.error, warning: t.warning, info: t.info };
+    const noop = () => (typeof $ !== "undefined" ? $() : {});
+    t.success = noop;
+    t.info = noop;
+    t.warning = noop;
+    t.error = (msg) => { errors.push(String(msg)); return noop(); };
+    restoreFns.push(() => Object.assign(t, saved));
+  }
+
+  // Suppress Popup.show.confirm (auto-confirm "Yes" — user already confirmed via our modal)
+  // Must return POPUP_RESULT.AFFIRMATIVE (1), not true — ST throws on boolean results
+  try {
+    const popupMod = await import(/* webpackIgnore: true */ "../../../../../scripts/popup.js");
+    const Popup = popupMod?.Popup;
+    if (Popup?.show?.confirm) {
+      const savedConfirm = Popup.show.confirm;
+      Popup.show.confirm = async () => popupMod.POPUP_RESULT?.AFFIRMATIVE ?? 1;
+      restoreFns.push(() => { Popup.show.confirm = savedConfirm; });
+    }
+  } catch {
+    // Popup module not available — no-op
+  }
+
+  try {
+    return { result: await fn(), errors };
+  } finally {
+    for (const restore of restoreFns) restore();
+  }
+}
+
+/**
+ * Batch-delete multiple characters with toastr suppression and progress reporting.
+ * Deletes sequentially (ST mutates global state — parallel is unsafe).
+ * @param {Array<{ avatar: string, name: string }>} items - Characters to delete
+ * @param {boolean} deleteChats - Whether to also delete associated chats
+ * @param {(completed: number, total: number, currentName: string) => void} onProgress - Progress callback
+ * @returns {Promise<{ succeeded: string[], failed: Array<{ avatar: string, name: string, error: string }> }>}
+ */
+export async function batchDeleteCharacters(items, deleteChats, onProgress) {
+  const succeeded = [];
+  const failed = [];
+  const total = items.length;
+
+  const { errors } = await withSuppressedNotifications(async () => {
+    for (let i = 0; i < items.length; i++) {
+      const { avatar, name } = items[i];
+      onProgress?.(i, total, name);
+      try {
+        await deleteCharacterFromST(avatar, deleteChats);
+        succeeded.push(avatar);
+      } catch (err) {
+        failed.push({ avatar, name, error: err?.message || "Unknown error" });
+      }
+    }
+  });
+
+  // If there were toastr errors captured during suppression, attach to failed list
+  if (errors.length > 0) {
+    console.warn("[Lumiverse] Batch delete suppressed toastr errors:", errors);
+  }
+
+  onProgress?.(total, total, "");
+  return { succeeded, failed };
+}
+
+/**
  * Trigger ST's "Create New Character" form.
  * Clicks the DOM button and signals drawer close.
  */

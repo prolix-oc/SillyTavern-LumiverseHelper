@@ -3,8 +3,8 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import clsx from 'clsx';
 import {
     Search, X, User, UsersRound, Star, ChevronDown, ArrowUpDown,
-    Grid3x3, List, Tag, FolderOpen, Loader2, Pencil, ChevronRight, Check,
-    GripVertical, RotateCcw, Maximize2, Plus, UserPlus, FileUp, Globe, Upload,
+    Grid3x3, List, Tag, FolderOpen, Loader2, Pencil, ChevronRight, Check, CheckSquare,
+    GripVertical, RotateCcw, Maximize2, Plus, UserPlus, FileUp, Globe, Upload, Trash2,
 } from 'lucide-react';
 import {
     DndContext, closestCenter, KeyboardSensor, MouseSensor, TouchSensor, useSensor, useSensors,
@@ -19,6 +19,7 @@ import LazyImage from '../shared/LazyImage';
 import CharacterCardEditor from './CharacterCardEditor';
 import { useLumiverseStore, useLumiverseActions } from '../../store/LumiverseContext';
 import { IMPORT_ACCEPTED_TYPES } from '../../../lib/characterBrowserService';
+import ConfirmationModal from '../shared/ConfirmationModal';
 
 const store = useLumiverseStore;
 
@@ -341,15 +342,25 @@ function GroupAvatarStack({ members }) {
 
 // ─── Character Card (Grid) ─────────────────────────────────────
 const CharacterCardGrid = memo(function CharacterCardGrid({
-    item, isActive, onSelect, onToggleFavorite, onEdit,
+    item, isActive, onSelect, onToggleFavorite, onEdit, onDelete, isBatchMode, isSelected,
 }) {
     const showGroupStack = item.isGroup && item.members?.length > 0;
     return (
         <button
-            className={clsx('lumiverse-cb-card', isActive && 'lumiverse-cb-card--active')}
+            className={clsx(
+                'lumiverse-cb-card',
+                isActive && 'lumiverse-cb-card--active',
+                isSelected && 'lumiverse-cb-card--selected',
+            )}
             onClick={() => onSelect(item)}
             type="button"
         >
+            {/* Batch selection check overlay */}
+            {isBatchMode && !item.isGroup && (
+                <div className={clsx('lumiverse-cb-card-check', isSelected && 'lumiverse-cb-card-check--active')}>
+                    <Check size={16} strokeWidth={3} />
+                </div>
+            )}
             <div className="lumiverse-cb-card-avatar">
                 {showGroupStack ? (
                     <GroupAvatarStack members={item.members} />
@@ -385,7 +396,7 @@ const CharacterCardGrid = memo(function CharacterCardGrid({
                     </div>
                 )}
             </div>
-            {onEdit && !item.isGroup && (
+            {!isBatchMode && onEdit && !item.isGroup && (
                 <button
                     className="lumiverse-cb-card-edit"
                     onClick={(e) => { e.stopPropagation(); onEdit(item); }}
@@ -395,28 +406,49 @@ const CharacterCardGrid = memo(function CharacterCardGrid({
                     <Pencil size={12} strokeWidth={1.5} />
                 </button>
             )}
-            <button
-                className={clsx('lumiverse-cb-card-star', item.isFavorite && 'lumiverse-cb-card-star--active')}
-                onClick={(e) => { e.stopPropagation(); onToggleFavorite(item.id); }}
-                type="button"
-                title={item.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-            >
-                <Star size={13} strokeWidth={item.isFavorite ? 0 : 1.5} fill={item.isFavorite ? 'currentColor' : 'none'} />
-            </button>
+            {!isBatchMode && onDelete && !item.isGroup && (
+                <button
+                    className="lumiverse-cb-card-delete"
+                    onClick={(e) => { e.stopPropagation(); onDelete(item); }}
+                    type="button"
+                    title="Delete character"
+                >
+                    <Trash2 size={12} strokeWidth={1.5} />
+                </button>
+            )}
+            {!isBatchMode && (
+                <button
+                    className={clsx('lumiverse-cb-card-star', item.isFavorite && 'lumiverse-cb-card-star--active')}
+                    onClick={(e) => { e.stopPropagation(); onToggleFavorite(item.id); }}
+                    type="button"
+                    title={item.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                >
+                    <Star size={13} strokeWidth={item.isFavorite ? 0 : 1.5} fill={item.isFavorite ? 'currentColor' : 'none'} />
+                </button>
+            )}
         </button>
     );
 }, areCardPropsEqual);
 
 // ─── Character Card (List) ─────────────────────────────────────
 const CharacterCardList = memo(function CharacterCardList({
-    item, isActive, onSelect, onToggleFavorite, onEdit,
+    item, isActive, onSelect, onToggleFavorite, onEdit, onDelete, isBatchMode, isSelected,
 }) {
     return (
         <button
-            className={clsx('lumiverse-cb-list-row', isActive && 'lumiverse-cb-list-row--active')}
+            className={clsx(
+                'lumiverse-cb-list-row',
+                isActive && 'lumiverse-cb-list-row--active',
+                isSelected && 'lumiverse-cb-list-row--selected',
+            )}
             onClick={() => onSelect(item)}
             type="button"
         >
+            {isBatchMode && !item.isGroup && (
+                <div className={clsx('lumiverse-cb-list-check', isSelected && 'lumiverse-cb-list-check--active')}>
+                    <Check size={14} strokeWidth={3} />
+                </div>
+            )}
             <div className="lumiverse-cb-list-avatar">
                 <LazyImage
                     src={item.avatarUrl}
@@ -433,7 +465,7 @@ const CharacterCardList = memo(function CharacterCardList({
                     {item.tagNames.length}
                 </span>
             )}
-            {onEdit && !item.isGroup && (
+            {!isBatchMode && onEdit && !item.isGroup && (
                 <button
                     className="lumiverse-cb-card-edit"
                     onClick={(e) => { e.stopPropagation(); onEdit(item); }}
@@ -443,14 +475,26 @@ const CharacterCardList = memo(function CharacterCardList({
                     <Pencil size={12} strokeWidth={1.5} />
                 </button>
             )}
-            <button
-                className={clsx('lumiverse-cb-card-star', item.isFavorite && 'lumiverse-cb-card-star--active')}
-                onClick={(e) => { e.stopPropagation(); onToggleFavorite(item.id); }}
-                type="button"
-                title={item.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-            >
-                <Star size={12} strokeWidth={item.isFavorite ? 0 : 1.5} fill={item.isFavorite ? 'currentColor' : 'none'} />
-            </button>
+            {!isBatchMode && onDelete && !item.isGroup && (
+                <button
+                    className="lumiverse-cb-card-delete"
+                    onClick={(e) => { e.stopPropagation(); onDelete(item); }}
+                    type="button"
+                    title="Delete character"
+                >
+                    <Trash2 size={12} strokeWidth={1.5} />
+                </button>
+            )}
+            {!isBatchMode && (
+                <button
+                    className={clsx('lumiverse-cb-card-star', item.isFavorite && 'lumiverse-cb-card-star--active')}
+                    onClick={(e) => { e.stopPropagation(); onToggleFavorite(item.id); }}
+                    type="button"
+                    title={item.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                >
+                    <Star size={12} strokeWidth={item.isFavorite ? 0 : 1.5} fill={item.isFavorite ? 'currentColor' : 'none'} />
+                </button>
+            )}
         </button>
     );
 }, areCardPropsEqual);
@@ -468,9 +512,12 @@ function areCardPropsEqual(prev, next) {
         prev.item.tagNames === next.item.tagNames &&
         prev.item.tagColors === next.item.tagColors &&
         prev.isActive === next.isActive &&
+        prev.isBatchMode === next.isBatchMode &&
+        prev.isSelected === next.isSelected &&
         prev.onSelect === next.onSelect &&
         prev.onToggleFavorite === next.onToggleFavorite &&
-        prev.onEdit === next.onEdit
+        prev.onEdit === next.onEdit &&
+        prev.onDelete === next.onDelete
     );
 }
 
@@ -579,7 +626,7 @@ function ActiveCharacterBar({ item, onClick }) {
 }
 
 // ─── Virtualized Character List ────────────────────────────────
-function VirtualizedGrid({ items, activeCharacterId, onSelect, onToggleFavorite, onEdit, containerRef }) {
+function VirtualizedGrid({ items, activeCharacterId, onSelect, onToggleFavorite, onEdit, onDelete, containerRef, isBatchMode, batchSelected }) {
     const isMobile = useIsMobile();
     const [cols, setCols] = useState(isMobile ? 2 : 3);
 
@@ -641,6 +688,9 @@ function VirtualizedGrid({ items, activeCharacterId, onSelect, onToggleFavorite,
                                     onSelect={onSelect}
                                     onToggleFavorite={onToggleFavorite}
                                     onEdit={onEdit}
+                                    onDelete={onDelete}
+                                    isBatchMode={isBatchMode}
+                                    isSelected={batchSelected?.has(item.id)}
                                 />
                             ))}
                         </div>
@@ -651,7 +701,7 @@ function VirtualizedGrid({ items, activeCharacterId, onSelect, onToggleFavorite,
     );
 }
 
-function VirtualizedList({ items, activeCharacterId, onSelect, onToggleFavorite, onEdit, containerRef }) {
+function VirtualizedList({ items, activeCharacterId, onSelect, onToggleFavorite, onEdit, onDelete, containerRef, isBatchMode, batchSelected }) {
     const virtualizer = useVirtualizer({
         count: items.length,
         getScrollElement: () => containerRef.current,
@@ -681,6 +731,9 @@ function VirtualizedList({ items, activeCharacterId, onSelect, onToggleFavorite,
                             onSelect={onSelect}
                             onToggleFavorite={onToggleFavorite}
                             onEdit={onEdit}
+                            onDelete={onDelete}
+                            isBatchMode={isBatchMode}
+                            isSelected={batchSelected?.has(item.id)}
                         />
                     </div>
                 );
@@ -690,7 +743,7 @@ function VirtualizedList({ items, activeCharacterId, onSelect, onToggleFavorite,
 }
 
 // ─── Main Character Browser Panel ──────────────────────────────
-function CharacterBrowser({ wideMode = false, onDismiss } = {}) {
+function CharacterBrowser({ wideMode = false, onDismiss, onBatchStateChange } = {}) {
     const {
         characters, favoriteItems, tags, folderGroups, activeCharacterId, totalCount,
         searchQuery, setSearchQuery,
@@ -702,10 +755,21 @@ function CharacterBrowser({ wideMode = false, onDismiss } = {}) {
         selectCharacter: handleSelect, toggleFavorite,
         enableResortableTagFolders, tagFolderOrder, setTagFolderOrder, resetTagFolderOrder,
         importState, handleImportFiles, handleCreateCharacter,
+        deleteTarget, setDeleteTarget, confirmDelete, isDeleting,
+        batchMode, toggleBatchMode, batchSelected, toggleBatchItem, clearBatchSelection,
+        batchProgress, batchConfirmOpen, setBatchConfirmOpen, executeBatchDelete,
     } = useCharacterBrowser();
 
     const isMobile = useIsMobile();
     const actions = useLumiverseActions();
+
+    // Sync batch state to parent (for modal footer rendering)
+    useEffect(() => {
+        onBatchStateChange?.({
+            batchMode, batchSelected, batchProgress, batchConfirmOpen,
+            setBatchConfirmOpen, executeBatchDelete, clearBatchSelection,
+        });
+    }, [batchMode, batchSelected, batchProgress, batchConfirmOpen, onBatchStateChange, setBatchConfirmOpen, executeBatchDelete, clearBatchSelection]);
 
     // DnD sensors (only instantiated when feature is enabled)
     const sensors = useSensors(
@@ -832,6 +896,11 @@ function CharacterBrowser({ wideMode = false, onDismiss } = {}) {
 
     // Wide mode: navigate to chat + dismiss modal (no editor)
     const handleCardSelectWide = useCallback(async (item) => {
+        // In batch mode, toggle selection instead of navigating (skip groups)
+        if (batchMode && !item.isGroup) {
+            toggleBatchItem(item.id);
+            return;
+        }
         if (isNavigating) return;
         setIsNavigating(true);
         try {
@@ -840,7 +909,7 @@ function CharacterBrowser({ wideMode = false, onDismiss } = {}) {
         } finally {
             setIsNavigating(false);
         }
-    }, [handleSelect, isNavigating, onDismiss]);
+    }, [handleSelect, isNavigating, onDismiss, batchMode, toggleBatchItem]);
 
     const cardSelectHandler = wideMode ? handleCardSelectWide : handleCardSelect;
 
@@ -864,8 +933,14 @@ function CharacterBrowser({ wideMode = false, onDismiss } = {}) {
         }
     }, [editorItem, handleSelect, isNavigating]);
 
+    // Delete handler — opens confirmation modal
+    const handleDeleteRequest = useCallback((item) => {
+        setDeleteTarget(item);
+    }, [setDeleteTarget]);
+
     // Render folder-grouped content
     const editHandler = handleDirectEdit;
+    const deleteHandler = handleDeleteRequest;
     const renderFolderContent = useCallback((folderItems) => {
         if (viewMode === 'grid') {
             const minCard = wideMode ? 200 : isMobile ? 120 : 140;
@@ -879,6 +954,9 @@ function CharacterBrowser({ wideMode = false, onDismiss } = {}) {
                             onSelect={cardSelectHandler}
                             onToggleFavorite={toggleFavorite}
                             onEdit={editHandler}
+                            onDelete={deleteHandler}
+                            isBatchMode={batchMode && wideMode}
+                            isSelected={batchSelected.has(item.id)}
                         />
                     ))}
                 </div>
@@ -892,9 +970,12 @@ function CharacterBrowser({ wideMode = false, onDismiss } = {}) {
                 onSelect={cardSelectHandler}
                 onToggleFavorite={toggleFavorite}
                 onEdit={editHandler}
+                onDelete={deleteHandler}
+                isBatchMode={batchMode && wideMode}
+                isSelected={batchSelected.has(item.id)}
             />
         ));
-    }, [viewMode, wideMode, isMobile, activeCharacterId, cardSelectHandler, toggleFavorite, editHandler]);
+    }, [viewMode, wideMode, isMobile, activeCharacterId, cardSelectHandler, toggleFavorite, editHandler, deleteHandler, batchMode, batchSelected]);
 
     const hasCharacters = totalCount > 0;
 
@@ -983,6 +1064,16 @@ function CharacterBrowser({ wideMode = false, onDismiss } = {}) {
                         onToggle={toggleSortDropdown}
                     />
                     <ViewToggle viewMode={viewMode} onToggle={setViewMode} />
+                    {wideMode && (
+                        <button
+                            className={clsx('lumiverse-cb-batch-toggle', batchMode && 'lumiverse-cb-batch-toggle--active')}
+                            onClick={toggleBatchMode}
+                            type="button"
+                            title={batchMode ? 'Exit selection mode' : 'Select multiple characters'}
+                        >
+                            <CheckSquare size={15} strokeWidth={1.5} />
+                        </button>
+                    )}
                     {!isMobile && !wideMode && (
                         <button
                             className="lumiverse-cb-expand-btn"
@@ -1003,6 +1094,7 @@ function CharacterBrowser({ wideMode = false, onDismiss } = {}) {
             <div
                 className="lumiverse-cb-list-container"
                 ref={scrollRef}
+                style={batchMode && wideMode ? { paddingBottom: 72 } : undefined}
                 onDragEnter={handleDragEnter}
                 onDragLeave={handleDragLeave}
                 onDragOver={handleDragOver}
@@ -1070,7 +1162,10 @@ function CharacterBrowser({ wideMode = false, onDismiss } = {}) {
                         onSelect={cardSelectHandler}
                         onToggleFavorite={toggleFavorite}
                         onEdit={editHandler}
+                        onDelete={deleteHandler}
                         containerRef={scrollRef}
+                        isBatchMode={batchMode && wideMode}
+                        batchSelected={batchSelected}
                     />
                 ) : (
                     <VirtualizedList
@@ -1079,7 +1174,10 @@ function CharacterBrowser({ wideMode = false, onDismiss } = {}) {
                         onSelect={cardSelectHandler}
                         onToggleFavorite={toggleFavorite}
                         onEdit={editHandler}
+                        onDelete={deleteHandler}
                         containerRef={scrollRef}
+                        isBatchMode={batchMode && wideMode}
+                        batchSelected={batchSelected}
                     />
                 )}
 
@@ -1112,6 +1210,45 @@ function CharacterBrowser({ wideMode = false, onDismiss } = {}) {
                     <span>Importing&hellip;</span>
                 </div>
             )}
+
+            {/* Batch delete progress overlay */}
+            {batchProgress && (
+                <div className="lumiverse-cb-loading-overlay">
+                    <Loader2 size={28} strokeWidth={1.5} className="lumiverse-cb-spinner" />
+                    <span>Deleting {batchProgress.current} of {batchProgress.total}&hellip;</span>
+                    {batchProgress.name && (
+                        <span className="lumiverse-cb-batch-progress-name">{batchProgress.name}</span>
+                    )}
+                    <div className="lumiverse-cb-batch-progress-bar">
+                        <div
+                            className="lumiverse-cb-batch-progress-fill"
+                            style={{ width: `${batchProgress.total > 0 ? (batchProgress.current / batchProgress.total) * 100 : 0}%` }}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {/* Delete confirmation modal (single) */}
+            <ConfirmationModal
+                isOpen={!!deleteTarget}
+                variant="danger"
+                title="Delete Character"
+                message={deleteTarget ? (
+                    <>
+                        <strong>{deleteTarget.name}</strong> will be permanently deleted.
+                        <br /><br />
+                        Choose whether to also delete all associated chat history, or keep the chat files.
+                    </>
+                ) : ''}
+                confirmText={isDeleting ? 'Deleting...' : 'Delete Everything'}
+                secondaryText="Keep Chats"
+                secondaryVariant="warning"
+                cancelText="Cancel"
+                onConfirm={() => confirmDelete(true)}
+                onSecondary={() => confirmDelete(false)}
+                onCancel={() => setDeleteTarget(null)}
+            />
+
         </div>
     );
 }

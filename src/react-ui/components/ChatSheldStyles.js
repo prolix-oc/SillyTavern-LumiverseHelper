@@ -53,13 +53,20 @@ export const chatSheldStyles = `
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Universal reset — exclude OOC factory DOM so style.css rules aren't overridden.
-   :where() wrapper keeps specificity at 0,1,0 (same as the old simple .lcs-app * reset)
-   so component-level selectors like .lcs-textarea can override padding/margin normally. */
-.lcs-app *:where(:not([data-lumia-ooc], [data-lumia-ooc] *, [data-lumia-irc], [data-lumia-irc] *)),
-.lcs-app *:where(:not([data-lumia-ooc], [data-lumia-ooc] *, [data-lumia-irc], [data-lumia-irc] *))::before,
-.lcs-app *:where(:not([data-lumia-ooc], [data-lumia-ooc] *, [data-lumia-irc], [data-lumia-irc] *))::after {
+/* Universal reset — exclude OOC factory DOM AND message-content descendants
+   so LLM-generated HTML retains browser defaults and authored styles.
+   :where() wrapper keeps specificity at 0,1,0 so component-level selectors
+   like .lcs-textarea can override padding/margin normally. */
+.lcs-app *:where(:not([data-lumia-ooc], [data-lumia-ooc] *, [data-lumia-irc], [data-lumia-irc] *, .lcs-message-content, .lcs-message-content *)),
+.lcs-app *:where(:not([data-lumia-ooc], [data-lumia-ooc] *, [data-lumia-irc], [data-lumia-irc] *, .lcs-message-content, .lcs-message-content *))::before,
+.lcs-app *:where(:not([data-lumia-ooc], [data-lumia-ooc] *, [data-lumia-irc], [data-lumia-irc] *, .lcs-message-content, .lcs-message-content *))::after {
   box-sizing: border-box; margin: 0; padding: 0;
+}
+
+/* Lightweight reset for message content — box-sizing only, at :where() specificity
+   so authored styles easily override. Browser defaults for margin/padding preserved. */
+.lcs-message-content :where(*) {
+  box-sizing: border-box;
 }
 
 /* Lucide icons: inherit color, flex-friendly sizing */
@@ -349,24 +356,23 @@ svg.lucide {
 /* ── Suppress browser/ST-generated quotation marks ──
    ST's messageFormatting wraps speech in <q> tags. Browsers add curly quotes
    via ::before/::after, doubling up with the straight quotes already in text. */
-.lcs-message-content q {
+.lcs-message-content :where(q) {
   quotes: none;
 }
-.lcs-message-content q::before,
-.lcs-message-content q::after {
+.lcs-message-content :where(q::before, q::after) {
   content: none;
 }
 
-/* ── Content element reset ──
-   Overrides any ST global styles for bare HTML elements rendered by Marked.
-   Without Shadow DOM, ST's selectors for #chat p, .mes_text em, etc.
-   can leak through — these scoped rules take priority.
+/* ── Content element defaults ──
+   Low-specificity defaults for Marked output. :where() wraps the element
+   selectors so any authored styles (class-based or inline) from
+   LLM-generated HTML easily override these.
    Elements inside [data-lumia-ooc] are excluded so the DOM factory
    templates from oocComments.js can use their own style.css classes. */
 
-.lcs-message-content p:not([data-lumia-ooc] *, [data-lumia-ooc]),
-.lcs-message-content span:not([data-lumia-ooc] *, [data-lumia-ooc]),
-.lcs-message-content div:not([data-lumia-ooc] *, [data-lumia-ooc]) {
+.lcs-message-content :where(p:not([data-lumia-ooc] *, [data-lumia-ooc]),
+                             span:not([data-lumia-ooc] *, [data-lumia-ooc]),
+                             div:not([data-lumia-ooc] *, [data-lumia-ooc])) {
   margin: 0;
   padding: 0;
   border: none;
@@ -382,14 +388,14 @@ svg.lucide {
   text-shadow: none;
 }
 
-.lcs-message-content p:not([data-lumia-ooc] *, [data-lumia-ooc]) { margin: 0 0 0.6em; }
-.lcs-message-content p:not([data-lumia-ooc] *, [data-lumia-ooc]):last-child { margin-bottom: 0; }
+.lcs-message-content :where(p:not([data-lumia-ooc] *, [data-lumia-ooc])) { margin: 0 0 0.6em; }
+.lcs-message-content :where(p:not([data-lumia-ooc] *, [data-lumia-ooc]):last-child) { margin-bottom: 0; }
 
 /* ── Themed prose colors ──
    Dialogue, italics, and bold use theme-derived colors for visual
    distinction between spoken words, thoughts, and emphasis. */
 
-.lcs-message-content em:not([data-lumia-ooc] *, [data-lumia-ooc]),
+.lcs-message-content :where(em:not([data-lumia-ooc] *, [data-lumia-ooc])),
 .lcs-message-content .lcs-prose-italic:not([data-lumia-ooc] *, [data-lumia-ooc]) {
   font-style: italic;
   color: var(--lumiverse-prose-italic, var(--lumiverse-text-muted, rgba(230,230,240,0.7)));
@@ -397,7 +403,7 @@ svg.lucide {
   background: none;
 }
 
-.lcs-message-content strong:not([data-lumia-ooc] *, [data-lumia-ooc]),
+.lcs-message-content :where(strong:not([data-lumia-ooc] *, [data-lumia-ooc])),
 .lcs-message-content .lcs-prose-bold:not([data-lumia-ooc] *, [data-lumia-ooc]) {
   font-weight: 600;
   color: var(--lumiverse-prose-bold, inherit);
@@ -405,45 +411,45 @@ svg.lucide {
   background: none;
 }
 
-/* Dialogue span — specificity must match or exceed the content reset rule
-   (.lcs-message-content span:not(...) = 0-2-1) so it isn't overridden. */
+/* Dialogue span — uses our class so specificity (0-2-0) exceeds the
+   :where()-wrapped content defaults (0-1-0) without needing tricks. */
 .lcs-message-content span.lcs-prose-dialogue {
   color: var(--lumiverse-prose-dialogue, var(--lumiverse-text, inherit));
 }
 
 /* Inside <font color="..."> tags, dialogue/italic/bold all defer to the
    font's explicit color rather than applying theme prose colors. */
-.lcs-message-content font span.lcs-prose-dialogue,
-.lcs-message-content font em,
-.lcs-message-content font .lcs-prose-italic,
-.lcs-message-content font strong,
-.lcs-message-content font .lcs-prose-bold {
+.lcs-message-content :where(font) span.lcs-prose-dialogue,
+.lcs-message-content :where(font em),
+.lcs-message-content :where(font) .lcs-prose-italic,
+.lcs-message-content :where(font strong),
+.lcs-message-content :where(font) .lcs-prose-bold {
   color: inherit;
 }
 
 /* Inside dialogue spans (without font ancestor), italic/bold inherit
    the dialogue color for visual consistency. */
-.lcs-message-content .lcs-prose-dialogue em,
+.lcs-message-content .lcs-prose-dialogue :where(em),
 .lcs-message-content .lcs-prose-dialogue .lcs-prose-italic,
-.lcs-message-content .lcs-prose-dialogue strong,
+.lcs-message-content .lcs-prose-dialogue :where(strong),
 .lcs-message-content .lcs-prose-dialogue .lcs-prose-bold {
   color: inherit;
 }
 
-.lcs-message-content a {
+.lcs-message-content :where(a) {
   color: var(--lumiverse-primary-text, rgba(160, 150, 255, 0.95));
   text-decoration: none;
   border-bottom: 1px solid var(--lumiverse-primary-025, rgba(140, 130, 255, 0.25));
   background: none;
   transition: border-color var(--lcs-transition-fast);
 }
-.lcs-message-content a:hover {
+.lcs-message-content :where(a:hover) {
   border-color: var(--lumiverse-primary-060, rgba(140, 130, 255, 0.6));
   text-decoration: none;
 }
 
 /* Code (inline) */
-.lcs-message-content code {
+.lcs-message-content :where(code) {
   font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', Menlo, Consolas, monospace;
   font-size: 0.88em;
   padding: 1.5px 5px;
@@ -457,7 +463,7 @@ svg.lucide {
 }
 
 /* Code block */
-.lcs-message-content pre {
+.lcs-message-content :where(pre) {
   margin: 8px 0;
   padding: 12px 14px;
   border-radius: var(--lcs-radius-sm);
@@ -469,7 +475,7 @@ svg.lucide {
   text-indent: 0;
   text-shadow: none;
 }
-.lcs-message-content pre code {
+.lcs-message-content :where(pre code) {
   padding: 0;
   border: none;
   background: none;
@@ -478,7 +484,7 @@ svg.lucide {
 }
 
 /* Blockquote */
-.lcs-message-content blockquote {
+.lcs-message-content :where(blockquote) {
   margin: 6px 0;
   padding: 6px 14px;
   border: none;
@@ -494,15 +500,15 @@ svg.lucide {
 }
 
 /* Lists */
-.lcs-message-content ul, .lcs-message-content ol {
+.lcs-message-content :where(ul), .lcs-message-content :where(ol) {
   padding-left: 1.4em;
   margin: 4px 0;
   list-style-position: outside;
   background: none;
 }
-.lcs-message-content ul { list-style-type: disc; }
-.lcs-message-content ol { list-style-type: decimal; }
-.lcs-message-content li {
+.lcs-message-content :where(ul) { list-style-type: disc; }
+.lcs-message-content :where(ol) { list-style-type: decimal; }
+.lcs-message-content :where(li) {
   margin-bottom: 2px;
   padding: 0;
   border: none;
@@ -511,12 +517,7 @@ svg.lucide {
 }
 
 /* Headings */
-.lcs-message-content h1,
-.lcs-message-content h2,
-.lcs-message-content h3,
-.lcs-message-content h4,
-.lcs-message-content h5,
-.lcs-message-content h6 {
+.lcs-message-content :where(h1, h2, h3, h4, h5, h6) {
   margin: 0.7em 0 0.35em;
   padding: 0;
   border: none;
@@ -532,18 +533,16 @@ svg.lucide {
   text-shadow: none;
   letter-spacing: normal;
 }
-.lcs-message-content h1 { font-size: 1.35em; }
-.lcs-message-content h2 { font-size: 1.2em; }
-.lcs-message-content h3 { font-size: 1.1em; }
-.lcs-message-content h4 { font-size: 1.02em; }
-.lcs-message-content h5 { font-size: 0.95em; }
-.lcs-message-content h6 { font-size: 0.9em; color: var(--lumiverse-text-muted, rgba(230,230,240,0.7)); }
-.lcs-message-content h1:first-child,
-.lcs-message-content h2:first-child,
-.lcs-message-content h3:first-child { margin-top: 0; }
+.lcs-message-content :where(h1) { font-size: 1.35em; }
+.lcs-message-content :where(h2) { font-size: 1.2em; }
+.lcs-message-content :where(h3) { font-size: 1.1em; }
+.lcs-message-content :where(h4) { font-size: 1.02em; }
+.lcs-message-content :where(h5) { font-size: 0.95em; }
+.lcs-message-content :where(h6) { font-size: 0.9em; color: var(--lumiverse-text-muted, rgba(230,230,240,0.7)); }
+.lcs-message-content :where(h1:first-child, h2:first-child, h3:first-child) { margin-top: 0; }
 
 /* Horizontal rule */
-.lcs-message-content hr {
+.lcs-message-content :where(hr) {
   border: none;
   height: 1px;
   background: var(--lumiverse-border, rgba(255,255,255,0.06));
@@ -552,7 +551,7 @@ svg.lucide {
 }
 
 /* Images */
-.lcs-message-content img {
+.lcs-message-content :where(img) {
   max-width: 100%;
   border-radius: var(--lcs-radius-sm);
   margin: 6px 0;
