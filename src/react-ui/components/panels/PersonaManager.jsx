@@ -13,6 +13,7 @@ import {
     FileText, Shield, BookOpen, UserCheck,
 } from 'lucide-react';
 import usePersonaManager from '../../hooks/usePersonaManager';
+import { fetchBookList } from '../../../lib/worldBookService';
 import { personaManagerStyles } from './PersonaManagerStyles';
 
 // ─── Style Injection ────────────────────────────────────────────
@@ -397,21 +398,9 @@ function PersonaEditor({
         let cancelled = false;
         (async () => {
             try {
-                // Try ctx.worldNames first (synchronous), fall back to API
-                const ctx = typeof SillyTavern !== 'undefined' ? SillyTavern.getContext() : null;
-                if (ctx?.worldNames && Array.isArray(ctx.worldNames)) {
-                    if (!cancelled) setWorldBookNames(ctx.worldNames.sort());
-                    return;
-                }
-                // Fallback: fetch from settings API
-                const resp = await fetch('/api/settings/get', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({}),
-                });
-                if (resp.ok && !cancelled) {
-                    const data = await resp.json();
-                    setWorldBookNames((data.world_names || []).sort());
+                const books = await fetchBookList();
+                if (!cancelled) {
+                    setWorldBookNames(books.map(b => b.name).sort());
                 }
             } catch { /* ignore */ }
         })();

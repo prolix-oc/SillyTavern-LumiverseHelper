@@ -24,6 +24,7 @@ const store = useLumiverseStore;
 
 // Stable fallback constants for useSyncExternalStore
 const EMPTY_ARRAY = [];
+const DEFAULT_COUNCIL_TOOLS = { enabled: false, timeoutMs: 30000 };
 
 /**
  * Create mobile-safe tap handlers that work on all browsers including Samsung Internet.
@@ -87,7 +88,7 @@ function useMobileTapHandler(handler) {
 // Stable selector functions
 const selectCouncilMode = () => store.getState().councilMode || false;
 const selectCouncilMembers = () => store.getState().councilMembers || EMPTY_ARRAY;
-const selectCouncilTools = () => store.getState().councilTools || { enabled: false, timeoutMs: 30000 };
+const selectCouncilTools = () => store.getState().councilTools || DEFAULT_COUNCIL_TOOLS;
 
 /**
  * Find a Lumia item in a pack - supports both new and legacy formats
