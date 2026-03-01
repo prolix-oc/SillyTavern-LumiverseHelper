@@ -759,7 +759,9 @@ export function getChatCompletionModel() {
 
 /**
  * Write a secret (API key) to ST's secrets storage.
- * Uses the /api/secrets/write endpoint.
+ * Writes via the /api/secrets/write endpoint, then refreshes ST's frontend
+ * secret_state cache so that subsequent connection checks (e.g. the Connect
+ * button triggered by `/api` slash commands) see the newly written key.
  * @param {string} key - The secret key identifier (e.g., 'api_key_openai')
  * @param {string} value - The secret value
  * @returns {Promise<boolean>} True if written successfully
@@ -771,7 +773,25 @@ export async function writeSecret(key, value) {
       headers: getRequestHeaders(),
       body: JSON.stringify({ key, value }),
     });
-    return response.ok;
+    if (!response.ok) return false;
+
+    // Refresh ST's frontend secret_state cache.
+    // ST's onConnectButtonClick (triggered by /api slash commands) checks this
+    // cache — without refreshing, it won't see our newly written key and will
+    // bail out with "No secret key saved for <source>".
+    // Dynamic import bypasses webpack to resolve ST's actual module instance.
+    try {
+      const secretsModule = await (new Function('return import("/scripts/secrets.js")'))();
+      if (typeof secretsModule.readSecretState === 'function') {
+        await secretsModule.readSecretState();
+      }
+    } catch (cacheErr) {
+      // Non-fatal — the key is written to disk, but frontend cache is stale.
+      // The backend will still find it on the next generation request.
+      console.warn('[LumiverseHelper] Could not refresh secret state cache:', cacheErr);
+    }
+
+    return true;
   } catch (err) {
     console.error('[LumiverseHelper] Failed to write secret:', err);
     return false;
