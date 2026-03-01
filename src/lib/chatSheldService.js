@@ -1844,24 +1844,117 @@ export function triggerConvertToGroup() {
 }
 
 /**
- * Trigger Start New Chat via slash command API, with DOM fallback.
+ * Trigger Start New Chat — mirrors the fork pattern for reliability.
+ * 1. Builds a greeting message from the character card
+ * 2. Saves the new chat file to disk via /api/chats/save
+ * 3. Switches to it via switchToChat (proven path — same as fork)
+ * No popup, no monkey-patching, no DOM clicks.
+ * @returns {Promise<boolean>} Success
  */
-export function triggerNewChat() {
-    const exec = getExecuteSlashCommands();
-    if (exec) {
-        exec('/newchat').catch(() => {
-            // Fallback to DOM click
-            triggerNewChatDOM();
+export async function triggerNewChat() {
+    console.log(`[${MODULE_NAME}] triggerNewChat: ENTER`);
+    try {
+        const ctx = getContext();
+        console.log(`[${MODULE_NAME}] triggerNewChat: ctx exists=${!!ctx}, characterId=${ctx?.characterId}, chatId=${ctx?.chatId}`);
+        if (!ctx || ctx.characterId === undefined || ctx.characterId === null) {
+            console.warn(`[${MODULE_NAME}] triggerNewChat: ABORT — no character selected`);
+            return false;
+        }
+
+        const char = ctx.characters[ctx.characterId];
+        console.log(`[${MODULE_NAME}] triggerNewChat: char name=${char?.name}, avatar=${char?.avatar}`);
+        if (!char?.avatar) {
+            console.warn(`[${MODULE_NAME}] triggerNewChat: ABORT — no character avatar`);
+            return false;
+        }
+
+        // 1. Generate new chat filename using ST's convention
+        const humanize = typeof ctx.humanizedDateTime === 'function'
+            ? ctx.humanizedDateTime
+            : _humanizedDateTimeFallback;
+        const newChatName = `${char.name} - ${humanize()}`;
+        console.log(`[${MODULE_NAME}] triggerNewChat: newChatName="${newChatName}", humanizedDateTime on ctx=${typeof ctx.humanizedDateTime}`);
+
+        // 2. Build first message (character greeting) matching ST's getFirstMessage()
+        const firstMes = char.first_mes ?? char.data?.first_mes ?? '';
+        const altGreetings = char.data?.alternate_greetings;
+        const sendDate = new Date().toISOString();
+        console.log(`[${MODULE_NAME}] triggerNewChat: firstMes length=${firstMes.length}, altGreetings=${Array.isArray(altGreetings) ? altGreetings.length : 'none'}`);
+
+        const greeting = {
+            name: char.name,
+            is_user: false,
+            is_system: false,
+            send_date: sendDate,
+            mes: firstMes,
+            extra: {},
+        };
+
+        // Add alternate greetings as swipes (matches ST's getFirstMessage)
+        if (Array.isArray(altGreetings) && altGreetings.length > 0) {
+            const swipes = [firstMes, ...altGreetings];
+            if (!greeting.mes && swipes.length > 0) {
+                swipes.shift();
+                greeting.mes = swipes[0] || '';
+            }
+            greeting.swipe_id = 0;
+            greeting.swipes = swipes;
+            greeting.swipe_info = swipes.map(() => ({
+                send_date: sendDate,
+                gen_started: undefined,
+                gen_finished: undefined,
+                extra: {},
+            }));
+        }
+
+        // 3. Build chat payload with header (matches ST's saveChat format)
+        const chatHeader = {
+            chat_metadata: {},
+            user_name: 'unused',
+            character_name: 'unused',
+        };
+
+        const chatPayload = greeting.mes
+            ? [chatHeader, greeting]
+            : [chatHeader]; // No greeting if character has no first_mes
+
+        // 4. Save the new chat file to disk
+        const headers = getRequestHeaders();
+        console.log(`[${MODULE_NAME}] triggerNewChat: saving chat file — ch_name="${char.name}", file_name="${newChatName}", avatar_url="${char.avatar}", payload messages=${chatPayload.length}, headers keys=${Object.keys(headers)}`);
+        const response = await fetch('/api/chats/save', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+                ch_name: char.name,
+                file_name: newChatName,
+                chat: chatPayload,
+                avatar_url: char.avatar,
+            }),
         });
-    } else {
-        triggerNewChatDOM();
+
+        console.log(`[${MODULE_NAME}] triggerNewChat: save response status=${response.status}, ok=${response.ok}`);
+        if (!response.ok) {
+            const body = await response.text().catch(() => '(unreadable)');
+            console.error(`[${MODULE_NAME}] triggerNewChat: save FAILED — status=${response.status}, body=${body}`);
+            return false;
+        }
+
+        // 5. Switch to the new chat (same proven path as fork)
+        console.log(`[${MODULE_NAME}] triggerNewChat: calling switchToChat("${newChatName}")`);
+        await switchToChat(newChatName);
+        console.log(`[${MODULE_NAME}] triggerNewChat: switchToChat completed — SUCCESS`);
+        return true;
+    } catch (e) {
+        console.error(`[${MODULE_NAME}] triggerNewChat EXCEPTION:`, e);
+        return false;
     }
 }
 
-function triggerNewChatDOM() {
-    try { jQuery('#option_start_new_chat').trigger('click'); } catch {
-        document.getElementById('option_start_new_chat')?.click();
-    }
+/** ST's humanizedDateTime format: "YYYY-MM-DD@HHhMMmSSsNNNms" */
+function _humanizedDateTimeFallback() {
+    const d = new Date();
+    const p = (n, len = 2) => String(n).padStart(len, '0');
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}@${p(d.getHours())}h${p(d.getMinutes())}m${p(d.getSeconds())}s${p(d.getMilliseconds(), 3)}ms`;
 }
 
 /**
@@ -2117,6 +2210,7 @@ export async function fetchCharacterChats() {
  */
 export async function switchToChat(fileName) {
     const ctx = getContext();
+    console.log(`[${MODULE_NAME}] switchToChat: fileName="${fileName}", ctx exists=${!!ctx}, groupId=${ctx?.groupId}, openCharacterChat=${typeof ctx?.openCharacterChat}, openGroupChat=${typeof ctx?.openGroupChat}`);
     if (!ctx) return;
 
     // Strip .jsonl — ST appends it internally
@@ -2124,12 +2218,18 @@ export async function switchToChat(fileName) {
 
     try {
         if (ctx.groupId && typeof ctx.openGroupChat === 'function') {
+            console.log(`[${MODULE_NAME}] switchToChat: calling openGroupChat(${ctx.groupId}, "${baseName}")`);
             await ctx.openGroupChat(ctx.groupId, baseName);
+            console.log(`[${MODULE_NAME}] switchToChat: openGroupChat completed`);
         } else if (typeof ctx.openCharacterChat === 'function') {
+            console.log(`[${MODULE_NAME}] switchToChat: calling openCharacterChat("${baseName}")`);
             await ctx.openCharacterChat(baseName);
+            console.log(`[${MODULE_NAME}] switchToChat: openCharacterChat completed`);
+        } else {
+            console.warn(`[${MODULE_NAME}] switchToChat: NO API available — openCharacterChat=${typeof ctx.openCharacterChat}, openGroupChat=${typeof ctx.openGroupChat}`);
         }
     } catch (e) {
-        console.error(`[${MODULE_NAME}] Failed to switch chat:`, e);
+        console.error(`[${MODULE_NAME}] switchToChat EXCEPTION:`, e);
     }
 }
 

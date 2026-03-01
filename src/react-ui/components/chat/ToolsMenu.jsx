@@ -28,9 +28,13 @@ export default function ToolsMenu({ onClose }) {
     const charInfo = getCharacterInfo();
     const isGroup = charInfo?.isGroup || false;
 
-    // Close on click outside
+    // Close on click outside (but not when a confirmation modal is open)
+    const confirmActionRef = useRef(confirmAction);
+    confirmActionRef.current = confirmAction;
     useEffect(() => {
         const handleClickOutside = (e) => {
+            // Skip when a confirmation modal is open — its backdrop handles dismissal
+            if (confirmActionRef.current) return;
             if (menuRef.current && !menuRef.current.contains(e.target)) {
                 onClose();
             }
@@ -83,9 +87,14 @@ export default function ToolsMenu({ onClose }) {
             title: 'Start New Chat',
             message: 'Start a new chat with this character? The current chat will be saved and you can switch back to it later.',
             variant: 'safe',
-            onConfirm: () => {
-                triggerNewChat();
+            onConfirm: async () => {
+                console.log('[Lumiverse] ToolsMenu: onConfirm fired — calling triggerNewChat');
                 setConfirmAction(null);
+                const ok = await triggerNewChat();
+                console.log('[Lumiverse] ToolsMenu: triggerNewChat returned', ok);
+                if (!ok && typeof toastr !== 'undefined') {
+                    toastr.error('Failed to create new chat');
+                }
                 onClose();
             },
         });
