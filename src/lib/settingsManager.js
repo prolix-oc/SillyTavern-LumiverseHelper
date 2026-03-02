@@ -174,7 +174,7 @@ const DEFAULT_SETTINGS = {
   // Theme customization
   theme: null, // null = use CSS defaults, object = { name, baseColors }
   // Toggle binding default state restoration
-  disableDefaultStateRestore: true, // When true, skip restoring default toggle states for unbound chats (opt-in feature)
+  disableDefaultStateRestore: false, // When true, skip restoring default toggle states for unbound chats
   capturedDefaultToggles: null, // Persisted default toggle state (survives page refresh)
   capturedDefaultLoomBlockStates: null, // Persisted default Loom block enabled states (survives page refresh)
   // Chat Sheld override (glassmorphic chat redesign)
@@ -186,6 +186,7 @@ const DEFAULT_SETTINGS = {
   // Side portrait panel (desktop only)
   sidePortraitEnabled: false,
   sidePortraitSide: 'left', // 'left' | 'right'
+  chatSheldEnterToSend: true, // When true, Enter sends message; when false, Ctrl/Cmd+Enter sends
   // Lucid Loom Preset Builder
   loomBuilder: {
     activePresetId: null,
@@ -723,8 +724,12 @@ export function migrateSettings() {
   if (settings.sidePortraitEnabled === undefined) settings.sidePortraitEnabled = false;
   if (settings.sidePortraitSide === undefined) settings.sidePortraitSide = 'left';
 
+  // Ensure enter-to-send default
+  if (settings.chatSheldEnterToSend === undefined) settings.chatSheldEnterToSend = true;
+
   // Ensure toggle binding default state restoration setting
-  if (settings.disableDefaultStateRestore === undefined) settings.disableDefaultStateRestore = true;
+  // v8.x: Enable default state restoration by default (was previously opt-in)
+  if (settings.disableDefaultStateRestore === undefined || settings.disableDefaultStateRestore === true) settings.disableDefaultStateRestore = false;
 
   return migrated;
 }
@@ -970,6 +975,7 @@ export function saveSettings() {
     delete settingsToSave.chatSheldPageSize;
     delete settingsToSave.sidePortraitEnabled;
     delete settingsToSave.sidePortraitSide;
+    delete settingsToSave.chatSheldEnterToSend;
     delete settingsToSave.authorNotePanelSide;
     delete settingsToSave.guidedGenerations;
     

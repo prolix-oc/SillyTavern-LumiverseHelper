@@ -52,6 +52,7 @@ const selectBatchDeleteFromId = () => store.getState().chatSheld?.batchDeleteFro
 const selectMessageCount = () => store.getState().chatSheld?.messages?.length || 0;
 
 const selectGuidedGenerations = () => store.getState().guidedGenerations || [];
+const selectEnterToSend = () => store.getState().chatSheldEnterToSend ?? true;
 const selectDraftHiddenCount = () => (store.getState().chatSheld?.messages || []).filter(m => m.isDraftHidden).length;
 
 export default function InputArea() {
@@ -90,6 +91,7 @@ export default function InputArea() {
     const batchDeleteFromId = useSyncExternalStore(store.subscribe, selectBatchDeleteFromId, selectBatchDeleteFromId);
     const messageCount = useSyncExternalStore(store.subscribe, selectMessageCount, selectMessageCount);
     const draftHiddenCount = useSyncExternalStore(store.subscribe, selectDraftHiddenCount, selectDraftHiddenCount);
+    const enterToSend = useSyncExternalStore(store.subscribe, selectEnterToSend, selectEnterToSend);
 
     const handleSend = useCallback(() => {
         if (sendingRef.current) return;
@@ -104,9 +106,12 @@ export default function InputArea() {
         }
         setText('');
 
-        // Re-focus textarea after send
+        // Reset textarea height and re-focus after send
         requestAnimationFrame(() => {
-            textareaRef.current?.focus();
+            if (textareaRef.current) {
+                textareaRef.current.style.height = 'auto';
+                textareaRef.current.focus();
+            }
         });
     }, [text]);
 
@@ -120,12 +125,22 @@ export default function InputArea() {
     }, []);
 
     const handleKeyDown = useCallback((e) => {
-        // Enter to send, Shift+Enter for newline
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            handleSend();
+        if (e.key === 'Enter') {
+            if (enterToSend) {
+                // Enter sends, Shift+Enter for newline
+                if (!e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                }
+            } else {
+                // Ctrl/Cmd+Enter sends, plain Enter for newline
+                if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    handleSend();
+                }
+            }
         }
-    }, [handleSend]);
+    }, [handleSend, enterToSend]);
 
     // Auto-resize textarea
     const handleInput = useCallback((e) => {

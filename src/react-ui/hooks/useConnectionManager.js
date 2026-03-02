@@ -70,10 +70,14 @@ export function useConnectionManager() {
             await connService.saveProfile(profile);
             setActiveProfile(profile);
             refreshRegistry();
+            // If this is the active profile, re-apply so changes (e.g. endpoint URL) take effect
+            if (profile.id && profile.id === activeProfileId) {
+                await connService.applyProfile(profile.id);
+            }
         } catch (err) {
             setError(err.message);
         }
-    }, [refreshRegistry]);
+    }, [refreshRegistry, activeProfileId]);
 
     const deleteProfileById = useCallback(async (profileId) => {
         try {

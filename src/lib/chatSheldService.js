@@ -40,6 +40,19 @@ let generationStartMs = null; // When GENERATION_STARTED fired
 let reasoningStartMs = null;  // When we first see reasoning content during streaming
 let lastReasoningContent = ''; // To detect reasoning content changes
 
+/**
+ * Dispatch a Lumiverse chat interaction event on window.
+ * Extensions can listen via window.addEventListener('lumiverse:event-name', handler).
+ * @param {string} eventName - Event name (without 'lumiverse:' prefix)
+ * @param {Object} detail - Event detail payload
+ */
+function emitLumiverseEvent(eventName, detail) {
+    window.dispatchEvent(new CustomEvent(`lumiverse:${eventName}`, {
+        bubbles: false,
+        detail,
+    }));
+}
+
 // ── Public API ─────────────────────────────────────────────────────────
 
 /**
@@ -887,6 +900,19 @@ function subscribeToEvents() {
         if (storeRef && !streamingActive) {
             const cs = storeRef.getState().chatSheld;
             storeRef.setState({ chatSheld: { ...cs, scrollSnapTrigger: Date.now() } });
+
+            // Emit swipe-navigated for extensions — only on navigation (not generation).
+            // During generation, streamingActive is true so this branch is skipped;
+            // extensions should listen for lumiverse:swipe-generation instead.
+            if (typeof mesId === 'number') {
+                const ctx = getContext();
+                const msg = ctx?.chat?.[mesId];
+                emitLumiverseEvent('swipe-navigated', {
+                    mesId,
+                    swipeId: msg?.swipe_id ?? 0,
+                    totalSwipes: msg?.swipes?.length ?? 1,
+                });
+            }
         }
     });
 
@@ -938,6 +964,14 @@ function subscribeToEvents() {
             });
         }
 
+        // Emit swipe-generation for extensions when a swipe triggers new content
+        if (type === 'swipe') {
+            const ctx = getContext();
+            emitLumiverseEvent('swipe-generation', {
+                mesId: (ctx?.chat?.length ?? 1) - 1,
+            });
+        }
+
         if (type === 'swipe' || type === 'regenerate') {
             // For swipe/regenerate, triggerSwipe()/triggerRegenerate() already blanked
             // the last assistant message and set isStreaming. The only thing syncFullChat
@@ -948,25 +982,36 @@ function subscribeToEvents() {
             const state = storeRef.getState().chatSheld;
             if (state?.messages?.length > 0) {
                 const msgs = state.messages;
-                let alreadyBlanked = false;
-                for (let i = msgs.length - 1; i >= 0; i--) {
-                    if (!msgs[i].isUser && !msgs[i].isSystem) {
-                        alreadyBlanked = msgs[i].content === '';
-                        break;
-                    }
-                }
-                if (!alreadyBlanked) {
-                    // Targeted blank — only clone the array and the one message
-                    const cloned = [...msgs];
-                    for (let i = cloned.length - 1; i >= 0; i--) {
-                        if (!cloned[i].isUser && !cloned[i].isSystem) {
-                            cloned[i] = { ...cloned[i], content: '', reasoning: null, reasoningDuration: null };
+                const lastMsg = msgs[msgs.length - 1];
+
+                // If the last message is a user message, regeneration will APPEND a new
+                // assistant response — don't blank any existing assistant message.
+                // Without this guard, the backward loop incorrectly blanks the greeting
+                // (message 0) after a fork produces a short chat ending on a user turn.
+                if (type === 'regenerate' && lastMsg?.isUser) {
+                    // No blanking needed — new message will be appended via
+                    // appendNewMessages() once STREAM_TOKEN_RECEIVED fires.
+                } else {
+                    let alreadyBlanked = false;
+                    for (let i = msgs.length - 1; i >= 0; i--) {
+                        if (!msgs[i].isUser && !msgs[i].isSystem) {
+                            alreadyBlanked = msgs[i].content === '';
                             break;
                         }
                     }
-                    storeRef.setState({
-                        chatSheld: { ...state, messages: cloned, scrollSnapTrigger: Date.now() },
-                    });
+                    if (!alreadyBlanked) {
+                        // Targeted blank — only clone the array and the one message
+                        const cloned = [...msgs];
+                        for (let i = cloned.length - 1; i >= 0; i--) {
+                            if (!cloned[i].isUser && !cloned[i].isSystem) {
+                                cloned[i] = { ...cloned[i], content: '', reasoning: null, reasoningDuration: null };
+                                break;
+                            }
+                        }
+                        storeRef.setState({
+                            chatSheld: { ...state, messages: cloned, scrollSnapTrigger: Date.now() },
+                        });
+                    }
                 }
             }
         } else {
@@ -1114,6 +1159,14 @@ export async function navigateToGreeting(swipeIndex) {
             forceSwipeId: swipeIndex,
         });
         syncSingleMessage(0);
+
+        // Emit swipe-navigated for greeting navigation
+        const msg = ctx.chat[0];
+        emitLumiverseEvent('swipe-navigated', {
+            mesId: 0,
+            swipeId: msg?.swipe_id ?? swipeIndex,
+            totalSwipes: msg?.swipes?.length ?? 1,
+        });
     } catch (e) {
         console.warn(`[${MODULE_NAME}] navigateToGreeting failed:`, e.message);
         syncSingleMessage(0);
@@ -1178,6 +1231,10 @@ export async function deleteMessageDirect(mesId) {
     try {
         await deleteMessage(mesId, null, false);
         syncFullChat();
+
+        // Emit for extensions that need to refresh data after deletion
+        emitLumiverseEvent('message-deleted', { mesId, type: 'message' });
+
         return true;
     } catch (e) {
         console.error(`[${MODULE_NAME}] deleteMessage failed for mesId=${mesId}:`, e);
@@ -1206,6 +1263,10 @@ export async function deleteSwipeDirect(mesId, swipeId) {
     try {
         await deleteMessage(mesId, swipeId, false);
         syncFullChat();
+
+        // Emit for extensions that need to refresh data after swipe deletion
+        emitLumiverseEvent('message-deleted', { mesId, type: 'swipe', swipeId });
+
         return true;
     } catch (e) {
         console.error(`[${MODULE_NAME}] deleteSwipe failed for mesId=${mesId}, swipeId=${swipeId}:`, e);
@@ -1273,6 +1334,9 @@ export async function editMessageContent(mesId, newContent) {
             if (et.MESSAGE_UPDATED) es.emit(et.MESSAGE_UPDATED, mesId);
         }
 
+        // Emit for extensions that need to refresh data after edits
+        emitLumiverseEvent('message-edited', { mesId, field: 'content' });
+
         // No syncFullChat() here — visual-first update already applied above,
         // and MESSAGE_EDITED handler calls syncSingleMessage(mesId) for reconciliation.
         return true;
@@ -1322,6 +1386,9 @@ export async function editMessageReasoning(mesId, newReasoning) {
         if (es && et && et.MESSAGE_REASONING_EDITED) {
             es.emit(et.MESSAGE_REASONING_EDITED, mesId);
         }
+
+        // Emit for extensions that need to refresh data after edits
+        emitLumiverseEvent('message-edited', { mesId, field: 'reasoning' });
 
         // No syncFullChat() here — visual-first update already applied above.
         return true;
@@ -2031,6 +2098,9 @@ export async function triggerBatchDelete(fromMesId) {
 
         // Final sync to reconcile
         syncFullChat();
+
+        // Emit for extensions that need to refresh data after batch deletion
+        emitLumiverseEvent('message-deleted', { mesId: fromMesId, type: 'batch' });
 
         return true;
     } catch (e) {

@@ -124,7 +124,7 @@ export { MARKER_NAMES };
  * All values are nullable; only non-null values get applied.
  */
 export const DEFAULT_SAMPLER_OVERRIDES = {
-    enabled: false,
+    enabled: true,
     maxTokens: null,         // Max response tokens (int)
     contextSize: null,       // Max context tokens (int, provider-specific)
     temperature: null,       // 0.0–2.0
@@ -196,16 +196,16 @@ export const DEFAULT_ADVANCED_SETTINGS = {
  * `apiKeyBySource` overrides apiKey for specific chat_completion_source values.
  */
 export const SAMPLER_PARAMS = [
-    { key: 'maxTokens',        label: 'Max Response',       apiKey: 'max_tokens',          type: 'int',   min: 1,    max: 128000, step: 1,    defaultHint: 16384, unit: 'tokens',
+    { key: 'maxTokens',        label: 'Max Response',       apiKey: 'max_tokens',          oaiSettingsKey: 'openai_max_tokens',        uiSelector: '#openai_max_tokens',        type: 'int',   min: 1,    max: 128000, step: 1,    defaultHint: 16384, unit: 'tokens',
         apiKeyBySource: { makersuite: 'maxOutputTokens', vertexai: 'maxOutputTokens' } },
-    { key: 'contextSize',      label: 'Context Size',       apiKey: 'max_context_length',  type: 'int',   min: 1024, max: 2097152, step: 1024, defaultHint: 128000, unit: 'tokens' },
-    { key: 'temperature',      label: 'Temperature',        apiKey: 'temperature',         type: 'float', min: 0,    max: 2,    step: 0.01, defaultHint: 1.0 },
-    { key: 'topP',             label: 'Top P',              apiKey: 'top_p',               type: 'float', min: 0,    max: 1,    step: 0.01, defaultHint: 0.95 },
-    { key: 'minP',             label: 'Min P',              apiKey: 'min_p',               type: 'float', min: 0,    max: 1,    step: 0.01, defaultHint: 0 },
-    { key: 'topK',             label: 'Top K',              apiKey: 'top_k',               type: 'int',   min: 0,    max: 500,  step: 1,    defaultHint: 0 },
-    { key: 'frequencyPenalty', label: 'Freq Penalty',       apiKey: 'frequency_penalty',   type: 'float', min: 0,    max: 2,    step: 0.01, defaultHint: 0 },
-    { key: 'presencePenalty',  label: 'Pres Penalty',       apiKey: 'presence_penalty',    type: 'float', min: 0,    max: 2,    step: 0.01, defaultHint: 0 },
-    { key: 'repetitionPenalty',label: 'Rep Penalty',        apiKey: 'repetition_penalty',  type: 'float', min: 0,    max: 2,    step: 0.01, defaultHint: 0 },
+    { key: 'contextSize',      label: 'Context Size',       apiKey: 'max_context_length',  oaiSettingsKey: 'openai_max_context',        uiSelector: '#openai_max_context',        type: 'int',   min: 1024, max: 2097152, step: 1024, defaultHint: 128000, unit: 'tokens' },
+    { key: 'temperature',      label: 'Temperature',        apiKey: 'temperature',         oaiSettingsKey: 'temp_openai',               uiSelector: '#temp_openai',               type: 'float', min: 0,    max: 2,    step: 0.01, defaultHint: 1.0 },
+    { key: 'topP',             label: 'Top P',              apiKey: 'top_p',               oaiSettingsKey: 'top_p_openai',              uiSelector: '#top_p_openai',              type: 'float', min: 0,    max: 1,    step: 0.01, defaultHint: 0.95 },
+    { key: 'minP',             label: 'Min P',              apiKey: 'min_p',               oaiSettingsKey: 'min_p_openai',              uiSelector: '#min_p_openai',              type: 'float', min: 0,    max: 1,    step: 0.01, defaultHint: 0 },
+    { key: 'topK',             label: 'Top K',              apiKey: 'top_k',               oaiSettingsKey: 'top_k_openai',              uiSelector: '#top_k_openai',              type: 'int',   min: 0,    max: 500,  step: 1,    defaultHint: 0 },
+    { key: 'frequencyPenalty', label: 'Freq Penalty',       apiKey: 'frequency_penalty',   oaiSettingsKey: 'freq_pen_openai',           uiSelector: '#freq_pen_openai',           type: 'float', min: 0,    max: 2,    step: 0.01, defaultHint: 0 },
+    { key: 'presencePenalty',  label: 'Pres Penalty',       apiKey: 'presence_penalty',    oaiSettingsKey: 'pres_pen_openai',           uiSelector: '#pres_pen_openai',           type: 'float', min: 0,    max: 2,    step: 0.01, defaultHint: 0 },
+    { key: 'repetitionPenalty',label: 'Rep Penalty',        apiKey: 'repetition_penalty',  oaiSettingsKey: 'repetition_penalty_openai', uiSelector: '#repetition_penalty_openai', type: 'float', min: 0,    max: 2,    step: 0.01, defaultHint: 0 },
 ];
 
 // ============================================================================
@@ -217,24 +217,50 @@ let _storedCoreChat = null;
 /**
  * World Info cache — populated by WORLD_INFO_ACTIVATED event (fires before
  * CHAT_COMPLETION_SETTINGS_READY) so assembleMessages() can include WI content.
- * @type {{ before: string, after: string }}
+ *
+ * Positions:
+ *   0 = before char defs, 1 = after char defs,
+ *   2 = before example messages, 3 = after example messages,
+ *   4 = depth-positioned (array of {content, depth, role}),
+ *   5 = before author's note, 6 = after author's note
+ *   (7 = outlet — extension-specific, excluded)
  */
-let _worldInfoCache = { before: '', after: '' };
+let _worldInfoCache = {
+    before: '',     // position 0
+    after: '',      // position 1
+    emBefore: '',   // position 2
+    emAfter: '',    // position 3
+    depth: [],      // position 4 — array of { content, depth, role }
+    anBefore: '',   // position 5
+    anAfter: '',    // position 6
+};
 
 /**
- * Store world info text captured from the WORLD_INFO_ACTIVATED event.
- * @param {string} before - WI entries with position=0 (before char defs)
- * @param {string} after - WI entries with position=1 (after char defs)
+ * Store world info entries captured from the WORLD_INFO_ACTIVATED event.
+ * @param {Object} entriesByPosition - Bucketed WI content by position
  */
-export function setWorldInfoCache(before, after) {
-    _worldInfoCache = { before: before || '', after: after || '' };
+export function setWorldInfoCache(entriesByPosition) {
+    _worldInfoCache = {
+        before:   entriesByPosition.before || '',
+        after:    entriesByPosition.after || '',
+        emBefore: entriesByPosition.emBefore || '',
+        emAfter:  entriesByPosition.emAfter || '',
+        depth:    entriesByPosition.depth || [],
+        anBefore: entriesByPosition.anBefore || '',
+        anAfter:  entriesByPosition.anAfter || '',
+    };
 }
 
 /**
  * Clear the world info cache (called on GENERATION_ENDED / CHAT_CHANGED).
  */
 export function clearWorldInfoCache() {
-    _worldInfoCache = { before: '', after: '' };
+    _worldInfoCache = {
+        before: '', after: '',
+        emBefore: '', emAfter: '',
+        depth: [],
+        anBefore: '', anAfter: '',
+    };
 }
 
 /**
@@ -595,25 +621,59 @@ export async function importFromSTPreset(stPresetData, name) {
     const prompts = stPresetData.prompts || [];
     const blocks = [];
 
-    // Build enabled overrides from prompt_order
-    // Prefer higher character_id keys (more customized)
+    // Build enabled overrides AND ordering from prompt_order.
+    // ST's prompt_order defines the ACTUAL sequence prompts appear in —
+    // the prompts[] array is just a definition pool with arbitrary order.
+    // Prefer higher character_id keys (more customized).
     const enabledOverrides = new Map();
+    const orderSequence = [];   // ordered list of identifiers from prompt_order
     const promptOrder = stPresetData.prompt_order;
     if (promptOrder) {
         const keys = Object.keys(promptOrder)
             .filter(k => promptOrder[k]?.order?.length > 0)
             .sort((a, b) => Number(b) - Number(a));
-        // Apply overrides from all orders, highest priority last
+        // Apply overrides from all orders, highest priority last wins
         for (let i = keys.length - 1; i >= 0; i--) {
             for (const entry of promptOrder[keys[i]].order) {
                 enabledOverrides.set(entry.identifier, entry.enabled !== false);
             }
         }
+        // Use the highest-priority key's order as the canonical sequence
+        if (keys.length > 0) {
+            for (const entry of promptOrder[keys[0]].order) {
+                orderSequence.push(entry.identifier);
+            }
+        }
     }
 
-    // Process all prompts in array order
+    // Build a lookup map from identifier → prompt object
+    const promptByIdentifier = new Map();
     for (const p of prompts) {
-        // Use prompt_order enabled override if available, else prompt's own enabled
+        if (p.identifier) promptByIdentifier.set(p.identifier, p);
+    }
+
+    // Process prompts in prompt_order sequence, then append any remaining
+    const processedIdentifiers = new Set();
+
+    // First pass: follow prompt_order sequence
+    for (const identifier of orderSequence) {
+        const p = promptByIdentifier.get(identifier);
+        if (!p) continue;
+        processedIdentifiers.add(identifier);
+
+        const enabled = enabledOverrides.has(p.identifier)
+            ? enabledOverrides.get(p.identifier)
+            : (p.enabled !== false);
+
+        const block = convertSTPromptToBlock(p, enabled);
+        blocks.push(block);
+    }
+
+    // Second pass: append any prompts not in prompt_order (preserves prompts[] order)
+    for (const p of prompts) {
+        if (p.identifier && processedIdentifiers.has(p.identifier)) continue;
+        processedIdentifiers.add(p.identifier || '');
+
         const enabled = enabledOverrides.has(p.identifier)
             ? enabledOverrides.get(p.identifier)
             : (p.enabled !== false);
@@ -1370,33 +1430,66 @@ export function injectExtensionPrompts(result, breakdown, extensionPrompts, enab
     );
 
     if (!hasExplicitWI) {
-        const wiBefore = _worldInfoCache.before;
-        const wiAfter = _worldInfoCache.after;
+        const wi = _worldInfoCache;
 
-        if (wiBefore?.trim()) {
+        // Position 0 — before char defs (inject before first chat message)
+        if (wi.before?.trim()) {
             const idx = firstChatIdx >= 0 ? firstChatIdx + offset : result.length;
-            result.splice(idx, 0, { role: 'system', content: wiBefore });
-            breakdown.push({
-                type: 'world_info',
-                name: 'World Info (Before)',
-                marker: 'world_info_before',
-                role: 'system',
-                content: wiBefore,
-            });
+            result.splice(idx, 0, { role: 'system', content: wi.before });
+            breakdown.push({ type: 'world_info', name: 'World Info (Before Char Defs)', marker: 'world_info_before', role: 'system', content: wi.before });
             offset++;
         }
 
-        if (wiAfter?.trim()) {
+        // Position 1 — after char defs (inject before first chat message, after pos 0)
+        if (wi.after?.trim()) {
             const idx = firstChatIdx >= 0 ? firstChatIdx + offset : result.length;
-            result.splice(idx, 0, { role: 'system', content: wiAfter });
-            breakdown.push({
-                type: 'world_info',
-                name: 'World Info (After)',
-                marker: 'world_info_after',
-                role: 'system',
-                content: wiAfter,
-            });
+            result.splice(idx, 0, { role: 'system', content: wi.after });
+            breakdown.push({ type: 'world_info', name: 'World Info (After Char Defs)', marker: 'world_info_after', role: 'system', content: wi.after });
             offset++;
+        }
+
+        // Position 2 — before example messages (inject before first chat message)
+        if (wi.emBefore?.trim()) {
+            const idx = firstChatIdx >= 0 ? firstChatIdx + offset : result.length;
+            result.splice(idx, 0, { role: 'system', content: wi.emBefore });
+            breakdown.push({ type: 'world_info', name: 'World Info (Before Examples)', role: 'system', content: wi.emBefore });
+            offset++;
+        }
+
+        // Position 3 — after example messages (inject before first chat message)
+        if (wi.emAfter?.trim()) {
+            const idx = firstChatIdx >= 0 ? firstChatIdx + offset : result.length;
+            result.splice(idx, 0, { role: 'system', content: wi.emAfter });
+            breakdown.push({ type: 'world_info', name: 'World Info (After Examples)', role: 'system', content: wi.emAfter });
+            offset++;
+        }
+
+        // Position 5 — before author's note (inject before first chat message)
+        if (wi.anBefore?.trim()) {
+            const idx = firstChatIdx >= 0 ? firstChatIdx + offset : result.length;
+            result.splice(idx, 0, { role: 'system', content: wi.anBefore });
+            breakdown.push({ type: 'world_info', name: "World Info (Before Author's Note)", role: 'system', content: wi.anBefore });
+            offset++;
+        }
+
+        // Position 6 — after author's note (inject before first chat message)
+        if (wi.anAfter?.trim()) {
+            const idx = firstChatIdx >= 0 ? firstChatIdx + offset : result.length;
+            result.splice(idx, 0, { role: 'system', content: wi.anAfter });
+            breakdown.push({ type: 'world_info', name: "World Info (After Author's Note)", role: 'system', content: wi.anAfter });
+            offset++;
+        }
+
+        // Position 4 — depth-positioned entries (insert from the end of messages)
+        if (wi.depth?.length > 0) {
+            for (const depthEntry of wi.depth) {
+                if (!depthEntry.content?.trim()) continue;
+                const role = depthEntry.role || 'system';
+                const d = Math.max(0, depthEntry.depth ?? 4);
+                const idx = Math.max(0, result.length - d);
+                result.splice(idx, 0, { role, content: depthEntry.content });
+                breakdown.push({ type: 'world_info', name: `World Info (@Depth ${d})`, role, content: depthEntry.content });
+            }
         }
     }
 }
@@ -1489,6 +1582,15 @@ function resolveWorldInfo(markerType) {
     if (markerType === 'world_info_before') return _worldInfoCache.before;
     if (markerType === 'world_info_after') return _worldInfoCache.after;
     return '';
+}
+
+/**
+ * Get the full world info cache for auto-injection.
+ * Used by injectExtensionPrompts() for positions beyond before/after.
+ * @returns {typeof _worldInfoCache}
+ */
+export function getWorldInfoCache() {
+    return _worldInfoCache;
 }
 
 // ============================================================================
@@ -1714,7 +1816,11 @@ export function applySamplerOverrides(preset, generateData) {
     const applied = [];
 
     for (const param of SAMPLER_PARAMS) {
-        const value = overrides[param.key];
+        // Use the preset value if set, otherwise fall back to the Loom default.
+        // This ensures all samplers are enforced even when the user hasn't
+        // adjusted them — preventing ST's values from leaking through.
+        const raw = overrides[param.key];
+        const value = (raw !== null && raw !== undefined) ? raw : param.defaultHint;
         if (value === null || value === undefined) continue;
 
         const numValue = Number(value);

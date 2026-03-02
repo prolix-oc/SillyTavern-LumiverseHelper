@@ -798,6 +798,28 @@ export async function writeSecret(key, value) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// World Info module accessor (async dynamic import)
+// ---------------------------------------------------------------------------
+
+let _worldInfoModule = undefined; // undefined = not loaded, null = failed
+
+/**
+ * Get the world-info.js module from ST's scripts.
+ * Provides direct access to `selected_world_info` — the source of truth for
+ * globally enabled world books (the select2 #world_info widget reads from this).
+ * @returns {Promise<Object|null>} The world-info module, or null on failure
+ */
+export async function getWorldInfoModule() {
+    if (_worldInfoModule !== undefined) return _worldInfoModule;
+    try {
+        _worldInfoModule = await (new Function('return import("../../../../scripts/world-info.js")'))();
+    } catch {
+        _worldInfoModule = null;
+    }
+    return _worldInfoModule;
+}
+
 /**
  * Check if the current chat is a group chat.
  * @returns {boolean}

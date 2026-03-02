@@ -5699,10 +5699,6 @@ details.lumia-panel[open] .lumia-panel-chevron {
     pointer-events: none;
 }
 
-.lumiverse-viewport-panel--collapsed {
-    /* Just show the tab bar when collapsed */
-}
-
 /* Tab sidebar */
 .lumiverse-vp-tabs {
     display: flex;
@@ -5788,38 +5784,6 @@ details.lumia-panel[open] .lumia-panel-chevron {
 .lumiverse-vp-settings-btn:hover {
     background: var(--lumiverse-primary-015);
     color: var(--lumiverse-primary);
-}
-
-.lumiverse-vp-collapse-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 40px;
-    margin: 0;
-    background: transparent;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    color: var(--lumiverse-text-muted);
-    font-size: 14px;
-    transition: all 0.2s ease;
-}
-
-.lumiverse-vp-collapse-btn:hover {
-    background: var(--lumiverse-primary-015);
-    color: var(--lumiverse-text);
-}
-
-.lumiverse-vp-collapse-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.2s ease;
-}
-
-.lumiverse-vp-collapse-icon--rotated {
-    transform: rotate(180deg);
 }
 
 /* Overflow button (Priority+ pattern) */
@@ -9709,6 +9673,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     /* No visibility: hidden here - the transform keeps content off-screen,
        and toggling visibility causes background pop-in during slide animation */
 }
+
 
 /* Drawer tab MUST remain interactive regardless of panel state */
 .lumiverse-drawer-tab {

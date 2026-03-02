@@ -24,6 +24,7 @@ import {
 import { useConnectionManager } from '../../hooks/useConnectionManager';
 import { useLumiverse, useLumiverseActions } from '../../store/LumiverseContext';
 import { chatPresetService } from '../../../lib/chatPresetService';
+import { getAvailableRegexPresets } from '../../../lib/connectionService';
 import ConfirmationModal from '../shared/ConfirmationModal';
 
 // ============================================================================
@@ -386,6 +387,9 @@ function ProfileEditor({ profile, onSave, onCancel }) {
         }));
     }, [loomRegistry]);
 
+    // Get available regex presets from ST's DOM
+    const regexPresets = useMemo(() => getAvailableRegexPresets(), []);
+
     const updateField = useCallback((field, value) => {
         setDraft(prev => ({ ...prev, [field]: value }));
     }, []);
@@ -549,6 +553,64 @@ function ProfileEditor({ profile, onSave, onCancel }) {
                         </div>
                     </div>
                 )}
+
+                {/* Advanced Settings */}
+                <details style={{ marginBottom: '16px' }}>
+                    <summary style={{
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        opacity: 0.7,
+                        padding: '4px 0',
+                        userSelect: 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                    }}>
+                        <ChevronDown size={12} />
+                        Advanced
+                    </summary>
+                    <div style={{ marginTop: '12px' }}>
+                        {/* Regex Preset */}
+                        <div style={styles.fieldGroup}>
+                            <div style={styles.fieldLabel}>Regex Preset</div>
+                            <select
+                                style={styles.fieldSelect}
+                                value={draft.regexPreset || ''}
+                                onChange={e => updateField('regexPreset', e.target.value || null)}
+                            >
+                                <option value="">None (don&apos;t change)</option>
+                                {regexPresets.map(name => (
+                                    <option key={name} value={name}>{name}</option>
+                                ))}
+                            </select>
+                            <div style={styles.fieldHint}>
+                                Regex script preset to activate when this profile is applied.
+                            </div>
+                        </div>
+
+                        {/* Stop Strings */}
+                        <div style={styles.fieldGroup}>
+                            <div style={styles.fieldLabel}>Stop Strings</div>
+                            <input
+                                style={styles.fieldInput}
+                                value={Array.isArray(draft.stopStrings) ? draft.stopStrings.join(', ') : ''}
+                                onChange={e => {
+                                    const raw = e.target.value;
+                                    if (!raw.trim()) {
+                                        updateField('stopStrings', []);
+                                    } else {
+                                        updateField('stopStrings', raw.split(',').map(s => s.trim()).filter(Boolean));
+                                    }
+                                }}
+                                placeholder="e.g. [END], ###"
+                            />
+                            <div style={styles.fieldHint}>
+                                Comma-separated list of custom stop strings.
+                            </div>
+                        </div>
+                    </div>
+                </details>
 
                 {/* Color */}
                 <div style={styles.fieldGroup}>

@@ -79,7 +79,7 @@ function FilterTabs({ activeFilter, onFilterChange }) {
 const SORT_OPTIONS = [
     { id: 'name', label: 'Name' },
     { id: 'recent', label: 'Recent' },
-    { id: 'created', label: 'Created' },
+    { id: 'added', label: 'Added' },
     { id: 'size', label: 'Size' },
 ];
 
@@ -796,6 +796,19 @@ function CharacterBrowser({ wideMode = false, onDismiss, onBatchStateChange } = 
     const toggleTagDropdown = useCallback((open) => setOpenDropdown(open ? 'tags' : null), []);
     const toggleAddDropdown = useCallback((open) => setOpenDropdown(open ? 'add' : null), []);
 
+    // ─── Auto-sort after import ─────────────────────────────
+    // When a character import succeeds, switch to "Created" descending so the
+    // newly imported card(s) appear at the top of the list.
+    const prevImportResult = useRef(null);
+    useEffect(() => {
+        const result = importState?.lastImportResult;
+        if (result?.success && result !== prevImportResult.current) {
+            setSortBy('added');
+            if (sortDirection !== 'desc') toggleSortDirection();
+        }
+        prevImportResult.current = result;
+    }, [importState?.lastImportResult, setSortBy, sortDirection, toggleSortDirection]);
+
     // ─── File Import ─────────────────────────────────────────
     const fileInputRef = useRef(null);
     const handleFileInputChange = useCallback((e) => {
@@ -853,6 +866,20 @@ function CharacterBrowser({ wideMode = false, onDismiss, onBatchStateChange } = 
     // ─── Editor View State ────────────────────────────────
     const [editorItem, setEditorItem] = useState(null);
     const savedScrollRef = useRef(0);
+
+    // ─── Create New Character ────────────────────────────
+    const handleCreateNew = useCallback(() => {
+        if (scrollRef.current) {
+            savedScrollRef.current = scrollRef.current.scrollTop;
+        }
+        setEditorItem({
+            id: '__new__',
+            isNew: true,
+            name: '',
+            avatar: '',
+            avatarUrl: '',
+        });
+    }, []);
 
     // Restore scroll position when returning from editor
     useLayoutEffect(() => {
@@ -1040,7 +1067,7 @@ function CharacterBrowser({ wideMode = false, onDismiss, onBatchStateChange } = 
                     <AddMenu
                         isOpen={openDropdown === 'add'}
                         onToggle={toggleAddDropdown}
-                        onCreateNew={handleCreateCharacter}
+                        onCreateNew={handleCreateNew}
                         onImportFile={triggerFileInput}
                         onImportUrl={() => actions.openModal('importUrl')}
                     />

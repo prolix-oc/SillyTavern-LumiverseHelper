@@ -13,8 +13,9 @@ import {
   uploadAvatar,
   saveCharacterFull,
   reloadCharacterInST,
+  createCharacter,
 } from "../../lib/characterEditorService.js";
-import { deleteCharacterFromST } from "../../lib/characterBrowserService.js";
+import { deleteCharacterFromST, syncCharacters } from "../../lib/characterBrowserService.js";
 
 /**
  * Extract flat form state from a full ST character object.
@@ -113,28 +114,63 @@ function buildMergePayload(form, original) {
   return hasChanges ? changes : null;
 }
 
+/** Default blank form state for new character creation. */
+const BLANK_FORM_STATE = {
+  name: "",
+  description: "",
+  personality: "",
+  scenario: "",
+  first_mes: "",
+  mes_example: "",
+  system_prompt: "",
+  post_history_instructions: "",
+  creator: "",
+  creator_notes: "",
+  character_version: "",
+  tags: [],
+  talkativeness: 0.5,
+  fav: false,
+  world: "",
+  depth_prompt_prompt: "",
+  depth_prompt_depth: 4,
+  depth_prompt_role: "system",
+  alternate_greetings: [],
+};
+
 /**
- * @param {Object} item - Normalized character item from the browser (must have .avatar)
+ * @param {Object} item - Normalized character item from the browser (must have .avatar, or .isNew for creation)
  * @returns {Object} Hook state and actions
  */
 export default function useCharacterEditor(item) {
-  const [formState, setFormState] = useState(null);
-  const [originalState, setOriginalState] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const isNew = !!item?.isNew;
+
+  const [formState, setFormState] = useState(isNew ? { ...BLANK_FORM_STATE } : null);
+  const [originalState, setOriginalState] = useState(isNew ? { ...BLANK_FORM_STATE } : null);
+  const [isLoading, setIsLoading] = useState(!isNew);
   const [isSaving, setIsSaving] = useState(false);
   const [loadError, setLoadError] = useState(null);
   const [pendingAvatarFile, setPendingAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [worldBookNames, setWorldBookNames] = useState([]);
+  // After successful creation, holds the new avatar filename
+  const [createdAvatar, setCreatedAvatar] = useState(null);
 
   // Keep a ref to the raw character data for name-change saves
   const rawCharRef = useRef(null);
 
-  // Load character data + world book names on mount
+  // Load character data + world book names on mount (skip for new characters)
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
+      if (isNew) {
+        // Only fetch world book names for the dropdown
+        try {
+          const worlds = await fetchWorldBookNames();
+          if (!cancelled) setWorldBookNames(worlds);
+        } catch { /* non-fatal */ }
+        return;
+      }
       setIsLoading(true);
       setLoadError(null);
       try {
@@ -160,7 +196,7 @@ export default function useCharacterEditor(item) {
 
     load();
     return () => { cancelled = true; };
-  }, [item.avatar]);
+  }, [item.avatar, isNew]);
 
   // Clean up avatar preview URL on unmount
   useEffect(() => {
@@ -223,13 +259,47 @@ export default function useCharacterEditor(item) {
     }
   }, []);
 
-  // Save
+  // Save (handles both create and edit)
   const save = useCallback(async () => {
     if (!formState || !originalState) return false;
     setIsSaving(true);
 
     try {
-      const avatarUrl = item.avatar;
+      // ─── CREATE MODE ──────────────────────────────
+      if (isNew && !createdAvatar) {
+        if (!formState.name?.trim()) {
+          if (typeof toastr !== "undefined") toastr.warning("Character name is required");
+          setIsSaving(false);
+          return false;
+        }
+
+        const newAvatar = await createCharacter(formState, pendingAvatarFile);
+        setPendingAvatarFile(null);
+        setAvatarPreview(null);
+        setCreatedAvatar(newAvatar);
+
+        // Sync the browser list so the new card appears
+        setTimeout(() => syncCharacters(), 300);
+
+        // Reload into edit mode
+        if (newAvatar) {
+          try {
+            const freshChar = await fetchFullCharacter(newAvatar);
+            if (freshChar) {
+              rawCharRef.current = freshChar;
+              const newState = extractFormState(freshChar);
+              setFormState(newState);
+              setOriginalState(newState);
+            }
+          } catch { /* non-fatal — char was created, just can't reload */ }
+        }
+
+        if (typeof toastr !== "undefined") toastr.success(`Created "${formState.name}"`);
+        return true;
+      }
+
+      // ─── EDIT MODE ────────────────────────────────
+      const avatarUrl = createdAvatar || item.avatar;
       const nameChanged = formState.name !== originalState.name;
 
       // 1. Upload avatar if changed
@@ -312,7 +382,7 @@ export default function useCharacterEditor(item) {
     } finally {
       setIsSaving(false);
     }
-  }, [formState, originalState, item.avatar, pendingAvatarFile]);
+  }, [formState, originalState, item.avatar, pendingAvatarFile, isNew, createdAvatar]);
 
   // Revert
   const revert = useCallback(() => {
@@ -357,6 +427,7 @@ export default function useCharacterEditor(item) {
     pendingAvatarFile,
     avatarPreview,
     worldBookNames,
+    isNew: isNew && !createdAvatar,
 
     updateField,
     save,

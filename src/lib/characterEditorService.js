@@ -175,6 +175,79 @@ export async function saveCharacterFull(charData, avatarFile = null) {
 }
 
 /**
+ * Create a new character via ST's /api/characters/create endpoint.
+ * @param {Object} formState - Flat form state from the editor
+ * @param {File|null} avatarFile - Optional avatar file
+ * @returns {Promise<string>} The avatar filename of the created character
+ */
+export async function createCharacter(formState, avatarFile = null) {
+  const formData = new FormData();
+
+  if (avatarFile) {
+    formData.append("avatar", avatarFile);
+  }
+
+  formData.append("ch_name", formState.name || "New Character");
+  formData.append("description", formState.description || "");
+  formData.append("personality", formState.personality || "");
+  formData.append("scenario", formState.scenario || "");
+  formData.append("first_mes", formState.first_mes || "");
+  formData.append("mes_example", formState.mes_example || "");
+  formData.append("creator_notes", formState.creator_notes || "");
+  formData.append("system_prompt", formState.system_prompt || "");
+  formData.append("post_history_instructions", formState.post_history_instructions || "");
+  formData.append("creator", formState.creator || "");
+  formData.append("character_version", formState.character_version || "");
+  formData.append("tags", JSON.stringify(formState.tags || []));
+  formData.append("talkativeness", String(formState.talkativeness ?? 0.5));
+  formData.append("fav", String(formState.fav ?? false));
+  formData.append("world", formState.world || "");
+  formData.append("alternate_greetings", JSON.stringify(formState.alternate_greetings || []));
+  formData.append("depth_prompt_prompt", formState.depth_prompt_prompt || "");
+  formData.append("depth_prompt_depth", String(formState.depth_prompt_depth ?? 4));
+  formData.append("depth_prompt_role", formState.depth_prompt_role || "system");
+
+  const ctx = getContext();
+  const headers = {};
+  const reqHeaders = ctx?.getRequestHeaders?.();
+  if (reqHeaders) {
+    for (const [key, val] of Object.entries(reqHeaders)) {
+      if (key.toLowerCase() !== "content-type") {
+        headers[key] = val;
+      }
+    }
+  }
+
+  const response = await fetch("/api/characters/create", {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => response.statusText);
+    throw new Error(`Failed to create character: ${text}`);
+  }
+
+  const data = await response.json();
+
+  // ST returns { file_name: "avatar.png" } on success
+  const avatarUrl = data.file_name || data.avatar_url || "";
+
+  // Ask ST to refresh its internal character list
+  try {
+    const { getCharacters: refreshCharacters } = await import(
+      /* webpackIgnore: true */ "../../../../../script.js"
+    );
+    if (typeof refreshCharacters === "function") {
+      await refreshCharacters();
+    }
+  } catch { /* non-fatal */ }
+
+  return avatarUrl;
+}
+
+/**
  * Reload a character in ST's in-memory state after saving.
  * Fetches fresh data, patches the characters array, and emits CHARACTER_EDITED.
  * @param {string} avatarUrl - The character's avatar filename

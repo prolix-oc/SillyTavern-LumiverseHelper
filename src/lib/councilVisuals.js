@@ -305,10 +305,11 @@ export function showCouncilIndicator() {
 
   // Insert into the appropriate container based on active chat mode
   if (isChatSheldActive()) {
-    // Chat Sheld mode: insert into the .lcs-container in the light DOM
-    const container = document.querySelector('.lcs-container');
-    if (container) {
-      container.appendChild(currentIndicator);
+    // Chat Sheld mode: insert into .lcs-main-column so the pill centers
+    // over the input field, not the full container (which includes side portrait)
+    const mainColumn = document.querySelector('.lcs-main-column');
+    if (mainColumn) {
+      mainColumn.appendChild(currentIndicator);
     } else {
       document.body.appendChild(currentIndicator);
     }

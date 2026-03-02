@@ -16,7 +16,7 @@
 
 import { getContext, getEventSource, getEventTypes } from "../stContext.js";
 import { MODULE_NAME } from "./settingsManager.js";
-import { getProfileKey, resolveActivePreset, savePreset } from "./lucidLoomService.js";
+import { getProfileKey, resolveActivePreset, savePreset, SAMPLER_PARAMS } from "./lucidLoomService.js";
 import { applyReasoningSnapshot, captureReasoningSnapshot } from "./presetsService.js";
 
 // ============================================================================
@@ -63,9 +63,9 @@ export function handleLoomPresetTransition(presetId, preset) {
         // === ACTIVATE: Loom preset becoming active ===
         activateLoomControl(preset);
     } else if (presetId && _isLoomControlActive) {
-        // === RE-SYNC: Already active, just update context size ===
+        // === RE-SYNC: Already active, update all sampler overrides ===
         // Handles model profile switches, sampler edits, etc.
-        syncContextSize(preset);
+        syncSamplerOverrides(preset);
     } else if (!presetId && _isLoomControlActive) {
         // === DEACTIVATE: Loom preset removed ===
         deactivateLoomControl();
@@ -73,39 +73,58 @@ export function handleLoomPresetTransition(presetId, preset) {
 }
 
 /**
- * Sync the Loom preset's contextSize into ST's oai_settings.openai_max_context.
- * Also updates the #openai_max_context UI slider to reflect the change.
- * Skips if contextSize is null/disabled.
+ * Sync ALL Loom sampler overrides into oai_settings and UI sliders.
+ * This ensures the Default preset's values don't persist over Loom overrides.
  *
  * @param {Object} preset - The active Loom preset
  */
-export function syncContextSize(preset) {
+export function syncSamplerOverrides(preset) {
     if (!preset?.samplerOverrides?.enabled) return;
-
-    const contextSize = preset.samplerOverrides.contextSize;
-    if (contextSize === null || contextSize === undefined) return;
 
     const ctx = getContext();
     if (!ctx?.chatCompletionSettings) return;
 
-    const numValue = Number(contextSize);
-    if (isNaN(numValue) || numValue <= 0) return;
+    for (const param of SAMPLER_PARAMS) {
+        // Use the preset value if set, otherwise fall back to the Loom default.
+        // This ensures all samplers are enforced even when the user hasn't
+        // adjusted them — preventing ST's existing values from leaking through.
+        const raw = preset.samplerOverrides[param.key];
+        const value = (raw !== null && raw !== undefined) ? raw : param.defaultHint;
+        if (value === null || value === undefined) continue;
 
-    // Write directly to oai_settings (same object ref as chatCompletionSettings)
-    ctx.chatCompletionSettings.openai_max_context = numValue;
+        const numValue = Number(value);
+        if (isNaN(numValue) || numValue < 0) continue;
 
-    // Update the UI slider so the user can see the synced value
-    try {
-        const slider = document.getElementById('openai_max_context');
-        if (slider) {
-            slider.value = numValue;
-            // Trigger input event so ST updates associated counter/label
-            slider.dispatchEvent(new Event('input', { bubbles: true }));
-        }
-    } catch (e) {
-        // UI update is best-effort
+        // Write to oai_settings
+        ctx.chatCompletionSettings[param.oaiSettingsKey] = numValue;
+
+        // Update UI slider
+        try {
+            const el = document.querySelector(param.uiSelector);
+            if (el) {
+                el.value = numValue;
+                el.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        } catch (e) {}
     }
 
+    // Unlock context if needed
+    const contextSize = preset.samplerOverrides.contextSize ?? SAMPLER_PARAMS.find(p => p.key === 'contextSize')?.defaultHint;
+    if (contextSize && Number(contextSize) > 128000) {
+        ctx.chatCompletionSettings.max_context_unlocked = true;
+        try {
+            const el = document.getElementById('oai_max_context_unlocked');
+            if (el) el.checked = true;
+        } catch (e) {}
+    }
+}
+
+/**
+ * Backward-compatible wrapper — syncs all sampler overrides (not just context size).
+ * @param {Object} preset - The active Loom preset
+ */
+export function syncContextSize(preset) {
+    syncSamplerOverrides(preset);
 }
 
 /**
@@ -243,12 +262,23 @@ function activateLoomControl(preset) {
     _savedSTPresetName = getCurrentSTPresetName();
     _isLoomControlActive = true;
 
+    // Prevent the Default preset from overriding connection settings
+    const ctx = getContext();
+    const oaiSettings = ctx?.chatCompletionSettings;
+    const wasBound = oaiSettings?.bind_preset_to_connection;
+    if (oaiSettings) oaiSettings.bind_preset_to_connection = false;
+
     // Switch ST to "Default" OAI preset for a clean baseline
     const switched = switchSTPresetTo('Default');
 
+    // Restore bind_preset_to_connection after switching
+    if (oaiSettings && wasBound !== undefined) {
+        oaiSettings.bind_preset_to_connection = wasBound;
+    }
+
     if (switched) {
         // The preset change is async — ST applies values in a .finally() block.
-        // Subscribe to OAI_PRESET_CHANGED_AFTER (one-shot) to sync context size
+        // Subscribe to OAI_PRESET_CHANGED_AFTER (one-shot) to sync sampler overrides
         // AFTER the Default preset's values are written.
         const eventSource = getEventSource();
         const eventTypes = getEventTypes();
@@ -260,7 +290,7 @@ function activateLoomControl(preset) {
                 if (fired) return;
                 fired = true;
                 if (_isLoomControlActive) {
-                    syncContextSize(preset);
+                    syncSamplerOverrides(preset);
                     // Re-apply reasoning from the model profile — the Default preset
                     // just overwrote all reasoning/CoT settings in ST globals
                     reapplyLoomReasoningSettings();
@@ -272,7 +302,7 @@ function activateLoomControl(preset) {
             setTimeout(() => {
                 if (!fired && _isLoomControlActive) {
                     fired = true;
-                    syncContextSize(preset);
+                    syncSamplerOverrides(preset);
                     reapplyLoomReasoningSettings();
                 }
             }, 500);
@@ -280,15 +310,15 @@ function activateLoomControl(preset) {
             // No event available — use fallback timeout
             setTimeout(() => {
                 if (_isLoomControlActive) {
-                    syncContextSize(preset);
+                    syncSamplerOverrides(preset);
                     reapplyLoomReasoningSettings();
                 }
             }, 300);
         }
     } else {
-        // Default preset not found — still sync context size directly
-        console.warn(`[${MODULE_NAME}] OAI Sync: "Default" preset not found, syncing context size directly`);
-        syncContextSize(preset);
+        // Default preset not found — still sync sampler overrides directly
+        console.warn(`[${MODULE_NAME}] OAI Sync: "Default" preset not found, syncing sampler overrides directly`);
+        syncSamplerOverrides(preset);
     }
 }
 

@@ -110,18 +110,18 @@ export default function useWorldBookEditor() {
     }, [refreshBookList]);
 
     // Refresh global book selection whenever the book list loads
-    const refreshGlobalBooks = useCallback(() => {
-        setGlobalBooks(getGloballyEnabledBooks());
+    const refreshGlobalBooks = useCallback(async () => {
+        setGlobalBooks(await getGloballyEnabledBooks());
     }, []);
 
     useEffect(() => {
         if (bookList.length > 0) refreshGlobalBooks();
     }, [bookList, refreshGlobalBooks]);
 
-    const toggleGlobalBook = useCallback((bookName) => {
+    const toggleGlobalBook = useCallback(async (bookName) => {
         const isEnabled = globalBooks.includes(bookName);
-        if (setGlobalBookEnabled(bookName, !isEnabled)) {
-            setGlobalBooks(getGloballyEnabledBooks());
+        if (await setGlobalBookEnabled(bookName, !isEnabled)) {
+            setGlobalBooks(await getGloballyEnabledBooks());
         }
     }, [globalBooks]);
 

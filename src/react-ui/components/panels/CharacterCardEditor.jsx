@@ -32,7 +32,7 @@ const WIDE_TABS = [
  */
 export default function CharacterCardEditor({ item, onBack, wideMode = false }) {
     const {
-        formState, isLoading, isSaving, loadError, isDirty,
+        formState, isLoading, isSaving, loadError, isDirty, isNew,
         avatarPreview, worldBookNames,
         updateField, save, revert, setAvatarFile,
         addGreeting, updateGreeting, removeGreeting,
@@ -425,37 +425,43 @@ export default function CharacterCardEditor({ item, onBack, wideMode = false }) 
                 {isDirty && <span className="lumiverse-ce-dirty-dot" title="Unsaved changes" />}
 
                 <div className="lumiverse-ce-actions">
-                    <button
-                        className="lumiverse-ce-btn lumiverse-ce-btn--danger"
-                        onClick={() => setShowDeleteModal(true)}
-                        disabled={isSaving || isDeletePending}
-                        type="button"
-                        title="Delete character"
-                    >
-                        <Trash2 size={13} strokeWidth={2} />
-                    </button>
-                    <button
-                        className="lumiverse-ce-btn lumiverse-ce-btn--secondary"
-                        onClick={revert}
-                        disabled={!isDirty || isSaving}
-                        type="button"
-                        title="Revert changes"
-                    >
-                        <RotateCcw size={13} strokeWidth={2} />
-                    </button>
+                    {!isNew && (
+                        <button
+                            className="lumiverse-ce-btn lumiverse-ce-btn--danger"
+                            onClick={() => setShowDeleteModal(true)}
+                            disabled={isSaving || isDeletePending}
+                            type="button"
+                            title="Delete character"
+                        >
+                            <Trash2 size={13} strokeWidth={2} />
+                        </button>
+                    )}
+                    {!isNew && (
+                        <button
+                            className="lumiverse-ce-btn lumiverse-ce-btn--secondary"
+                            onClick={revert}
+                            disabled={!isDirty || isSaving}
+                            type="button"
+                            title="Revert changes"
+                        >
+                            <RotateCcw size={13} strokeWidth={2} />
+                        </button>
+                    )}
                     <button
                         className="lumiverse-ce-btn lumiverse-ce-btn--primary"
                         onClick={save}
-                        disabled={!isDirty || isSaving}
+                        disabled={isNew ? isSaving : (!isDirty || isSaving)}
                         type="button"
-                        title="Save changes"
+                        title={isNew ? "Create character" : "Save changes"}
                     >
                         {isSaving ? (
                             <Loader2 size={13} strokeWidth={2} className="lumiverse-cb-spinner" />
+                        ) : isNew ? (
+                            <Plus size={13} strokeWidth={2} />
                         ) : (
                             <Save size={13} strokeWidth={2} />
                         )}
-                        <span>Save</span>
+                        <span>{isNew ? 'Create' : 'Save'}</span>
                     </button>
                 </div>
             </div>

@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
 import clsx from 'clsx';
-import { User, Package, MessageSquare, Sliders, FileText, ChevronRight, ChevronLeft, X, Sparkles, Bookmark, Users, BarChart2, Layers, Settings, PenTool, Contact, UserCircle, MoreHorizontal, Plug } from 'lucide-react';
+import { User, Package, MessageSquare, Sliders, FileText, X, Sparkles, Bookmark, Users, BarChart2, Layers, Settings, PenTool, Contact, UserCircle, MoreHorizontal, Plug } from 'lucide-react';
 import { useLumiverseStore, useLumiverseActions, useUpdates } from '../store/LumiverseContext';
 import { UpdateDot } from './UpdateBanner';
 import UpdateBanner from './UpdateBanner';
@@ -86,31 +86,6 @@ function TabButton({ id, Icon, label, isActive, onClick }) {
                 <Icon size={20} strokeWidth={1.5} />
             </span>
             <span className="lumiverse-vp-tab-label">{label}</span>
-        </button>
-    );
-}
-
-/**
- * Collapse/expand toggle button
- * Arrow direction changes based on panel side and collapsed state
- */
-function CollapseButton({ isCollapsed, onClick, side = 'right' }) {
-    const isLeft = side === 'left';
-    // When on right: collapsed arrow points left (to expand), expanded points right (to collapse)
-    // When on left: collapsed arrow points right (to expand), expanded points left (to collapse)
-    const showLeftArrow = isLeft ? !isCollapsed : isCollapsed;
-    const Icon = showLeftArrow ? ChevronLeft : ChevronRight;
-    
-    return (
-        <button
-            className="lumiverse-vp-collapse-btn"
-            onClick={onClick}
-            title={isCollapsed ? 'Expand panel' : 'Collapse panel'}
-            type="button"
-        >
-            <span className="lumiverse-vp-collapse-icon">
-                <Icon size={18} strokeWidth={2} />
-            </span>
         </button>
     );
 }
@@ -302,7 +277,6 @@ function ViewportPanel({
     FeedbackContent,
 }) {
     const [activeTab, setActiveTab] = useState(defaultTab);
-    const [isCollapsed, setIsCollapsed] = useState(false);
     const [overflowOpen, setOverflowOpen] = useState(false);
     const [mountReady, setMountReady] = useState(false);
     const tabsContainerRef = useRef(null);
@@ -481,21 +455,9 @@ function ViewportPanel({
         ? `calc(100vw + ${tabWidth}px)`
         : (panelWidth + tabWidth);
 
-    // Collapse only applies to desktop (mobile has no collapse button)
-    // Right side: positive translateX to slide content off-screen right
-    // Left side: negative translateX to slide content off-screen left
-    const collapseOffset = isMobile ? 0 : (isLeft ? -mainContentWidth : mainContentWidth);
-
     const handleTabClick = useCallback((tabId) => {
-        if (isCollapsed) {
-            setIsCollapsed(false);
-        }
         setActiveTab(tabId);
         setOverflowOpen(false);
-    }, [isCollapsed]);
-
-    const toggleCollapse = useCallback(() => {
-        setIsCollapsed(prev => !prev);
     }, []);
 
     const activeTabConfig = ALL_PANEL_TABS.find(tab => tab.id === activeTab);
@@ -566,16 +528,12 @@ function ViewportPanel({
                 )}
                 style={getWrapperStyle()}
             >
-                {/* Main panel container - slides when collapsed */}
             <div
                 className={clsx(
                     'lumiverse-viewport-panel',
-                    isCollapsed && 'lumiverse-viewport-panel--collapsed',
                     isLeft && 'lumiverse-viewport-panel--left'
                 )}
                 style={{
-                    transform: isCollapsed ? `translateX(${collapseOffset}px)` : 'translateX(0)',
-                    transition: 'transform 0.2s ease',
                     // Panel is pass-through; children (DrawerTab, vp-tabs, vp-main) opt-in.
                     // This prevents the DrawerTab's empty flex column from blocking clicks on ST content.
                     pointerEvents: 'none',
@@ -630,13 +588,6 @@ function ViewportPanel({
                     >
                         <Settings size={18} strokeWidth={1.5} />
                     </button>
-                    {!isMobile && (
-                        <CollapseButton
-                            isCollapsed={isCollapsed}
-                            onClick={toggleCollapse}
-                            side={side}
-                        />
-                    )}
                 </div>
 
                 {/* Main panel content */}
@@ -645,8 +596,6 @@ function ViewportPanel({
                     style={{
                         // On desktop, use fixed width. On mobile, flex handles it via CSS
                         width: isMobile ? undefined : mainContentWidth,
-                        opacity: isCollapsed ? 0 : 1,
-                        transition: 'opacity 0.2s ease',
                     }}
                 >
                     <PanelHeader

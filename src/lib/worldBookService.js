@@ -7,7 +7,7 @@
  * All ST access goes through stContext.js (never direct imports).
  */
 
-import { getContext, getRequestHeaders } from '../stContext';
+import { getContext, getRequestHeaders, getWorldInfoModule } from '../stContext';
 
 // ---------------------------------------------------------------------------
 // Store reference (set by initWorldBookInterceptor)
@@ -498,11 +498,23 @@ export function getActiveWorldNames() {
 }
 
 /**
- * Get globally enabled world books by reading ST's #world_info select element.
- * Returns an array of book names that are currently selected (globally active).
- * @returns {string[]}
+ * Get globally enabled world books.
+ * Reads `selected_world_info` from ST's world-info.js module (the source of truth),
+ * with a DOM fallback for older ST versions.
+ * @returns {Promise<string[]>}
  */
-export function getGloballyEnabledBooks() {
+export async function getGloballyEnabledBooks() {
+    try {
+        const wiMod = await getWorldInfoModule();
+        if (wiMod?.selected_world_info) {
+            return [...wiMod.selected_world_info];
+        }
+    } catch { /* fall through to DOM */ }
+    return getGloballyEnabledBooksDOM();
+}
+
+/** DOM fallback for getGloballyEnabledBooks. */
+function getGloballyEnabledBooksDOM() {
     try {
         const select = document.querySelector('#world_info');
         if (!select) return [];
@@ -518,20 +530,37 @@ export function getGloballyEnabledBooks() {
 
 /**
  * Toggle a world book's global enabled state.
- * Manipulates ST's #world_info select element and fires a change event
- * so ST's internal onWorldInfoChange() persists the change.
+ * Directly mutates `selected_world_info` (the real source of truth) and syncs
+ * the select2 widget via jQuery trigger so ST's onWorldInfoChange() persists it.
+ * Falls back to DOM manipulation on older ST versions.
  * @param {string} bookName - Name of the world book
  * @param {boolean} enabled - Whether to enable or disable
- * @returns {boolean} Whether the toggle succeeded
+ * @returns {Promise<boolean>} Whether the toggle succeeded
  */
-export function setGlobalBookEnabled(bookName, enabled) {
+export async function setGlobalBookEnabled(bookName, enabled) {
+    try {
+        const wiMod = await getWorldInfoModule();
+        if (wiMod?.selected_world_info) {
+            const arr = wiMod.selected_world_info;
+            const idx = arr.indexOf(bookName);
+            if (enabled && idx === -1) arr.push(bookName);
+            else if (!enabled && idx !== -1) arr.splice(idx, 1);
+            // Sync select2 UI + trigger ST persistence
+            try { $('#world_info').trigger('change'); } catch { /* select2 unavailable */ }
+            return true;
+        }
+    } catch { /* fall through to DOM */ }
+    return setGlobalBookEnabledDOM(bookName, enabled);
+}
+
+/** DOM fallback for setGlobalBookEnabled. */
+function setGlobalBookEnabledDOM(bookName, enabled) {
     try {
         const select = document.querySelector('#world_info');
         if (!select) return false;
         for (const opt of select.options) {
             if (opt.textContent === bookName) {
                 opt.selected = enabled;
-                // Trigger change event so ST persists the selection
                 select.dispatchEvent(new Event('change', { bubbles: true }));
                 return true;
             }

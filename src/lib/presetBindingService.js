@@ -441,13 +441,13 @@ export async function applyBindingForCurrentContext() {
     // If no bindings of any kind, restore defaults (if we have them)
     if (!bindingCheck.hasPresetBinding && !bindingCheck.hasToggleBinding) {
         lastAppliedBinding = null;
-        
+
         // Check if default state restoration is disabled
         const settings = getSettings();
         if (settings.disableDefaultStateRestore) {
             return false;
         }
-        
+
         // If we don't have captured defaults, nothing to restore
         if (!hasDefaultToggleState()) {
             return false;

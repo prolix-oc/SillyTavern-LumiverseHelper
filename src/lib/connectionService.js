@@ -223,6 +223,30 @@ export async function captureCurrentAsProfile(name) {
     // Also capture the current OAI preset name if available
     const currentPreset = oaiSettings.preset_settings_openai || null;
 
+    // Capture prompt post-processing
+    const promptPostProcessing = oaiSettings.custom_prompt_post_processing || '';
+
+    // Capture stop strings (stored as JSON string in power user settings)
+    let stopStrings = [];
+    try {
+        const ctx2 = getContext();
+        const raw = ctx2?.powerUserSettings?.custom_stopping_strings;
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) stopStrings = parsed;
+        }
+    } catch { /* not parseable, leave empty */ }
+
+    // Best-effort capture of regex preset
+    let regexPreset = null;
+    try {
+        const sel = document.querySelector('#regex_preset');
+        if (sel) {
+            const selected = sel.options?.[sel.selectedIndex];
+            if (selected && selected.value) regexPreset = selected.value;
+        }
+    } catch { /* best-effort */ }
+
     const profile = await createProfile({
         name: profileName,
         provider: source,
@@ -231,6 +255,9 @@ export async function captureCurrentAsProfile(name) {
         endpointUrl: oaiSettings.reverse_proxy || null,
         oaiPreset: currentPreset,
         reasoning: captureReasoningSnapshot(),
+        promptPostProcessing,
+        stopStrings,
+        regexPreset,
     });
 
     console.log(`[${MODULE_NAME}] Profile captured successfully: ${profile.id}`);
@@ -245,11 +272,31 @@ export async function captureCurrentAsProfile(name) {
  * Apply a connection profile to ST.
  * This is the core flow — sets API source, model, key, endpoint, presets, reasoning.
  * @param {string} profileId
+ * @param {Object} [options]
+ * @param {boolean} [options.silent=false] - Suppress toastr notifications from slash commands
  * @returns {Promise<boolean>} True if applied successfully
  */
-export async function applyProfile(profileId) {
+export async function applyProfile(profileId, { silent = false } = {}) {
     if (_isApplying) return false;
     _isApplying = true;
+
+    // Suppress ALL toastr during apply to consolidate into a single message.
+    // We always suppress — individual ST slash commands emit noisy toasts.
+    const savedToastr = {};
+    let toastrRestored = false;
+    if (typeof toastr !== 'undefined') {
+        for (const method of ['success', 'info', 'warning', 'error']) {
+            savedToastr[method] = toastr[method];
+            toastr[method] = () => {};
+        }
+    }
+    const restoreToastr = () => {
+        if (toastrRestored || typeof toastr === 'undefined') return;
+        toastrRestored = true;
+        for (const [method, fn] of Object.entries(savedToastr)) {
+            toastr[method] = fn;
+        }
+    };
 
     try {
         const profile = await loadProfile(profileId);
@@ -269,10 +316,19 @@ export async function applyProfile(profileId) {
             }
         }
 
+        // 1b. Apply ST secret ID (when using ST's stored secret)
+        if (executeSlash && profile.secretMode === 'st' && profile.stSecretId) {
+            try {
+                await executeSlash(`/secret-id quiet=true ${profile.stSecretId}`);
+            } catch (err) {
+                console.warn(`[${MODULE_NAME}] Failed to set secret ID:`, err.message);
+            }
+        }
+
         // 2. Set chat completion source via slash command
         if (executeSlash && profile.provider) {
             try {
-                await executeSlash(`/api ${profile.provider}`);
+                await executeSlash(`/api quiet=true ${profile.provider}`);
             } catch (err) {
                 console.warn(`[${MODULE_NAME}] Failed to set API source:`, err.message);
             }
@@ -281,13 +337,34 @@ export async function applyProfile(profileId) {
         // 3. Set model via slash command
         if (executeSlash && profile.model) {
             try {
-                await executeSlash(`/model ${profile.model}`);
+                await executeSlash(`/model quiet=true ${profile.model}`);
             } catch (err) {
                 console.warn(`[${MODULE_NAME}] Failed to set model:`, err.message);
             }
         }
 
-        // 4. Handle endpoint URL (reverse proxy simplification)
+        // 4. Apply OAI preset — temporarily disable bind_preset_to_connection
+        //    to prevent the preset from overriding chat_completion_source/model
+        if (executeSlash && profile.oaiPreset) {
+            const wasBound = oaiSettings?.bind_preset_to_connection;
+            if (oaiSettings) oaiSettings.bind_preset_to_connection = false;
+            try {
+                await executeSlash(`/preset ${profile.oaiPreset}`);
+            } catch (err) {
+                console.warn(`[${MODULE_NAME}] Failed to set preset:`, err.message);
+            }
+            if (oaiSettings) oaiSettings.bind_preset_to_connection = wasBound;
+            // Re-set API source (preset can still override via non-connection paths)
+            if (profile.provider) {
+                try {
+                    await executeSlash(`/api ${profile.provider}`);
+                } catch (err) {
+                    // Best-effort
+                }
+            }
+        }
+
+        // 5. Handle endpoint URL AFTER preset (preset can overwrite reverse_proxy)
         if (oaiSettings) {
             if (profile.endpointUrl) {
                 oaiSettings.reverse_proxy = profile.endpointUrl;
@@ -298,43 +375,61 @@ export async function applyProfile(profileId) {
             }
         }
 
-        // 5. Apply OAI preset if specified
-        if (executeSlash && profile.oaiPreset) {
-            try {
-                await executeSlash(`/preset ${profile.oaiPreset}`);
-            } catch (err) {
-                console.warn(`[${MODULE_NAME}] Failed to set preset:`, err.message);
-            }
-            // Re-set API source (preset can override it)
-            if (profile.provider) {
-                try {
-                    await executeSlash(`/api ${profile.provider}`);
-                } catch (err) {
-                    // Best-effort
-                }
-            }
-        }
-
         // 6. Apply reasoning settings
         if (profile.reasoning) {
             suppressPersistence(1500);
             applyReasoningSnapshot(profile.reasoning);
         }
 
-        // 7. Apply sampler overrides (provider-aware via SAMPLER_PARAMS)
+        // 7. Apply sampler overrides using correct oai_settings property names
         if (profile.samplerOverrides?.enabled && oaiSettings) {
             const overrides = profile.samplerOverrides;
             for (const param of SAMPLER_PARAMS) {
                 const value = overrides[param.key];
                 if (value === null || value === undefined) continue;
-                const resolvedKey = param.apiKeyBySource?.[profile.provider] || param.apiKey;
-                oaiSettings[resolvedKey] = Number(value);
+                const numValue = Number(value);
+                // Set the oai_settings property (correct key)
+                oaiSettings[param.oaiSettingsKey] = numValue;
+                // Update UI slider for visual sync
+                try {
+                    const el = document.querySelector(param.uiSelector);
+                    if (el) {
+                        el.value = numValue;
+                        el.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                } catch (e) { /* best-effort UI update */ }
+            }
+            // Unlock context slider if context size exceeds standard limits
+            if (overrides.contextSize && Number(overrides.contextSize) > 128000) {
+                oaiSettings.max_context_unlocked = true;
+                try {
+                    const unlock = document.getElementById('oai_max_context_unlocked');
+                    if (unlock) unlock.checked = true;
+                } catch (e) {}
             }
         }
 
         // 8. Apply prompt post-processing
         if (profile.promptPostProcessing && oaiSettings) {
             oaiSettings.custom_prompt_post_processing = profile.promptPostProcessing;
+        }
+
+        // 8b. Apply stop strings
+        if (executeSlash && Array.isArray(profile.stopStrings) && profile.stopStrings.length > 0) {
+            try {
+                await executeSlash(`/stop-strings quiet=true ${JSON.stringify(profile.stopStrings)}`);
+            } catch (err) {
+                console.warn(`[${MODULE_NAME}] Failed to set stop strings:`, err.message);
+            }
+        }
+
+        // 8c. Apply regex preset
+        if (executeSlash && profile.regexPreset) {
+            try {
+                await executeSlash(`/regex-preset quiet=true ${profile.regexPreset}`);
+            } catch (err) {
+                console.warn(`[${MODULE_NAME}] Failed to set regex preset:`, err.message);
+            }
         }
 
         // 9. Activate linked Loom preset
@@ -369,12 +464,25 @@ export async function applyProfile(profileId) {
         // 13. Start persistence guard
         startPersistenceGuard(profile);
 
+        // Restore toastr and show consolidated success toast
+        restoreToastr();
+        if (!silent && typeof toastr !== 'undefined') {
+            toastr.success(`Switched to ${profile.name}`);
+        }
+
         return true;
     } catch (err) {
         console.error(`[${MODULE_NAME}] Failed to apply connection profile:`, err);
+        // Restore toastr and show consolidated error toast
+        restoreToastr();
+        if (!silent && typeof toastr !== 'undefined') {
+            toastr.error('Failed to switch connection profile');
+        }
         return false;
     } finally {
         _isApplying = false;
+        // Safety restore in case neither success nor catch path ran
+        restoreToastr();
     }
 }
 
@@ -457,6 +565,13 @@ function reapplyCriticalFields(profile) {
     // Check source
     if (profile.provider && oaiSettings.chat_completion_source !== profile.provider) {
         oaiSettings.chat_completion_source = profile.provider;
+        // Also sync UI dropdown to prevent visual desync
+        try {
+            const sel = document.getElementById('chat_completion_source');
+            if (sel && sel.value !== profile.provider) {
+                sel.value = profile.provider;
+            }
+        } catch (e) {}
         changed = true;
     }
 
@@ -615,6 +730,26 @@ export async function migrateSTProfile(stProfile) {
         endpointUrl: stProfile.apiUrl || null,
         oaiPreset: stProfile.preset || null,
     });
+}
+
+// ============================================================================
+// PRESET ENUMERATION (DOM-based)
+// ============================================================================
+
+/**
+ * Get available regex presets from ST's UI select element.
+ * @returns {string[]} Array of regex preset names
+ */
+export function getAvailableRegexPresets() {
+    try {
+        const sel = document.querySelector('#regex_preset');
+        if (!sel) return [];
+        return Array.from(sel.options)
+            .map(opt => opt.value)
+            .filter(v => v);
+    } catch {
+        return [];
+    }
 }
 
 // ============================================================================

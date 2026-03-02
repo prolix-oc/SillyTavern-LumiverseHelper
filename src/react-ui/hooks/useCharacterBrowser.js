@@ -47,7 +47,7 @@ function reconcileAndOrderFolders(folders, savedOrder) {
 }
 
 /**
- * @typedef {'name'|'recent'|'created'|'size'} SortField
+ * @typedef {'name'|'recent'|'added'|'size'} SortField
  * @typedef {'all'|'characters'|'groups'|'favorites'} FilterType
  * @typedef {'grid'|'list'} ViewMode
  */
@@ -154,8 +154,9 @@ export default function useCharacterBrowser() {
       switch (sortBy) {
         case "recent":
           return (b.dateLastChat - a.dateLastChat) * dir;
-        case "created":
-          return (b.dateAdded - a.dateAdded) * dir;
+        case "added":
+        case "created": // Legacy alias
+          return (b.dateCreated - a.dateCreated) * dir;
         case "size":
           return (b.chatSize - a.chatSize) * dir;
         case "name":

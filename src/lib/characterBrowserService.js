@@ -16,6 +16,7 @@ import {
   getGroupId,
   getEventSource,
   getEventTypes,
+  getRequestHeaders,
 } from "../stContext.js";
 
 /** Accepted file types for character import */
@@ -125,6 +126,7 @@ function normalizeCharacter(char, index, tagMap, tags, activeAvatar, activeGroup
     tags: charTags,
     tagNames: charTagNames,
     tagColors: charTagColors,
+    dateCreated: char.create_date ? new Date(char.create_date).getTime() : 0,
     dateAdded: char.date_added ? new Date(char.date_added).getTime() : 0,
     dateLastChat: char.date_last_chat ? new Date(char.date_last_chat).getTime() : 0,
     chatSize: char.chat_size || 0,
@@ -192,6 +194,7 @@ function normalizeGroup(group, characters, tagMap, tags, activeGroupId) {
     tags: groupTags,
     tagNames: groupTagNames,
     tagColors: groupTagColors,
+    dateCreated: group.create_date ? new Date(group.create_date).getTime() : 0,
     dateAdded: group.date_added ? new Date(group.date_added).getTime() : 0,
     dateLastChat: group.date_last_chat
       ? new Date(group.date_last_chat).getTime()
@@ -209,7 +212,7 @@ function normalizeGroup(group, characters, tagMap, tags, activeGroupId) {
 /**
  * Sync characters and groups from ST context into the store.
  */
-function syncCharacters() {
+export function syncCharacters() {
   if (!storeRef) return;
 
   const characters = getCharacters();
@@ -372,7 +375,11 @@ export async function importCharacterFiles(fileList) {
 }
 
 /**
- * Import characters from external URLs via ST's importFromExternalUrl.
+ * Import characters from external URLs by calling ST's API endpoints directly.
+ * We bypass ST's importFromExternalUrl() because it silently swallows errors
+ * (returns undefined on both success and failure), making it impossible to
+ * report failures to the user.
+ *
  * @param {string} textBlock - Newline-separated URLs/UUIDs
  * @returns {Promise<Array<{input: string, success: boolean, error?: string}>>}
  */
@@ -384,25 +391,16 @@ export async function importFromExternalUrls(textBlock) {
 
   if (lines.length === 0) return [];
 
-  let importFn;
-  try {
-    const mod = await import(
-      /* webpackIgnore: true */ "../../../../utils.js"
-    );
-    importFn = mod.importFromExternalUrl;
-  } catch {
-    // Fallback: try from script.js
-    try {
-      const mod2 = await import(
-        /* webpackIgnore: true */ "../../../../../script.js"
-      );
-      importFn = mod2.importFromExternalUrl;
-    } catch {
-      // noop
-    }
-  }
+  const headers = getRequestHeaders();
 
-  if (!importFn) {
+  // Resolve processDroppedFiles for character file processing
+  let processDroppedFiles;
+  try {
+    const mod = await import(/* webpackIgnore: true */ "../../../../../script.js");
+    processDroppedFiles = mod.processDroppedFiles;
+  } catch { /* noop */ }
+
+  if (!processDroppedFiles) {
     return lines.map((input) => ({
       input,
       success: false,
@@ -413,7 +411,47 @@ export async function importFromExternalUrls(textBlock) {
   const results = [];
   for (const input of lines) {
     try {
-      await importFn(input);
+      // ST routes URLs to /importURL and non-URL identifiers to /importUUID
+      const isUrl = /^https?:\/\//i.test(input);
+      const endpoint = isUrl ? "/api/content/importURL" : "/api/content/importUUID";
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ url: input }),
+      });
+
+      if (!response.ok) {
+        const statusText = response.statusText || `HTTP ${response.status}`;
+        results.push({ input, success: false, error: `Server error: ${statusText}` });
+        continue;
+      }
+
+      const blob = await response.blob();
+      const contentType = response.headers.get("X-Custom-Content-Type");
+      const disposition = response.headers.get("Content-Disposition") || "";
+      const fileNameMatch = disposition.match(/filename="?([^"]+)"?/);
+      const fileName = fileNameMatch ? decodeURIComponent(fileNameMatch[1]) : "imported.png";
+      const file = new File([blob], fileName, { type: blob.type });
+
+      if (contentType === "character") {
+        await processDroppedFiles([file]);
+      } else if (contentType === "lorebook") {
+        // Try to import as world info
+        try {
+          const wiMod = await import(/* webpackIgnore: true */ "../../../../scripts/world-info.js");
+          if (wiMod?.importWorldInfo) {
+            await wiMod.importWorldInfo(file);
+          }
+        } catch {
+          results.push({ input, success: false, error: "Lorebook import not available" });
+          continue;
+        }
+      } else {
+        results.push({ input, success: false, error: `Unknown content type: ${contentType || "none"}` });
+        continue;
+      }
+
       results.push({ input, success: true });
     } catch (err) {
       results.push({ input, success: false, error: err?.message || "Unknown error" });

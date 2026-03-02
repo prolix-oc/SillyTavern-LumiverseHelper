@@ -13,6 +13,7 @@ const selectLandingPageChatsDisplayed = () => store.getState().landingPageChatsD
 const selectEnableChatSheld = () => store.getState().enableChatSheld ?? false;
 const selectChatSheldDisplayMode = () => store.getState().chatSheldDisplayMode || 'minimal';
 const selectChatSheldPageSize = () => store.getState().chatSheldPageSize ?? 50;
+const selectChatSheldEnterToSend = () => store.getState().chatSheldEnterToSend ?? true;
 const selectSidePortraitEnabled = () => store.getState().sidePortraitEnabled || false;
 const selectSidePortraitSide = () => store.getState().sidePortraitSide || 'left';
 const selectEnableResortableTagFolders = () => store.getState().enableResortableTagFolders ?? false;
@@ -28,6 +29,7 @@ export default function GeneralSettingsView() {
     const enableChatSheld = useSyncExternalStore(store.subscribe, selectEnableChatSheld, selectEnableChatSheld);
     const chatSheldDisplayMode = useSyncExternalStore(store.subscribe, selectChatSheldDisplayMode, selectChatSheldDisplayMode);
     const chatSheldPageSize = useSyncExternalStore(store.subscribe, selectChatSheldPageSize, selectChatSheldPageSize);
+    const chatSheldEnterToSend = useSyncExternalStore(store.subscribe, selectChatSheldEnterToSend, selectChatSheldEnterToSend);
     const sidePortraitEnabled = useSyncExternalStore(store.subscribe, selectSidePortraitEnabled, selectSidePortraitEnabled);
     const sidePortraitSide = useSyncExternalStore(store.subscribe, selectSidePortraitSide, selectSidePortraitSide);
     const enableResortableTagFolders = useSyncExternalStore(store.subscribe, selectEnableResortableTagFolders, selectEnableResortableTagFolders);
@@ -90,6 +92,11 @@ export default function GeneralSettingsView() {
     const handlePageSizeChange = useCallback((value) => {
         const size = Math.max(10, Math.min(100, parseInt(value, 10) || 50));
         store.setState({ chatSheldPageSize: size });
+        saveToExtension();
+    }, []);
+
+    const handleEnterToSendToggle = useCallback((enabled) => {
+        store.setState({ chatSheldEnterToSend: enabled });
         saveToExtension();
     }, []);
 
@@ -372,6 +379,31 @@ export default function GeneralSettingsView() {
                                 <span className="lumia-drawer-vpos-value">{chatSheldPageSize}</span>
                             </div>
                         </div>
+                    </div>
+                )}
+
+                {/* Enter to Send */}
+                {enableChatSheld && (
+                    <div style={{ marginTop: '10px' }}>
+                        <label className="lumiverse-toggle-wrapper">
+                            <div className="lumiverse-toggle-text">
+                                <span className="lumiverse-toggle-label">Enter to Send</span>
+                                <span className="lumiverse-toggle-description">
+                                    {chatSheldEnterToSend
+                                        ? 'Enter sends message, Shift+Enter for new line'
+                                        : 'Enter adds new line, Ctrl/Cmd+Enter sends message'}
+                                </span>
+                            </div>
+                            <div className={clsx('lumiverse-toggle', chatSheldEnterToSend && 'lumiverse-toggle--on')}>
+                                <input
+                                    type="checkbox"
+                                    className="lumiverse-toggle-input"
+                                    checked={chatSheldEnterToSend}
+                                    onChange={(e) => handleEnterToSendToggle(e.target.checked)}
+                                />
+                                <span className="lumiverse-toggle-slider"></span>
+                            </div>
+                        </label>
                     </div>
                 )}
 

@@ -181,11 +181,12 @@ const initialState = {
     theme: null, // null = use CSS defaults, object = { name, baseColors: { primary, secondary, background, text, danger, success, warning } }
 
     // Toggle binding default state restoration
-    disableDefaultStateRestore: true, // When true, skip restoring default toggle states for unbound chats (opt-in feature)
+    disableDefaultStateRestore: false, // When true, skip restoring default toggle states for unbound chats
 
     // Chat Sheld override (glassmorphic chat redesign)
     enableChatSheld: false,
     chatSheldDisplayMode: 'minimal', // 'minimal' | 'immersive' | 'bubble'
+    chatSheldEnterToSend: true, // true = Enter sends, false = Ctrl/Cmd+Enter sends
     authorNotePanelSide: 'right', // 'left' | 'right' — persisted
 
     // Chat Sheld runtime state (React-only, not persisted)

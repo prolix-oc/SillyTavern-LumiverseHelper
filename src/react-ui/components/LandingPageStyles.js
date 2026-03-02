@@ -338,23 +338,6 @@ export const landingPageStyles = `
   scrollbar-color: var(--lumiverse-primary-030) transparent;
 }
 
-.lumiverse-lp-main::-webkit-scrollbar {
-  width: 6px;
-}
-
-.lumiverse-lp-main::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.lumiverse-lp-main::-webkit-scrollbar-thumb {
-  background: var(--lumiverse-primary-030);
-  border-radius: 3px;
-}
-
-.lumiverse-lp-main::-webkit-scrollbar-thumb:hover {
-  background: var(--lumiverse-primary-050);
-}
-
 /* Card grid */
 .lumiverse-lp-grid-cards {
   display: flex;

@@ -102,7 +102,7 @@ import { initPresetBindingService } from "./lib/presetBindingService.js";
 import { resolveActivePreset, assembleMessages, resolveBinding, setActivePreset, setStoredCoreChat, preResolveMedia, applySamplerOverrides, applyCustomBody, applyCompletionSettings, applyAdvancedSettings, applyAdaptiveThinking, getProfileKey, saveCurrentModelProfile, loadModelProfile, savePreset, getLastAssemblyBreakdown, loadPreset, captureModelProfile, setWorldInfoCache, clearWorldInfoCache, injectExtensionPrompts, applyLoomToggleBindingsForContext, hasLoomBindingForCurrentContext } from "./lib/lucidLoomService.js";
 import { captureReasoningSnapshot } from "./lib/presetsService.js";
 import { storeLoomBreakdown, loadLoomBreakdowns } from "./lib/chatSheldService.js";
-import { handleLoomPresetTransition, isLoomControlActive, syncContextSize, subscribeToOAIPresetEvents, reapplyLoomReasoningSettings } from "./lib/oaiPresetSync.js";
+import { handleLoomPresetTransition, isLoomControlActive, syncContextSize, syncSamplerOverrides, subscribeToOAIPresetEvents, reapplyLoomReasoningSettings } from "./lib/oaiPresetSync.js";
 import { applyGuidesToGeneration } from "./lib/guidedGenerationService.js";
 import { initPersonaListener } from "./lib/personaService.js";
 import { initCharacterBrowser } from "./lib/characterBrowserService.js";
@@ -801,7 +801,7 @@ jQuery(async () => {
   // Without this, the UI shows a profile as active but ST keeps its pre-reload settings.
   const storedProfileId = getStoredActiveProfileId();
   if (storedProfileId) {
-    applyConnectionProfile(storedProfileId).catch(err => {
+    applyConnectionProfile(storedProfileId, { silent: true }).catch(err => {
       console.warn(`[${MODULE_NAME}] Failed to re-apply connection profile on boot:`, err);
     });
   }
@@ -1005,7 +1005,7 @@ jQuery(async () => {
         const connStore = window.LumiverseUI?.getStore?.();
         const currentConnId = connStore?.getState()?.connectionManager?.activeProfileId;
         if (resolvedConnProfileId && resolvedConnProfileId !== currentConnId && !isApplyingProfile()) {
-          applyConnectionProfile(resolvedConnProfileId).catch(() => {});
+          applyConnectionProfile(resolvedConnProfileId, { silent: true }).catch(() => {});
         }
       } catch (err) {
         // Connection binding resolution is best-effort
@@ -1043,11 +1043,23 @@ jQuery(async () => {
       eventSource.on(event_types.WORLD_INFO_ACTIVATED, (entries) => {
         captureWorldInfoEntries(entries);
 
-        // Cache WI for Loom preset assembly (position 0=before, 1=after)
+        // Cache WI for Loom preset assembly — bucket all positions
         if (Array.isArray(entries) && resolveActivePreset()) {
-          const before = entries.filter(e => e.position === 0).map(e => e.content).filter(Boolean).join('\n');
-          const after = entries.filter(e => e.position === 1).map(e => e.content).filter(Boolean).join('\n');
-          setWorldInfoCache(before, after);
+          const bucket = (pos) => entries.filter(e => e.position === pos)
+              .map(e => e.content).filter(Boolean).join('\n');
+          setWorldInfoCache({
+            before:   bucket(0),
+            after:    bucket(1),
+            emBefore: bucket(2),
+            emAfter:  bucket(3),
+            depth: entries.filter(e => e.position === 4).map(e => ({
+              content: e.content,
+              depth: e.depth ?? 4,
+              role: e.role === 1 ? 'user' : e.role === 2 ? 'assistant' : 'system',
+            })),
+            anBefore: bucket(5),
+            anAfter:  bucket(6),
+          });
         }
       });
     }
@@ -1082,10 +1094,10 @@ jQuery(async () => {
         }));
       }
 
-      // 5. Re-sync context size after model profile switch
+      // 5. Re-sync all sampler overrides after model profile switch
       if (isLoomControlActive()) {
         const freshPreset = resolveActivePreset();
-        if (freshPreset) syncContextSize(freshPreset);
+        if (freshPreset) syncSamplerOverrides(freshPreset);
       }
     }
 
@@ -1312,6 +1324,24 @@ jQuery(async () => {
     // Subscribe to OAI preset change events persistently.
     // This ensures Loom reasoning settings are restored whenever ST applies a preset.
     subscribeToOAIPresetEvents();
+
+    // Enforce sampler overrides on page load if a Loom preset is already active.
+    // CHAT_CHANGED fires later and handles binding resolution, but the initial
+    // preset may already be set in the registry before any chat loads. Defer to
+    // allow ST's DOM (preset dropdown, sliders) to be fully ready.
+    setTimeout(() => {
+      try {
+        const initialPresetId = resolveBinding();
+        if (initialPresetId) {
+          const initialPreset = resolveActivePreset();
+          if (initialPreset) {
+            handleLoomPresetTransition(initialPresetId, initialPreset);
+          }
+        }
+      } catch (err) {
+        // Best-effort — CHAT_CHANGED will retry
+      }
+    }, 1000);
   }
 
   // Guided Generations — always active, independent of Loom presets.

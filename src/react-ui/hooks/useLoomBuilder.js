@@ -68,6 +68,7 @@ export function useLoomBuilder() {
             loomService.setActivePreset(preset.id);
             actions.setActiveLoomPreset(preset.id);
             setActivePreset(preset);
+            handleLoomPresetTransition(preset.id, preset);
             return preset;
         } catch (err) {
             setError(err.message);
@@ -122,6 +123,7 @@ export function useLoomBuilder() {
             loomService.setActivePreset(newPreset.id);
             actions.setActiveLoomPreset(newPreset.id);
             setActivePreset(newPreset);
+            handleLoomPresetTransition(newPreset.id, newPreset);
             return newPreset;
         } catch (err) {
             setError(err.message);
@@ -182,6 +184,7 @@ export function useLoomBuilder() {
             loomService.setActivePreset(preset.id);
             actions.setActiveLoomPreset(preset.id);
             setActivePreset(preset);
+            handleLoomPresetTransition(preset.id, preset);
             return preset;
         } catch (err) {
             setError(err.message);
@@ -200,6 +203,7 @@ export function useLoomBuilder() {
             loomService.setActivePreset(preset.id);
             actions.setActiveLoomPreset(preset.id);
             setActivePreset(preset);
+            handleLoomPresetTransition(preset.id, preset);
             return preset;
         } catch (err) {
             setError(err.message);
