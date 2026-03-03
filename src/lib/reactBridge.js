@@ -35,6 +35,7 @@ import {
 } from "./packCache.js";
 import { applyTheme, removeThemeOverrides, getDefaultTheme } from "./themeManager.js";
 import { getEventSource, getEventTypes, getRequestHeaders, triggerExtensionUpdate, getExtensionGitVersion } from "../stContext.js";
+import { registerDLCTools } from "./councilTools.js";
 
 // Extension name discovery from import.meta.url per EXTENSION_GUIDE_UPDATES.md
 // Structure: .../third-party/<folder_name>/src/lib/reactBridge.js
@@ -251,6 +252,12 @@ export async function reactFormatToSettings(reactState, immediate = false) {
     // This preserves the exact structure without transformation
     Object.assign(settings, reactState);
 
+    // Refresh DLC tool registry when packs change from React
+    // (tool editor, pack editor, etc.) so council tool selectors stay current
+    if (reactState.packs !== undefined) {
+      registerDLCTools(reactState.packs);
+    }
+
     saveSettings();
   } finally {
     // Clear flag after a short delay to allow any pending notifications to be ignored
@@ -378,6 +385,8 @@ export async function initializeReactUI(container) {
         if (isSavingFromReact) {
           return;
         }
+        // Refresh DLC tool registry so council tool selectors see new tools
+        registerDLCTools(getPacks());
         notifyReactOfSettingsChange();
       },
     };

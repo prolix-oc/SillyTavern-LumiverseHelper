@@ -139,7 +139,8 @@ function getLumiaImage(packs, packName, itemName) {
  * Tool selector dropdown
  */
 function ToolSelector({ selectedTools, onToggle, onClose }) {
-    const tools = useMemo(() => getToolsForUI(), []);
+    const packs = usePacks();
+    const tools = useMemo(() => getToolsForUI(), [packs]);
 
     // Group tools: built-in first, then DLC grouped by pack name
     const { builtInTools, dlcGroups } = useMemo(() => {
@@ -168,6 +169,11 @@ function ToolSelector({ selectedTools, onToggle, onClose }) {
                 </button>
             </div>
             <div className="lumiverse-council-tool-list">
+                {builtInTools.length > 0 && (
+                    <div className="lumiverse-council-tool-section-header">
+                        <Zap size={11} /> Lumiverse
+                    </div>
+                )}
                 {builtInTools.map((tool) => (
                     <label key={tool.name} className="lumiverse-council-tool-item">
                         <input
@@ -184,7 +190,7 @@ function ToolSelector({ selectedTools, onToggle, onClose }) {
                 {hasDLC && Object.entries(dlcGroups).map(([packName, packTools]) => (
                     <React.Fragment key={`dlc-${packName}`}>
                         <div className="lumiverse-council-tool-pack-header">
-                            <Package size={11} /> {packName}
+                            <Package size={11} /> {packName} <span className="lumiverse-council-tool-dlc-badge">DLC</span>
                         </div>
                         {packTools.map((tool) => (
                             <label key={tool.name} className="lumiverse-council-tool-item lumiverse-council-tool-item--dlc">
@@ -444,7 +450,7 @@ function CouncilMemberCard({ member, packs, onUpdate, onRemove }) {
                                 {(member.tools || []).map(toolName => {
                                     const toolInfo = getToolsForUI().find(t => t.name === toolName);
                                     return (
-                                        <span key={toolName} className="lumiverse-council-tool-tag">
+                                        <span key={toolName} className={clsx('lumiverse-council-tool-tag', toolInfo?.isDLC && 'lumiverse-council-tool-tag--dlc')}>
                                             {toolInfo?.displayName || toolName}
                                         </span>
                                     );

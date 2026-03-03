@@ -10821,6 +10821,12 @@ details.lumia-panel[open] .lumia-panel-chevron {
     line-height: 1.3;
 }
 
+.lumiverse-council-tool-tag--dlc {
+    background: rgba(45, 212, 191, 0.08);
+    border-color: rgba(45, 212, 191, 0.2);
+    color: rgba(45, 212, 191, 0.9);
+}
+
 .lumiverse-council-tools-empty {
     font-size: 11px;
     color: var(--lumiverse-text-dim);
@@ -10910,6 +10916,29 @@ details.lumia-panel[open] .lumia-panel-chevron {
 
 .lumiverse-council-tool-item--dlc .lumiverse-council-tool-name {
     color: rgba(45, 212, 191, 0.9);
+}
+
+.lumiverse-council-tool-section-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px 4px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--lumiverse-text-muted, rgba(147, 112, 219, 0.7));
+}
+
+.lumiverse-council-tool-dlc-badge {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: rgba(45, 212, 191, 0.15);
+    color: rgba(45, 212, 191, 0.85);
+    margin-left: auto;
 }
 
 /* ========================================
