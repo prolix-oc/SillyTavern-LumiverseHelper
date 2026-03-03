@@ -825,6 +825,40 @@ export async function getWorldInfoModule() {
     return _worldInfoModule;
 }
 
+// ---------------------------------------------------------------------------
+// Regex engine module accessor (async dynamic import)
+// ---------------------------------------------------------------------------
+
+let _regexEngineModule = undefined; // undefined = not loaded, null = failed
+
+/**
+ * Get the regex engine module from ST's regex extension.
+ * Provides access to `getRegexedString()` for applying user-defined
+ * regex scripts to content.
+ * @returns {Promise<Object|null>} The regex engine module, or null on failure
+ */
+export async function getRegexEngineModule() {
+    if (_regexEngineModule !== undefined) return _regexEngineModule;
+    try {
+        _regexEngineModule = await (new Function(
+            'return import("/scripts/extensions/regex/engine.js")'
+        ))();
+    } catch {
+        _regexEngineModule = null;
+    }
+    return _regexEngineModule;
+}
+
+/**
+ * Synchronous accessor for the regex engine module.
+ * Returns the cached module if already loaded, or null otherwise.
+ * Call getRegexEngineModule() first to ensure the module is loaded.
+ * @returns {Object|null}
+ */
+export function getRegexEngineModuleSync() {
+    return _regexEngineModule ?? null;
+}
+
 /**
  * Check if the current chat is a group chat.
  * @returns {boolean}

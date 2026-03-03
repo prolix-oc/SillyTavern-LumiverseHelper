@@ -10,7 +10,7 @@
  * 4. Fall back to <font> element detection for backwards compatibility
  */
 
-import { getContext } from "../stContext.js";
+import { getContext, getRegexEngineModuleSync } from "../stContext.js";
 import { query, queryAll, createElement } from "../sthelpers/domUtils.js";
 import { getSettings, MODULE_NAME } from "./settingsManager.js";
 import { getItemFromLibrary } from "./dataProcessor.js";
@@ -125,6 +125,32 @@ export function cleanOOCContent(html) {
   cleaned = cleaned.replace(/(\s|<br\s*\/?>)+$/gi, "");
 
   return cleaned.trim();
+}
+
+/**
+ * Apply SillyTavern regex scripts to raw content synchronously.
+ * Uses the cached regex engine module (pre-loaded during init).
+ * Falls back to returning the original content if the engine isn't available.
+ * @param {string} rawContent - The raw message content to process
+ * @param {number} mesId - The message index in the chat array
+ * @returns {string} The regex-processed content, or original on failure
+ */
+export function applyRegexToContent(rawContent, mesId) {
+  if (!rawContent) return rawContent;
+  const engine = getRegexEngineModuleSync();
+  if (!engine?.getRegexedString) return rawContent;
+  try {
+    const ctx = getContext();
+    const chatLength = ctx?.chat?.length || 0;
+    const depth = chatLength > 0 ? chatLength - 1 - (mesId ?? 0) : 0;
+    return engine.getRegexedString(
+      rawContent,
+      engine.regex_placement.AI_OUTPUT,
+      { isMarkdown: true, depth },
+    );
+  } catch {
+    return rawContent;
+  }
 }
 
 /**
@@ -2237,8 +2263,9 @@ function performIRCOOCProcessing(mesId, messageElement, oocMatches) {
     // Get avatar by looking up the l33t handle
     const avatarUrl = getLumiaAvatarByName(handle) || getLumiaAvatarImg();
 
-    // Clean the content
-    const cleanContent = cleanOOCContent(ooc.content) || plainText;
+    // Apply regex scripts then clean the content
+    const regexedContent = applyRegexToContent(ooc.content, mesId);
+    const cleanContent = cleanOOCContent(regexedContent) || plainText;
 
     // Use the SAME method that works for social/whisper styles
     // This finds the content, deletes it, and returns the range for insertion

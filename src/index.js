@@ -16,6 +16,7 @@ import {
   getSlashCommandParser,
   getTokenCountAsync,
   getSaveSettingsDebounced,
+  getRegexEngineModule,
 } from "./stContext.js";
 
 // Import DOM utilities
@@ -950,6 +951,9 @@ jQuery(async () => {
     reader.readAsText(file);
     event.target.value = "";
   });
+
+  // Pre-load regex engine so the sync accessor is ready by render time
+  getRegexEngineModule().catch(() => {});
 
   // --- SILLYTAVERN EVENT HANDLERS ---
   if (eventSource && event_types) {

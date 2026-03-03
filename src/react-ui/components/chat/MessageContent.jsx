@@ -15,6 +15,7 @@ import {
     cleanOOCContent,
     getLumiaAvatarByName,
     refreshOocColorCache,
+    applyRegexToContent,
 } from '../../../lib/oocComments';
 import { useLumiverseStore } from '../../store/LumiverseContext';
 
@@ -188,18 +189,18 @@ function formatContent(raw) {
  * Calls createOOCCommentBox() which internally dispatches to the correct
  * template based on the user's lumiaOOCStyle setting.
  */
-function OocDomBridge({ segment, index, oocStyle, themeRef }) {
+function OocDomBridge({ segment, index, oocStyle, themeRef, mesId }) {
     const ref = useRef(null);
 
     useLayoutEffect(() => {
         if (!ref.current) return;
         refreshOocColorCache();
         const avatarUrl = getLumiaAvatarByName(segment.name);
-        const cleaned = cleanOOCContent(segment.content);
+        const cleaned = cleanOOCContent(applyRegexToContent(segment.content, mesId));
         const el = createOOCCommentBox(cleaned, avatarUrl, index, segment.name);
         ref.current.innerHTML = '';
         ref.current.appendChild(el);
-    }, [segment.content, segment.name, index, oocStyle, themeRef]);
+    }, [segment.content, segment.name, index, oocStyle, themeRef, mesId]);
 
     return <div ref={ref} />;
 }
@@ -209,7 +210,7 @@ function OocDomBridge({ segment, index, oocStyle, themeRef }) {
  * Calls createIRCChatRoom() which builds the full container with
  * timestamps, handles, @mention highlighting, and collapsible toggle.
  */
-function IrcDomBridge({ entries, themeRef }) {
+function IrcDomBridge({ entries, themeRef, mesId }) {
     const ref = useRef(null);
 
     useLayoutEffect(() => {
@@ -217,13 +218,13 @@ function IrcDomBridge({ entries, themeRef }) {
         refreshOocColorCache();
         const ircEntries = entries.map(seg => ({
             handle: seg.name || 'Unknown',
-            content: cleanOOCContent(seg.content),
+            content: cleanOOCContent(applyRegexToContent(seg.content, mesId)),
             avatarUrl: getLumiaAvatarByName(seg.name),
         }));
         const el = createIRCChatRoom(ircEntries);
         ref.current.innerHTML = '';
         ref.current.appendChild(el);
-    }, [entries, themeRef]);
+    }, [entries, themeRef, mesId]);
 
     return <div ref={ref} />;
 }
@@ -237,10 +238,10 @@ export default function MessageContent({ content, oocMatches, isSystem, isUser, 
     // Theme reference — when it changes, OOC DOM bridges re-mount with fresh colors
     const theme = useSyncExternalStore(store.subscribe, selectTheme, selectTheme);
 
-    // Format the content through our Marked pipeline
+    // Format the content through our Marked pipeline (with regex scripts applied)
     const formattedContent = useMemo(
-        () => formatContent(content),
-        [content],
+        () => formatContent(applyRegexToContent(content, mesId)),
+        [content, mesId],
     );
 
     // Segment the content into text and OOC blocks
@@ -383,7 +384,7 @@ export default function MessageContent({ content, oocMatches, isSystem, isUser, 
             {activeSegments.map((segment, i) => {
                 // IRC batch → single container with all entries
                 if (segment.type === 'irc-batch') {
-                    return <IrcDomBridge key={i} entries={segment.entries} themeRef={theme} />;
+                    return <IrcDomBridge key={i} entries={segment.entries} themeRef={theme} mesId={mesId} />;
                 }
 
                 // Individual OOC → dispatch via createOOCCommentBox
@@ -395,16 +396,17 @@ export default function MessageContent({ content, oocMatches, isSystem, isUser, 
                             index={i}
                             oocStyle={oocStyle}
                             themeRef={theme}
+                            mesId={mesId}
                         />
                     );
                 }
 
-                // Normal text segment — format and render as HTML
+                // Normal text segment — apply regex scripts then format
                 return (
                     <div
                         key={i}
                         dangerouslySetInnerHTML={{
-                            __html: formatContent(segment.content),
+                            __html: formatContent(applyRegexToContent(segment.content, mesId)),
                         }}
                     />
                 );
