@@ -39,6 +39,8 @@ let dlcToolRegistry = {};
 
 // Named tool result variables — generation-scoped, cleared each cycle
 let namedToolResults = {};
+// Raw (unformatted) tool inputs — parallel to namedToolResults for structured access
+let namedToolResultsRaw = {};
 
 /**
  * Get all tools (built-in + DLC) as a unified map.
@@ -46,7 +48,17 @@ let namedToolResults = {};
  * @returns {Object} Map of tool names to tool definitions
  */
 function getAllTools() {
-  return { ...dlcToolRegistry, ...COUNCIL_TOOLS };
+  const settings = getSettings();
+  const all = { ...dlcToolRegistry, ...COUNCIL_TOOLS };
+
+  // Filter out tools gated behind disabled features
+  for (const [name, tool] of Object.entries(all)) {
+    if (tool.gatedBy === "imageGeneration" && !settings.imageGeneration?.enabled) {
+      delete all[name];
+    }
+  }
+
+  return all;
 }
 
 /**
@@ -97,15 +109,19 @@ export function clearDLCTools() {
 /**
  * Set a named result variable value. Called after tool execution.
  * @param {string} variableName - The variable name (alphanumeric + underscore)
- * @param {string} value - The result value
+ * @param {string} value - The formatted result value
+ * @param {Object} [rawInput] - The raw tool input object before formatting
  */
-export function setNamedResult(variableName, value) {
+export function setNamedResult(variableName, value, rawInput) {
   if (!variableName) return;
   namedToolResults[variableName] = value;
+  if (rawInput !== undefined) {
+    namedToolResultsRaw[variableName] = rawInput;
+  }
 }
 
 /**
- * Get a named result variable value.
+ * Get a named result variable value (formatted text).
  * @param {string} variableName - The variable name
  * @returns {string} The stored result or empty string
  */
@@ -114,10 +130,20 @@ export function getNamedResult(variableName) {
 }
 
 /**
+ * Get the raw (unformatted) tool input object for a named result.
+ * @param {string} variableName - The variable name
+ * @returns {Object|null} The raw input object or null
+ */
+export function getNamedResultRaw(variableName) {
+  return namedToolResultsRaw[variableName] || null;
+}
+
+/**
  * Clear all named result variables. Called at start of each generation cycle.
  */
 export function clearNamedResults() {
   namedToolResults = {};
+  namedToolResultsRaw = {};
 }
 
 /**
@@ -954,6 +980,105 @@ Your goal is maximum reader satisfaction through authentic, well-crafted erotic 
       required: ["scene_analysis", "escalation_guidance"],
     },
   },
+
+  generate_scene: {
+    name: "generate_scene",
+    displayName: "Scene Generator",
+    description: "Analyze the current story context and generate a structured visual scene description for background image generation",
+    prompt: () => {
+      const settings = getSettings();
+      const includeChars = settings.imageGeneration?.includeCharacters || false;
+
+      let text = `You are a visual scene analyst. Your job is to read the current story context and produce a precise, structured description of the visual scene as it exists RIGHT NOW in the narrative.
+
+Analyze the most recent messages to determine:
+1. **Environment**: The physical setting — where are the characters? Describe the location with enough visual detail for an artist to paint it (e.g., "A dimly lit Victorian library with tall mahogany bookshelves, a crackling fireplace, and rain-streaked windows").
+2. **Time of day**: When is this scene taking place? Use one of the standard values.
+3. **Weather/Atmosphere**: What are the atmospheric conditions? Include lighting quality (e.g., "Heavy fog with diffused golden lamplight").
+4. **Mood**: One or two words capturing the emotional tone of the scene (e.g., "tense anticipation", "serene melancholy").
+5. **Focal detail**: The single most important visual element that should draw the eye (e.g., "A blood-stained letter on the desk").
+6. **Scene changed**: Has the scene MEANINGFULLY changed from what was previously described? A scene change means the characters have moved to a new location, the time has significantly shifted, or the atmosphere has dramatically transformed. Minor dialogue or action within the same setting is NOT a scene change.
+
+Be specific and visual. Avoid vague descriptions. Think like a cinematographer framing a shot.`;
+
+      if (includeChars) {
+        text += `
+You MUST also provide composition tags for character framing:
+7. **composition_subjects**: Danbooru-style count tags for visible characters (e.g., "1girl", "1boy", "1girl, 1boy", "2girls"). Count every character present in the scene.
+8. **composition_camera**: Choose the camera angle that best matches the scene's dramatic tone.
+9. **composition_shot**: Choose the shot framing based on emotional focus — close-up for intimate/tense moments, full_body for action, wide_shot for establishing shots.
+10. **composition_rating**: If the scene contains mature or explicit content, include the appropriate rating tags ("nsfw" for suggestive/risqué, "explicit" for overtly sexual). Omit entirely for safe-for-work scenes.`;
+      } else {
+        text += `
+IMPORTANT: Describe ONLY the environment, setting, and atmosphere. Do NOT describe characters, people, or their appearances — focus entirely on the location, lighting, objects, and mood. Your output is used for background image generation, not character illustration.`;
+      }
+
+      text += `
+If the story context is unclear or just starting, describe a neutral establishing shot based on available information.`;
+
+      return text;
+    },
+    inputSchema: {
+      type: "object",
+      properties: {
+        environment: {
+          type: "string",
+          description: "Detailed physical setting description — location, architecture, notable objects, spatial layout. Be specific enough for an artist to visualize.",
+        },
+        time_of_day: {
+          type: "string",
+          enum: ["dawn", "morning", "midday", "golden hour", "dusk", "night", "midnight"],
+          description: "The time of day in the scene.",
+        },
+        weather: {
+          type: "string",
+          description: "Atmospheric conditions including lighting quality (e.g., 'Gentle rain with warm interior lamplight', 'Clear starlit sky').",
+        },
+        mood: {
+          type: "string",
+          description: "One or two words for the emotional tone (e.g., 'tense anticipation', 'playful warmth', 'eerie stillness').",
+        },
+        focal_detail: {
+          type: "string",
+          description: "The single most important visual element that should be the focal point of the image.",
+        },
+        palette_override: {
+          type: "string",
+          description: "Optional color palette direction if the scene demands specific colors (e.g., 'warm ambers and deep reds', 'cool blues and silver'). Omit if no specific palette is needed.",
+        },
+        scene_changed: {
+          type: "boolean",
+          description: "Whether the scene has MEANINGFULLY changed from the previous description. True if characters moved locations, time shifted significantly, or atmosphere transformed dramatically. False for continued action/dialogue in the same setting.",
+        },
+        composition_subjects: {
+          type: "string",
+          description: "Danbooru-style subject count tags for characters visible in the scene. Examples: '1girl', '2boys', '1girl, 1boy'. Only provide when characters are present.",
+        },
+        composition_camera: {
+          type: "string",
+          enum: ["from_side", "straight-on", "dutch_angle", "from_above", "from_below", "from_behind"],
+          description: "Camera angle that best fits the current scene's dramatic tone.",
+        },
+        composition_shot: {
+          type: "string",
+          enum: ["close-up", "portrait", "upper_body", "cowboy_shot", "full_body", "wide_shot"],
+          description: "Shot framing based on emotional focus — close-up for intimate/tense, full_body for action, wide_shot for establishing.",
+        },
+        composition_rating: {
+          type: "array",
+          items: {
+            type: "string",
+            enum: ["nsfw", "explicit"],
+          },
+          description: "Content rating tags when the scene contains mature or explicit content. Use 'nsfw' for suggestive/risqué scenes, add 'explicit' for overtly sexual content. Omit entirely for safe-for-work scenes.",
+        },
+      },
+      required: ["environment", "time_of_day", "weather", "mood", "focal_detail", "scene_changed"],
+    },
+    resultVariable: "scene_data",
+    storeInDeliberation: false,
+    gatedBy: "imageGeneration",
+  },
 };
 
 // Storage for latest tool results - cleared each generation
@@ -1506,7 +1631,7 @@ Review the story context above. For each tool call, provide specific, actionable
           const responseText = formatToolInput(block.input, toolDef);
           // Route to named result variable if configured
           if (toolDef.resultVariable) {
-            setNamedResult(toolDef.resultVariable, responseText);
+            setNamedResult(toolDef.resultVariable, responseText, block.input);
           }
           results.push({
             memberName,
@@ -1516,6 +1641,7 @@ Review the story context above. For each tool call, provide specific, actionable
             toolDisplayName: toolDef.displayName,
             success: true,
             response: responseText,
+            rawInput: block.input,
             identity,
           });
         }
@@ -1590,7 +1716,7 @@ Review the story context above. For each tool call, provide specific, actionable
               if (toolDef && !calledTools.has(block.name)) {
                 const retryResponseText = formatToolInput(block.input, toolDef);
                 if (toolDef.resultVariable) {
-                  setNamedResult(toolDef.resultVariable, retryResponseText);
+                  setNamedResult(toolDef.resultVariable, retryResponseText, block.input);
                 }
                 results.push({
                   memberName,
@@ -1722,7 +1848,7 @@ Review the story context above. For each tool call, provide specific, actionable
           }
           const responseText = formatToolInput(parsedArgs, toolDef);
           if (toolDef.resultVariable) {
-            setNamedResult(toolDef.resultVariable, responseText);
+            setNamedResult(toolDef.resultVariable, responseText, parsedArgs);
           }
           results.push({
             memberName,
@@ -1732,6 +1858,7 @@ Review the story context above. For each tool call, provide specific, actionable
             toolDisplayName: toolDef.displayName,
             success: true,
             response: responseText,
+            rawInput: parsedArgs,
             identity,
           });
         }
@@ -1821,7 +1948,7 @@ Review the story context above. For each tool call, provide specific, actionable
                 }
                 const retryResponseText = formatToolInput(parsedArgs, toolDef);
                 if (toolDef.resultVariable) {
-                  setNamedResult(toolDef.resultVariable, retryResponseText);
+                  setNamedResult(toolDef.resultVariable, retryResponseText, parsedArgs);
                 }
                 results.push({
                   memberName,
@@ -1965,11 +2092,15 @@ Provide your contributions from your unique perspective as ${memberName}, filter
     // Try to split by tool headers if possible
     const maxWords = getMaxWordsPerTool();
     const truncatedText = maxWords > 0 ? truncateToWordLimit(fullText, maxWords * memberTools.length) : fullText;
+    // Attempt to parse the raw text as JSON for structured access
+    let parsedRaw = null;
+    try { parsedRaw = JSON.parse(rawText); } catch { /* text is not JSON */ }
+
     for (const toolName of memberTools) {
       const toolDef = getAllTools()[toolName];
       if (!toolDef) continue;
       if (toolDef.resultVariable) {
-        setNamedResult(toolDef.resultVariable, truncatedText);
+        setNamedResult(toolDef.resultVariable, truncatedText, parsedRaw);
       }
       results.push({
         memberName,
@@ -2170,6 +2301,60 @@ async function executeToolsForMember(member, memberTools, contextText, providerI
       error: error.message,
       response: "",
     }));
+  }
+}
+
+/**
+ * Execute a single tool independently of the full council pipeline.
+ * Used by the "Generate Now" button and other on-demand tool invocations.
+ * Resolves the council tools LLM provider, builds chat context, and
+ * executes the tool via the appropriate provider API.
+ *
+ * @param {string} toolName - The tool name to execute (e.g., "generate_scene")
+ * @returns {Promise<{success: boolean, response?: string, error?: string}>}
+ */
+export async function executeSingleTool(toolName) {
+  const toolDef = getAllTools()[toolName];
+  if (!toolDef) {
+    return { success: false, error: `Unknown tool: ${toolName}` };
+  }
+
+  let providerInfo;
+  try {
+    providerInfo = await resolveProviderConfig();
+  } catch (error) {
+    return { success: false, error: `Provider config error: ${error.message}` };
+  }
+
+  const context = getContext();
+  const chatContext = context?.chat || [];
+  const contextText = buildContextText(chatContext, 'manual');
+  const enrichmentText = buildEnrichmentContext();
+
+  // Synthetic member — no Lumia identity required
+  const syntheticMember = {
+    packName: '',
+    itemName: 'Scene Analyzer',
+    tools: [toolName],
+    role: '',
+  };
+
+  try {
+    const results = await executeToolsForMember(
+      syntheticMember,
+      [toolName],
+      contextText,
+      providerInfo,
+      enrichmentText,
+    );
+
+    const result = results.find(r => r.toolName === toolName);
+    if (result?.success) {
+      return { success: true, response: result.response, rawInput: result.rawInput || null };
+    }
+    return { success: false, error: result?.error || 'Tool did not produce output' };
+  } catch (error) {
+    return { success: false, error: error.message };
   }
 }
 

@@ -818,7 +818,7 @@ let _worldInfoModule = undefined; // undefined = not loaded, null = failed
 export async function getWorldInfoModule() {
     if (_worldInfoModule !== undefined) return _worldInfoModule;
     try {
-        _worldInfoModule = await (new Function('return import("../../../../scripts/world-info.js")'))();
+        _worldInfoModule = await (new Function('return import("/scripts/world-info.js")'))();
     } catch {
         _worldInfoModule = null;
     }

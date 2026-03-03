@@ -33,7 +33,7 @@ const PACK_PREFIX = `${FILE_PREFIX}pack_`;
  * @param {string} str - String to hash
  * @returns {string} 8-character hex hash
  */
-function hashString(str) {
+export function hashString(str) {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
         const char = str.charCodeAt(i);
@@ -51,6 +51,15 @@ function hashString(str) {
  */
 export function getPackFileKey(packName) {
     return `${PACK_PREFIX}${hashString(packName)}.json`;
+}
+
+/**
+ * Generate the file key for a scene background image.
+ * @param {string} chatId - The chat identifier
+ * @returns {string} File key (e.g., "lumiverse_bg_a1b2c3d4.png")
+ */
+export function getSceneImageFileKey(chatId) {
+    return `${FILE_PREFIX}bg_${hashString(chatId)}.png`;
 }
 
 /**
@@ -246,6 +255,7 @@ function createDefaultIndex() {
             sidePortraitSide: 'left',
             authorNotePanelSide: 'right',
             guidedGenerations: [],
+            imageGeneration: null,
         },
         presets: {}, // User-saved Lumia selection presets
         toggleStateRegistry: {}, // Registry of saved prompt toggle states

@@ -62,8 +62,9 @@ import {
   isGenerationCycleActive, markGenerationCycleStart, markGenerationCycleEnd,
   abortToolExecution,
   captureWorldInfoEntries, clearWorldInfoEntries,
-  registerDLCTools } from "./lib/councilTools.js";
+  registerDLCTools, getNamedResultRaw } from "./lib/councilTools.js";
 import { resetIndicator } from "./lib/councilVisuals.js";
+import { processSceneResult, applySceneBackground } from "./lib/imageGenService.js";
 
 import {
   processLoomConditionals,
@@ -572,6 +573,15 @@ globalThis.lumiverseHelperGenInterceptor = async function (chat, contextSize, ab
       // included in the main generation request. The LLM decides when to call them.
       // Tool action callbacks accumulate results into latestToolResults.
     }
+
+    // After council tools complete, check for scene image generation
+    const sceneData = getNamedResultRaw('scene_data');
+    if (sceneData && getSettings().imageGeneration?.enabled) {
+      // Fire and forget — don't block main LLM generation
+      processSceneResult(sceneData).catch(err => {
+        console.warn(`[${MODULE_NAME}] Scene image generation failed:`, err);
+      });
+    }
   }
 
   // === LOOM PRESET BUILDER: Store coreChat reference ===
@@ -1057,6 +1067,10 @@ jQuery(async () => {
         scheduleOOCProcessingAfterRender();
       }
       updateContextMeterTokens();
+      // Restore scene background for the new chat (if image generation is enabled)
+      if (getSettings().imageGeneration?.enabled) {
+        applySceneBackground().catch(() => {});
+      }
       // Only restore summary markers when summarization is configured
       requestAnimationFrame(() => {
         if (chatChangeSumMode && chatChangeSumMode !== 'disabled') {

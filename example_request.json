@@ -1,0 +1,83 @@
+{
+  "input": "2girls, brown background, full body, very aesthetic, masterpiece, no text",
+  "model": "nai-diffusion-4-5-full",
+  "action": "generate",
+  "parameters": {
+    "params_version": 3,
+    "width": 832,
+    "height": 1216,
+    "scale": 5,
+    "sampler": "k_euler_ancestral",
+    "steps": 23,
+    "seed": 1348710780,
+    "n_samples": 1,
+    "ucPreset": 0,
+    "qualityToggle": true,
+    "autoSmea": false,
+    "dynamic_thresholding": false,
+    "controlnet_strength": 1,
+    "legacy": false,
+    "add_original_image": true,
+    "cfg_rescale": 0,
+    "noise_schedule": "karras",
+    "legacy_v3_extend": false,
+    "skip_cfg_above_sigma": null,
+    "use_coords": false,
+    "legacy_uc": false,
+    "normalize_reference_strength_multiple": true,
+    "inpaintImg2ImgStrength": 1,
+    "characterPrompts": [
+      {
+        "prompt": "girl, brown eyes, very short hair, green hair, medium breasts, thick eyebrows, dress shirt, blood on hands",
+        "uc": "lowres, aliasing, ",
+        "center": { "x": 0, "y": 0 },
+        "enabled": true
+      },
+      {
+        "prompt": "girl, very dark skin, long hair, single braid, flat chest, ._., prehensile hair",
+        "uc": "lowres, aliasing, ",
+        "center": { "x": 0, "y": 0 },
+        "enabled": true
+      }
+    ],
+    "v4_prompt": {
+      "caption": {
+        "base_caption": "2girls, brown background, full body, very aesthetic, masterpiece, no text",
+        "char_captions": [
+          {
+            "char_caption": "girl, brown eyes, very short hair, green hair, medium breasts, thick eyebrows, dress shirt, blood on hands",
+            "centers": [{ "x": 0, "y": 0 }]
+          },
+          {
+            "char_caption": "girl, very dark skin, long hair, single braid, flat chest, ._., prehensile hair",
+            "centers": [{ "x": 0, "y": 0 }]
+          }
+        ]
+      },
+      "use_coords": false,
+      "use_order": true
+    },
+    "v4_negative_prompt": {
+      "caption": {
+        "base_caption": "nsfw, lowres, artistic error, film grain, scan artifacts, worst quality, bad quality, jpeg artifacts, very displeasing, chromatic aberration, dithering, halftone, screentone, multiple views, logo, too many watermarks, negative space, blank page",
+        "char_captions": [
+          {
+            "char_caption": "lowres, aliasing, ",
+            "centers": [{ "x": 0, "y": 0 }]
+          },
+          {
+            "char_caption": "lowres, aliasing, ",
+            "centers": [{ "x": 0, "y": 0 }]
+          }
+        ]
+      },
+      "legacy_uc": false
+    },
+    "negative_prompt": "nsfw, lowres, artistic error, film grain, scan artifacts, worst quality, bad quality, jpeg artifacts, very displeasing, chromatic aberration, dithering, halftone, screentone, multiple views, logo, too many watermarks, negative space, blank page",
+    "deliberate_euler_ancestral_bug": false,
+    "prefer_brownian": true,
+    "image_format": "png",
+    "stream": "msgpack"
+  },
+  "use_new_shared_trial": true
+}

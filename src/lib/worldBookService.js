@@ -204,6 +204,71 @@ export function createDefaultEntry(uid) {
 }
 
 // ---------------------------------------------------------------------------
+// ST bridge helpers for world-info sync
+// ---------------------------------------------------------------------------
+
+/**
+ * Get ST's saveWorldInfo function for cache-aware saving.
+ * When called, it updates ST's worldInfoCache, emits WORLDINFO_UPDATED, and
+ * writes to disk — unlike our direct POST which only writes to disk.
+ * @returns {Promise<Function|null>}
+ */
+async function getSTSaveWorldInfo() {
+    const wiMod = await getWorldInfoModule();
+    return wiMod?.saveWorldInfo ?? null;
+}
+
+/**
+ * Get ST's originalData helpers for syncing the dual-layer format.
+ * @returns {Promise<{setWIOriginalDataValue: Function|null, originalWIDataKeyMap: Object|null}>}
+ */
+async function getSTOriginalDataHelpers() {
+    const wiMod = await getWorldInfoModule();
+    return {
+        setWIOriginalDataValue: wiMod?.setWIOriginalDataValue ?? null,
+        originalWIDataKeyMap: wiMod?.originalWIDataKeyMap ?? null,
+    };
+}
+
+/**
+ * Sync the `originalData` layer of a world book data object.
+ *
+ * ST uses a dual-layer format: `data.entries` (internal names like `disable`,
+ * `key`, `order`) and `data.originalData` (character book spec names like
+ * `enabled`, `keys`, `insertion_order`). ST's native editor calls
+ * `setWIOriginalDataValue()` on every field change; we must do the same so
+ * that `originalData` reflects our edits.
+ *
+ * @param {Object} data - Full book data object (with entries as uid-keyed object)
+ */
+async function syncOriginalData(data) {
+    if (!data?.originalData) return;
+
+    const { setWIOriginalDataValue, originalWIDataKeyMap } = await getSTOriginalDataHelpers();
+    if (!setWIOriginalDataValue || !originalWIDataKeyMap) {
+        console.warn('[Lumiverse WB] Cannot sync originalData — ST helpers unavailable');
+        return;
+    }
+
+    const entriesObj = data.entries;
+    if (!entriesObj || typeof entriesObj !== 'object') return;
+
+    for (const [uid, entry] of Object.entries(entriesObj)) {
+        for (const [internalKey, value] of Object.entries(entry)) {
+            const originalKey = originalWIDataKeyMap[internalKey];
+            if (!originalKey) continue;
+
+            // `disable` (internal) maps to `enabled` (original) with inversion
+            if (internalKey === 'disable') {
+                setWIOriginalDataValue(data, uid, originalKey, !value);
+            } else {
+                setWIOriginalDataValue(data, uid, originalKey, value);
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // API calls
 // ---------------------------------------------------------------------------
 
@@ -225,7 +290,7 @@ export async function fetchBookList() {
         if (Array.isArray(data)) {
             return data.map(item => {
                 if (typeof item === 'string') return { name: item };
-                return { name: item.name || item.file_id || String(item) };
+                return { name: item.file_id || item.name || String(item) };
             });
         }
         return [];
@@ -272,12 +337,34 @@ export async function fetchBook(name) {
 
 /**
  * Save a world book with entries.
+ *
+ * Prefers ST's `saveWorldInfo()` which updates the in-memory `worldInfoCache`,
+ * emits `WORLDINFO_UPDATED`, and writes to disk. Falls back to a direct
+ * `POST /api/worldinfo/edit` for older ST versions that don't expose it.
+ *
+ * Before saving, syncs `data.originalData` so the character-book-spec layer
+ * reflects our edits (enable/disable, keys, ordering, etc.).
+ *
  * @param {string} name - Book name
  * @param {object} data - Full book data (with entries as uid-keyed object)
  * @returns {Promise<boolean>}
  */
 export async function saveBook(name, data) {
     try {
+        // Sync the originalData layer so ST's native editor and generation
+        // pipeline see our changes in both data formats.
+        await syncOriginalData(data);
+
+        // Try ST's saveWorldInfo (updates worldInfoCache + emits events + writes disk)
+        const stSave = await getSTSaveWorldInfo();
+        if (stSave) {
+            await stSave(name, data, true);
+            invalidateCache(name);
+            return true;
+        }
+
+        // Fallback: direct API call (writes to disk only, cache stays stale)
+        console.warn('[Lumiverse WB] ST saveWorldInfo unavailable, falling back to direct API');
         const headers = getRequestHeaders();
         const resp = await fetch('/api/worldinfo/edit', {
             method: 'POST',

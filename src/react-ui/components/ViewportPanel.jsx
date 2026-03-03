@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
 import clsx from 'clsx';
-import { User, Package, MessageSquare, Sliders, FileText, X, Sparkles, Bookmark, Users, BarChart2, Layers, Settings, PenTool, Contact, UserCircle, MoreHorizontal, Plug } from 'lucide-react';
+import { User, Package, MessageSquare, Sliders, FileText, X, Sparkles, Bookmark, Users, BarChart2, Layers, Settings, PenTool, Contact, UserCircle, MoreHorizontal, Plug, Image as ImageIcon } from 'lucide-react';
 import { useLumiverseStore, useLumiverseActions, useUpdates } from '../store/LumiverseContext';
 import { UpdateDot } from './UpdateBanner';
 import UpdateBanner from './UpdateBanner';
@@ -246,6 +246,12 @@ const ALL_PANEL_TABS = [
         label: 'Create',
         title: 'Content Workshop',
     },
+    {
+        id: 'imagegen',
+        Icon: ImageIcon,
+        label: 'Image',
+        title: 'Image Generation',
+    },
 ];
 
 /**
@@ -275,6 +281,7 @@ function ViewportPanel({
     CouncilContent,
     SummaryContent,
     FeedbackContent,
+    ImageGenContent,
 }) {
     const [activeTab, setActiveTab] = useState(defaultTab);
     const [overflowOpen, setOverflowOpen] = useState(false);
@@ -478,7 +485,8 @@ function ViewportPanel({
         council: <ErrorBoundary label="Council">{CouncilContent ? <CouncilContent /> : <PlaceholderContent tab="council" />}</ErrorBoundary>,
         summary: <ErrorBoundary label="Summary">{SummaryContent ? <SummaryContent /> : <PlaceholderContent tab="summary" />}</ErrorBoundary>,
         feedback: <ErrorBoundary label="Feedback">{FeedbackContent ? <FeedbackContent /> : <PlaceholderContent tab="feedback" />}</ErrorBoundary>,
-    }), [ProfileContent, PresetsContent, LoomContent, ConnectContent, BrowserContent, CharacterBrowserContent, PersonasContent, CreateContent, OOCContent, PromptContent, CouncilContent, SummaryContent, FeedbackContent, handleTabClick]);
+        imagegen: <ErrorBoundary label="ImageGen">{ImageGenContent ? <ImageGenContent /> : <PlaceholderContent tab="imagegen" />}</ErrorBoundary>,
+    }), [ProfileContent, PresetsContent, LoomContent, ConnectContent, BrowserContent, CharacterBrowserContent, PersonasContent, CreateContent, OOCContent, PromptContent, CouncilContent, SummaryContent, FeedbackContent, ImageGenContent, handleTabClick]);
 
     // Calculate wrapper positioning based on side
     const getWrapperStyle = () => {
@@ -681,6 +689,11 @@ function PlaceholderContent({ tab }) {
             Icon: BarChart2,
             title: 'Council Feedback',
             description: 'View diagnostic feedback from council tool executions',
+        },
+        imagegen: {
+            Icon: ImageIcon,
+            title: 'Image Generation',
+            description: 'Generate scene-aware background images using AI',
         },
     };
 

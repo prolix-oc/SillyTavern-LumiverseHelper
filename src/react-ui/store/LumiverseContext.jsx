@@ -254,6 +254,62 @@ const initialState = {
     // Populated by LumiverseBridge.setCouncilToolResults after council tool execution
     councilToolResults: [],
 
+    // Image Generation settings (persisted via preferences)
+    imageGeneration: {
+        enabled: false,
+        provider: 'google_gemini',
+        includeCharacters: false,
+        google: {
+            model: 'gemini-3.1-flash-image',
+            aspectRatio: '16:9',
+            imageSize: '1K',
+            apiKeyMode: 'st',
+            apiKey: '',
+            connectionProfileId: null,
+            referenceImages: [],
+        },
+        nanogpt: {
+            model: 'hidream',
+            size: '1024x1024',
+            apiKey: '',
+            referenceImages: [],
+            strength: 0.8,
+            guidanceScale: 7.5,
+            numInferenceSteps: 30,
+            seed: null,
+        },
+        novelai: {
+            apiKey: '',
+            model: 'nai-diffusion-4-5-full',
+            sampler: 'k_euler_ancestral',
+            resolution: '1216x832',
+            steps: 28,
+            guidance: 5,
+            negativePrompt: 'lowres, bad anatomy, blurry, text, watermark, error, worst quality',
+            smea: false,
+            smeaDyn: false,
+            seed: null,
+            referenceImages: [],
+            includeCharacterAvatar: false,
+            includePersonaAvatar: false,
+            referenceStrength: 0.5,
+            referenceInfoExtracted: 1,
+            referenceFidelity: 1.0,
+            referenceType: 'character&style',
+            avatarReferenceType: 'character',
+        },
+        sceneChangeThreshold: 2,
+        autoGenerate: true,
+        forceGeneration: false,
+        backgroundOpacity: 0.35,
+        fadeTransitionMs: 800,
+    },
+
+    // Image Generation runtime state (React-only, not persisted)
+    sceneBackground: null,      // Current background image URL
+    sceneGenerating: false,     // Whether image generation is in progress
+    lastSceneParams: null,      // Last scene parameters from council tool
+
     // UI state (React-only, not saved to extension)
     ui: {
         activeModal: null,
@@ -1734,6 +1790,26 @@ const actions = {
     updateConnectionBindings: (bindings) => {
         const current = store.getState().connectionManager || {};
         store.setState({ connectionManager: { ...current, bindings } });
+    },
+
+    // Image Generation actions
+    updateImageGenSettings: (updates) => {
+        const current = store.getState().imageGeneration || {};
+        const merged = { ...current, ...updates };
+        // Deep-merge google sub-object if present
+        if (updates.google && current.google) {
+            merged.google = { ...current.google, ...updates.google };
+        }
+        // Deep-merge nanogpt sub-object if present
+        if (updates.nanogpt && current.nanogpt) {
+            merged.nanogpt = { ...current.nanogpt, ...updates.nanogpt };
+        }
+        // Deep-merge novelai sub-object if present
+        if (updates.novelai && current.novelai) {
+            merged.novelai = { ...current.novelai, ...updates.novelai };
+        }
+        store.setState({ imageGeneration: merged });
+        saveToExtension();
     },
 };
 

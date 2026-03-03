@@ -1,0 +1,34 @@
+{
+  "name": "generate_scene",
+  "description": "Generate an anime background scene image.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "environment": {
+        "type": "string",
+        "description": "The physical setting. E.g. 'ancient forest shrine', 'rain-soaked city alley', 'clifftop lighthouse at sea'"
+      },
+      "time_of_day": {
+        "type": "string",
+        "enum": ["dawn", "morning", "midday", "golden hour", "dusk", "night", "midnight"]
+      },
+      "weather": {
+        "type": "string",
+        "description": "Atmospheric conditions. E.g. 'clear', 'heavy rain', 'light fog', 'snowfall', 'overcast'"
+      },
+      "mood": {
+        "type": "string",
+        "description": "One or two words. E.g. 'melancholic', 'tense and quiet', 'warm and safe', 'eerie'"
+      },
+      "focal_detail": {
+        "type": "string",
+        "description": "The single most important visual element — what the camera is pointing at. One concrete thing, not a list. E.g. 'a stone torii gate half-swallowed by vines', 'a dim lantern reflected in a puddle'"
+      },
+      "palette_override": {
+        "type": "string",
+        "description": "Optional. Only include if mood/lighting won't naturally imply the right colors. E.g. 'desaturated blues and grays', 'vivid warm oranges'"
+      }
+    },
+    "required": ["environment", "time_of_day", "weather", "mood", "focal_detail"]
+  }
+}

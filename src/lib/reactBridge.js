@@ -228,6 +228,7 @@ export async function reactFormatToSettings(reactState, immediate = false) {
         'enableCharacterBrowser',
         'enablePersonaManager',
         'enableWorldBookEditor',
+        'imageGeneration',
       ];
       for (const field of preferenceFields) {
         if (reactState[field] !== undefined) {

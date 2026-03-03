@@ -13,6 +13,7 @@ import LoomBuilder from './panels/LoomBuilder';
 import ConnectionManager from './panels/ConnectionManager';
 import CharacterBrowser from './panels/CharacterBrowser';
 import PersonaManager from './panels/PersonaManager';
+import ImageGenPanel from './panels/ImageGenPanel';
 import PackDetailModal from './modals/PackDetailModal';
 import LoomPackDetailModal from './modals/LoomPackDetailModal';
 import SettingsModal from './modals/SettingsModal';
@@ -129,6 +130,7 @@ function ViewportApp() {
                     CouncilContent={CouncilManager}
                     SummaryContent={SummaryEditor}
                     FeedbackContent={FeedbackPanel}
+                    ImageGenContent={ImageGenPanel}
                 />
             )}
             {/* These portals must always render regardless of drawer visibility */}
