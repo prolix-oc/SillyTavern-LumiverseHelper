@@ -1997,7 +1997,11 @@ jQuery(async () => {
           }
           // Determine which settings view to open (default: general)
           const view = (value || '').trim() || 'general';
-          store.openSettingsModal(view);
+          // The store is a vanilla JS store (getState/setState/subscribe).
+          // openSettingsModal lives on the actions object inside React, so
+          // replicate its logic directly via setState.
+          const ui = store.getState().ui || {};
+          store.setState({ ui: { ...ui, settingsModal: { isOpen: true, activeView: view } } });
           return `Opened Lumiverse settings (${view}).`;
         },
         aliases: ["lumi-settings", "lumiverse"],
