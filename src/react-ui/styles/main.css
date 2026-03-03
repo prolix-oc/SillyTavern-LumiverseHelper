@@ -10614,6 +10614,44 @@ details.lumia-panel[open] .lumia-panel-chevron {
     font-style: italic;
 }
 
+/* Chance row */
+.lumiverse-council-chance-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 12px;
+    font-size: 12px;
+}
+
+.lumiverse-council-chance-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--lumiverse-text-muted);
+    flex-shrink: 0;
+}
+
+.lumiverse-council-chance-input {
+    width: 56px !important;
+    flex: 0 0 56px !important;
+    text-align: center;
+    padding: 3px 4px !important;
+    font-size: 12px;
+}
+
+.lumiverse-council-chance-suffix {
+    color: var(--lumiverse-text-muted);
+    flex-shrink: 0;
+}
+
+.lumiverse-council-chance-hint {
+    color: var(--lumiverse-text-dim);
+    font-size: 11px;
+    margin-left: 4px;
+    flex: 1 1 0;
+    min-width: 0;
+}
+
 /* Traits section */
 .lumiverse-council-traits-section {
     display: flex;
@@ -10854,6 +10892,24 @@ details.lumia-panel[open] .lumia-panel-chevron {
     font-size: 10px;
     color: var(--lumiverse-text-dim);
     line-height: 1.4;
+}
+
+.lumiverse-council-tool-pack-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px 4px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(45, 212, 191, 0.7);
+    border-top: 1px solid var(--lumiverse-border, rgba(147, 112, 219, 0.12));
+    margin-top: 4px;
+}
+
+.lumiverse-council-tool-item--dlc .lumiverse-council-tool-name {
+    color: rgba(45, 212, 191, 0.9);
 }
 
 /* ========================================
@@ -16912,6 +16968,10 @@ details.lumia-panel[open] .lumia-panel-chevron {
     color: var(--lumiverse-secondary, rgba(186, 85, 211, 0.9));
 }
 
+.lumiverse-workshop-pack-badge--tool {
+    color: rgba(45, 212, 191, 0.9);
+}
+
 .lumiverse-workshop-pack-chevron {
     color: var(--lumiverse-text-dim, rgba(255, 255, 255, 0.35));
     transition: transform 0.2s ease;
@@ -17010,6 +17070,11 @@ details.lumia-panel[open] .lumia-panel-chevron {
 .lumiverse-workshop-item-type--loom {
     background: rgba(186, 85, 211, 0.12);
     color: var(--lumiverse-secondary, rgba(186, 85, 211, 0.9));
+}
+
+.lumiverse-workshop-item-type--tool {
+    background: rgba(45, 212, 191, 0.12);
+    color: rgba(45, 212, 191, 0.9);
 }
 
 .lumiverse-workshop-item-btn {
@@ -20128,4 +20193,134 @@ details.lumia-panel[open] .lumia-panel-chevron {
     .lumiverse-wb-advanced-grid {
         grid-template-columns: 1fr 1fr;
     }
+}
+
+/* ========================================
+   TOOL EDITOR - Schema Builder & Result Routing
+   ======================================== */
+
+.lumiverse-tool-prompt-textarea {
+    min-height: 160px;
+    font-family: var(--lumiverse-font-mono, monospace);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.lumiverse-tool-schema-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px;
+    margin-bottom: 8px;
+    border: 1px solid var(--lumiverse-border, rgba(147, 112, 219, 0.12));
+    border-radius: var(--lumiverse-radius, 8px);
+    background: var(--lumiverse-fill-subtle, rgba(0, 0, 0, 0.1));
+}
+
+.lumiverse-tool-schema-row-fields {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.lumiverse-tool-schema-name {
+    flex: 1;
+    min-width: 0;
+    font-family: var(--lumiverse-font-mono, monospace);
+    font-size: 12px;
+}
+
+.lumiverse-tool-schema-type-wrap {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.lumiverse-tool-schema-type {
+    width: 90px;
+    padding-right: 22px !important;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    cursor: pointer;
+}
+
+.lumiverse-tool-schema-type-chevron {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--lumiverse-text-dim, rgba(255, 255, 255, 0.4));
+}
+
+.lumiverse-tool-schema-required {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--lumiverse-text-muted, rgba(255, 255, 255, 0.65));
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+}
+
+.lumiverse-tool-schema-required input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    accent-color: var(--lumiverse-primary, rgba(147, 112, 219, 0.9));
+    cursor: pointer;
+}
+
+.lumiverse-tool-schema-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--lumiverse-text-dim, rgba(255, 255, 255, 0.4));
+    cursor: pointer;
+    transition: all var(--lumiverse-transition-fast, 150ms ease);
+    flex-shrink: 0;
+}
+
+.lumiverse-tool-schema-remove:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--lumiverse-danger, #ef4444);
+}
+
+.lumiverse-tool-schema-desc {
+    font-size: 12px;
+}
+
+.lumiverse-tool-schema-enum {
+    font-size: 12px;
+    font-style: italic;
+}
+
+.lumiverse-tool-add-property {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+    font-size: 12px;
+}
+
+.lumiverse-tool-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--lumiverse-text, rgba(255, 255, 255, 0.9));
+    cursor: pointer;
+    user-select: none;
+}
+
+.lumiverse-tool-toggle-label input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    accent-color: var(--lumiverse-primary, rgba(147, 112, 219, 0.9));
+    cursor: pointer;
 }

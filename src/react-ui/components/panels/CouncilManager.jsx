@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useSyncExternalStore, useCallback, useRef } from 'react';
 import clsx from 'clsx';
-import { Users, Plus, Trash2, ChevronDown, ChevronUp, Edit2, X, Check, Zap, Heart, Star, Package, Briefcase, Cpu, Eye, EyeOff, Radio, Plug, BookOpen, Shield } from 'lucide-react';
+import { Users, Plus, Trash2, ChevronDown, ChevronUp, Edit2, X, Check, Zap, Heart, Star, Package, Briefcase, Cpu, Eye, EyeOff, Radio, Plug, BookOpen, Shield, Percent } from 'lucide-react';
 import { useLumiverseStore, useLumiverseActions, usePacks, saveToExtension, saveToExtensionImmediate } from '../../store/LumiverseContext';
 import { getToolsForUI, isInlineModeAvailable } from '../../../lib/councilTools';
 import LazyImage from '../shared/LazyImage';
@@ -141,6 +141,24 @@ function getLumiaImage(packs, packName, itemName) {
 function ToolSelector({ selectedTools, onToggle, onClose }) {
     const tools = useMemo(() => getToolsForUI(), []);
 
+    // Group tools: built-in first, then DLC grouped by pack name
+    const { builtInTools, dlcGroups } = useMemo(() => {
+        const builtIn = [];
+        const dlcByPack = {};
+        for (const tool of tools) {
+            if (tool.isDLC) {
+                const pack = tool.packName || 'Unknown Pack';
+                if (!dlcByPack[pack]) dlcByPack[pack] = [];
+                dlcByPack[pack].push(tool);
+            } else {
+                builtIn.push(tool);
+            }
+        }
+        return { builtInTools: builtIn, dlcGroups: dlcByPack };
+    }, [tools]);
+
+    const hasDLC = Object.keys(dlcGroups).length > 0;
+
     return (
         <div className="lumiverse-council-tool-selector">
             <div className="lumiverse-council-tool-header">
@@ -150,7 +168,7 @@ function ToolSelector({ selectedTools, onToggle, onClose }) {
                 </button>
             </div>
             <div className="lumiverse-council-tool-list">
-                {tools.map((tool) => (
+                {builtInTools.map((tool) => (
                     <label key={tool.name} className="lumiverse-council-tool-item">
                         <input
                             type="checkbox"
@@ -162,6 +180,26 @@ function ToolSelector({ selectedTools, onToggle, onClose }) {
                             <span className="lumiverse-council-tool-desc">{tool.description}</span>
                         </div>
                     </label>
+                ))}
+                {hasDLC && Object.entries(dlcGroups).map(([packName, packTools]) => (
+                    <React.Fragment key={`dlc-${packName}`}>
+                        <div className="lumiverse-council-tool-pack-header">
+                            <Package size={11} /> {packName}
+                        </div>
+                        {packTools.map((tool) => (
+                            <label key={tool.name} className="lumiverse-council-tool-item lumiverse-council-tool-item--dlc">
+                                <input
+                                    type="checkbox"
+                                    checked={selectedTools.includes(tool.name)}
+                                    onChange={() => onToggle(tool.name)}
+                                />
+                                <div className="lumiverse-council-tool-info">
+                                    <span className="lumiverse-council-tool-name">{tool.displayName}</span>
+                                    <span className="lumiverse-council-tool-desc">{tool.description}</span>
+                                </div>
+                            </label>
+                        ))}
+                    </React.Fragment>
                 ))}
             </div>
         </div>
@@ -320,6 +358,34 @@ function CouncilMemberCard({ member, packs, onUpdate, onRemove }) {
                             </span>
                         </div>
                     )}
+
+                    {/* Firing chance */}
+                    <div className="lumiverse-council-chance-row">
+                        <span className="lumiverse-council-chance-label">
+                            <Percent size={14} strokeWidth={1.5} /> Chance:
+                        </span>
+                        <input
+                            type="number"
+                            className="lumiverse-council-input lumiverse-council-chance-input"
+                            min={0}
+                            max={100}
+                            value={member.chance ?? 100}
+                            onChange={(e) => {
+                                const raw = e.target.value;
+                                if (raw === '') {
+                                    onUpdate(member.id, { chance: 0 });
+                                    return;
+                                }
+                                const val = Math.max(0, Math.min(100, parseInt(raw, 10) || 0));
+                                onUpdate(member.id, { chance: val });
+                            }}
+                            onPointerUp={(e) => e.stopPropagation()}
+                        />
+                        <span className="lumiverse-council-chance-suffix">%</span>
+                        <span className="lumiverse-council-chance-hint">
+                            Likelihood of this member contributing each generation
+                        </span>
+                    </div>
 
                     {/* Traits summary */}
                     <div className="lumiverse-council-traits-section">

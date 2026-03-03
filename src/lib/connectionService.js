@@ -173,10 +173,16 @@ export async function saveProfile(profile) {
 
 /**
  * Delete a profile by ID.
+ * If the deleted profile was the active one, stops the persistence guard
+ * so it doesn't keep enforcing stale provider/endpoint settings.
  * @param {string} profileId
  */
 export async function deleteProfile(profileId) {
+    const wasActive = getActiveConnectionProfileId() === profileId;
     await removeConnectionProfile(profileId);
+    if (wasActive) {
+        stopPersistenceGuard();
+    }
 }
 
 /**

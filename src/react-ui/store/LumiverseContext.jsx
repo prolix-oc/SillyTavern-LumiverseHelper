@@ -1138,6 +1138,7 @@ const actions = {
             dominantBehavior: null,
             dominantPersonality: null,
             role: '',
+            chance: 100,
         };
 
         // Create a new array reference to ensure React detects the change
@@ -1489,6 +1490,7 @@ const actions = {
                 dominantBehavior: null,
                 dominantPersonality: null,
                 role: '',
+                chance: 100,
             };
         });
 

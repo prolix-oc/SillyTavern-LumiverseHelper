@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { savePack, getPackByName } from '@lib/settingsManager.js';
-import { 
-    Box, User, Wrench, Settings, Palette, 
-    Check, X, Download, Loader2, RefreshCw 
+import {
+    Box, User, Wrench, Settings, Palette, Zap,
+    Check, X, Download, Loader2, RefreshCw
 } from 'lucide-react';
 import LazyImage from '../shared/LazyImage';
 
@@ -24,6 +24,7 @@ const TABS = [
     { id: 'Loom Utilities', label: 'Utilities', Icon: Wrench },
     { id: 'Loom Retrofits', label: 'Retrofits', Icon: Settings },
     { id: 'Loom Narratives', label: 'Narratives', Icon: Palette },
+    { id: 'Council Tools', label: 'Tools', Icon: Zap },
 ];
 
 // Maps tab IDs to their corresponding count field in the API response
@@ -31,6 +32,7 @@ const TAB_TO_COUNT_FIELD = {
     'Loom Utilities': 'loomUtilityCount',
     'Loom Retrofits': 'loomRetrofitCount',
     'Loom Narratives': 'narrativeStyleCount',
+    'Council Tools': 'loomToolCount',
 };
 
 // Self-contained styles
@@ -406,6 +408,7 @@ function LucidCardsModal({ onClose }) {
                     packExtras: packData.packExtras || [],
                     lumiaItems: packData.lumiaItems || [],
                     loomItems: packData.loomItems || [],
+                    loomTools: packData.loomTools || [],
                     isCustom: false, // Downloaded from Lucid.cards, not editable
                     url: `https://lucid.cards/api/lumia-dlc/${pack.slug}`,
                 };

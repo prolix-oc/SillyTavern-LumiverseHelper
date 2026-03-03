@@ -692,7 +692,9 @@ export function getGroupId() {
 /**
  * Get the user's persona name and description text.
  * Uses getCharacterCardFields() which returns the processed persona
- * from User Settings > Persona Description.
+ * from User Settings > Persona Description (power_user.persona_description).
+ * This reads ST's own resolved flat value — keyed by the active avatar filename,
+ * not by display name.
  * @returns {{ name: string, persona: string } | null} User persona info, or null if unavailable
  */
 export function getUserPersona() {
@@ -702,6 +704,9 @@ export function getUserPersona() {
   const name = ctx.name1 || "User";
   const persona = ctx.getCharacterCardFields?.()?.persona;
   if (!persona) return null;
+
+  // Debug: log resolved persona text length for diagnosis
+  console.debug('[LumiverseHelper:Persona] getUserPersona: name=%s, persona_len=%d', name, persona.length);
 
   return { name, persona };
 }

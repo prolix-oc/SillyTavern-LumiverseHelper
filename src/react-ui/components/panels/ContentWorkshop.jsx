@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { User, ScrollText, Plus, ChevronRight, Pencil, Trash2, Download, Upload, Package } from 'lucide-react';
+import { User, ScrollText, Wrench, Plus, ChevronRight, Pencil, Trash2, Download, Upload, Package } from 'lucide-react';
 import { usePacks, useLumiverseActions, saveToExtension } from '../../store/LumiverseContext';
 import PackDropdown from './PackDropdown';
 import ConfirmationModal from '../shared/ConfirmationModal';
@@ -34,6 +34,7 @@ function ContentWorkshop() {
 
     const [lumiaPackName, setLumiaPackName] = useState('');
     const [loomPackName, setLoomPackName] = useState('');
+    const [toolPackName, setToolPackName] = useState('');
     const [expandedPacks, setExpandedPacks] = useState({});
     const [deleteConfirm, setDeleteConfirm] = useState(null); // { type: 'pack'|'item', packName, itemName?, itemType? }
 
@@ -47,6 +48,7 @@ function ContentWorkshop() {
 
     const effectiveLumiaPackName = lumiaPackName || defaultPackName;
     const effectiveLoomPackName = loomPackName || defaultPackName;
+    const effectiveToolPackName = toolPackName || defaultPackName;
 
     // --- Quick Create ---
 
@@ -68,6 +70,7 @@ function ContentWorkshop() {
             packExtras: [],
             lumiaItems: [],
             loomItems: [],
+            loomTools: [],
         };
         actions.addCustomPack(newPack);
         saveToExtension();
@@ -103,6 +106,20 @@ function ContentWorkshop() {
         actions.openModal('loomEditor', { packName });
     }, [effectiveLoomPackName, customPacks.length, ensurePack, actions]);
 
+    const handleCreateTool = useCallback(() => {
+        let packName = effectiveToolPackName;
+
+        if (!packName && customPacks.length === 0) {
+            packName = 'My Pack';
+            ensurePack(packName);
+            setToolPackName(packName);
+        }
+
+        if (!packName) return;
+        ensurePack(packName);
+        actions.openModal('toolEditor', { packName });
+    }, [effectiveToolPackName, customPacks.length, ensurePack, actions]);
+
     // --- Pack Management ---
 
     const togglePack = useCallback((name) => {
@@ -112,6 +129,8 @@ function ContentWorkshop() {
     const handleEditItem = useCallback((packName, item, type) => {
         if (type === 'lumia') {
             actions.openModal('lumiaEditor', { packName, editingItem: item });
+        } else if (type === 'tool') {
+            actions.openModal('toolEditor', { packName, editingItem: item });
         } else {
             actions.openModal('loomEditor', { packName, editingItem: item });
         }
@@ -142,6 +161,11 @@ function ContentWorkshop() {
                     i => getLumiaName(i) !== itemName
                 );
                 updatedPack = { ...pack, lumiaItems: items, items: undefined };
+            } else if (itemType === 'tool') {
+                const items = (pack.loomTools || []).filter(
+                    i => i.toolName !== itemName
+                );
+                updatedPack = { ...pack, loomTools: items };
             } else {
                 const items = (pack.loomItems || []).filter(
                     i => getLoomName(i) !== itemName
@@ -238,6 +262,31 @@ function ContentWorkshop() {
                             />
                         )}
                     </div>
+
+                    {/* New Tool row */}
+                    <div className={`lumiverse-workshop-create-card ${customPacks.length > 1 ? 'lumiverse-workshop-create-card--has-dropdown' : ''}`}>
+                        <div className="lumiverse-workshop-create-card-icon">
+                            <Wrench size={16} strokeWidth={1.5} />
+                        </div>
+                        <div className="lumiverse-workshop-create-card-body">
+                            <div className="lumiverse-workshop-create-card-label">New Tool</div>
+                            <div className="lumiverse-workshop-create-card-desc">Council tool definition</div>
+                        </div>
+                        <button
+                            className="lumiverse-workshop-create-card-action"
+                            type="button"
+                            onClick={handleCreateTool}
+                        >
+                            <Plus size={13} /> Create
+                        </button>
+                        {customPacks.length > 1 && (
+                            <PackDropdown
+                                value={effectiveToolPackName}
+                                onChange={setToolPackName}
+                                placeholder="Pick a pack..."
+                            />
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -256,9 +305,11 @@ function ContentWorkshop() {
                         const packName = pack.packName || pack.name || '';
                         const lumiaItems = pack.lumiaItems || pack.items || [];
                         const loomItems = pack.loomItems || [];
+                        const toolItems = pack.loomTools || [];
                         const isExpanded = expandedPacks[packName] || false;
                         const lumiaCount = lumiaItems.length;
                         const loomCount = loomItems.length;
+                        const toolCount = toolItems.length;
 
                         return (
                             <div key={packName} className="lumiverse-workshop-pack-row">
@@ -279,6 +330,11 @@ function ContentWorkshop() {
                                         {loomCount > 0 && (
                                             <span className="lumiverse-workshop-pack-badge lumiverse-workshop-pack-badge--loom">
                                                 {loomCount} Loom
+                                            </span>
+                                        )}
+                                        {toolCount > 0 && (
+                                            <span className="lumiverse-workshop-pack-badge lumiverse-workshop-pack-badge--tool">
+                                                {toolCount} Tool{toolCount !== 1 ? 's' : ''}
                                             </span>
                                         )}
                                     </div>
@@ -337,7 +393,32 @@ function ContentWorkshop() {
                                                     </div>
                                                 );
                                             })}
-                                            {lumiaCount === 0 && loomCount === 0 && (
+                                            {toolItems.map(item => {
+                                                const name = item.displayName || item.toolName || 'Unknown';
+                                                return (
+                                                    <div key={`tool-${item.toolName}`} className="lumiverse-workshop-item-row">
+                                                        <span className="lumiverse-workshop-item-type lumiverse-workshop-item-type--tool">Tool</span>
+                                                        <span className="lumiverse-workshop-item-name">{name}</span>
+                                                        <button
+                                                            className="lumiverse-workshop-item-btn"
+                                                            type="button"
+                                                            title="Edit"
+                                                            onClick={() => handleEditItem(packName, item, 'tool')}
+                                                        >
+                                                            <Pencil size={13} />
+                                                        </button>
+                                                        <button
+                                                            className="lumiverse-workshop-item-btn lumiverse-workshop-item-btn--danger"
+                                                            type="button"
+                                                            title="Delete"
+                                                            onClick={() => handleDeleteItem(packName, item.toolName, 'tool')}
+                                                        >
+                                                            <Trash2 size={13} />
+                                                        </button>
+                                                    </div>
+                                                );
+                                            })}
+                                            {lumiaCount === 0 && loomCount === 0 && toolCount === 0 && (
                                                 <div className="lumiverse-workshop-pack-empty">
                                                     No items yet
                                                 </div>

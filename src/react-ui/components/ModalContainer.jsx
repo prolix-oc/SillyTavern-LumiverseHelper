@@ -11,6 +11,7 @@ import LoomSelectionModal from './modals/LoomSelectionModal';
 import PackSelectorModal from './modals/PackSelectorModal';
 import LumiaEditorModal from './modals/LumiaEditorModal';
 import LoomEditorModal from './modals/LoomEditorModal';
+import ToolEditorModal from './modals/ToolEditorModal';
 import CouncilSelectModal from './modals/CouncilSelectModal';
 import PresetEditor from './panels/PresetEditor';
 
@@ -192,6 +193,14 @@ const MODAL_CONFIG = {
     // Loom editor - for creating/editing Loom items
     loomEditor: {
         component: LoomEditorModal,
+        modalType: 'loom-editor',
+        size: 'large',
+        hasCustomHeader: true,
+        props: {},
+    },
+    // Tool editor - for creating/editing DLC council tools
+    toolEditor: {
+        component: ToolEditorModal,
         modalType: 'loom-editor',
         size: 'large',
         hasCustomHeader: true,

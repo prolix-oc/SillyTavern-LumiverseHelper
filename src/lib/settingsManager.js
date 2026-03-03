@@ -697,11 +697,15 @@ export function migrateSettings() {
     settings.councilTools.maxWordsPerTool = 150;
   }
 
-  // Ensure council members have tools array
+  // Ensure council members have tools array and chance field
   if (settings.councilMembers && Array.isArray(settings.councilMembers)) {
     settings.councilMembers.forEach(member => {
       if (!member.tools) {
         member.tools = [];
+        migrated = true;
+      }
+      if (member.chance === undefined) {
+        member.chance = 100;
         migrated = true;
       }
     });

@@ -61,7 +61,8 @@ import {
   getCouncilToolsMode, registerSTTools, unregisterSTTools,
   isGenerationCycleActive, markGenerationCycleStart, markGenerationCycleEnd,
   abortToolExecution,
-  captureWorldInfoEntries, clearWorldInfoEntries } from "./lib/councilTools.js";
+  captureWorldInfoEntries, clearWorldInfoEntries,
+  registerDLCTools } from "./lib/councilTools.js";
 import { resetIndicator } from "./lib/councilVisuals.js";
 
 import {
@@ -104,7 +105,7 @@ import { captureReasoningSnapshot } from "./lib/presetsService.js";
 import { storeLoomBreakdown, loadLoomBreakdowns } from "./lib/chatSheldService.js";
 import { handleLoomPresetTransition, isLoomControlActive, syncContextSize, syncSamplerOverrides, subscribeToOAIPresetEvents, reapplyLoomReasoningSettings } from "./lib/oaiPresetSync.js";
 import { applyGuidesToGeneration } from "./lib/guidedGenerationService.js";
-import { initPersonaListener } from "./lib/personaService.js";
+import { initPersonaListener, getCurrentPersonaAvatar, getSTModuleUserAvatar } from "./lib/personaService.js";
 import { initCharacterBrowser } from "./lib/characterBrowserService.js";
 import { initPersonaManager } from "./lib/personaManagerService.js";
 import { initWorldBookInterceptor } from "./lib/worldBookService.js";
@@ -290,11 +291,17 @@ function trimEmptyMacroNewlines(content) {
 // --- CONTEXT METER: Live token estimation ---
 // Debounced helper that counts chat tokens and pushes an estimate to the store.
 // Called on CHAT_CHANGED and CHARACTER_MESSAGE_RENDERED to keep the meter live.
+// Only performs work when a Loom preset is active (the meter lives in the Loom
+// Builder UI); otherwise skips to avoid unnecessary async token counting.
 let _ctxMeterTimer = null;
 function updateContextMeterTokens() {
   clearTimeout(_ctxMeterTimer);
   _ctxMeterTimer = setTimeout(async () => {
     try {
+      // Skip when no Loom preset is active — the context meter is a Loom Builder
+      // feature, so there's no reason to count tokens when it's not in use.
+      if (!resolveActivePreset()) return;
+
       const tokenCounter = getTokenCountAsync();
       const store = window.LumiverseUI?.getStore?.();
       if (!tokenCounter || !store) return;
@@ -430,14 +437,73 @@ globalThis.lumiverseHelperGenInterceptor = async function (chat, contextSize, ab
     clearToolResults();
     clearWorldInfoEntries();
     resetIndicator();
+
+    // === PERSONA DIAGNOSTIC ===
+    // Compare what the extension thinks is active vs what ST will actually inject.
+    // user_avatar is a module-level export from personas.js, NOT in powerUserSettings.
+    try {
+      const _ctx = getContext();
+      const _pu = _ctx?.powerUserSettings;
+      const extAvatar = getCurrentPersonaAvatar();              // Extension's cached avatar ID
+      const stModuleAvatar = getSTModuleUserAvatar();           // ST's live module binding (personas.js)
+      const flatDesc = _pu?.persona_description || '';          // What ST sends to the LLM
+      const stModuleDesc = stModuleAvatar ? (_pu?.persona_descriptions?.[stModuleAvatar]?.description || '') : '';
+      const extDesc = extAvatar ? (_pu?.persona_descriptions?.[extAvatar]?.description || '') : '';
+
+      // Check if the flat value (what gets sent to LLM) matches the stored descriptor
+      const flatMatchesModule = flatDesc === stModuleDesc;
+      const flatMatchesExt = flatDesc === extDesc;
+      const moduleMatchesExt = stModuleAvatar === extAvatar;
+
+      console.debug('[LumiverseHelper:Persona] === GENERATION PERSONA DIAGNOSTIC ===');
+      console.debug('  Extension cached activeId:', extAvatar);
+      console.debug('  ST module user_avatar:', stModuleAvatar);
+      console.debug('  Avatar match (ext↔module):', moduleMatchesExt);
+      console.debug('  Flat persona_description (first 120 chars):', JSON.stringify(flatDesc.slice(0, 120)));
+      console.debug('  Stored desc for MODULE avatar (first 120 chars):', JSON.stringify(stModuleDesc.slice(0, 120)));
+      if (!moduleMatchesExt) {
+        console.debug('  Stored desc for EXT avatar (first 120 chars):', JSON.stringify(extDesc.slice(0, 120)));
+      }
+      console.debug('  Flat matches MODULE stored:', flatMatchesModule, '| Flat matches EXT stored:', flatMatchesExt);
+
+      // Detect which Prolix's content is in the flat description
+      if (!flatMatchesModule) {
+        // Flat value doesn't match what's stored under ST's active avatar — scan ALL personas
+        const allDescs = _pu?.persona_descriptions || {};
+        const allPersonas = _pu?.personas || {};
+        for (const [aid, desc] of Object.entries(allDescs)) {
+          if (desc?.description && desc.description === flatDesc) {
+            console.warn('[LumiverseHelper:Persona] FOUND flat desc owner:',
+              aid, '(name:', allPersonas[aid] || '?', ') — but ST module avatar is:', stModuleAvatar);
+            break;
+          }
+        }
+        console.warn('[LumiverseHelper:Persona] MISMATCH: power_user.persona_description does NOT match',
+          'persona_descriptions[' + stModuleAvatar + ']. selectCurrentPersona() may be stale.');
+      }
+      if (!moduleMatchesExt) {
+        console.warn('[LumiverseHelper:Persona] MISMATCH: Extension cached avatar is', extAvatar,
+          'but ST module user_avatar is', stModuleAvatar);
+      }
+    } catch (_e) { /* diagnostic only — never block generation */ }
+    // Re-register DLC tools from current packs to pick up any changes.
+    // Only when council tools are enabled to avoid unnecessary work.
+    if (areCouncilToolsEnabled()) {
+      try {
+        const currentPacks = getSettings().packs;
+        if (currentPacks) registerDLCTools(currentPacks);
+      } catch (_) { /* non-critical */ }
+    }
   } else {
   }
 
   // === CONTEXT OVERFLOW CHECK (before council tools) ===
   // On first call for user-initiated generations, estimate token usage from the
   // chat array. If chatTokens + maxResponseTokens >= maxContext, warn the user.
+  // Only runs when a Loom preset is active — without one, Lumiverse should not
+  // intercept ST's generation flow with warning dialogs.
   const isUserGeneration = type === 'normal' || type === 'swipe' || type === 'regenerate' || !type;
-  if (!isRecursiveCall && isUserGeneration) {
+  if (!isRecursiveCall && isUserGeneration && resolveActivePreset()) {
     const tokenCounter = getTokenCountAsync();
     if (tokenCounter) {
       try {
@@ -492,7 +558,7 @@ globalThis.lumiverseHelperGenInterceptor = async function (chat, contextSize, ab
       // and this await resolves promptly via AbortError.
       try {
         const startTime = Date.now();
-        const results = await executeAllCouncilTools();
+        const results = await executeAllCouncilTools(type);
         const duration = Date.now() - startTime;
       } catch (error) {
         if (error?.name === 'AbortError') {
@@ -590,46 +656,58 @@ globalThis.lumiverseHelperGenInterceptor = async function (chat, contextSize, ab
   const loomFilterEnabled = contextFilters.loomItems?.enabled || false;
   const anyFilterEnabled = htmlFilterEnabled || fontFilterEnabled || detailsFilterEnabled || loomFilterEnabled;
 
-  // Process loomIf conditionals and apply content filters
-  for (let i = 0; i < chat.length; i++) {
-    const depthFromEnd = chat.length - 1 - i;
+  // Process loomIf conditionals and apply content filters.
+  // Only run when Lumiverse features that modify content are active.
+  // processLoomConditionals only matters when loomIf tags might be present (Loom preset active).
+  // trimEmptyMacroNewlines only matters when Lumiverse macros or filters may have left gaps.
+  const hasActiveLoom = !!loomPreset;
+  const anyProcessingActive = anyFilterEnabled || hasActiveLoom;
 
-    const filterContent = (content) => {
-      if (!content || typeof content !== "string") return content;
-      let result = content;
+  if (anyProcessingActive) {
+    for (let i = 0; i < chat.length; i++) {
+      const depthFromEnd = chat.length - 1 - i;
 
-      if (htmlFilterEnabled && depthFromEnd >= htmlKeepDepth) {
-        result = stripHtmlTags(result);
-      }
-      if (htmlFilterEnabled && fontFilterEnabled && depthFromEnd >= fontKeepDepth) {
-        result = stripFontTags(result);
-      }
-      if (detailsFilterEnabled && depthFromEnd >= detailsKeepDepth) {
-        result = stripDetailsBlocks(result);
-      }
-      if (loomFilterEnabled && depthFromEnd >= loomKeepDepth) {
-        result = stripLoomTags(result);
+      const filterContent = (content) => {
+        if (!content || typeof content !== "string") return content;
+        let result = content;
+
+        if (htmlFilterEnabled && depthFromEnd >= htmlKeepDepth) {
+          result = stripHtmlTags(result);
+        }
+        if (htmlFilterEnabled && fontFilterEnabled && depthFromEnd >= fontKeepDepth) {
+          result = stripFontTags(result);
+        }
+        if (detailsFilterEnabled && depthFromEnd >= detailsKeepDepth) {
+          result = stripDetailsBlocks(result);
+        }
+        if (loomFilterEnabled && depthFromEnd >= loomKeepDepth) {
+          result = stripLoomTags(result);
+        }
+
+        return result;
+      };
+
+      if (chat[i] && typeof chat[i].content === "string") {
+        if (hasActiveLoom) {
+          chat[i].content = processLoomConditionals(chat[i].content);
+        }
+        if (anyFilterEnabled) {
+          chat[i].content = filterContent(chat[i].content);
+        }
+        // Clean up excessive newlines from empty macro replacements
+        chat[i].content = trimEmptyMacroNewlines(chat[i].content);
       }
 
-      return result;
-    };
-
-    if (chat[i] && typeof chat[i].content === "string") {
-      chat[i].content = processLoomConditionals(chat[i].content);
-      if (anyFilterEnabled) {
-        chat[i].content = filterContent(chat[i].content);
+      if (chat[i] && typeof chat[i].mes === "string") {
+        if (hasActiveLoom) {
+          chat[i].mes = processLoomConditionals(chat[i].mes);
+        }
+        if (anyFilterEnabled) {
+          chat[i].mes = filterContent(chat[i].mes);
+        }
+        // Clean up excessive newlines from empty macro replacements
+        chat[i].mes = trimEmptyMacroNewlines(chat[i].mes);
       }
-      // Clean up excessive newlines from empty macro replacements
-      chat[i].content = trimEmptyMacroNewlines(chat[i].content);
-    }
-
-    if (chat[i] && typeof chat[i].mes === "string") {
-      chat[i].mes = processLoomConditionals(chat[i].mes);
-      if (anyFilterEnabled) {
-        chat[i].mes = filterContent(chat[i].mes);
-      }
-      // Clean up excessive newlines from empty macro replacements
-      chat[i].mes = trimEmptyMacroNewlines(chat[i].mes);
     }
   }
 
@@ -717,6 +795,17 @@ jQuery(async () => {
 
   // Register macros
   registerAllMacros();
+
+  // Register DLC tools from loaded packs, then register all tools with ST's ToolManager.
+  // DLC tools are custom council tools defined in pack loomTools arrays.
+  try {
+    const currentSettings = getSettings();
+    if (currentSettings.packs) {
+      registerDLCTools(currentSettings.packs);
+    }
+  } catch (err) {
+    console.warn(`[${MODULE_NAME}] Failed to register DLC tools:`, err);
+  }
 
   // Register council tools with ST's ToolManager if inline mode is active.
   // Tools have a shouldRegister gate that dynamically checks mode/enabled state,
@@ -857,8 +946,16 @@ jQuery(async () => {
     eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, (mesId) => {
       setIsGenerating(false);
       markGenerationCycleEnd();
-      captureLoomSummary();
-      checkAutoSummarization();
+
+      // Only run summarization-related work when summarization is configured.
+      // captureLoomSummary scans the entire chat history — skip it when the
+      // user hasn't enabled summarization to avoid unnecessary O(N) work.
+      const sumMode = getSettings().summarization?.mode;
+      if (sumMode && sumMode !== 'disabled') {
+        captureLoomSummary();
+        checkAutoSummarization();
+      }
+
       updateContextMeterTokens();
 
       // Track the AI message index for swipe/regenerate detection
@@ -873,17 +970,25 @@ jQuery(async () => {
       if (!isChatSheldActive()) {
         const messageElement = query(`div[mesid="${mesId}"] .mes_text`);
         if (messageElement) {
-          hideLoomSumBlocks(messageElement);
-          unhideAndProcessOOCMarkers(messageElement);
+          // Only hide loom_sum blocks when summarization is configured
+          if (sumMode && sumMode !== 'disabled') {
+            hideLoomSumBlocks(messageElement);
+          }
 
-          // Check for OOC tags in raw content - ONLY tag-based detection
-          // Legacy font-based detection has been removed
-          const chatMessage = context?.chat?.[mesId];
-          const rawContent = chatMessage?.mes || chatMessage?.content || "";
-          const hasOOCTags = /<lumi[ao]_?ooc[^>]*>/i.test(rawContent);
+          // Only process OOC comments when the feature is enabled
+          const oocOn = getSettings().oocEnabled !== false;
+          if (oocOn) {
+            unhideAndProcessOOCMarkers(messageElement);
 
-          if (hasOOCTags) {
-            processLumiaOOCComments(mesId);
+            // Check for OOC tags in raw content - ONLY tag-based detection
+            // Legacy font-based detection has been removed
+            const chatMessage = context?.chat?.[mesId];
+            const rawContent = chatMessage?.mes || chatMessage?.content || "";
+            const hasOOCTags = /<lumi[ao]_?ooc[^>]*>/i.test(rawContent);
+
+            if (hasOOCTags) {
+              processLumiaOOCComments(mesId);
+            }
           }
         }
       }
@@ -895,8 +1000,9 @@ jQuery(async () => {
       setCapturedUserMessageFlag(false);
       // Clear tracked texts to avoid stuck states
       clearProcessedTexts(mesId);
-      // Skip DOM OOC work when Chat Sheld is active — React handles OOC rendering
-      if (!isChatSheldActive()) {
+      // Skip DOM OOC work when Chat Sheld is active — React handles OOC rendering.
+      // Only process OOC when the feature is enabled.
+      if (!isChatSheldActive() && getSettings().oocEnabled !== false) {
         const messageElement = query(`div[mesid="${mesId}"] .mes_text`);
         if (messageElement) {
           const existingBoxes = queryAll("[data-lumia-ooc]", messageElement);
@@ -913,8 +1019,9 @@ jQuery(async () => {
       setCapturedUserMessageFlag(false);
       // Clear tracked texts and force reprocess for the new swipe
       clearProcessedTexts(mesId);
-      // Skip DOM OOC work when Chat Sheld is active — React handles OOC rendering
-      if (!isChatSheldActive()) {
+      // Skip DOM OOC work when Chat Sheld is active — React handles OOC rendering.
+      // Only process OOC when the feature is enabled.
+      if (!isChatSheldActive() && getSettings().oocEnabled !== false) {
         const messageElement = query(`div[mesid="${mesId}"] .mes_text`);
         if (messageElement) {
           const existingBoxes = queryAll("[data-lumia-ooc]", messageElement);
@@ -937,17 +1044,25 @@ jQuery(async () => {
       resetRAFState();
       // Reset AI message tracking for swipe/regen detection
       setLastAIMessageIndex(-1);
-      captureLoomSummary();
+      // Only run summarization capture when the feature is configured
+      const chatChangeSumMode = getSettings().summarization?.mode;
+      if (chatChangeSumMode && chatChangeSumMode !== 'disabled') {
+        captureLoomSummary();
+      }
       // Skip DOM OOC scheduling when Chat Sheld is active — the 2000ms polling
       // loop scans the hidden #chat for DOM stability, completely wasted work.
       // React handles OOC rendering via parseOOCTags() in MessageContent.
-      if (!isChatSheldActive()) {
+      // Also skip when OOC is disabled — no need to scan for comments.
+      if (!isChatSheldActive() && getSettings().oocEnabled !== false) {
         scheduleOOCProcessingAfterRender();
       }
       updateContextMeterTokens();
+      // Only restore summary markers when summarization is configured
       requestAnimationFrame(() => {
-        restoreSummaryMarkers();
-        updateLoomSummaryButtonState();
+        if (chatChangeSumMode && chatChangeSumMode !== 'disabled') {
+          restoreSummaryMarkers();
+          updateLoomSummaryButtonState();
+        }
       });
 
       // Resolve Loom preset binding for the new chat/character
@@ -978,22 +1093,35 @@ jQuery(async () => {
         // of preset bindings (user can save block states without creating a preset binding).
         // applyLoomToggleBindingsForContext returns {applied:false} quickly if no
         // toggle bindings exist, so there's no cost when they're absent.
+        //
+        // IMPORTANT: Delay by 500ms to allow ST context (chatId, characterId) to
+        // stabilize after the chat switch. Without this delay, the stale context from
+        // the PREVIOUS chat can cause the wrong toggle bindings to be applied, which
+        // prevents default block state restoration on unbound chats.
+        // (Mirrors the same 500ms delay used by presetBindingService.)
         if (resolvedPresetId) {
-          applyLoomToggleBindingsForContext(resolvedPresetId).then(result => {
-            if (result.applied) {
-              // Notify React store so useLoomBuilder re-reads the preset with updated block states
-              if (store) {
-                const lb = store.getState().loomBuilder || {};
-                store.setState({ loomBuilder: { ...lb, _blockToggleTs: Date.now() } });
+          setTimeout(() => {
+            // Re-resolve the preset with the now-stable context
+            const stablePresetId = resolveBinding();
+            if (!stablePresetId) return;
+
+            applyLoomToggleBindingsForContext(stablePresetId).then(result => {
+              if (result.applied) {
+                // Notify React store so useLoomBuilder re-reads the preset with updated block states
+                const liveStore = window.LumiverseUI?.getStore?.();
+                if (liveStore) {
+                  const lb = liveStore.getState().loomBuilder || {};
+                  liveStore.setState({ loomBuilder: { ...lb, _blockToggleTs: Date.now() } });
+                }
+                if (typeof toastr !== 'undefined') {
+                  const msg = result.source === 'defaults'
+                    ? `Restored default Loom block states (${result.matched} blocks)`
+                    : `Loom block toggles applied (${result.source} binding: ${result.matched} blocks)`;
+                  toastr.info(msg, 'Lumiverse Helper', { timeOut: 2000, preventDuplicates: true });
+                }
               }
-              if (typeof toastr !== 'undefined') {
-                const msg = result.source === 'defaults'
-                  ? `Restored default Loom block states (${result.matched} blocks)`
-                  : `Loom block toggles applied (${result.source} binding: ${result.matched} blocks)`;
-                toastr.info(msg, 'Lumiverse Helper', { timeOut: 2000, preventDuplicates: true });
-              }
-            }
-          }).catch(() => {});
+            }).catch(() => {});
+          }, 500);
         }
       } catch (err) {
         // Binding resolution is best-effort
@@ -1038,10 +1166,14 @@ jQuery(async () => {
       markGenerationCycleEnd();
     });
 
-    // World Info capture for council tools context enrichment + Loom preset WI
+    // World Info capture for council tools context enrichment + Loom preset WI.
+    // Only capture when relevant features are active to avoid unnecessary work.
     if (event_types.WORLD_INFO_ACTIVATED) {
       eventSource.on(event_types.WORLD_INFO_ACTIVATED, (entries) => {
-        captureWorldInfoEntries(entries);
+        // Only capture WI entries when council tools need them
+        if (areCouncilToolsEnabled()) {
+          captureWorldInfoEntries(entries);
+        }
 
         // Cache WI for Loom preset assembly — bucket all positions
         if (Array.isArray(entries) && resolveActivePreset()) {
@@ -1369,11 +1501,12 @@ jQuery(async () => {
   // Initialize inside jokes cache (fire-and-forget, non-blocking)
   initJokesCache().catch(() => {});
 
-  // Set up MutationObserver for streaming support
-  setupLumiaOOCObserver();
-
-  // Process any existing OOC comments on initial load
-  scheduleOOCProcessingAfterRender();
+  // Set up MutationObserver and process existing OOC comments only when enabled.
+  // This avoids unnecessary DOM observation overhead when OOC is disabled.
+  if (getSettings().oocEnabled !== false) {
+    setupLumiaOOCObserver();
+    scheduleOOCProcessingAfterRender();
+  }
 
   // --- CUSTOM LANDING PAGE ---
   // Render Lumiverse landing page when no chat is open

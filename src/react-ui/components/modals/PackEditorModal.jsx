@@ -83,6 +83,19 @@ function generateNativePackJson(pack) {
             }));
     }
 
+    // Get loomTools (council tool definitions)
+    const loomTools = Array.isArray(pack.loomTools) ? pack.loomTools.map(tool => ({
+        toolName: tool.toolName,
+        displayName: tool.displayName || tool.toolName,
+        description: tool.description || '',
+        prompt: tool.prompt || '',
+        inputSchema: tool.inputSchema || { type: 'object', properties: {}, required: [] },
+        resultVariable: tool.resultVariable || null,
+        storeInDeliberation: tool.storeInDeliberation === true,
+        authorName: tool.authorName || packAuthor || null,
+        version: tool.version || 1,
+    })) : [];
+
     return {
         packName,
         packAuthor,
@@ -91,6 +104,7 @@ function generateNativePackJson(pack) {
         packExtras: pack.packExtras || [],
         lumiaItems,
         loomItems,
+        loomTools,
     };
 }
 
@@ -169,6 +183,7 @@ function PackEditorModal({ packId, packName, onClose }) {
             packExtras: [],
             lumiaItems: [],
             loomItems: [],
+            loomTools: [],
         };
     });
 

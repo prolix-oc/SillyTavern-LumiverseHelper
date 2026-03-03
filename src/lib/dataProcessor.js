@@ -386,6 +386,7 @@ export async function importPack(data, sourceName, isURL = false) {
       packExtras: data.packExtras || [],
       lumiaItems: data.lumiaItems || [],
       loomItems: data.loomItems || [],
+      loomTools: data.loomTools || [],
       // Internal tracking - local uploads are custom (editable), URL imports are not
       isCustom: !isURL,
       url: isURL ? sourceName : "",
@@ -394,7 +395,7 @@ export async function importPack(data, sourceName, isURL = false) {
     // Save pack using the new storage system
     await savePack(pack);
 
-    const totalItems = (data.lumiaItems?.length || 0) + (data.loomItems?.length || 0);
+    const totalItems = (data.lumiaItems?.length || 0) + (data.loomItems?.length || 0) + (data.loomTools?.length || 0);
     toastr.success(
       `Pack "${packKey}" imported! Found ${totalItems} entries.`,
     );

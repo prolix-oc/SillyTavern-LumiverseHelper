@@ -3739,7 +3739,7 @@ svg.lucide {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  object-fit: cover;
+  overflow: hidden;
   flex-shrink: 0;
   background: var(--lumiverse-fill-subtle, rgba(255,255,255,0.04));
 }

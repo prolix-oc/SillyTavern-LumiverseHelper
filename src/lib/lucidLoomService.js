@@ -885,8 +885,10 @@ export function resolveBinding() {
         const ctx = getContext();
 
         // Check chat binding
-        if (ctx.chatId && bindings.chats?.[ctx.chatId]) {
-            const presetId = bindings.chats[ctx.chatId];
+        // Use getCurrentChatId() for consistency with toggle binding lookups
+        const chatId = (typeof ctx.getCurrentChatId === 'function' ? ctx.getCurrentChatId() : null) || ctx.chatId;
+        if (chatId && bindings.chats?.[chatId]) {
+            const presetId = bindings.chats[chatId];
             if (registry[presetId]) return presetId;
         }
 

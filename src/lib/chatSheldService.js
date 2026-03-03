@@ -16,6 +16,7 @@ import { parseOOCTags } from "./oocParser.js";
 import { chatSheldStyles } from '../react-ui/components/ChatSheldStyles.js';
 import { generateThemeCSSForChatSheld } from './themeManager.js';
 import { getRandomJoke, onJokesReady } from './jokesService.js';
+import { getCurrentPersonaAvatar } from './personaService.js';
 
 const MODULE_NAME = "lumia-injector";
 
@@ -285,12 +286,18 @@ function transformMessage(msg, index, ctx) {
     // Extract extra metadata
     const extra = msg.extra || {};
 
-    // Resolve avatar URL using ST's character data
-    // Pattern: /characters/{encoded_avatar_filename} (matches CharacterProfile.jsx)
+    // Resolve avatar URL using ST's character data or persona avatar
     let avatarUrl = null;
     if (msg.force_avatar) {
         avatarUrl = msg.force_avatar;
+    } else if (isUser && !isSystem) {
+        // User messages: resolve from the active persona's avatar file
+        const personaAvatarId = getCurrentPersonaAvatar();
+        if (personaAvatarId) {
+            avatarUrl = `User Avatars/${personaAvatarId}`;
+        }
     } else if (!isUser && !isSystem) {
+        // Character messages: resolve from ST character data
         avatarUrl = resolveCharacterAvatar(msg.name, ctx);
     }
 

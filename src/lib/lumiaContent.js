@@ -18,6 +18,7 @@ import {
   getCouncilDeliberationInstructions,
   areCouncilToolsEnabled,
   getAvailableTools,
+  getNamedResult,
 } from "./councilTools.js";
 
 // Track the last AI message index to detect swipe/regenerate vs new generation
@@ -1563,6 +1564,27 @@ Assess each active personality component. Affirm synthesis: My body is [details,
     returns: "Formatted tool results with deliberation instructions",
     returnType: "string",
     exampleUsage: ["{{lumiaCouncilDeliberation}}"],
+  });
+
+  // ============================================
+  // loomCouncilResult macro - Returns a named council tool result variable
+  // Used with DLC tools that have resultVariable set
+  // ============================================
+  MacrosParser.registerMacro("loomCouncilResult", {
+    delayArgResolution: true,
+    unnamedArgs: [{ name: "variable_name", type: "string", description: "Alphanumeric variable name" }],
+    handler: ({ unnamedArgs: [variableName], resolve }) => {
+      if (!variableName || !/^[a-zA-Z0-9_]+$/.test(variableName)) {
+        console.warn(`[LumiverseHelper] loomCouncilResult: invalid variable "${variableName}"`);
+        return "";
+      }
+      const result = getNamedResult(variableName);
+      return resolve ? resolve(result) : result;
+    },
+    description: "Returns a named council tool result variable. Use with DLC tools that route results to named variables.",
+    returns: "The stored result value or empty string",
+    returnType: "string",
+    exampleUsage: ["{{loomCouncilResult::story_direction}}"],
   });
 
   // ============================================

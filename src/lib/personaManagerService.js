@@ -19,6 +19,9 @@ import {
 // Re-export persona helpers that PersonaPopover already depends on
 export { switchPersona, getCurrentPersonaAvatar, initPersonaListener } from './personaService.js';
 
+// Also import getCurrentPersonaAvatar for internal use (getCurrentActivePersona delegates to it)
+import { getCurrentPersonaAvatar } from './personaService.js';
+
 /** @type {ReturnType<typeof import('../react-ui/store/LumiverseContext.jsx').useLumiverseStore> | null} */
 let storeRef = null;
 
@@ -108,21 +111,13 @@ export function getChatLockedPersona() {
 
 /**
  * Get the currently active persona avatar ID.
- * Uses name matching against power_user.personas as fallback.
+ * Delegates to getCurrentPersonaAvatar() from personaService.js which uses
+ * the PERSONA_CHANGED event and ST's user_avatar live binding (filename-based,
+ * no name ambiguity with duplicate persona names).
  * @returns {string|null}
  */
 function getCurrentActivePersona() {
-    const ctx = getContext();
-    if (!ctx) return null;
-
-    const personas = ctx.powerUserSettings?.personas || {};
-    const currentName = ctx.name1;
-    if (!currentName) return null;
-
-    for (const [avatarId, name] of Object.entries(personas)) {
-        if (name === currentName) return avatarId;
-    }
-    return null;
+    return getCurrentPersonaAvatar();
 }
 
 /**
@@ -448,6 +443,19 @@ export async function syncPersonas() {
     const defaultId = getDefaultPersonaId();
     const chatLockedId = getChatLockedPersona();
     const activeId = getCurrentActivePersona();
+
+    // Debug: log duplicate name detection and active persona resolution
+    const nameGroups = {};
+    for (const p of personas) {
+        (nameGroups[p.name] ??= []).push(p.avatarId);
+    }
+    const dupes = Object.entries(nameGroups).filter(([, ids]) => ids.length > 1);
+    if (dupes.length > 0) {
+        console.warn('[LumiverseHelper:Persona] syncPersonas: DUPLICATE persona names detected:',
+            dupes.map(([name, ids]) => `"${name}" → [${ids.join(', ')}]`).join('; '));
+    }
+    console.debug('[LumiverseHelper:Persona] syncPersonas: activeId=%s, defaultId=%s, chatLockedId=%s, total=%d',
+        activeId, defaultId, chatLockedId, personas.length);
 
     storeRef.setState({
         personaManager: {

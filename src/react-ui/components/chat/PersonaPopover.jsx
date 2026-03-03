@@ -77,7 +77,7 @@ export default function PersonaPopover({ onClose }) {
                                 type="button"
                             >
                                 <LazyImage
-                                    className="lcs-persona-avatar"
+                                    containerClassName="lcs-persona-avatar"
                                     src={p.avatarUrl}
                                     alt={p.name}
                                     spinnerSize={10}

@@ -34,6 +34,100 @@ const MAX_TOOL_RETRIES = 3;
 // Track which tools are currently registered with ST's ToolManager
 let registeredSTTools = new Set();
 
+// DLC tool registry — populated from pack loomTools arrays
+let dlcToolRegistry = {};
+
+// Named tool result variables — generation-scoped, cleared each cycle
+let namedToolResults = {};
+
+/**
+ * Get all tools (built-in + DLC) as a unified map.
+ * Built-in tools take priority over DLC tools with the same name.
+ * @returns {Object} Map of tool names to tool definitions
+ */
+function getAllTools() {
+  return { ...dlcToolRegistry, ...COUNCIL_TOOLS };
+}
+
+/**
+ * Register DLC tools from all loaded packs.
+ * Skips tools whose name collides with a built-in COUNCIL_TOOLS key.
+ * @param {Object} packs - The packs object keyed by pack name
+ */
+export function registerDLCTools(packs) {
+  dlcToolRegistry = {};
+  if (!packs || typeof packs !== 'object') return;
+
+  for (const [packName, pack] of Object.entries(packs)) {
+    const tools = pack.loomTools;
+    if (!Array.isArray(tools) || tools.length === 0) continue;
+
+    for (const tool of tools) {
+      if (!tool.toolName) continue;
+
+      if (COUNCIL_TOOLS[tool.toolName]) {
+        console.warn(`[LumiverseHelper] DLC tool "${tool.toolName}" from pack "${packName}" collides with built-in tool — skipped.`);
+        continue;
+      }
+
+      dlcToolRegistry[tool.toolName] = {
+        name: tool.toolName,
+        displayName: tool.displayName || tool.toolName,
+        description: tool.description || '',
+        prompt: tool.prompt || '',
+        inputSchema: tool.inputSchema || { type: 'object', properties: {}, required: [] },
+        resultVariable: tool.resultVariable || null,
+        storeInDeliberation: tool.storeInDeliberation === true,
+        authorName: tool.authorName || null,
+        packName: packName,
+        isDLC: true,
+        version: tool.version || 1,
+      };
+    }
+  }
+}
+
+/**
+ * Clear all DLC tools from the registry.
+ */
+export function clearDLCTools() {
+  dlcToolRegistry = {};
+}
+
+/**
+ * Set a named result variable value. Called after tool execution.
+ * @param {string} variableName - The variable name (alphanumeric + underscore)
+ * @param {string} value - The result value
+ */
+export function setNamedResult(variableName, value) {
+  if (!variableName) return;
+  namedToolResults[variableName] = value;
+}
+
+/**
+ * Get a named result variable value.
+ * @param {string} variableName - The variable name
+ * @returns {string} The stored result or empty string
+ */
+export function getNamedResult(variableName) {
+  return namedToolResults[variableName] || '';
+}
+
+/**
+ * Clear all named result variables. Called at start of each generation cycle.
+ */
+export function clearNamedResults() {
+  namedToolResults = {};
+}
+
+/**
+ * Get all named result variables as a map.
+ * @returns {Object} Map of variable names to values
+ */
+export function getAllNamedResults() {
+  return { ...namedToolResults };
+}
+
 /**
  * Resolve a tool's prompt, supporting both static string and dynamic function prompts.
  * @param {Object} tool - The tool definition from COUNCIL_TOOLS
@@ -881,7 +975,7 @@ let generationCycleActive = false;
  * @returns {Object} Map of tool names to tool definitions
  */
 export function getAvailableTools() {
-  return { ...COUNCIL_TOOLS };
+  return getAllTools();
 }
 
 /**
@@ -890,7 +984,7 @@ export function getAvailableTools() {
  * @returns {Object|null} The tool definition or null
  */
 export function getToolByName(toolName) {
-  return COUNCIL_TOOLS[toolName] || null;
+  return getAllTools()[toolName] || null;
 }
 
 /**
@@ -898,7 +992,7 @@ export function getToolByName(toolName) {
  * @returns {Array} Array of tool name strings
  */
 export function getToolNames() {
-  return Object.keys(COUNCIL_TOOLS);
+  return Object.keys(getAllTools());
 }
 
 /**
@@ -922,6 +1016,7 @@ export function getLatestToolResults() {
  */
 export function clearToolResults() {
   latestToolResults = [];
+  clearNamedResults();
   window.LumiverseBridge?.setCouncilToolResults?.([]);
 }
 
@@ -1118,7 +1213,7 @@ function sanitizeForCouncil(text) {
  * @param {Array} chatContext - Full chat array
  * @returns {string} Formatted context text
  */
-function buildContextText(chatContext) {
+function buildContextText(chatContext, generationType) {
   const settings = getSettings();
   // Use configurable context window for sidecar mode, fallback to 10 for inline
   const isSidecarMode = getCouncilToolsMode() === 'sidecar';
@@ -1126,6 +1221,15 @@ function buildContextText(chatContext) {
     ? (settings.councilTools?.sidecarContextWindow || 25)
     : 10;
   const recentMessages = chatContext.slice(-contextWindow);
+
+  // On swipe/regenerate the chat still contains the AI response being replaced.
+  // Strip trailing assistant messages so council context ends at the user's last message.
+  if (generationType === 'swipe' || generationType === 'regenerate') {
+    while (recentMessages.length > 0 && !recentMessages[recentMessages.length - 1].is_user) {
+      recentMessages.pop();
+    }
+  }
+
   return recentMessages
     .map((msg) => {
       const name = msg.is_user ? "{{user}}" : (msg.name || "Assistant");
@@ -1197,7 +1301,7 @@ function buildMandatoryToolBlock(memberTools) {
 
   const toolList = memberTools
     .map((tn, i) => {
-      const tool = COUNCIL_TOOLS[tn];
+      const tool = getAllTools()[tn];
       if (!tool) return null;
       return `  ${i + 1}. \`${tool.name}\` — ${tool.displayName}`;
     })
@@ -1244,7 +1348,7 @@ function buildRichToolDescription(tool) {
 function buildAnthropicTools(toolNames) {
   return toolNames
     .map((toolName) => {
-      const tool = COUNCIL_TOOLS[toolName];
+      const tool = getAllTools()[toolName];
       if (!tool) return null;
       return {
         name: tool.name,
@@ -1263,7 +1367,7 @@ function buildAnthropicTools(toolNames) {
 function buildOpenAITools(toolNames) {
   return toolNames
     .map((toolName) => {
-      const tool = COUNCIL_TOOLS[toolName];
+      const tool = getAllTools()[toolName];
       if (!tool) return null;
       return {
         type: "function",
@@ -1396,10 +1500,14 @@ Review the story context above. For each tool call, provide specific, actionable
   if (data.content && Array.isArray(data.content)) {
     for (const block of data.content) {
       if (block.type === "tool_use") {
-        const toolDef = COUNCIL_TOOLS[block.name];
+        const toolDef = getAllTools()[block.name];
         if (toolDef && !calledToolNames.has(block.name)) {
           calledToolNames.add(block.name);
           const responseText = formatToolInput(block.input, toolDef);
+          // Route to named result variable if configured
+          if (toolDef.resultVariable) {
+            setNamedResult(toolDef.resultVariable, responseText);
+          }
           results.push({
             memberName,
             packName: member.packName,
@@ -1420,7 +1528,7 @@ Review the story context above. For each tool call, provide specific, actionable
     const textBlocks = (data.content || []).filter((b) => b.type === "text");
     if (textBlocks.length > 0) {
       const fallbackText = normalizeToolText(textBlocks.map((b) => b.text).join("\n"));
-      const firstTool = COUNCIL_TOOLS[memberTools[0]];
+      const firstTool = getAllTools()[memberTools[0]];
       results.push({
         memberName,
         packName: member.packName,
@@ -1449,7 +1557,7 @@ Review the story context above. For each tool call, provide specific, actionable
 
       const retryToolDefs = buildAnthropicTools(missingTools);
       const missingNames = missingTools
-        .map((tn) => COUNCIL_TOOLS[tn]?.displayName || tn)
+        .map((tn) => getAllTools()[tn]?.displayName || tn)
         .join(", ");
 
       const retryBody = {
@@ -1478,8 +1586,12 @@ Review the story context above. For each tool call, provide specific, actionable
         if (retryData.content && Array.isArray(retryData.content)) {
           for (const block of retryData.content) {
             if (block.type === "tool_use") {
-              const toolDef = COUNCIL_TOOLS[block.name];
+              const toolDef = getAllTools()[block.name];
               if (toolDef && !calledTools.has(block.name)) {
+                const retryResponseText = formatToolInput(block.input, toolDef);
+                if (toolDef.resultVariable) {
+                  setNamedResult(toolDef.resultVariable, retryResponseText);
+                }
                 results.push({
                   memberName,
                   packName: member.packName,
@@ -1487,7 +1599,7 @@ Review the story context above. For each tool call, provide specific, actionable
                   toolName: block.name,
                   toolDisplayName: toolDef.displayName,
                   success: true,
-                  response: formatToolInput(block.input, toolDef),
+                  response: retryResponseText,
                   identity,
                 });
                 calledTools.add(block.name);
@@ -1599,7 +1711,7 @@ Review the story context above. For each tool call, provide specific, actionable
   if (message?.tool_calls && Array.isArray(message.tool_calls)) {
     for (const toolCall of message.tool_calls) {
       if (toolCall.type === "function") {
-        const toolDef = COUNCIL_TOOLS[toolCall.function.name];
+        const toolDef = getAllTools()[toolCall.function.name];
         if (toolDef && !calledToolNames.has(toolCall.function.name)) {
           calledToolNames.add(toolCall.function.name);
           let parsedArgs = {};
@@ -1609,6 +1721,9 @@ Review the story context above. For each tool call, provide specific, actionable
             parsedArgs = { response: toolCall.function.arguments };
           }
           const responseText = formatToolInput(parsedArgs, toolDef);
+          if (toolDef.resultVariable) {
+            setNamedResult(toolDef.resultVariable, responseText);
+          }
           results.push({
             memberName,
             packName: member.packName,
@@ -1626,7 +1741,7 @@ Review the story context above. For each tool call, provide specific, actionable
 
   // Fallback: if no tool calls, use the message content
   if (results.length === 0 && message?.content) {
-    const firstTool = COUNCIL_TOOLS[memberTools[0]];
+    const firstTool = getAllTools()[memberTools[0]];
     results.push({
       memberName,
       packName: member.packName,
@@ -1667,7 +1782,7 @@ Review the story context above. For each tool call, provide specific, actionable
 
       const retryToolDefs = buildOpenAITools(missingTools);
       const missingNames = missingTools
-        .map((tn) => COUNCIL_TOOLS[tn]?.displayName || tn)
+        .map((tn) => getAllTools()[tn]?.displayName || tn)
         .join(", ");
 
       const retryBody = {
@@ -1696,13 +1811,17 @@ Review the story context above. For each tool call, provide specific, actionable
         if (retryMessage?.tool_calls && Array.isArray(retryMessage.tool_calls)) {
           for (const toolCall of retryMessage.tool_calls) {
             if (toolCall.type === "function") {
-              const toolDef = COUNCIL_TOOLS[toolCall.function.name];
+              const toolDef = getAllTools()[toolCall.function.name];
               if (toolDef && !calledTools.has(toolCall.function.name)) {
                 let parsedArgs = {};
                 try {
                   parsedArgs = JSON.parse(toolCall.function.arguments);
                 } catch {
                   parsedArgs = { response: toolCall.function.arguments };
+                }
+                const retryResponseText = formatToolInput(parsedArgs, toolDef);
+                if (toolDef.resultVariable) {
+                  setNamedResult(toolDef.resultVariable, retryResponseText);
                 }
                 results.push({
                   memberName,
@@ -1711,7 +1830,7 @@ Review the story context above. For each tool call, provide specific, actionable
                   toolName: toolCall.function.name,
                   toolDisplayName: toolDef.displayName,
                   success: true,
-                  response: formatToolInput(parsedArgs, toolDef),
+                  response: retryResponseText,
                   identity,
                 });
                 calledTools.add(toolCall.function.name);
@@ -1775,7 +1894,7 @@ async function executeToolsForMemberGoogle(member, memberTools, contextText, api
   // format is substantially different and would need separate handling
   const toolPrompts = memberTools
     .map((tn) => {
-      const tool = COUNCIL_TOOLS[tn];
+      const tool = getAllTools()[tn];
       if (!tool) return null;
       return `## ${tool.displayName}\n${resolveToolPrompt(tool)}`;
     })
@@ -1847,8 +1966,11 @@ Provide your contributions from your unique perspective as ${memberName}, filter
     const maxWords = getMaxWordsPerTool();
     const truncatedText = maxWords > 0 ? truncateToWordLimit(fullText, maxWords * memberTools.length) : fullText;
     for (const toolName of memberTools) {
-      const toolDef = COUNCIL_TOOLS[toolName];
+      const toolDef = getAllTools()[toolName];
       if (!toolDef) continue;
+      if (toolDef.resultVariable) {
+        setNamedResult(toolDef.resultVariable, truncatedText);
+      }
       results.push({
         memberName,
         packName: member.packName,
@@ -2025,7 +2147,7 @@ async function executeToolsForMember(member, memberTools, contextText, providerI
         packName: member.packName,
         itemName: member.itemName,
         toolName,
-        toolDisplayName: COUNCIL_TOOLS[toolName]?.displayName || toolName,
+        toolDisplayName: getAllTools()[toolName]?.displayName || toolName,
         identity,
         success: false,
         aborted: true,
@@ -2042,7 +2164,7 @@ async function executeToolsForMember(member, memberTools, contextText, providerI
       packName: member.packName,
       itemName: member.itemName,
       toolName,
-      toolDisplayName: COUNCIL_TOOLS[toolName]?.displayName || toolName,
+      toolDisplayName: getAllTools()[toolName]?.displayName || toolName,
       identity,
       success: false,
       error: error.message,
@@ -2057,7 +2179,7 @@ async function executeToolsForMember(member, memberTools, contextText, providerI
  * All members execute in parallel for maximum efficiency.
  * @returns {Promise<Array>} Array of all tool results
  */
-export async function executeAllCouncilTools() {
+export async function executeAllCouncilTools(generationType) {
   const settings = getSettings();
 
   if (!areCouncilToolsEnabled()) {
@@ -2100,7 +2222,7 @@ export async function executeAllCouncilTools() {
             packName: member.packName,
             itemName: member.itemName,
             toolName,
-            toolDisplayName: COUNCIL_TOOLS[toolName]?.displayName || toolName,
+            toolDisplayName: getAllTools()[toolName]?.displayName || toolName,
             success: false,
             error: error.message,
             response: "",
@@ -2118,7 +2240,7 @@ export async function executeAllCouncilTools() {
       return [];
     }
 
-    const contextText = buildContextText(chatContext);
+    const contextText = buildContextText(chatContext, generationType);
     const enrichmentText = buildEnrichmentContext();
 
     // Filter members that have tools assigned
@@ -2126,7 +2248,15 @@ export async function executeAllCouncilTools() {
       (m) => m.tools && m.tools.length > 0,
     );
 
-    if (membersWithTools.length === 0) {
+    // Apply random firing chance — each member rolls against their chance (0–100)
+    const activeMembers = membersWithTools.filter((m) => {
+      const chance = m.chance ?? 100;
+      if (chance >= 100) return true;
+      if (chance <= 0) return false;
+      return Math.random() * 100 < chance;
+    });
+
+    if (activeMembers.length === 0) {
       hideCouncilIndicator();
       setLatestToolResults([]);
       return [];
@@ -2135,7 +2265,7 @@ export async function executeAllCouncilTools() {
     // Execute all members in parallel - each member is one API call
     // Stream results to the Feedback panel as each member completes
     const streamedResults = [];
-    const memberPromises = membersWithTools.map(async (member) => {
+    const memberPromises = activeMembers.map(async (member) => {
       const results = await executeToolsForMember(member, member.tools, contextText, providerInfo, enrichmentText, signal);
       // Add member to visual indicator when their tools complete
       addMemberToIndicator(member);
@@ -2180,11 +2310,17 @@ export function formatToolResultsForDeliberation(results) {
   lines.push("The following contributions have been gathered from council members:");
   lines.push("");
 
-  // Group results by member
+  // Group results by member, filtering out results routed to named variables only
   const resultsByMember = {};
   results.forEach((result) => {
     if (!result.success) return;
-    
+
+    // Check if this tool routes results to a named variable exclusively
+    const toolDef = getAllTools()[result.toolName];
+    if (toolDef?.resultVariable && !toolDef.storeInDeliberation) {
+      return; // Excluded from deliberation — accessible via {{loomCouncilResult::varname}}
+    }
+
     const key = result.memberName;
     if (!resultsByMember[key]) {
       resultsByMember[key] = [];
@@ -2384,7 +2520,7 @@ export function registerSTTools() {
     if (memberTools.length === 0) continue;
     
     for (const toolName of memberTools) {
-      const toolDef = COUNCIL_TOOLS[toolName];
+      const toolDef = getAllTools()[toolName];
       if (!toolDef) {
         continue;
       }
@@ -2465,9 +2601,11 @@ export function isInlineModeAvailable() {
  * @returns {Array} Array of {name, displayName, description} objects
  */
 export function getToolsForUI() {
-  return Object.values(COUNCIL_TOOLS).map((tool) => ({
+  return Object.values(getAllTools()).map((tool) => ({
     name: tool.name,
     displayName: tool.displayName,
     description: tool.description,
+    isDLC: tool.isDLC || false,
+    packName: tool.packName || null,
   }));
 }
