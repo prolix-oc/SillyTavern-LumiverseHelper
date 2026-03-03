@@ -1050,15 +1050,15 @@ jQuery(async () => {
           setWorldInfoCache({
             before:   bucket(0),
             after:    bucket(1),
-            emBefore: bucket(2),
-            emAfter:  bucket(3),
+            anBefore: bucket(2),    // ST position 2 = ANTop  (before Author's Note)
+            anAfter:  bucket(3),    // ST position 3 = ANBottom (after Author's Note)
             depth: entries.filter(e => e.position === 4).map(e => ({
               content: e.content,
               depth: e.depth ?? 4,
               role: e.role === 1 ? 'user' : e.role === 2 ? 'assistant' : 'system',
             })),
-            anBefore: bucket(5),
-            anAfter:  bucket(6),
+            emBefore: bucket(5),    // ST position 5 = EMTop  (before Example Messages)
+            emAfter:  bucket(6),    // ST position 6 = EMBottom (after Example Messages)
           });
         }
       });
@@ -1119,6 +1119,13 @@ jQuery(async () => {
     // the API call with the complete generate_data object.
     if (event_types.CHAT_COMPLETION_SETTINGS_READY) {
       eventSource.on(event_types.CHAT_COMPLETION_SETTINGS_READY, (generateData) => {
+        // Skip Loom assembly for quiet generations (summarization, expression
+        // detection, etc.).  These carry their own system/user prompts and must
+        // not be replaced by the Loom preset.  Also prevents Loom sampler
+        // overrides and custom body (e.g. reasoning/thinking params) from
+        // leaking into utility calls.
+        if (generateData?.type === 'quiet') return;
+
         let activePreset = resolveActivePreset();
         if (!activePreset) return;
 

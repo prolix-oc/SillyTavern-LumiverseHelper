@@ -218,21 +218,21 @@ let _storedCoreChat = null;
  * World Info cache — populated by WORLD_INFO_ACTIVATED event (fires before
  * CHAT_COMPLETION_SETTINGS_READY) so assembleMessages() can include WI content.
  *
- * Positions:
+ * Positions (matching ST's world_info_position enum):
  *   0 = before char defs, 1 = after char defs,
- *   2 = before example messages, 3 = after example messages,
+ *   2 = before author's note (ANTop), 3 = after author's note (ANBottom),
  *   4 = depth-positioned (array of {content, depth, role}),
- *   5 = before author's note, 6 = after author's note
+ *   5 = before example messages (EMTop), 6 = after example messages (EMBottom)
  *   (7 = outlet — extension-specific, excluded)
  */
 let _worldInfoCache = {
-    before: '',     // position 0
-    after: '',      // position 1
-    emBefore: '',   // position 2
-    emAfter: '',    // position 3
+    before: '',     // position 0 — before char defs
+    after: '',      // position 1 — after char defs
+    anBefore: '',   // position 2 — ANTop (before Author's Note)
+    anAfter: '',    // position 3 — ANBottom (after Author's Note)
     depth: [],      // position 4 — array of { content, depth, role }
-    anBefore: '',   // position 5
-    anAfter: '',    // position 6
+    emBefore: '',   // position 5 — EMTop (before Example Messages)
+    emAfter: '',    // position 6 — EMBottom (after Example Messages)
 };
 
 /**
@@ -243,11 +243,11 @@ export function setWorldInfoCache(entriesByPosition) {
     _worldInfoCache = {
         before:   entriesByPosition.before || '',
         after:    entriesByPosition.after || '',
-        emBefore: entriesByPosition.emBefore || '',
-        emAfter:  entriesByPosition.emAfter || '',
-        depth:    entriesByPosition.depth || [],
         anBefore: entriesByPosition.anBefore || '',
         anAfter:  entriesByPosition.anAfter || '',
+        depth:    entriesByPosition.depth || [],
+        emBefore: entriesByPosition.emBefore || '',
+        emAfter:  entriesByPosition.emAfter || '',
     };
 }
 
@@ -257,9 +257,9 @@ export function setWorldInfoCache(entriesByPosition) {
 export function clearWorldInfoCache() {
     _worldInfoCache = {
         before: '', after: '',
-        emBefore: '', emAfter: '',
-        depth: [],
         anBefore: '', anAfter: '',
+        depth: [],
+        emBefore: '', emAfter: '',
     };
 }
 
@@ -1424,14 +1424,16 @@ export function injectExtensionPrompts(result, breakdown, extensionPrompts, enab
         offset++;
     }
 
-    // Auto-inject World Info if no explicit WI blocks exist in the preset
+    // Auto-inject World Info before/after when no explicit WI marker blocks exist.
+    // Positions 2-6 (AN, depth, EM) are always injected since they have no
+    // corresponding marker blocks in the preset.
     const hasExplicitWI = enabledBlocks?.some(b =>
         b.marker === 'world_info_before' || b.marker === 'world_info_after'
     );
 
-    if (!hasExplicitWI) {
-        const wi = _worldInfoCache;
+    const wi = _worldInfoCache;
 
+    if (!hasExplicitWI) {
         // Position 0 — before char defs (inject before first chat message)
         if (wi.before?.trim()) {
             const idx = firstChatIdx >= 0 ? firstChatIdx + offset : result.length;
@@ -1447,49 +1449,52 @@ export function injectExtensionPrompts(result, breakdown, extensionPrompts, enab
             breakdown.push({ type: 'world_info', name: 'World Info (After Char Defs)', marker: 'world_info_after', role: 'system', content: wi.after });
             offset++;
         }
+    }
 
-        // Position 2 — before example messages (inject before first chat message)
-        if (wi.emBefore?.trim()) {
-            const idx = firstChatIdx >= 0 ? firstChatIdx + offset : result.length;
-            result.splice(idx, 0, { role: 'system', content: wi.emBefore });
-            breakdown.push({ type: 'world_info', name: 'World Info (Before Examples)', role: 'system', content: wi.emBefore });
-            offset++;
-        }
+    // Positions 2-6 are always injected — they are relative to Author's Note,
+    // Example Messages, or depth-positioned, and have no explicit marker blocks.
 
-        // Position 3 — after example messages (inject before first chat message)
-        if (wi.emAfter?.trim()) {
-            const idx = firstChatIdx >= 0 ? firstChatIdx + offset : result.length;
-            result.splice(idx, 0, { role: 'system', content: wi.emAfter });
-            breakdown.push({ type: 'world_info', name: 'World Info (After Examples)', role: 'system', content: wi.emAfter });
-            offset++;
-        }
+    // Position 2 (ANTop) — before Author's Note
+    if (wi.anBefore?.trim()) {
+        const idx = firstChatIdx >= 0 ? firstChatIdx + offset : result.length;
+        result.splice(idx, 0, { role: 'system', content: wi.anBefore });
+        breakdown.push({ type: 'world_info', name: "World Info (Before Author's Note)", role: 'system', content: wi.anBefore });
+        offset++;
+    }
 
-        // Position 5 — before author's note (inject before first chat message)
-        if (wi.anBefore?.trim()) {
-            const idx = firstChatIdx >= 0 ? firstChatIdx + offset : result.length;
-            result.splice(idx, 0, { role: 'system', content: wi.anBefore });
-            breakdown.push({ type: 'world_info', name: "World Info (Before Author's Note)", role: 'system', content: wi.anBefore });
-            offset++;
-        }
+    // Position 3 (ANBottom) — after Author's Note
+    if (wi.anAfter?.trim()) {
+        const idx = firstChatIdx >= 0 ? firstChatIdx + offset : result.length;
+        result.splice(idx, 0, { role: 'system', content: wi.anAfter });
+        breakdown.push({ type: 'world_info', name: "World Info (After Author's Note)", role: 'system', content: wi.anAfter });
+        offset++;
+    }
 
-        // Position 6 — after author's note (inject before first chat message)
-        if (wi.anAfter?.trim()) {
-            const idx = firstChatIdx >= 0 ? firstChatIdx + offset : result.length;
-            result.splice(idx, 0, { role: 'system', content: wi.anAfter });
-            breakdown.push({ type: 'world_info', name: "World Info (After Author's Note)", role: 'system', content: wi.anAfter });
-            offset++;
-        }
+    // Position 5 (EMTop) — before Example Messages
+    if (wi.emBefore?.trim()) {
+        const idx = firstChatIdx >= 0 ? firstChatIdx + offset : result.length;
+        result.splice(idx, 0, { role: 'system', content: wi.emBefore });
+        breakdown.push({ type: 'world_info', name: 'World Info (Before Examples)', role: 'system', content: wi.emBefore });
+        offset++;
+    }
 
-        // Position 4 — depth-positioned entries (insert from the end of messages)
-        if (wi.depth?.length > 0) {
-            for (const depthEntry of wi.depth) {
-                if (!depthEntry.content?.trim()) continue;
-                const role = depthEntry.role || 'system';
-                const d = Math.max(0, depthEntry.depth ?? 4);
-                const idx = Math.max(0, result.length - d);
-                result.splice(idx, 0, { role, content: depthEntry.content });
-                breakdown.push({ type: 'world_info', name: `World Info (@Depth ${d})`, role, content: depthEntry.content });
-            }
+    // Position 6 (EMBottom) — after Example Messages
+    if (wi.emAfter?.trim()) {
+        const idx = firstChatIdx >= 0 ? firstChatIdx + offset : result.length;
+        result.splice(idx, 0, { role: 'system', content: wi.emAfter });
+        breakdown.push({ type: 'world_info', name: 'World Info (After Examples)', role: 'system', content: wi.emAfter });
+        offset++;
+    }
+
+    // Position 4 — depth-positioned entries (insert from the end of messages)
+    if (wi.depth?.length > 0) {
+        for (const depthEntry of wi.depth) {
+            if (!depthEntry.content?.trim()) continue;
+            const role = depthEntry.role || 'system';
+            const d = Math.max(0, depthEntry.depth ?? 4);
+            const idx = Math.max(0, result.length - d);
+            result.splice(idx, 0, { role, content: depthEntry.content });
+            breakdown.push({ type: 'world_info', name: `World Info (@Depth ${d})`, role, content: depthEntry.content });
         }
     }
 }
