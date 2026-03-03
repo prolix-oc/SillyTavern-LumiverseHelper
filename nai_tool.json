@@ -1,12 +1,12 @@
 {
   "name": "generate_scene",
-  "description": "Generate an anime background scene image.",
+  "description": "Generate Danbooru-style tags describing an anime scene for NovelAI image generation.",
   "parameters": {
     "type": "object",
     "properties": {
       "environment": {
         "type": "string",
-        "description": "The physical setting. E.g. 'ancient forest shrine', 'rain-soaked city alley', 'clifftop lighthouse at sea'"
+        "description": "Danbooru-style tags for the physical setting. Decompose into individual tags for location, architecture, objects, materials, and lighting. E.g. 'indoors, library, victorian, bookshelf, fireplace, stained glass window, dim lighting', 'outdoors, city alley, rain, wet ground, neon sign, narrow street'"
       },
       "time_of_day": {
         "type": "string",
@@ -14,19 +14,19 @@
       },
       "weather": {
         "type": "string",
-        "description": "Atmospheric conditions. E.g. 'clear', 'heavy rain', 'light fog', 'snowfall', 'overcast'"
+        "description": "Concise atmosphere/weather tags. E.g. 'rain, fog', 'overcast, wet ground', 'snow, breath visible', 'clear, sunbeam'"
       },
       "mood": {
         "type": "string",
-        "description": "One or two words. E.g. 'melancholic', 'tense and quiet', 'warm and safe', 'eerie'"
+        "description": "One or two mood tags. E.g. 'melancholic', 'tense, foreboding', 'warm, cozy', 'eerie'"
       },
       "focal_detail": {
         "type": "string",
-        "description": "The single most important visual element — what the camera is pointing at. One concrete thing, not a list. E.g. 'a stone torii gate half-swallowed by vines', 'a dim lantern reflected in a puddle'"
+        "description": "2-5 descriptive tags for the single most important visual element. E.g. 'stone torii gate, overgrown, vines, moss', 'lantern, glowing, reflection, puddle'"
       },
       "palette_override": {
         "type": "string",
-        "description": "Optional. Only include if mood/lighting won't naturally imply the right colors. E.g. 'desaturated blues and grays', 'vivid warm oranges'"
+        "description": "Optional. Color/theme tags if mood won't naturally imply the right colors. E.g. 'warm colors, orange theme, golden lighting', 'desaturated, blue theme, moonlight'"
       }
     },
     "required": ["environment", "time_of_day", "weather", "mood", "focal_detail"]

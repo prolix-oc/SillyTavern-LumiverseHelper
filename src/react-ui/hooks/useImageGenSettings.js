@@ -5,7 +5,7 @@
 
 import { useCallback, useSyncExternalStore } from 'react';
 import { useLumiverseStore, useLumiverseActions, saveToExtensionImmediate } from '../store/LumiverseContext';
-import { generateManually, clearSceneBackground } from '../../lib/imageGenService.js';
+import { generateManually, clearSceneBackground, abortImageGeneration } from '../../lib/imageGenService.js';
 
 const store = useLumiverseStore;
 
@@ -44,8 +44,12 @@ export function useImageGenSettings() {
         return result;
     }, []);
 
-    const clearBackground = useCallback(() => {
-        clearSceneBackground();
+    const cancelGeneration = useCallback(() => {
+        abortImageGeneration();
+    }, []);
+
+    const clearBackground = useCallback(async () => {
+        await clearSceneBackground(true);
     }, []);
 
     const addReferenceImage = useCallback((imageData) => {
@@ -59,11 +63,14 @@ export function useImageGenSettings() {
         });
     }, [actions]);
 
-    const removeReferenceImage = useCallback((index) => {
+    const removeReferenceImage = useCallback((imageId, index) => {
         const provider = store.getState().imageGeneration?.provider || 'google_gemini';
         const providerKey = provider === 'nanogpt' ? 'nanogpt' : provider === 'novelai' ? 'novelai' : 'google';
         const current = store.getState().imageGeneration?.[providerKey]?.referenceImages || [];
-        const updated = current.filter((_, i) => i !== index);
+        // Filter by stable ID when available; fall back to index for legacy images without id
+        const updated = imageId
+            ? current.filter(img => img.id !== imageId)
+            : current.filter((_, i) => i !== index);
         actions.updateImageGenSettings({
             [providerKey]: { referenceImages: updated },
         });
@@ -79,6 +86,7 @@ export function useImageGenSettings() {
         updateNanoGptSettings,
         updateNovelAiSettings,
         triggerGeneration,
+        cancelGeneration,
         clearBackground,
         addReferenceImage,
         removeReferenceImage,

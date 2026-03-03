@@ -40,7 +40,7 @@ import { chatPresetService } from '../../lib/chatPresetService.js';
 import { useLumiverse, useLumiverseActions } from '../store/LumiverseContext.jsx';
 
 // Stable selectors (defined outside component)
-const selectDisableDefaultStateRestore = state => state.disableDefaultStateRestore ?? false;
+const selectDisableDefaultStateRestore = state => state.disableDefaultStateRestore ?? true;
 const selectLoomBuilder = state => state.loomBuilder;
 
 /**

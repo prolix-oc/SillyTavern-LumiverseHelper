@@ -20483,6 +20483,72 @@ details.lumia-panel[open] .lumia-panel-chevron {
     max-height: 200px;
 }
 
+.lumiverse-ig-preview--clickable {
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+
+.lumiverse-ig-preview--clickable:hover {
+    opacity: 0.85;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Shared full-screen image lightbox (ImageLightbox.jsx)
+   Used by ImageGenPanel preview, reusable from any context.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.lumiverse-lightbox-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.88);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    cursor: pointer;
+    animation: lumiverse-lightbox-fadein 0.2s ease;
+}
+
+@keyframes lumiverse-lightbox-fadein {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.lumiverse-lightbox-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: default;
+}
+
+.lumiverse-lightbox-img {
+    max-width: 92vw;
+    max-height: 88vh;
+    object-fit: contain;
+    border-radius: 6px;
+    cursor: pointer;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    animation: lumiverse-lightbox-scalein 0.2s ease;
+}
+
+@keyframes lumiverse-lightbox-scalein {
+    from { transform: scale(0.92); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.lumiverse-lightbox-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: 10px;
+    text-align: center;
+    pointer-events: none;
+}
+
 /* Scene info display */
 .lumiverse-ig-scene-info {
     padding: 10px 12px;

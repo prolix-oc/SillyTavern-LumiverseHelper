@@ -1984,6 +1984,26 @@ jQuery(async () => {
         helpString: "Manually generate a loom summary of the current chat using your configured summarization settings (uses Manual Message Context).",
       }),
     );
+
+    // /lumiverse-settings — open the Lumiverse settings modal from chat
+    SlashCommandParser.addCommandObject(
+      SlashCommand.fromProps({
+        name: "lumiverse-settings",
+        callback: async (_args, value) => {
+          const store = window.LumiverseUI?.getStore?.();
+          if (!store) {
+            toastr.warning("Lumiverse UI is not loaded yet.");
+            return "Lumiverse UI not available.";
+          }
+          // Determine which settings view to open (default: general)
+          const view = (value || '').trim() || 'general';
+          store.openSettingsModal(view);
+          return `Opened Lumiverse settings (${view}).`;
+        },
+        aliases: ["lumi-settings", "lumiverse"],
+        helpString: "Open the Lumiverse Helper settings modal. Optionally pass a view name: general, ooc, summarization, promptSettings.",
+      }),
+    );
   }
 
   // Set up beforeunload handler to flush pending saves

@@ -182,7 +182,7 @@ const initialState = {
     theme: null, // null = use CSS defaults, object = { name, baseColors: { primary, secondary, background, text, danger, success, warning } }
 
     // Toggle binding default state restoration
-    disableDefaultStateRestore: false, // When true, skip restoring default toggle states for unbound chats
+    disableDefaultStateRestore: true, // When true, skip restoring default toggle states for unbound chats
 
     // Chat Sheld override (glassmorphic chat redesign)
     enableChatSheld: false,

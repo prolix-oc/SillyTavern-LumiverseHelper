@@ -14,12 +14,15 @@ import { generateImage, getProviderConfig } from "./imageProviders.js";
 import { getLumiaField } from "./lumiaContent.js";
 import { getItemFromLibrary } from "./dataProcessor.js";
 import { hashString, getSceneImageFileKey } from "./fileStorage.js";
-import { executeSingleTool, getNamedResultRaw } from "./councilTools.js";
+import { executeSingleTool, getNamedResultRaw, abortToolExecution } from "./councilTools.js";
 import { getCurrentPersonaAvatar } from "./personaService.js";
 
 // Debounce tracking — minimum 15s between generation requests
 let lastGenerationTime = 0;
 const GENERATION_DEBOUNCE_MS = 15000;
+
+// Abort controller for the current image generation pipeline (LLM + provider API)
+let imageGenAbortController = null;
 
 // In-memory cache of last scene per chat (also persisted in chatMetadata)
 const sceneCache = new Map();
@@ -72,7 +75,13 @@ export function buildImagePrompt(scene, provider, includeCharacters = false) {
   if (provider === "novelai") {
     const tags = [];
 
-    // Composition tags go first — NAI weights earlier tags more heavily
+    // Art style tags at the start — NAI weights earlier tags more heavily.
+    // These guide the model toward crisp anime illustration with defined shading.
+    // Quality/aesthetic tags (masterpiece, very aesthetic, absurdres, etc.) are
+    // handled automatically by the qualityToggle API parameter.
+    tags.push("illustration", "anime coloring");
+
+    // Composition tags
     if (includeCharacters) {
       if (scene.composition_rating?.length) tags.push(...scene.composition_rating);
       if (scene.composition_subjects) tags.push(scene.composition_subjects);
@@ -80,6 +89,7 @@ export function buildImagePrompt(scene, provider, includeCharacters = false) {
       if (scene.composition_camera) tags.push(scene.composition_camera);
     }
 
+    // Scene content tags
     if (scene.environment) tags.push(scene.environment);
     if (scene.time_of_day) tags.push(scene.time_of_day);
     if (scene.weather && scene.weather !== "clear") tags.push(scene.weather);
@@ -88,13 +98,30 @@ export function buildImagePrompt(scene, provider, includeCharacters = false) {
     if (scene.palette_override) tags.push(scene.palette_override);
 
     if (includeCharacters) {
-      const charDesc = gatherCharacterDescriptions();
-      if (charDesc) tags.push(charDesc);
+      // Fandom character names as lowercase Danbooru tags — provided by the LLM
+      // scene analyzer which identifies canonical names from story context
+      if (scene.character_names) {
+        const names = scene.character_names.split(",").map(n => n.trim().toLowerCase()).filter(Boolean);
+        tags.push(...names);
+      }
+
+      // Per-character appearance tags (body, hair, outfit, expression) from the LLM.
+      // These reinforce reference images with explicit Danbooru tags.
+      if (scene.character_appearances?.length) {
+        for (const char of scene.character_appearances) {
+          if (char.tags) tags.push(char.tags);
+        }
+      } else {
+        // Fallback to Lumia definition descriptions when the LLM didn't provide appearances
+        const charDesc = gatherCharacterDescriptions();
+        if (charDesc) tags.push(charDesc);
+      }
     } else {
-      tags.push("no humans", "scenery", "background");
+      tags.push("no humans", "scenery", "background", "detailed background");
     }
 
-    tags.push("detailed background", "high quality", "masterpiece");
+    // Detail enhancement suffix
+    tags.push("detailed", "depth of field");
     return tags.join(", ");
   }
 
@@ -425,9 +452,10 @@ function applyBackground(imageUrl, opacity, fadeMs) {
  * @param {Object|string} sceneData - Scene parameters from generate_scene tool result
  * @param {Object} [options] - Processing options
  * @param {boolean} [options.force=false] - Skip scene change detection and debounce checks
+ * @param {AbortSignal} [options.signal] - Optional abort signal to cancel in-flight generation
  * @returns {Promise<{success: boolean, error?: string, skipped?: boolean}>}
  */
-export async function processSceneResult(sceneData, { force = false } = {}) {
+export async function processSceneResult(sceneData, { force = false, signal } = {}) {
   const settings = getSettings().imageGeneration;
   if (!settings?.enabled) return { success: false, error: "Image generation is not enabled" };
 
@@ -512,7 +540,7 @@ export async function processSceneResult(sceneData, { force = false } = {}) {
         sampler: naiSettings.sampler || "k_euler_ancestral",
         steps: naiSettings.steps ?? 28,
         guidance: naiSettings.guidance ?? 5,
-        negativePrompt: naiSettings.negativePrompt || "lowres, bad anatomy, blurry, text, watermark",
+        negativePrompt: naiSettings.negativePrompt || "lowres, artistic error, worst quality, bad quality, jpeg artifacts, very displeasing, chromatic aberration, blurry, bad anatomy, bad hands, missing fingers, extra digits, fewer digits, text, watermark, username, logo, signature, dithering, halftone, screentone, scan artifacts, multiple views, blank page",
         smea: naiSettings.smea ?? false,
         smeaDyn: naiSettings.smeaDyn ?? false,
         seed: naiSettings.seed ?? null,
@@ -533,9 +561,13 @@ export async function processSceneResult(sceneData, { force = false } = {}) {
       };
     }
 
-    const result = await generateImage(provider, prompt, config, settings, referenceImages.length > 0 ? referenceImages : undefined);
+    // Check abort before starting the expensive image generation call
+    if (signal?.aborted) return { success: false, error: "Generation cancelled" };
+
+    const result = await generateImage(provider, prompt, config, settings, referenceImages.length > 0 ? referenceImages : undefined, signal);
 
     if (!result.success) {
+      if (signal?.aborted) return { success: false, error: "Generation cancelled" };
       console.error(`[${MODULE_NAME}] Image generation failed:`, result.error);
       return { success: false, error: result.error };
     }
@@ -600,9 +632,10 @@ export async function applySceneBackground(chatId) {
 }
 
 /**
- * Remove the scene background.
+ * Remove the scene background visuals (DOM layers + store state).
+ * This is the internal cleanup — does NOT delete the file from storage.
  */
-export function clearSceneBackground() {
+function clearSceneBackgroundVisuals() {
   // Remove all three crossfade layers injected by applyBackground()
   const backLayer = document.querySelector("#lumiverse-bg-back");
   if (backLayer) backLayer.remove();
@@ -619,6 +652,33 @@ export function clearSceneBackground() {
       store.setState({ sceneBackground: null });
     }
   } catch { /* non-critical */ }
+}
+
+/**
+ * Remove the scene background.
+ * When called with deleteFile=true (user-initiated clear), deletes the image
+ * from the User Files API first, then clears the DOM/store reference.
+ * @param {boolean} [deleteFile=false] - Whether to delete the stored image file
+ */
+export async function clearSceneBackground(deleteFile = false) {
+  if (deleteFile) {
+    try {
+      const ctx = getContext();
+      const chatId = getChatIdentifier(ctx);
+      if (chatId) {
+        const filename = getSceneImageFileKey(chatId);
+        await fetch("/api/files/delete", {
+          method: "POST",
+          headers: getRequestHeaders(),
+          body: JSON.stringify({ path: `user/files/${filename}` }),
+        });
+      }
+    } catch (err) {
+      console.warn(`[${MODULE_NAME}] Failed to delete scene image file:`, err);
+    }
+  }
+
+  clearSceneBackgroundVisuals();
 }
 
 /**
@@ -639,6 +699,10 @@ export async function generateManually() {
     return { success: false, error: "No active chat" };
   }
 
+  // Create a fresh abort controller for this generation pipeline
+  imageGenAbortController = new AbortController();
+  const signal = imageGenAbortController.signal;
+
   // Signal generating state immediately so the UI shows the spinner
   // during the tool execution phase (before processSceneResult is reached)
   try {
@@ -648,7 +712,8 @@ export async function generateManually() {
 
   try {
     // Execute the generate_scene tool via the council tools LLM
-    const toolResult = await executeSingleTool('generate_scene');
+    const toolResult = await executeSingleTool('generate_scene', signal);
+    if (signal.aborted) return { success: false, error: "Generation cancelled" };
     if (!toolResult.success) {
       return { success: false, error: toolResult.error || "Scene analysis failed" };
     }
@@ -661,12 +726,14 @@ export async function generateManually() {
     }
 
     try {
-      const result = await processSceneResult(sceneData, { force: true });
+      const result = await processSceneResult(sceneData, { force: true, signal });
       return result || { success: false, error: "No result from scene processing" };
     } catch (err) {
+      if (signal.aborted) return { success: false, error: "Generation cancelled" };
       return { success: false, error: err.message };
     }
   } finally {
+    imageGenAbortController = null;
     // Always reset generating state — covers tool failure, early returns,
     // and the case where processSceneResult already reset it
     try {
@@ -674,6 +741,30 @@ export async function generateManually() {
       if (store) store.setState({ sceneGenerating: false });
     } catch { /* non-critical */ }
   }
+}
+
+/**
+ * Abort the current image generation pipeline.
+ * Cancels both the LLM scene analysis and the provider image API call,
+ * and immediately resets the UI generating state so the button unblocks.
+ * Safe to call at any time — no-ops if nothing is in flight.
+ */
+export function abortImageGeneration() {
+  // Abort our own pipeline signal
+  if (imageGenAbortController) {
+    imageGenAbortController.abort();
+    imageGenAbortController = null;
+  }
+
+  // Also abort the council tool execution controller (covers the LLM fetch phase)
+  abortToolExecution();
+
+  // Immediately clear the generating state so the UI unblocks —
+  // don't wait for the promise chain's finally block which may be delayed.
+  try {
+    const store = window.LumiverseUI?.getStore?.();
+    if (store) store.setState({ sceneGenerating: false });
+  } catch { /* non-critical */ }
 }
 
 /**

@@ -146,9 +146,10 @@ async function resolveGeminiProvider(settings, model) {
  * @param {string} config.imageSize - Resolution string (e.g., "1K", "2K", "4K")
  * @param {Object} settings - The full imageGeneration settings object (for API key resolution)
  * @param {Array<{data: string, mimeType: string}>} [referenceImages] - Optional reference images as base64
+ * @param {AbortSignal} [signal] - Optional abort signal
  * @returns {Promise<{success: boolean, imageData?: string, mimeType?: string, text?: string, error?: string}>}
  */
-export async function generateImageGemini(prompt, config, settings, referenceImages) {
+export async function generateImageGemini(prompt, config, settings, referenceImages, signal) {
   const model = config.model || "gemini-3.1-flash-image";
   const { apiKey, endpoint } = await resolveGeminiProvider(settings, model);
   if (!apiKey) {
@@ -197,6 +198,7 @@ export async function generateImageGemini(prompt, config, settings, referenceIma
         "x-goog-api-key": apiKey,
       },
       body: JSON.stringify(requestBody),
+      signal,
     });
 
     if (!response.ok) {
@@ -246,9 +248,10 @@ export async function generateImageGemini(prompt, config, settings, referenceIma
  * @param {string} config.size - Image size (e.g., "1024x1024")
  * @param {Object} settings - The full imageGeneration settings object
  * @param {Array<{data: string, mimeType: string}>} [referenceImages] - Optional reference images as base64
+ * @param {AbortSignal} [signal] - Optional abort signal
  * @returns {Promise<{success: boolean, imageData?: string, mimeType?: string, error?: string}>}
  */
-export async function generateImageNanoGpt(prompt, config, settings, referenceImages) {
+export async function generateImageNanoGpt(prompt, config, settings, referenceImages, signal) {
   const nanoSettings = settings.nanogpt || {};
   const apiKey = nanoSettings.apiKey;
   if (!apiKey) {
@@ -295,6 +298,7 @@ export async function generateImageNanoGpt(prompt, config, settings, referenceIm
         "Authorization": `Bearer ${apiKey}`,
       },
       body: JSON.stringify(requestBody),
+      signal,
     });
 
     if (!response.ok) {
@@ -461,9 +465,10 @@ function padDirectorRefImage(base64Data) {
  * @param {string} prompt - Tag-based prompt for image generation
  * @param {Object} config - Generation configuration
  * @param {Object} settings - The full imageGeneration settings object
+ * @param {AbortSignal} [signal] - Optional abort signal
  * @returns {Promise<{success: boolean, imageData?: string, mimeType?: string, error?: string}>}
  */
-export async function generateImageNovelAI(prompt, config, settings) {
+export async function generateImageNovelAI(prompt, config, settings, signal) {
   const naiSettings = settings.novelai || {};
   const apiKey = naiSettings.apiKey;
   if (!apiKey) {
@@ -472,7 +477,7 @@ export async function generateImageNovelAI(prompt, config, settings) {
 
   const model = config.model || "nai-diffusion-4-5-full";
   const [width, height] = (config.resolution || "1216x832").split("x").map(Number);
-  const negativePrompt = config.negativePrompt || "lowres, bad anatomy, blurry, text, watermark";
+  const negativePrompt = config.negativePrompt || "lowres, artistic error, worst quality, bad quality, jpeg artifacts, very displeasing, chromatic aberration, blurry, bad anatomy, bad hands, missing fingers, extra digits, fewer digits, text, watermark, username, logo, signature, dithering, halftone, screentone, scan artifacts, multiple views, blank page";
   const seed = config.seed ?? Math.floor(Math.random() * 2147483647);
   const isV4 = isNovelAIV4Model(model);
 
@@ -598,6 +603,7 @@ export async function generateImageNovelAI(prompt, config, settings) {
         "Authorization": `Bearer ${apiKey}`,
       },
       body: JSON.stringify(requestBody),
+      signal,
     });
 
     if (!response.ok) {
@@ -726,16 +732,17 @@ export async function generateImageNovelAI(prompt, config, settings) {
  * @param {Object} config - Provider-specific generation config
  * @param {Object} settings - The full imageGeneration settings object
  * @param {Array<{data: string, mimeType: string}>} [referenceImages] - Optional reference images
+ * @param {AbortSignal} [signal] - Optional abort signal to cancel the in-flight request
  * @returns {Promise<{success: boolean, imageData?: string, mimeType?: string, text?: string, error?: string}>}
  */
-export async function generateImage(provider, prompt, config, settings, referenceImages) {
+export async function generateImage(provider, prompt, config, settings, referenceImages, signal) {
   switch (provider) {
     case "google_gemini":
-      return generateImageGemini(prompt, config, settings, referenceImages);
+      return generateImageGemini(prompt, config, settings, referenceImages, signal);
     case "nanogpt":
-      return generateImageNanoGpt(prompt, config, settings, referenceImages);
+      return generateImageNanoGpt(prompt, config, settings, referenceImages, signal);
     case "novelai":
-      return generateImageNovelAI(prompt, config, settings);
+      return generateImageNovelAI(prompt, config, settings, signal);
     default:
       return { success: false, error: `Unknown image generation provider: ${provider}` };
   }

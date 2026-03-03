@@ -10,6 +10,7 @@ import { useLumiverseStore } from '../../store/LumiverseContext';
 import { useImageGenSettings } from '../../hooks/useImageGenSettings';
 import { CollapsibleSection } from '../shared/CollapsibleSection';
 import { IMAGEGEN_PROVIDERS, fetchNanoGptModels } from '../../../lib/imageProviders';
+import ImageLightbox from '../shared/ImageLightbox';
 
 const store = useLumiverseStore;
 
@@ -101,7 +102,7 @@ function ReferenceImageGrid({ images, onRemove }) {
     return (
         <div className="lumiverse-ig-ref-grid">
             {images.map((img, i) => (
-                <div key={i} className="lumiverse-ig-ref-item">
+                <div key={img.id || `ref-${i}`} className="lumiverse-ig-ref-item">
                     <img
                         src={`data:${img.mimeType || 'image/png'};base64,${img.data}`}
                         alt={img.name || `Reference ${i + 1}`}
@@ -109,7 +110,7 @@ function ReferenceImageGrid({ images, onRemove }) {
                     />
                     <button
                         className="lumiverse-ig-ref-remove"
-                        onClick={() => onRemove(i)}
+                        onClick={() => onRemove(img.id, i)}
                         title="Remove reference image"
                         type="button"
                     >
@@ -135,15 +136,18 @@ function ImageGenPanel() {
         updateNanoGptSettings,
         updateNovelAiSettings,
         triggerGeneration,
+        cancelGeneration,
         clearBackground,
         addReferenceImage,
         removeReferenceImage,
     } = useImageGenSettings();
 
     const fileInputRef = useRef(null);
-    const [dynamicModels, setDynamicModels] = useState(null);
+    // Seed dynamic models from persisted fetchedModels (survives panel remount)
+    const [dynamicModels, setDynamicModels] = useState(() => settings.nanogpt?.fetchedModels || null);
     const [modelsFetching, setModelsFetching] = useState(false);
     const [genError, setGenError] = useState(null);
+    const [lightboxOpen, setLightboxOpen] = useState(false);
 
     // Connection profile registry
     const registry = useSyncExternalStore(store.subscribe, selectConnectionRegistry, selectConnectionRegistry);
@@ -250,11 +254,13 @@ function ImageGenPanel() {
             const result = await fetchNanoGptModels(apiKey);
             if (result.success && result.models?.length > 0) {
                 setDynamicModels(result.models);
+                // Persist fetched models so the list survives panel remount/page reload
+                updateNanoGptSettings({ fetchedModels: result.models });
             }
         } finally {
             setModelsFetching(false);
         }
-    }, [nanoGptSettings.apiKey]);
+    }, [nanoGptSettings.apiKey, updateNanoGptSettings]);
 
     return (
         <div className="lumiverse-vp-settings-panel lumiverse-ig-panel">
@@ -818,15 +824,28 @@ function ImageGenPanel() {
                         title="Preview"
                         defaultOpen={true}
                     >
-                        {/* Current background thumbnail */}
+                        {/* Current background thumbnail — click to expand */}
                         {sceneBackground && (
-                            <div className="lumiverse-ig-preview">
+                            <div
+                                className="lumiverse-ig-preview lumiverse-ig-preview--clickable"
+                                onClick={() => setLightboxOpen(true)}
+                                title="Click to expand"
+                            >
                                 <img
                                     src={sceneBackground}
                                     alt="Current scene background"
                                     className="lumiverse-ig-preview-img"
                                 />
                             </div>
+                        )}
+
+                        {/* Full-screen lightbox */}
+                        {lightboxOpen && sceneBackground && (
+                            <ImageLightbox
+                                src={sceneBackground}
+                                alt="Scene background"
+                                onClose={() => setLightboxOpen(false)}
+                            />
                         )}
 
                         {/* Last scene parameters */}
@@ -850,24 +869,25 @@ function ImageGenPanel() {
 
                         {/* Action buttons */}
                         <div className="lumiverse-ig-actions">
-                            <button
-                                className="lumiverse-ig-action-btn lumiverse-ig-action-btn--primary"
-                                onClick={handleGenerate}
-                                disabled={sceneGenerating}
-                                type="button"
-                            >
-                                {sceneGenerating ? (
-                                    <>
-                                        <Loader size={14} className="lumiverse-ig-spinner" />
-                                        <span>Generating...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <ImageIcon size={14} />
-                                        <span>Generate Now</span>
-                                    </>
-                                )}
-                            </button>
+                            {sceneGenerating ? (
+                                <button
+                                    className="lumiverse-ig-action-btn lumiverse-ig-action-btn--danger"
+                                    onClick={cancelGeneration}
+                                    type="button"
+                                >
+                                    <X size={14} />
+                                    <span>Cancel</span>
+                                </button>
+                            ) : (
+                                <button
+                                    className="lumiverse-ig-action-btn lumiverse-ig-action-btn--primary"
+                                    onClick={handleGenerate}
+                                    type="button"
+                                >
+                                    <ImageIcon size={14} />
+                                    <span>Generate Now</span>
+                                </button>
+                            )}
 
                             {sceneBackground && (
                                 <button

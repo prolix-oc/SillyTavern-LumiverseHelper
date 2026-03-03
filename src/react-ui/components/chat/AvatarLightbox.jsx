@@ -10,6 +10,7 @@
  */
 
 import React, { useEffect, useCallback, useRef, useSyncExternalStore } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useLumiverseStore } from '../../store/LumiverseContext';
 import useFixedPositionFix from '../../hooks/useFixedPositionFix';
@@ -247,7 +248,7 @@ export default function AvatarLightbox() {
 
     if (!lightbox) return null;
 
-    return (
+    return createPortal(
         <div className="lcs-avatar-lightbox" onClick={dismiss}>
             <div className="lcs-avatar-lightbox-content" onClick={(e) => e.stopPropagation()}>
                 {/* Gallery prev button */}
@@ -299,6 +300,7 @@ export default function AvatarLightbox() {
                     </span>
                 )}
             </div>
-        </div>
+        </div>,
+        document.body,
     );
 }

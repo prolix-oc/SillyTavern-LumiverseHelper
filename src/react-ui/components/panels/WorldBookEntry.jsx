@@ -101,6 +101,40 @@ const s = {
         color: '#fff',
         flexShrink: 0,
         whiteSpace: 'nowrap',
+        cursor: 'pointer',
+        position: 'relative',
+        border: 'none',
+        lineHeight: '16px',
+    },
+    positionPopover: {
+        position: 'fixed',
+        background: 'var(--lumiverse-bg-elevated)',
+        border: '1px solid var(--lumiverse-border)',
+        borderRadius: '8px',
+        boxShadow: 'var(--lumiverse-shadow-lg)',
+        overflow: 'hidden',
+        zIndex: 10010,
+        minWidth: '180px',
+        padding: '4px 0',
+    },
+    positionPopoverItem: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        width: '100%',
+        padding: '6px 12px',
+        background: 'none',
+        border: 'none',
+        color: 'var(--lumiverse-text)',
+        fontSize: '12px',
+        cursor: 'pointer',
+        textAlign: 'left',
+    },
+    positionPopoverDot: {
+        width: '8px',
+        height: '8px',
+        borderRadius: '50%',
+        flexShrink: 0,
     },
     indicators: {
         display: 'flex',
@@ -113,6 +147,42 @@ const s = {
         height: '6px',
         borderRadius: '50%',
         flexShrink: 0,
+    },
+    // Inline header controls (order, depth, presence toggles)
+    headerControls: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        flexShrink: 0,
+    },
+    headerNumberInput: {
+        width: '52px',
+        padding: '2px 4px',
+        background: 'var(--lumiverse-bg, rgba(0,0,0,0.2))',
+        border: '1px solid var(--lumiverse-border)',
+        borderRadius: '4px',
+        color: 'var(--lumiverse-text)',
+        fontSize: '11px',
+        fontFamily: 'inherit',
+        textAlign: 'center',
+    },
+    headerNumberLabel: {
+        fontSize: '10px',
+        color: 'var(--lumiverse-text-dim)',
+        whiteSpace: 'nowrap',
+    },
+    presencePill: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        padding: '1px 6px',
+        borderRadius: '8px',
+        fontSize: '10px',
+        fontWeight: 600,
+        cursor: 'pointer',
+        border: '1px solid transparent',
+        transition: 'opacity 0.15s ease, background 0.15s ease',
+        userSelect: 'none',
+        lineHeight: '16px',
     },
     headerBtn: {
         display: 'flex',
@@ -328,8 +398,11 @@ function WorldBookEntry({
     const [showAdvanced, setShowAdvanced] = useState(false);
     const [tokenCount, setTokenCount] = useState(null);
     const [menuPos, setMenuPos] = useState(null);
+    const [posPopover, setPosPopover] = useState(null); // { top, left } or null
     const moreBtnRef = useRef(null);
     const menuRef = useRef(null);
+    const posBadgeRef = useRef(null);
+    const posPopoverRef = useRef(null);
     const tokenTimerRef = useRef(null);
 
     // Close more menu on outside click
@@ -343,6 +416,18 @@ function WorldBookEntry({
         document.addEventListener('mousedown', handler);
         return () => document.removeEventListener('mousedown', handler);
     }, [menuMode]);
+
+    // Close position popover on outside click
+    useEffect(() => {
+        if (!posPopover) return;
+        const handler = (e) => {
+            if (posPopoverRef.current && posPopoverRef.current.contains(e.target)) return;
+            if (posBadgeRef.current && posBadgeRef.current.contains(e.target)) return;
+            setPosPopover(null);
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [posPopover]);
 
     // Token count (debounced, only when expanded)
     useEffect(() => {
@@ -438,14 +523,81 @@ function WorldBookEntry({
                         )}
                     </div>
 
-                    {/* Indicators */}
-                    <div style={s.indicators}>
-                        {entry.constant && <div style={{ ...s.indicator, background: '#5b8def' }} title="Constant" />}
-                        {entry.vectorized && <div style={{ ...s.indicator, background: '#9c6ce0' }} title="Vectorized" />}
+                    {/* Inline controls: Order, Depth, Presence toggles */}
+                    <div style={s.headerControls} onClick={(e) => e.stopPropagation()}>
+                        {/* Order */}
+                        <span style={s.headerNumberLabel}>Ord</span>
+                        <input
+                            type="number"
+                            value={entry.order ?? 100}
+                            onChange={(e) => {
+                                const num = parseInt(e.target.value, 10);
+                                field('order', isNaN(num) ? 100 : num);
+                            }}
+                            style={s.headerNumberInput}
+                            title="Insertion order"
+                        />
+
+                        {/* Depth (only when position is @Depth) */}
+                        {entry.position === 4 && (
+                            <>
+                                <span style={s.headerNumberLabel}>D</span>
+                                <input
+                                    type="number"
+                                    value={entry.depth ?? 0}
+                                    onChange={(e) => {
+                                        const num = parseInt(e.target.value, 10);
+                                        field('depth', isNaN(num) ? 0 : num);
+                                    }}
+                                    min={0}
+                                    style={s.headerNumberInput}
+                                    title="Depth"
+                                />
+                            </>
+                        )}
+
+                        {/* Presence toggles */}
+                        <span
+                            style={{
+                                ...s.presencePill,
+                                background: entry.constant ? '#5b8def' : 'transparent',
+                                color: entry.constant ? '#fff' : 'var(--lumiverse-text-dim)',
+                                borderColor: entry.constant ? '#5b8def' : 'var(--lumiverse-border)',
+                            }}
+                            onClick={() => field('constant', !entry.constant)}
+                            title={entry.constant ? 'Constant (click to disable)' : 'Enable Constant'}
+                        >
+                            C
+                        </span>
+                        <span
+                            style={{
+                                ...s.presencePill,
+                                background: entry.vectorized ? '#9c6ce0' : 'transparent',
+                                color: entry.vectorized ? '#fff' : 'var(--lumiverse-text-dim)',
+                                borderColor: entry.vectorized ? '#9c6ce0' : 'var(--lumiverse-border)',
+                            }}
+                            onClick={() => field('vectorized', !entry.vectorized)}
+                            title={entry.vectorized ? 'Vectorized (click to disable)' : 'Enable Vectorized'}
+                        >
+                            V
+                        </span>
                     </div>
 
-                    {/* Position badge */}
-                    <span style={{ ...s.badge, background: positionColor }}>
+                    {/* Position badge — clickable to open position picker */}
+                    <span
+                        ref={posBadgeRef}
+                        style={{ ...s.badge, background: positionColor }}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (posPopover) {
+                                setPosPopover(null);
+                            } else if (posBadgeRef.current) {
+                                const rect = posBadgeRef.current.getBoundingClientRect();
+                                setPosPopover({ top: rect.bottom + 4, left: rect.left });
+                            }
+                        }}
+                        title="Click to change position"
+                    >
                         {positionLabel?.short || '?'}
                     </span>
 
@@ -834,6 +986,37 @@ function WorldBookEntry({
                             ))}
                         </>
                     )}
+                </div>,
+                document.body
+            )}
+
+            {/* Position picker popover — portaled to body */}
+            {posPopover && createPortal(
+                <div
+                    ref={posPopoverRef}
+                    style={{ ...s.positionPopover, top: posPopover.top, left: posPopover.left }}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {POSITION_LABELS.map(p => {
+                        const isActive = entry.position === p.value;
+                        return (
+                            <button
+                                key={p.value}
+                                style={{
+                                    ...s.positionPopoverItem,
+                                    ...(isActive ? { background: 'var(--lumiverse-fill-subtle, rgba(255,255,255,0.06))', fontWeight: 600 } : {}),
+                                }}
+                                onClick={() => {
+                                    field('position', p.value);
+                                    setPosPopover(null);
+                                }}
+                                type="button"
+                            >
+                                <span style={{ ...s.positionPopoverDot, background: POSITION_COLORS[p.value] || '#888' }} />
+                                {p.label}
+                            </button>
+                        );
+                    })}
                 </div>,
                 document.body
             )}

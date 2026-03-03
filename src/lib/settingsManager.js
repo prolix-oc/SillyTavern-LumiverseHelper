@@ -175,7 +175,7 @@ const DEFAULT_SETTINGS = {
   // Theme customization
   theme: null, // null = use CSS defaults, object = { name, baseColors }
   // Toggle binding default state restoration
-  disableDefaultStateRestore: false, // When true, skip restoring default toggle states for unbound chats
+  disableDefaultStateRestore: true, // When true, skip restoring default toggle states for unbound chats
   capturedDefaultToggles: null, // Persisted default toggle state (survives page refresh)
   capturedDefaultLoomBlockStates: null, // Persisted default Loom block enabled states (survives page refresh)
   // Chat Sheld override (glassmorphic chat redesign)
@@ -784,8 +784,8 @@ export function migrateSettings() {
   if (settings.chatSheldEnterToSend === undefined) settings.chatSheldEnterToSend = true;
 
   // Ensure toggle binding default state restoration setting
-  // v8.x: Enable default state restoration by default (was previously opt-in)
-  if (settings.disableDefaultStateRestore === undefined || settings.disableDefaultStateRestore === true) settings.disableDefaultStateRestore = false;
+  // Default restoration is OFF — users must explicitly capture defaults and enable auto-restore
+  if (settings.disableDefaultStateRestore === undefined) settings.disableDefaultStateRestore = true;
 
   return migrated;
 }
