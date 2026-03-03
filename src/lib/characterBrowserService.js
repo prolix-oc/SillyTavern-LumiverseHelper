@@ -29,6 +29,17 @@ let storeRef = null;
 let syncTimer = null;
 const SYNC_DEBOUNCE = 250;
 
+/** Per-avatar cache-busting timestamps (set after avatar re-upload) */
+const avatarVersions = new Map();
+
+/**
+ * Mark an avatar's cached thumbnail as stale so the next sync uses a fresh URL.
+ * @param {string} avatar - Avatar filename
+ */
+export function bustAvatarCache(avatar) {
+  if (avatar) avatarVersions.set(avatar, Date.now());
+}
+
 /** Cached getThumbnailUrl function (lazy-loaded) */
 let cachedGetThumbnailUrl = null;
 
@@ -67,21 +78,32 @@ export async function resolveThumbnailUrl(avatar) {
 /**
  * Resolve thumbnail URL synchronously (best-effort, uses cached function).
  * Falls back to direct path if the cached function isn't loaded yet.
+ * Appends a cache-busting query parameter if the avatar was recently re-uploaded.
  * @param {string} avatar - Avatar filename
  * @returns {string} Thumbnail URL
  */
 function resolveThumbnailUrlSync(avatar) {
   if (!avatar) return "/img/fa-solid-user.svg";
 
+  let url;
   if (cachedGetThumbnailUrl) {
     try {
-      return cachedGetThumbnailUrl("avatar", avatar);
+      url = cachedGetThumbnailUrl("avatar", avatar);
     } catch {
       // fall through
     }
   }
 
-  return `/characters/${encodeURIComponent(avatar)}`;
+  if (!url) {
+    url = `/characters/${encodeURIComponent(avatar)}`;
+  }
+
+  const version = avatarVersions.get(avatar);
+  if (version) {
+    url += (url.includes('?') ? '&' : '?') + `t=${version}`;
+  }
+
+  return url;
 }
 
 /**

@@ -29,6 +29,9 @@ let storeRef = null;
 let syncTimer = null;
 const SYNC_DEBOUNCE = 200;
 
+/** Per-avatar cache-busting timestamps (set after avatar re-upload) */
+const avatarVersions = {};
+
 // ─── Read Operations ────────────────────────────────────────────
 
 /**
@@ -69,12 +72,14 @@ export async function fetchFullPersonaList() {
             ? desc.extensions.connections
             : [];
 
+        const baseUrl = `User Avatars/${avatarId}`;
+        const version = avatarVersions[avatarId];
         list.push({
             avatarId,
             name,
             title: desc.title || '',
             description: desc.description || '',
-            avatarUrl: `User Avatars/${avatarId}`,
+            avatarUrl: version ? `${baseUrl}?t=${version}` : baseUrl,
             position: desc.position ?? 0,
             depth: desc.depth ?? 0,
             role: desc.role ?? 0,
@@ -205,6 +210,7 @@ export async function uploadPersonaAvatar(avatarId, file) {
             body: formData,
         });
         if (resp.ok) {
+            avatarVersions[avatarId] = Date.now();
             debouncedSync();
             return true;
         }

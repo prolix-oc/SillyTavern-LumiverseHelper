@@ -24,6 +24,7 @@
     "react": "^18.2.0",
     "react-colorful": "^5.6.1",
     "react-dom": "^18.2.0",
+    "react-easy-crop": "^5.5.6",
     "react-hook-form": "^7.53.0",
     "zustand": "^5.0.0"
   },

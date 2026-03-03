@@ -12,8 +12,10 @@ import {
 } from '../shared/FormComponents';
 import TagPillInput from '../shared/TagPillInput';
 import ConfirmationModal from '../shared/ConfirmationModal';
+import ImageCropModal from '../shared/ImageCropModal';
 import TextExpanderModal from '../shared/TextExpanderModal';
 import SyntaxTextArea from '../shared/SyntaxTextArea';
+import useImageCropFlow from '../../hooks/useImageCropFlow';
 
 // ─── Wide Mode Tab Definitions ──────────────────────────────────
 const WIDE_TABS = [
@@ -44,6 +46,7 @@ export default function CharacterCardEditor({ item, onBack, wideMode = false }) 
     const [expanderField, setExpanderField] = useState(null);
     const [activeTab, setActiveTab] = useState('core');
     const fileInputRef = useRef(null);
+    const { cropModalProps, openCropFlow } = useImageCropFlow(setAvatarFile);
 
     // Ctrl+S / Cmd+S to save
     useEffect(() => {
@@ -84,9 +87,9 @@ export default function CharacterCardEditor({ item, onBack, wideMode = false }) 
 
     const handleAvatarChange = useCallback((e) => {
         const file = e.target.files?.[0];
-        if (file) setAvatarFile(file);
+        if (file) openCropFlow(file);
         e.target.value = '';
-    }, [setAvatarFile]);
+    }, [openCropFlow]);
 
     const displayAvatarUrl = avatarPreview || item.avatarUrl;
 
@@ -572,6 +575,9 @@ export default function CharacterCardEditor({ item, onBack, wideMode = false }) 
                 }}
                 onCancel={() => setShowDeleteModal(false)}
             />
+
+            {/* ─── Image Crop Modal ─────────────────────────── */}
+            <ImageCropModal {...cropModalProps} />
         </div>
     );
 }

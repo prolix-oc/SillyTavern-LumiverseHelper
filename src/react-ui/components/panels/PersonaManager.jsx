@@ -13,9 +13,11 @@ import {
     FileText, Shield, BookOpen, UserCheck,
 } from 'lucide-react';
 import usePersonaManager from '../../hooks/usePersonaManager';
+import useImageCropFlow from '../../hooks/useImageCropFlow';
 import { fetchBookList } from '../../../lib/worldBookService';
 import { personaManagerStyles } from './PersonaManagerStyles';
 import LazyImage from '../shared/LazyImage';
+import ImageCropModal from '../shared/ImageCropModal';
 
 // ─── Style Injection ────────────────────────────────────────────
 let stylesInjected = false;
@@ -267,14 +269,23 @@ function CreatePersonaForm({ onCreate, onCancel }) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const fileInputRef = useRef(null);
 
+    const handleCroppedFile = useCallback((croppedFile) => {
+        setFile(croppedFile);
+        const url = URL.createObjectURL(croppedFile);
+        setPreview((prev) => {
+            if (prev) URL.revokeObjectURL(prev);
+            return url;
+        });
+    }, []);
+
+    const { cropModalProps, openCropFlow } = useImageCropFlow(handleCroppedFile);
+
     const handleFileChange = useCallback((e) => {
         const f = e.target.files?.[0];
         if (!f) return;
-        setFile(f);
-        const reader = new FileReader();
-        reader.onload = (ev) => setPreview(ev.target.result);
-        reader.readAsDataURL(f);
-    }, []);
+        openCropFlow(f);
+        e.target.value = '';
+    }, [openCropFlow]);
 
     const handleSubmit = useCallback(async () => {
         if (!name.trim() || !file) return;
@@ -335,6 +346,7 @@ function CreatePersonaForm({ onCreate, onCancel }) {
                     <X size={15} strokeWidth={2} />
                 </button>
             </div>
+            <ImageCropModal {...cropModalProps} />
         </div>
     );
 }
@@ -386,6 +398,12 @@ function PersonaEditor({
     const [worldBookNames, setWorldBookNames] = useState(/** @type {string[]} */ ([]));
     const fileInputRef = useRef(null);
     const editorRef = useRef(null);
+
+    const handleCroppedAvatar = useCallback(async (croppedFile) => {
+        await onUploadAvatar(persona.avatarId, croppedFile);
+    }, [persona.avatarId, onUploadAvatar]);
+
+    const { cropModalProps, openCropFlow } = useImageCropFlow(handleCroppedAvatar);
 
     // Auto-scroll editor into view when persona changes
     useEffect(() => {
@@ -473,10 +491,11 @@ function PersonaEditor({
         onSetLorebook(persona.avatarId, v);
     }, [persona.avatarId, onSetLorebook]);
 
-    const handleAvatarUpload = useCallback(async (e) => {
+    const handleAvatarUpload = useCallback((e) => {
         const f = e.target.files?.[0];
-        if (f) await onUploadAvatar(persona.avatarId, f);
-    }, [persona.avatarId, onUploadAvatar]);
+        if (f) openCropFlow(f);
+        e.target.value = '';
+    }, [openCropFlow]);
 
     const handleDelete = useCallback(async () => {
         setIsDeleting(true);
@@ -485,14 +504,14 @@ function PersonaEditor({
     }, [persona.avatarId, onDelete]);
 
     // Avatar drop support
-    const handleDrop = useCallback(async (e) => {
+    const handleDrop = useCallback((e) => {
         e.preventDefault();
         e.stopPropagation();
         const f = e.dataTransfer?.files?.[0];
         if (f && f.type.startsWith('image/')) {
-            await onUploadAvatar(persona.avatarId, f);
+            openCropFlow(f);
         }
-    }, [persona.avatarId, onUploadAvatar]);
+    }, [openCropFlow]);
 
     const handleDragOver = useCallback((e) => {
         e.preventDefault();
@@ -708,6 +727,7 @@ function PersonaEditor({
                     )}
                 </div>
             </div>
+            <ImageCropModal {...cropModalProps} />
         </div>
     );
 }

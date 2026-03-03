@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Loader2 } from 'lucide-react';
 
 /**
@@ -59,6 +59,16 @@ function LazyImage({
 }) {
     const [isLoading, setIsLoading] = useState(true);
     const [hasError, setHasError] = useState(false);
+    const prevSrcRef = useRef(src);
+
+    // Reset loading/error state when src changes (e.g. cache-busted URL after avatar upload)
+    useEffect(() => {
+        if (src !== prevSrcRef.current) {
+            prevSrcRef.current = src;
+            setIsLoading(true);
+            setHasError(false);
+        }
+    }, [src]);
 
     const handleLoad = useCallback(() => {
         setIsLoading(false);

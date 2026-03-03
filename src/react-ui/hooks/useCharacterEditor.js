@@ -15,7 +15,7 @@ import {
   reloadCharacterInST,
   createCharacter,
 } from "../../lib/characterEditorService.js";
-import { deleteCharacterFromST, syncCharacters } from "../../lib/characterBrowserService.js";
+import { deleteCharacterFromST, syncCharacters, bustAvatarCache } from "../../lib/characterBrowserService.js";
 
 /**
  * Extract flat form state from a full ST character object.
@@ -306,7 +306,10 @@ export default function useCharacterEditor(item) {
       if (pendingAvatarFile) {
         await uploadAvatar(avatarUrl, pendingAvatarFile);
         setPendingAvatarFile(null);
-        setAvatarPreview(null);
+        // Keep avatarPreview alive (blob URL) so the editor shows the new image
+        // immediately. It will be revoked on unmount via the cleanup effect.
+        // Also bust the browser thumbnail cache so the grid refreshes.
+        bustAvatarCache(avatarUrl);
       }
 
       // 2. Name change requires full save (file rename on server)
