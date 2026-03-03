@@ -143,6 +143,7 @@ const initialState = {
             temperature: 0.7,
             topP: 1.0,
             maxTokens: 4096,
+            rpm: 0,
             providerProfiles: {},
         },
     },
@@ -1310,6 +1311,7 @@ const actions = {
             temperature: currentLLM.temperature ?? 0.7,
             topP: currentLLM.topP ?? 1.0,
             maxTokens: currentLLM.maxTokens || 4096,
+            rpm: currentLLM.rpm ?? 0,
         };
         if (oldProvider === 'custom') {
             snapshot.endpoint = currentLLM.endpoint || '';
@@ -1328,6 +1330,7 @@ const actions = {
             temperature: 0.7,
             topP: 1.0,
             maxTokens: 4096,
+            rpm: 0,
         };
 
         // Determine proxy fields based on provider type
@@ -1343,6 +1346,7 @@ const actions = {
                     temperature: restored.temperature ?? 0.7,
                     topP: restored.topP ?? 1.0,
                     maxTokens: restored.maxTokens || 4096,
+                    rpm: restored.rpm ?? 0,
                     endpoint: newProvider === 'custom' ? (restored.endpoint || '') : '',
                     apiKey: newProvider === 'custom' ? (restored.apiKey || '') : '',
                     proxyEndpoint: supportsProxy ? (restored.proxyEndpoint || '') : '',

@@ -1155,6 +1155,18 @@ function CouncilToolsConfig() {
                                 max={128000}
                             />
                         </div>
+                        <div className="lumiverse-council-llm-param">
+                            <label className="lumiverse-council-llm-label" title="Requests per minute (0 = unlimited)">RPM</label>
+                            <input
+                                type="number"
+                                className="lumiverse-council-llm-input lumiverse-council-llm-input--num"
+                                value={llm.rpm ?? 0}
+                                onChange={(e) => updateLLM({ rpm: parseInt(e.target.value, 10) || 0 })}
+                                min={0}
+                                step={1}
+                                title="Max requests per minute. 0 = unlimited."
+                            />
+                        </div>
                     </div>
                 </>
             )}

@@ -25,6 +25,7 @@ import {
     getActiveConnectionProfileId,
     getConnectionProfileSync,
 } from "./packCache.js";
+import { normalizeProvider } from "./connectionService.js";
 
 // Category marker used by ST presets
 const CATEGORY_MARKER = '\u2501'; // ━
@@ -203,9 +204,9 @@ export const SAMPLER_PARAMS = [
     { key: 'topP',             label: 'Top P',              apiKey: 'top_p',               oaiSettingsKey: 'top_p_openai',              uiSelector: '#top_p_openai',              type: 'float', min: 0,    max: 1,    step: 0.01, defaultHint: 0.95 },
     { key: 'minP',             label: 'Min P',              apiKey: 'min_p',               oaiSettingsKey: 'min_p_openai',              uiSelector: '#min_p_openai',              type: 'float', min: 0,    max: 1,    step: 0.01, defaultHint: 0 },
     { key: 'topK',             label: 'Top K',              apiKey: 'top_k',               oaiSettingsKey: 'top_k_openai',              uiSelector: '#top_k_openai',              type: 'int',   min: 0,    max: 500,  step: 1,    defaultHint: 0 },
-    { key: 'frequencyPenalty', label: 'Freq Penalty',       apiKey: 'frequency_penalty',   oaiSettingsKey: 'freq_pen_openai',           uiSelector: '#freq_pen_openai',           type: 'float', min: 0,    max: 2,    step: 0.01, defaultHint: 0 },
-    { key: 'presencePenalty',  label: 'Pres Penalty',       apiKey: 'presence_penalty',    oaiSettingsKey: 'pres_pen_openai',           uiSelector: '#pres_pen_openai',           type: 'float', min: 0,    max: 2,    step: 0.01, defaultHint: 0 },
-    { key: 'repetitionPenalty',label: 'Rep Penalty',        apiKey: 'repetition_penalty',  oaiSettingsKey: 'repetition_penalty_openai', uiSelector: '#repetition_penalty_openai', type: 'float', min: 0,    max: 2,    step: 0.01, defaultHint: 0 },
+    { key: 'frequencyPenalty', label: 'Freq Penalty',       apiKey: 'frequency_penalty',   oaiSettingsKey: 'freq_pen_openai',           uiSelector: '#freq_pen_openai',           type: 'float', min: 0,    max: 2,    step: 0.01, defaultHint: 0, optIn: true },
+    { key: 'presencePenalty',  label: 'Pres Penalty',       apiKey: 'presence_penalty',    oaiSettingsKey: 'pres_pen_openai',           uiSelector: '#pres_pen_openai',           type: 'float', min: 0,    max: 2,    step: 0.01, defaultHint: 0, optIn: true },
+    { key: 'repetitionPenalty',label: 'Rep Penalty',        apiKey: 'repetition_penalty',  oaiSettingsKey: 'repetition_penalty_openai', uiSelector: '#repetition_penalty_openai', type: 'float', min: 0,    max: 2,    step: 0.01, defaultHint: 0, optIn: true },
 ];
 
 // ============================================================================
@@ -1730,6 +1731,8 @@ const PROVIDER_PARAMS = {
     deepseek:     new Set(['maxTokens', 'contextSize', 'temperature', 'topP', 'frequencyPenalty', 'presencePenalty']),
     // xAI
     xai:          new Set(['maxTokens', 'contextSize', 'temperature', 'topP']),
+    // Z.AI (GLM) — no frequency_penalty, no presence_penalty
+    zai:          new Set(['maxTokens', 'contextSize', 'temperature', 'topP']),
     // Chutes — extra samplers
     chutes:       new Set(['maxTokens', 'contextSize', 'temperature', 'topP', 'topK', 'minP', 'repetitionPenalty']),
     // NanoGPT
@@ -1784,7 +1787,7 @@ export function detectConnectionProfile() {
 
         if (ctx.mainApi === 'openai') {
             const oaiSettings = ctx.chatCompletionSettings;
-            profile.source = oaiSettings?.chat_completion_source || null;
+            profile.source = normalizeProvider(oaiSettings?.chat_completion_source) || null;
             profile.model = typeof ctx.getChatCompletionModel === 'function'
                 ? ctx.getChatCompletionModel() : null;
 
@@ -1823,11 +1826,16 @@ export function applySamplerOverrides(preset, generateData) {
     const applied = [];
 
     for (const param of SAMPLER_PARAMS) {
-        // Use the preset value if set, otherwise fall back to the Loom default.
-        // This ensures all samplers are enforced even when the user hasn't
-        // adjusted them — preventing ST's values from leaking through.
+        // Skip params the current provider doesn't support
+        if (!profile.supportedParams.has(param.key)) continue;
+
+        // For opt-in params (penalties), only send when the user explicitly set them.
+        // Other params fall back to defaultHint to prevent ST's values from leaking.
         const raw = overrides[param.key];
-        const value = (raw !== null && raw !== undefined) ? raw : param.defaultHint;
+        const isExplicit = (raw !== null && raw !== undefined);
+        if (param.optIn && !isExplicit) continue;
+
+        const value = isExplicit ? raw : param.defaultHint;
         if (value === null || value === undefined) continue;
 
         const numValue = Number(value);

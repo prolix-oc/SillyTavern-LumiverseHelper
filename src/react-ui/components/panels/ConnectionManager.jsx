@@ -40,6 +40,7 @@ const PROVIDER_DISPLAY = {
     mistralai:    { label: 'Mistral',         color: '#ff7000' },
     deepseek:     { label: 'DeepSeek',        color: '#0ea5e9' },
     xai:          { label: 'xAI',             color: '#ffffff' },
+    zai:          { label: 'Z.AI',            color: '#00d4aa' },
     custom:       { label: 'Custom',          color: '#8b5cf6' },
     azure_openai: { label: 'Azure',           color: '#0078d4' },
 };

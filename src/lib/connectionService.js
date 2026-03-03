@@ -44,9 +44,32 @@ export const PROVIDER_DEFAULTS = {
     mistralai:    { label: 'Mistral AI',            secretKey: 'api_key_mistralai' },
     deepseek:     { label: 'DeepSeek',              secretKey: 'api_key_deepseek' },
     xai:          { label: 'xAI',                   secretKey: 'api_key_xai' },
+    zai:          { label: 'Z.AI (GLM)',             secretKey: 'api_key_zai' },
     custom:       { label: 'Custom (OpenAI-compat)', secretKey: 'api_key_custom' },
     azure_openai: { label: 'Azure OpenAI',          secretKey: 'api_key_azure_openai' },
 };
+
+/**
+ * Maps friendly /api slash command aliases to canonical chat_completion_source values.
+ * ST's `/api` command accepts these aliases and maps them internally, but our
+ * persistence guard and other code paths write directly to oaiSettings — so we
+ * must resolve aliases ourselves to avoid "unknown provider" errors.
+ */
+const PROVIDER_ALIASES = {
+    google: 'makersuite',
+    oai:    'openai',
+};
+
+/**
+ * Normalize a provider string to its canonical chat_completion_source value.
+ * Passes through any value not in the alias map unchanged.
+ * @param {string} provider
+ * @returns {string}
+ */
+export function normalizeProvider(provider) {
+    if (!provider) return provider;
+    return PROVIDER_ALIASES[provider] || provider;
+}
 
 // ============================================================================
 // STATE
@@ -122,7 +145,7 @@ export async function createProfile(data) {
         name: data.name || 'New Profile',
         createdAt: now,
         updatedAt: now,
-        provider: data.provider || 'openai',
+        provider: normalizeProvider(data.provider) || 'openai',
         model: data.model || '',
         secretMode: data.secretMode || 'own',
         apiKey: data.apiKey || null,
@@ -219,7 +242,7 @@ export async function captureCurrentAsProfile(name) {
     if (!ctx) throw new Error('ST context not available');
 
     const oaiSettings = ctx.chatCompletionSettings || {};
-    const source = oaiSettings.chat_completion_source || 'openai';
+    const source = normalizeProvider(oaiSettings.chat_completion_source) || 'openai';
     const model = typeof ctx.getChatCompletionModel === 'function'
         ? ctx.getChatCompletionModel() : '';
 
@@ -568,14 +591,15 @@ function reapplyCriticalFields(profile) {
 
     let changed = false;
 
-    // Check source
-    if (profile.provider && oaiSettings.chat_completion_source !== profile.provider) {
-        oaiSettings.chat_completion_source = profile.provider;
+    // Check source — always use the canonical value, never an alias
+    const canonical = normalizeProvider(profile.provider);
+    if (canonical && oaiSettings.chat_completion_source !== canonical) {
+        oaiSettings.chat_completion_source = canonical;
         // Also sync UI dropdown to prevent visual desync
         try {
             const sel = document.getElementById('chat_completion_source');
-            if (sel && sel.value !== profile.provider) {
-                sel.value = profile.provider;
+            if (sel && sel.value !== canonical) {
+                sel.value = canonical;
             }
         } catch (e) {}
         changed = true;
@@ -729,7 +753,7 @@ export async function migrateSTProfile(stProfile) {
     console.log(`[${MODULE_NAME}] Migrating ST profile: "${stProfile.stName}" (${stProfile.provider}/${stProfile.model})`);
     return await createProfile({
         name: stProfile.stName,
-        provider: stProfile.provider || 'openai',
+        provider: normalizeProvider(stProfile.provider) || 'openai',
         model: stProfile.model || '',
         secretMode: 'st',
         stSecretId: stProfile.secretId || null,

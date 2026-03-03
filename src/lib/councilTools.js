@@ -42,6 +42,44 @@ let namedToolResults = {};
 // Raw (unformatted) tool inputs — parallel to namedToolResults for structured access
 let namedToolResultsRaw = {};
 
+// Sliding window of request timestamps for RPM rate limiting
+const requestTimestamps = [];
+
+/**
+ * RPM rate gate — waits if issuing another request would exceed the configured
+ * requests-per-minute limit. Uses a sliding 60-second window.
+ * @param {AbortSignal} [signal] - Optional abort signal to cancel the wait
+ */
+async function rpmGate(signal) {
+  const settings = getSettings();
+  const rpm = parseInt(settings.councilTools?.llm?.rpm, 10) || 0;
+  if (rpm <= 0) return; // unlimited
+
+  const now = Date.now();
+  const windowMs = 60_000;
+
+  // Purge timestamps older than 1 minute
+  while (requestTimestamps.length > 0 && requestTimestamps[0] <= now - windowMs) {
+    requestTimestamps.shift();
+  }
+
+  // If at capacity, wait until the oldest request expires from the window
+  if (requestTimestamps.length >= rpm) {
+    const waitMs = requestTimestamps[0] - (now - windowMs) + 50; // +50ms buffer
+    if (waitMs > 0) {
+      await new Promise((resolve, reject) => {
+        const timer = setTimeout(resolve, waitMs);
+        signal?.addEventListener('abort', () => {
+          clearTimeout(timer);
+          reject(new DOMException('Aborted', 'AbortError'));
+        }, { once: true });
+      });
+    }
+  }
+
+  requestTimestamps.push(Date.now());
+}
+
 /**
  * Get all tools (built-in + DLC) as a unified map.
  * Built-in tools take priority over DLC tools with the same name.
@@ -1700,6 +1738,7 @@ Review the story context above. For each tool call, provide specific, actionable
       };
 
       try {
+        await rpmGate(signal);
         const retryOptions = { method: "POST", headers, body: JSON.stringify(retryBody) };
         if (signal) retryOptions.signal = signal;
 
@@ -1925,6 +1964,7 @@ Review the story context above. For each tool call, provide specific, actionable
       };
 
       try {
+        await rpmGate(signal);
         const retryOptions = { method: "POST", headers, body: JSON.stringify(retryBody) };
         if (signal) retryOptions.signal = signal;
 
@@ -2447,21 +2487,18 @@ export async function executeAllCouncilTools(generationType) {
       return [];
     }
 
-    // Execute all members in parallel - each member is one API call
-    // Stream results to the Feedback panel as each member completes
-    const streamedResults = [];
-    const memberPromises = activeMembers.map(async (member) => {
+    // Execute members sequentially to avoid overwhelming provider rate limits.
+    // Each member's API calls (initial + retries) complete before the next starts.
+    const allResults = [];
+    for (const member of activeMembers) {
+      await rpmGate(signal);
       const results = await executeToolsForMember(member, member.tools, contextText, providerInfo, enrichmentText, signal);
       // Add member to visual indicator when their tools complete
       addMemberToIndicator(member);
       // Stream this member's results to the Feedback panel immediately
-      streamedResults.push(...results);
-      window.LumiverseBridge?.setCouncilToolResults?.([...streamedResults]);
-      return results;
-    });
-
-    const memberResultArrays = await Promise.all(memberPromises);
-    const allResults = memberResultArrays.flat();
+      allResults.push(...results);
+      window.LumiverseBridge?.setCouncilToolResults?.([...allResults]);
+    }
 
     // Store final results for macro access
     setLatestToolResults(allResults);

@@ -106,6 +106,7 @@ const DEFAULT_SETTINGS = {
       temperature: 0.7,
       topP: 1.0,
       maxTokens: 4096,
+      rpm: 0, // 0 = unlimited, otherwise max requests per minute
       providerProfiles: {},
     },
   },
@@ -726,6 +727,10 @@ export function migrateSettings() {
   }
   if (settings.councilTools.llm.proxyKey === undefined) {
     settings.councilTools.llm.proxyKey = "";
+  }
+  // Ensure RPM rate limit field exists
+  if (settings.councilTools.llm.rpm === undefined) {
+    settings.councilTools.llm.rpm = 0;
   }
 
   // Ensure context enrichment toggles exist
