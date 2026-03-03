@@ -271,7 +271,16 @@ export async function deletePersona(avatarId) {
             headers: getRequestHeaders(),
             body: JSON.stringify({ avatar: avatarId }),
         });
-        if (!resp.ok) return false;
+
+        // 200 = file deleted, 404 = file already gone — both are acceptable.
+        // Only bail on real errors (400 bad request, 403 malicious filename, 5xx).
+        if (!resp.ok && resp.status !== 404) {
+            console.warn('[Lumiverse] PersonaManager: deletePersona server error:', resp.status, avatarId);
+            return false;
+        }
+        if (resp.status === 404) {
+            console.debug('[Lumiverse] PersonaManager: avatar file already gone, cleaning up data for', avatarId);
+        }
 
         // Clean up power_user
         delete ctx.powerUserSettings.personas?.[avatarId];
