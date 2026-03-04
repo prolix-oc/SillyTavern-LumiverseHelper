@@ -282,6 +282,7 @@ export async function captureCurrentAsProfile(name) {
         model: model || '',
         secretMode: 'st',
         endpointUrl: oaiSettings.reverse_proxy || null,
+        apiKey: oaiSettings.reverse_proxy ? (oaiSettings.proxy_password || null) : null,
         oaiPreset: currentPreset,
         reasoning: captureReasoningSnapshot(),
         promptPostProcessing,

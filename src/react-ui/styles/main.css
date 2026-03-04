@@ -18416,6 +18416,9 @@ details.lumia-panel[open] .lumia-panel-chevron {
     color: var(--lumiverse-warning, #ffb74d);
     transform: scale(1.15);
 }
+.lumiverse-cb-list-row .lumiverse-cb-card-star:hover {
+    transform: translateY(-50%) scale(1.15);
+}
 
 /* ─── Card Edit Button ───────────────────────────────────────── */
 
@@ -18449,11 +18452,16 @@ details.lumia-panel[open] .lumia-panel-chevron {
     right: 40px;
     top: 50%;
     transform: translateY(-50%);
+    background: rgba(255,255,255,0.08);
+    color: var(--lumiverse-text, rgba(255,255,255,0.7));
 }
 
 .lumiverse-cb-card-edit:hover {
     color: var(--lumiverse-primary, #9370db);
     transform: scale(1.15);
+}
+.lumiverse-cb-list-row .lumiverse-cb-card-edit:hover {
+    transform: translateY(-50%) scale(1.15);
 }
 
 .lumiverse-cb-card-delete {
@@ -18486,11 +18494,24 @@ details.lumia-panel[open] .lumia-panel-chevron {
     right: 75px;
     top: 50%;
     transform: translateY(-50%);
+    background: rgba(255,255,255,0.08);
+    color: var(--lumiverse-text, rgba(255,255,255,0.7));
+}
+
+/* In list rows, position star button on the far right */
+.lumiverse-cb-list-row .lumiverse-cb-card-star {
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255,255,255,0.08);
+    color: var(--lumiverse-text, rgba(255,255,255,0.7));
 }
 
 .lumiverse-cb-card-delete:hover {
     color: var(--lumiverse-danger, #ef4444);
     transform: scale(1.15);
+}
+.lumiverse-cb-list-row .lumiverse-cb-card-delete:hover {
+    transform: translateY(-50%) scale(1.15);
 }
 
 /* ─── Card Tag Pills ─────────────────────────────────────────── */
@@ -18658,7 +18679,7 @@ details.lumia-panel[open] .lumia-panel-chevron {
     align-items: center;
     gap: 10px;
     width: 100%;
-    padding: 6px 10px;
+    padding: 6px 110px 6px 10px;
     border: 1px solid transparent;
     border-radius: 8px;
     background: transparent;

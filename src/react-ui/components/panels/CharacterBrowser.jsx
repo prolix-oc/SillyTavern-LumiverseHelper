@@ -346,14 +346,16 @@ const CharacterCardGrid = memo(function CharacterCardGrid({
 }) {
     const showGroupStack = item.isGroup && item.members?.length > 0;
     return (
-        <button
+        <div
             className={clsx(
                 'lumiverse-cb-card',
                 isActive && 'lumiverse-cb-card--active',
                 isSelected && 'lumiverse-cb-card--selected',
             )}
             onClick={() => onSelect(item)}
-            type="button"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(item); } }}
         >
             {/* Batch selection check overlay */}
             {isBatchMode && !item.isGroup && (
@@ -426,7 +428,7 @@ const CharacterCardGrid = memo(function CharacterCardGrid({
                     <Star size={15} strokeWidth={item.isFavorite ? 0 : 1.5} fill={item.isFavorite ? 'currentColor' : 'none'} />
                 </button>
             )}
-        </button>
+        </div>
     );
 }, areCardPropsEqual);
 
@@ -435,14 +437,16 @@ const CharacterCardList = memo(function CharacterCardList({
     item, isActive, onSelect, onToggleFavorite, onEdit, onDelete, isBatchMode, isSelected,
 }) {
     return (
-        <button
+        <div
             className={clsx(
                 'lumiverse-cb-list-row',
                 isActive && 'lumiverse-cb-list-row--active',
                 isSelected && 'lumiverse-cb-list-row--selected',
             )}
             onClick={() => onSelect(item)}
-            type="button"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(item); } }}
         >
             {isBatchMode && !item.isGroup && (
                 <div className={clsx('lumiverse-cb-list-check', isSelected && 'lumiverse-cb-list-check--active')}>
@@ -495,7 +499,7 @@ const CharacterCardList = memo(function CharacterCardList({
                     <Star size={14} strokeWidth={item.isFavorite ? 0 : 1.5} fill={item.isFavorite ? 'currentColor' : 'none'} />
                 </button>
             )}
-        </button>
+        </div>
     );
 }, areCardPropsEqual);
 

@@ -17,6 +17,7 @@ import { getItemFromLibrary } from "./dataProcessor.js";
 import { getLumiaField, getLoomContent } from "./lumiaContent.js";
 import { getProviderConfig, fetchSecretKey } from "./summarization.js";
 import { getBlocksInCategory } from "./lucidLoomService.js";
+import { getActiveProfileId, loadProfileSync } from "./connectionService.js";
 import {
   showCouncilIndicator,
   addMemberToIndicator,
@@ -1603,10 +1604,25 @@ function buildOpenAITools(toolNames) {
 }
 
 /**
+ * Check if two provider names refer to the same provider, accounting for aliases.
+ * e.g. 'google' ↔ 'makersuite', 'oai' ↔ 'openai'
+ */
+function providersMatch(a, b) {
+  const normalize = (p) => {
+    if (p === 'google') return 'makersuite';
+    if (p === 'oai') return 'openai';
+    return p;
+  };
+  return normalize(a) === normalize(b);
+}
+
+/**
  * Resolve API key, endpoint, and provider config for council tools.
  * Uses the dedicated council tools LLM configuration (settings.councilTools.llm).
  * Falls back to summarization secondary config for backwards compatibility.
  * For non-custom providers, proxy fields override the default endpoint/key if set.
+ * If no proxy is configured in council tools settings, falls back to the active
+ * connection profile's reverse proxy when the providers match.
  * @returns {Promise<{apiKey: string, endpoint: string, providerConfig: Object, secondary: Object, provider: string}>}
  */
 async function resolveProviderConfig() {
@@ -1634,6 +1650,20 @@ async function resolveProviderConfig() {
       apiKey = await fetchSecretKey(providerConfig.secretKey);
     }
     endpoint = llmConfig.proxyEndpoint || providerConfig.endpoint;
+
+    // Fall back to active connection profile's reverse proxy if providers match
+    if (!llmConfig.proxyEndpoint && !llmConfig.proxyKey) {
+      const activeId = getActiveProfileId();
+      if (activeId) {
+        const profile = loadProfileSync(activeId);
+        if (profile?.endpointUrl && providersMatch(profile.provider, provider)) {
+          endpoint = profile.endpointUrl;
+          if (profile.apiKey) {
+            apiKey = profile.apiKey;
+          }
+        }
+      }
+    }
 
     if (!apiKey) {
       throw new Error(
